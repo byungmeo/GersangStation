@@ -27,6 +27,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.materialTabControl1 = new MaterialSkin.Controls.MaterialTabControl();
             this.tabPage_home = new System.Windows.Forms.TabPage();
+            this.materialCheckbox1 = new MaterialSkin.Controls.MaterialCheckbox();
             this.materialButton_start_3 = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_naver_3 = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_start_2 = new MaterialSkin.Controls.MaterialButton();
@@ -78,6 +79,7 @@
             // 
             this.tabPage_home.AutoScroll = true;
             this.tabPage_home.BackColor = System.Drawing.Color.White;
+            this.tabPage_home.Controls.Add(this.materialCheckbox1);
             this.tabPage_home.Controls.Add(this.materialButton_start_3);
             this.tabPage_home.Controls.Add(this.materialButton_naver_3);
             this.tabPage_home.Controls.Add(this.materialButton_start_2);
@@ -106,6 +108,24 @@
             this.tabPage_home.Size = new System.Drawing.Size(394, 204);
             this.tabPage_home.TabIndex = 0;
             this.tabPage_home.Text = "Home";
+            // 
+            // materialCheckbox1
+            // 
+            this.materialCheckbox1.AutoSize = true;
+            this.materialCheckbox1.Depth = 0;
+            this.materialCheckbox1.Enabled = false;
+            this.materialCheckbox1.Location = new System.Drawing.Point(208, 6);
+            this.materialCheckbox1.Margin = new System.Windows.Forms.Padding(0);
+            this.materialCheckbox1.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.materialCheckbox1.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialCheckbox1.Name = "materialCheckbox1";
+            this.materialCheckbox1.ReadOnly = false;
+            this.materialCheckbox1.Ripple = true;
+            this.materialCheckbox1.Size = new System.Drawing.Size(59, 37);
+            this.materialCheckbox1.TabIndex = 37;
+            this.materialCheckbox1.TabStop = false;
+            this.materialCheckbox1.Text = "테섭";
+            this.materialCheckbox1.UseVisualStyleBackColor = true;
             // 
             // materialButton_start_3
             // 
@@ -239,7 +259,7 @@
             this.materialButton1.Depth = 0;
             this.materialButton1.HighEmphasis = true;
             this.materialButton1.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton1.Icon")));
-            this.materialButton1.Location = new System.Drawing.Point(242, 6);
+            this.materialButton1.Location = new System.Drawing.Point(287, 7);
             this.materialButton1.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton1.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton1.Name = "materialButton1";
@@ -468,7 +488,7 @@
             // 
             this.radio_preset_4.AutoSize = true;
             this.radio_preset_4.Depth = 0;
-            this.radio_preset_4.Location = new System.Drawing.Point(177, 6);
+            this.radio_preset_4.Location = new System.Drawing.Point(153, 6);
             this.radio_preset_4.Margin = new System.Windows.Forms.Padding(0);
             this.radio_preset_4.MouseLocation = new System.Drawing.Point(-1, -1);
             this.radio_preset_4.MouseState = MaterialSkin.MouseState.HOVER;
@@ -486,7 +506,7 @@
             // 
             this.radio_preset_3.AutoSize = true;
             this.radio_preset_3.Depth = 0;
-            this.radio_preset_3.Location = new System.Drawing.Point(123, 6);
+            this.radio_preset_3.Location = new System.Drawing.Point(107, 6);
             this.radio_preset_3.Margin = new System.Windows.Forms.Padding(0);
             this.radio_preset_3.MouseLocation = new System.Drawing.Point(-1, -1);
             this.radio_preset_3.MouseState = MaterialSkin.MouseState.HOVER;
@@ -504,7 +524,7 @@
             // 
             this.radio_preset_2.AutoSize = true;
             this.radio_preset_2.Depth = 0;
-            this.radio_preset_2.Location = new System.Drawing.Point(69, 6);
+            this.radio_preset_2.Location = new System.Drawing.Point(61, 6);
             this.radio_preset_2.Margin = new System.Windows.Forms.Padding(0);
             this.radio_preset_2.MouseLocation = new System.Drawing.Point(-1, -1);
             this.radio_preset_2.MouseState = MaterialSkin.MouseState.HOVER;
@@ -559,7 +579,7 @@
             this.materialButton_setting_shortcut.Depth = 0;
             this.materialButton_setting_shortcut.HighEmphasis = true;
             this.materialButton_setting_shortcut.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_shortcut.Icon")));
-            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(7, 105);
+            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(111, 148);
             this.materialButton_setting_shortcut.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_shortcut.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
@@ -580,7 +600,7 @@
             this.materialButton_setting_client.Depth = 0;
             this.materialButton_setting_client.HighEmphasis = true;
             this.materialButton_setting_client.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_client.Icon")));
-            this.materialButton_setting_client.Location = new System.Drawing.Point(7, 57);
+            this.materialButton_setting_client.Location = new System.Drawing.Point(111, 100);
             this.materialButton_setting_client.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_client.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_client.Name = "materialButton_setting_client";
@@ -600,7 +620,7 @@
             this.materialButton_setting_account.Depth = 0;
             this.materialButton_setting_account.HighEmphasis = true;
             this.materialButton_setting_account.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_account.Icon")));
-            this.materialButton_setting_account.Location = new System.Drawing.Point(7, 9);
+            this.materialButton_setting_account.Location = new System.Drawing.Point(111, 52);
             this.materialButton_setting_account.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_account.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_account.Name = "materialButton_setting_account";
@@ -683,5 +703,6 @@
         private MaterialSkin.Controls.MaterialButton materialButton_setting_account;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_client;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_shortcut;
+        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox1;
     }
 }

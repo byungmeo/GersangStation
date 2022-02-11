@@ -77,9 +77,9 @@
             this.label10.Font = new System.Drawing.Font("Noto Sans KR Black", 11F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.label10.Location = new System.Drawing.Point(17, 214);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(80, 22);
+            this.label10.Size = new System.Drawing.Size(170, 22);
             this.label10.TabIndex = 52;
-            this.label10.Text = "테스트서버";
+            this.label10.Text = "테스트서버 (현재 미지원)";
             this.label10.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // materialButton_createClient_test

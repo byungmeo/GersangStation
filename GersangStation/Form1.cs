@@ -684,7 +684,12 @@ namespace GersangStation {
             materialComboBox_account_3.Items.Clear();
 
             string temp = ConfigManager.getConfig("account_list");
-            string[] accountList = temp.Remove(temp.Length - 1, 1).Split(';');
+            string[] accountList;
+            if (temp.Length != 0) {
+                accountList = temp.Remove(temp.Length - 1, 1).Split(';');
+            } else {
+                accountList = new string[0];
+            }
 
             materialComboBox_account_1.Items.Add("선택안함");
             materialComboBox_account_2.Items.Add("선택안함");
