@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace GersangStation_Mini_ {
+namespace GersangStation {
     public partial class Form1 : MaterialForm {
         private const int WM_ACTIVATEAPP = 0x001C;
 
@@ -54,7 +54,7 @@ namespace GersangStation_Mini_ {
 
             // Set this to false to disable backcolor enforcing on non-materialSkin components
             // This HAS to be set before the AddFormToManage()
-            materialSkinManager.EnforceBackcolorOnAllComponents = true;
+            materialSkinManager.EnforceBackcolorOnAllComponents = false;
 
             // MaterialSkinManager properties
             materialSkinManager.AddFormToManage(this);
@@ -92,7 +92,6 @@ namespace GersangStation_Mini_ {
             LoadRadioButton();
             LoadAccountComboBox();
             LoadShortcut();
-            LoadPath();
         }
 
         private void CoreWebView2_NewWindowRequested(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2NewWindowRequestedEventArgs e) {
@@ -839,26 +838,6 @@ namespace GersangStation_Mini_ {
             materialComboBox_account_3.Refresh();
         }
 
-        private void materialButton_findPath_Click(object sender, EventArgs e) {
-            folderBrowserDialog.ShowDialog();
-            if (folderBrowserDialog.SelectedPath.Length != 0) {
-                if(sender.Equals(materialButton3)) { textBox_path_1.Text = folderBrowserDialog.SelectedPath; } 
-                else if(sender.Equals(materialButton4)) { textBox_path_2.Text = folderBrowserDialog.SelectedPath; } 
-                else { textBox_path_3.Text = folderBrowserDialog.SelectedPath; }
-            }
-        }
-
-        private void materialExpansionPanel_path_Resize(object sender, EventArgs e) {
-            MaterialExpansionPanel panel = (MaterialExpansionPanel)sender;
-            materialExpansionPanel_shortcut.Location = new Point(materialExpansionPanel_shortcut.Location.X, panel.Location.Y + panel.Size.Height + 14);
-        }
-
-        private void materialExpansionPanel_account_Resize(object sender, EventArgs e) {
-            MaterialExpansionPanel panel = (MaterialExpansionPanel)sender;
-            materialExpansionPanel_path.Location = new Point(materialExpansionPanel_path.Location.X, panel.Location.Y + panel.Size.Height + 14);
-            materialExpansionPanel_shortcut.Location = new Point(materialExpansionPanel_shortcut.Location.X, materialExpansionPanel_path.Location.Y + materialExpansionPanel_path.Size.Height + 14);
-        }
-
         private void materialButton1_Click(object sender, EventArgs e) {
             MaterialForm form = new MaterialForm() {
                 Size = new Size(1500, 1000),
@@ -909,18 +888,6 @@ namespace GersangStation_Mini_ {
             textBox_shortcutLink_2.Text = ConfigManager.getConfig("shortcut_2");
             textBox_shortcutLink_3.Text = ConfigManager.getConfig("shortcut_3");
             textBox_shortcutLink_4.Text = ConfigManager.getConfig("shortcut_4");
-        }
-
-        private void materialExpansionPanel1_SaveClick(object sender, EventArgs e) {
-            ConfigManager.setConfig("client_path_1", textBox_path_1.Text);
-            ConfigManager.setConfig("client_path_2", textBox_path_2.Text);
-            ConfigManager.setConfig("client_path_3", textBox_path_3.Text);
-        }
-
-        private void LoadPath() {
-            textBox_path_1.Text = ConfigManager.getConfig("client_path_1");
-            textBox_path_2.Text = ConfigManager.getConfig("client_path_2");
-            textBox_path_3.Text = ConfigManager.getConfig("client_path_3");
         }
 
         private void materialButton_naver_Click(object sender, EventArgs e) {
@@ -995,6 +962,104 @@ namespace GersangStation_Mini_ {
 
             await webView_main.ExecuteScriptAsync("document.getElementById('btn_Login').click()");
             currentState = State.LoggedIn;
+        }
+
+        private void materialButton_setting_Click(object sender, EventArgs e) {
+            MaterialButton button = (MaterialButton)sender;
+            if (button.Equals(materialButton_setting_account)) {
+                OpenAccountSettingDialog();
+            } else if (button.Equals(materialButton_setting_client)) {
+                OpenClientSettingDialog();
+            } else if (button.Equals(materialButton_setting_shortcut)) {
+                OpenShortcuttSettingDialog();
+            }
+        }
+
+        private void OpenShortcuttSettingDialog() {
+            Form backgroundForm = new Form() {
+                StartPosition = FormStartPosition.Manual,
+                FormBorderStyle = FormBorderStyle.None,
+                Opacity = .50d,
+                BackColor = Color.Black,
+                Location = this.Location,
+                Size = this.Size,
+                ShowInTaskbar = false,
+                Owner = this
+            };
+            backgroundForm.Show();
+
+            MaterialForm dialog_shortcut = new MaterialForm() {
+                FormStyle = FormStyles.ActionBar_None,
+                Sizable = false,
+                StartPosition = FormStartPosition.CenterParent,
+                Size = new Size(200, 210),
+                Text = "계정 추가",
+                MaximizeBox = false,
+                MinimizeBox = false,
+                TopMost = true,
+                ShowInTaskbar = false,
+                Owner = this
+            };
+
+            dialog_shortcut.ShowDialog();
+            backgroundForm.Dispose();
+        }
+
+        private void OpenClientSettingDialog() {
+            Form backgroundForm = new Form() {
+                StartPosition = FormStartPosition.Manual,
+                FormBorderStyle = FormBorderStyle.None,
+                Opacity = .50d,
+                BackColor = Color.Black,
+                Location = this.Location,
+                Size = this.Size,
+                ShowInTaskbar = false,
+                Owner = this
+            };
+
+            Form_ClientSetting dialog_clientSetting = new Form_ClientSetting() {
+                Owner = this
+            };
+
+            try {
+                backgroundForm.Show();
+                dialog_clientSetting.ShowDialog();
+            } catch (Exception ex) {
+                Trace.WriteLine(ex.StackTrace);
+            } finally {
+                backgroundForm.Dispose();
+            }
+        }
+
+        private void OpenAccountSettingDialog() {
+            Form backgroundForm = new Form() {
+                StartPosition = FormStartPosition.Manual,
+                FormBorderStyle = FormBorderStyle.None,
+                Opacity = .50d,
+                BackColor = Color.Black,
+                Location = this.Location,
+                Size = this.Size,
+                ShowInTaskbar = false,
+                Owner = this
+            };
+            backgroundForm.Show();
+
+            MaterialForm dialog_account = new MaterialForm() {
+                FormStyle = FormStyles.ActionBar_None,
+                Sizable = false,
+                StartPosition = FormStartPosition.CenterParent,
+
+                Size = new Size(200, 210),
+                Text = "계정 추가",
+                MaximizeBox = false,
+                MinimizeBox = false,
+                TopMost = true,
+                ShowInTaskbar = false,
+                Owner = this
+            };
+
+            dialog_account.ShowDialog();
+            backgroundForm.Dispose();
         }
     }
 }

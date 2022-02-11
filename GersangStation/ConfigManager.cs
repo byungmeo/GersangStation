@@ -1,6 +1,6 @@
 ﻿using System.Configuration;
 
-namespace GersangStation_Mini_ {
+namespace GersangStation {
     internal static class ConfigManager {
         public static Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
 

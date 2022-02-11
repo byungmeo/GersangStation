@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace GersangStation_Mini_ {
+namespace GersangStation {
     public class EncryptionSupporter {
         public static string Protect(string origin) {
             string PasswordProtect = Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(origin), null, DataProtectionScope.CurrentUser));
