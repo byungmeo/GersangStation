@@ -6,6 +6,16 @@ namespace GersangStation {
             InitializeComponent();
         }
 
+        private void Form_ClientSetting_Load(object sender, EventArgs e) {
+            textBox_path_1.Text = ConfigManager.getConfig("client_path_1");
+            textBox_path_2.Text = ConfigManager.getConfig("client_path_2");
+            textBox_path_3.Text = ConfigManager.getConfig("client_path_3");
+
+            textBox_path_test_1.Text = ConfigManager.getConfig("client_path_test_1");
+            textBox_path_test_2.Text = ConfigManager.getConfig("client_path_test_2");
+            textBox_path_test_3.Text = ConfigManager.getConfig("client_path_test_3");
+        }
+
         private void materialButton_findPath_Click(object sender, EventArgs e) {
             MaterialButton button = (MaterialButton)sender;
             folderBrowserDialog.ShowDialog();
@@ -39,16 +49,6 @@ namespace GersangStation {
                 //새로운 폼 띄우고 2클, 3클 폴더명 정하고 클라생성버튼
                 //textBox_path_test_1
             }
-        }
-
-        private void Form_ClientSetting_Load(object sender, EventArgs e) {
-            textBox_path_1.Text = ConfigManager.getConfig("client_path_1");
-            textBox_path_2.Text = ConfigManager.getConfig("client_path_2");
-            textBox_path_3.Text = ConfigManager.getConfig("client_path_3");
-
-            textBox_path_test_1.Text = ConfigManager.getConfig("client_path_test_1");
-            textBox_path_test_2.Text = ConfigManager.getConfig("client_path_test_2");
-            textBox_path_test_3.Text = ConfigManager.getConfig("client_path_test_3");
         }
     }
 }

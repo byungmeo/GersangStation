@@ -853,41 +853,12 @@ namespace GersangStation {
             form.Show();
         }
 
-        private void materialExpansionPanel3_SaveClick(object sender, EventArgs e) {
-            StringBuilder sb = new StringBuilder();
-            sb.Append(textBox_shortcutName_1.Text + ";");
-            sb.Append(textBox_shortcutName_2.Text + ";");
-            sb.Append(textBox_shortcutName_3.Text + ";");
-            sb.Append(textBox_shortcutName_4.Text + ";");
-            ConfigManager.setConfig("shortcut_name", sb.ToString());
-            ConfigManager.setConfig("shortcut_1", textBox_shortcutLink_1.Text);
-            ConfigManager.setConfig("shortcut_2", textBox_shortcutLink_2.Text);
-            ConfigManager.setConfig("shortcut_3", textBox_shortcutLink_3.Text);
-            ConfigManager.setConfig("shortcut_4", textBox_shortcutLink_4.Text);
-
-            string[] names = sb.ToString().Split(';');
-            materialButton_shortcut_1.Text = names[0];
-            materialButton_shortcut_2.Text = names[1];
-            materialButton_shortcut_3.Text = names[2];
-            materialButton_shortcut_4.Text = names[3];
-        }
-
         private void LoadShortcut() {
             string[] names = ConfigManager.getConfig("shortcut_name").Split(';');
-            textBox_shortcutName_1.Text = names[0];
-            textBox_shortcutName_2.Text = names[1];
-            textBox_shortcutName_3.Text = names[2];
-            textBox_shortcutName_4.Text = names[3];
-
             materialButton_shortcut_1.Text = names[0];
             materialButton_shortcut_2.Text = names[1];
             materialButton_shortcut_3.Text = names[2];
             materialButton_shortcut_4.Text = names[3];
-
-            textBox_shortcutLink_1.Text = ConfigManager.getConfig("shortcut_1");
-            textBox_shortcutLink_2.Text = ConfigManager.getConfig("shortcut_2");
-            textBox_shortcutLink_3.Text = ConfigManager.getConfig("shortcut_3");
-            textBox_shortcutLink_4.Text = ConfigManager.getConfig("shortcut_4");
         }
 
         private void materialButton_naver_Click(object sender, EventArgs e) {
@@ -986,23 +957,20 @@ namespace GersangStation {
                 ShowInTaskbar = false,
                 Owner = this
             };
-            backgroundForm.Show();
 
-            MaterialForm dialog_shortcut = new MaterialForm() {
-                FormStyle = FormStyles.ActionBar_None,
-                Sizable = false,
-                StartPosition = FormStartPosition.CenterParent,
-                Size = new Size(200, 210),
-                Text = "계정 추가",
-                MaximizeBox = false,
-                MinimizeBox = false,
-                TopMost = true,
-                ShowInTaskbar = false,
+            Form_ShortcutSetting dialog_shortcutSetting = new Form_ShortcutSetting() {
                 Owner = this
             };
 
-            dialog_shortcut.ShowDialog();
-            backgroundForm.Dispose();
+            try {
+                backgroundForm.Show();
+                dialog_shortcutSetting.ShowDialog();
+
+            } catch (Exception ex) {
+                Trace.WriteLine(ex.StackTrace);
+            } finally {
+                backgroundForm.Dispose();
+            }
         }
 
         private void OpenClientSettingDialog() {
