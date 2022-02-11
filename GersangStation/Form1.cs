@@ -634,114 +634,6 @@ namespace GersangStation {
             form.ShowDialog();
         }
 
-        private void materialButton_addAccount_Click(object sender, EventArgs e) {
-            Form backgroundForm = new Form() {
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.None,
-                Opacity = .50d,
-                BackColor = Color.Black,
-                Location = this.Location,
-                Size = this.Size,
-                ShowInTaskbar = false,
-                Owner = this
-            };
-            backgroundForm.Show();
-
-            //계정 추가 대화상자용 폼
-            MaterialForm dialog_addAccount = new MaterialForm() {
-                FormStyle = FormStyles.ActionBar_None,
-                Sizable = false,
-                StartPosition = FormStartPosition.CenterParent,
-                //Size = new Size(200, 270),
-                Size = new Size(200, 210),
-                Text = "계정 추가",
-                MaximizeBox = false,
-                MinimizeBox = false,
-                TopMost = true,
-                ShowInTaskbar = false,
-                Owner = this
-            };
-
-            //id 입력 텍스트박스
-            MaterialTextBox2 textBox_id = new MaterialTextBox2() {
-                Hint = "ID 입력",
-                UseAccent = false,
-                Size = new Size(170, 50),
-                Location = new Point(15, 40),
-            };
-            dialog_addAccount.Controls.Add(textBox_id);
-
-            //패스워드 입력 텍스트박스
-            MaterialTextBox2 textBox_pw = new MaterialTextBox2() {
-                Hint = "패스워드 입력",
-                UseAccent = false,
-                Size = new Size(170, 50),
-                Location = new Point(15, 100),
-                UseSystemPasswordChar = true,
-                PasswordChar = '●'
-            };
-            dialog_addAccount.Controls.Add(textBox_pw);
-
-            /*
-            //별명 입력
-            MaterialTextBox2 textBox_nickname = new MaterialTextBox2() {
-                Hint = "별명 입력",
-                UseAccent = false,
-                Size = new Size(170, 50),
-                Location = new Point(15, 160),
-            };
-            dialog_addAccount.Controls.Add(textBox_nickname);
-            */
-
-            //계정 추가 버튼
-            MaterialButton button_confirm = new MaterialButton() {
-                Text = "추가",
-                AutoSize = false,
-                Size = new Size(64, 36),
-                Location = new Point(68, 160)
-            };
-            button_confirm.Click += (sender, e) => {
-                if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
-                    MessageBox.Show("아이디 또는 비밀번호를 입력 해주세요.");
-                    return;
-                }
-
-                if (textBox_id.Text.Contains(' ')) {
-                    MessageBox.Show("아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
-                    textBox_id.Text = "";
-                    return;
-                }
-
-                if (textBox_pw.Text.Contains(' ')) {
-                    MessageBox.Show("패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
-                    textBox_pw.Text = "";
-                    return;
-                }
-
-                if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
-                    MessageBox.Show("이미 동일한 계정이 존재합니다.");
-                    return;
-                }
-
-                dialog_addAccount.DialogResult = DialogResult.OK;
-            };
-            dialog_addAccount.Controls.Add(button_confirm);
-            dialog_addAccount.AcceptButton = button_confirm; //엔터 버튼을 누르면 이 버튼을 클릭합니다.
-
-            //계정 추가 버튼 클릭 시
-            if (dialog_addAccount.ShowDialog() == DialogResult.OK) {
-                string id = textBox_id.Text;
-                string pw = EncryptionSupporter.Protect(textBox_pw.Text);
-                Trace.WriteLine("ShowDialog ID : " + id);
-                Trace.WriteLine("ShowDialog PW : " + pw);
-
-                ConfigManager.addConfig(id, pw);
-                ConfigManager.setConfig("account_list", ConfigManager.getConfig("account_list") + textBox_id.Text + ";");
-                LoadAccountComboBox();
-            }
-            backgroundForm.Dispose();
-        }
-
         private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
             MaterialComboBox comboBox = (MaterialComboBox)sender;
 
@@ -786,46 +678,22 @@ namespace GersangStation {
             ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
         }
 
-        
-
-        private void materialButton_removeAccount_Click(object sender, EventArgs e) {
-            Trace.WriteLine(materialListBox1.SelectedItem.Text);
-            int index = materialListBox1.SelectedIndex;
-            byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-            int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
-            StringBuilder sb = new StringBuilder();
-            foreach (var item in temp) {
-                if(item > index) { sb.Append((item - 1).ToString() + ';'); } 
-                else { sb.Append(item.ToString() + ';'); }
-            }
-            sb.Remove(sb.Length - 1, 1);
-            ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
-            ConfigManager.removeConfig(materialListBox1.SelectedItem.Text);
-            string account_list = ConfigManager.getConfig("account_list");
-            account_list = account_list.Remove(account_list.IndexOf(materialListBox1.SelectedItem.Text), materialListBox1.SelectedItem.Text.Length + 1);
-            ConfigManager.setConfig("account_list", account_list);
-            materialListBox1.RemoveItemAt(index);
-            LoadAccountComboBox();
-        }
-
         private void LoadAccountComboBox() {
-            materialListBox1.Clear();
             materialComboBox_account_1.Items.Clear();
             materialComboBox_account_2.Items.Clear();
             materialComboBox_account_3.Items.Clear();
 
-            string[] accountList = ConfigManager.getConfig("account_list").Split(';');
-
-            foreach (var item in accountList) { if(!item.Equals("")) { materialListBox1.AddItem(item); } }
+            string temp = ConfigManager.getConfig("account_list");
+            string[] accountList = temp.Remove(temp.Length - 1, 1).Split(';');
 
             materialComboBox_account_1.Items.Add("선택안함");
             materialComboBox_account_2.Items.Add("선택안함");
             materialComboBox_account_3.Items.Add("선택안함");
 
-            foreach (var item in materialListBox1.Items) {
-                materialComboBox_account_1.Items.Add(item.Text);
-                materialComboBox_account_2.Items.Add(item.Text);
-                materialComboBox_account_3.Items.Add(item.Text);
+            foreach (var item in accountList) {
+                materialComboBox_account_1.Items.Add(item);
+                materialComboBox_account_2.Items.Add(item);
+                materialComboBox_account_3.Items.Add(item);
             }
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
@@ -965,7 +833,7 @@ namespace GersangStation {
             try {
                 backgroundForm.Show();
                 dialog_shortcutSetting.ShowDialog();
-
+                LoadShortcut();
             } catch (Exception ex) {
                 Trace.WriteLine(ex.StackTrace);
             } finally {
@@ -1010,24 +878,20 @@ namespace GersangStation {
                 ShowInTaskbar = false,
                 Owner = this
             };
-            backgroundForm.Show();
 
-            MaterialForm dialog_account = new MaterialForm() {
-                FormStyle = FormStyles.ActionBar_None,
-                Sizable = false,
-                StartPosition = FormStartPosition.CenterParent,
-
-                Size = new Size(200, 210),
-                Text = "계정 추가",
-                MaximizeBox = false,
-                MinimizeBox = false,
-                TopMost = true,
-                ShowInTaskbar = false,
+            Form_AccountSetting dialog_accountSetting = new Form_AccountSetting() {
                 Owner = this
             };
 
-            dialog_account.ShowDialog();
-            backgroundForm.Dispose();
+            try {
+                backgroundForm.Show();
+                dialog_accountSetting.ShowDialog();
+                LoadAccountComboBox();
+            } catch (Exception ex) {
+                Trace.WriteLine(ex.StackTrace);
+            } finally {
+                backgroundForm.Dispose();
+            }
         }
     }
 }
