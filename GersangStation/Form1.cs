@@ -852,12 +852,27 @@ namespace GersangStation {
                 MessageBox.Show("계정정보를 타 PC로 옮긴 것으로 확인되었습니다.\n계정 정보 유출 방지를 위해 모든 계정 정보를 초기화 합니다.", "패스워드 복호화 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 currentClient = Client.None;
                 currentState = State.None;
-                //clearPassword();
+                ClearAccount();
                 return;
             }
 
             await webView_main.ExecuteScriptAsync("document.getElementById('btn_Login').click()");
             currentState = State.LoggedIn;
+        }
+
+        private void ClearAccount() {
+            string temp = ConfigManager.getConfig("account_list");
+            string[] account_list = temp.Remove(temp.Length - 1, 1).Split(';');
+            foreach (var item in account_list) {
+                ConfigManager.removeConfig(item);
+            }
+            ConfigManager.setConfig("account_list", "");
+
+            ConfigManager.setConfig("current_comboBox_index_preset_1", "0;0;0");
+            ConfigManager.setConfig("current_comboBox_index_preset_2", "0;0;0");
+            ConfigManager.setConfig("current_comboBox_index_preset_3", "0;0;0");
+            ConfigManager.setConfig("current_comboBox_index_preset_4", "0;0;0");
+            LoadAccountComboBox();
         }
 
         private void materialButton_setting_Click(object sender, EventArgs e) {
