@@ -50,7 +50,7 @@
             // 
             this.textBox_shortcutName_4.Font = new System.Drawing.Font("맑은 고딕", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.textBox_shortcutName_4.Location = new System.Drawing.Point(53, 355);
-            this.textBox_shortcutName_4.MaxLength = 5;
+            this.textBox_shortcutName_4.MaxLength = 6;
             this.textBox_shortcutName_4.Name = "textBox_shortcutName_4";
             this.textBox_shortcutName_4.Size = new System.Drawing.Size(72, 23);
             this.textBox_shortcutName_4.TabIndex = 92;
@@ -68,7 +68,7 @@
             // 
             this.textBox_shortcutName_3.Font = new System.Drawing.Font("맑은 고딕", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.textBox_shortcutName_3.Location = new System.Drawing.Point(53, 270);
-            this.textBox_shortcutName_3.MaxLength = 5;
+            this.textBox_shortcutName_3.MaxLength = 6;
             this.textBox_shortcutName_3.Name = "textBox_shortcutName_3";
             this.textBox_shortcutName_3.Size = new System.Drawing.Size(72, 23);
             this.textBox_shortcutName_3.TabIndex = 87;
@@ -86,7 +86,7 @@
             // 
             this.textBox_shortcutName_2.Font = new System.Drawing.Font("맑은 고딕", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.textBox_shortcutName_2.Location = new System.Drawing.Point(54, 185);
-            this.textBox_shortcutName_2.MaxLength = 5;
+            this.textBox_shortcutName_2.MaxLength = 6;
             this.textBox_shortcutName_2.Name = "textBox_shortcutName_2";
             this.textBox_shortcutName_2.Size = new System.Drawing.Size(72, 23);
             this.textBox_shortcutName_2.TabIndex = 82;
@@ -104,7 +104,7 @@
             // 
             this.textBox_shortcutName_1.Font = new System.Drawing.Font("맑은 고딕", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.textBox_shortcutName_1.Location = new System.Drawing.Point(53, 100);
-            this.textBox_shortcutName_1.MaxLength = 5;
+            this.textBox_shortcutName_1.MaxLength = 6;
             this.textBox_shortcutName_1.Name = "textBox_shortcutName_1";
             this.textBox_shortcutName_1.Size = new System.Drawing.Size(72, 23);
             this.textBox_shortcutName_1.TabIndex = 77;

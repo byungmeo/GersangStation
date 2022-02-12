@@ -661,7 +661,7 @@
             this.Sizable = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Tag = "407, 313";
-            this.Text = "Project";
+            this.Text = "GersangStation";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.Resize += new System.EventHandler(this.Form1_Resize);
             this.materialTabControl1.ResumeLayout(false);

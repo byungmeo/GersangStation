@@ -480,12 +480,6 @@ namespace GersangStation {
         }
 
         private void materialButton_start_Click(object sender, EventArgs e) {
-            /*
-            if (currentState == State.None) {
-                MessageBox.Show("로그인을 한 뒤 게임을 실행 해주세요.");
-                return;
-            }
-            */
             MaterialButton startButton = (MaterialButton)sender;
             MaterialSwitch? loginSwitch = null;
 
