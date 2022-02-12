@@ -533,6 +533,8 @@ namespace GersangStation {
                 return;
             }
 
+            //
+
             try {
                 //해당 클라이언트의 경로를 레지스트리에 등록시킵니다.
                 RegistryKey? registryKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\JOYON\Gersang\Korean", RegistryKeyPermissionCheck.ReadWriteSubTree);
@@ -930,6 +932,11 @@ namespace GersangStation {
                 Owner = owner
             };
             return backgroundForm;
+        }
+
+        private void materialButton2_Click(object sender, EventArgs e) {
+            Form_Patcher form_Patcher = new Form_Patcher();
+            form_Patcher.ShowDialog();
         }
     }
 }
