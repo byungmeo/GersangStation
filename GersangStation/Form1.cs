@@ -765,7 +765,7 @@ namespace GersangStation {
 
         private void materialButton1_Click(object sender, EventArgs e) {
             MaterialForm form = new MaterialForm() {
-                Size = new Size(1500, 1000),
+                Size = new Size(1100, 800),
                 FormStyle = FormStyles.ActionBar_None,
                 StartPosition = FormStartPosition.CenterScreen
             };
