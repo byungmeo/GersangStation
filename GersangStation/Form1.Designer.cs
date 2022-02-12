@@ -53,6 +53,8 @@
             this.materialButton_setting_shortcut = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_setting_client = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_setting_account = new MaterialSkin.Controls.MaterialButton();
+            this.tabPage_help = new System.Windows.Forms.TabPage();
+            this.tabPage_info = new System.Windows.Forms.TabPage();
             this.menuIconList = new System.Windows.Forms.ImageList(this.components);
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.materialTabControl1.SuspendLayout();
@@ -64,6 +66,8 @@
             // 
             this.materialTabControl1.Controls.Add(this.tabPage_home);
             this.materialTabControl1.Controls.Add(this.tabPage_settings);
+            this.materialTabControl1.Controls.Add(this.tabPage_help);
+            this.materialTabControl1.Controls.Add(this.tabPage_info);
             this.materialTabControl1.Depth = 0;
             this.materialTabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.materialTabControl1.ImageList = this.menuIconList;
@@ -72,7 +76,7 @@
             this.materialTabControl1.Multiline = true;
             this.materialTabControl1.Name = "materialTabControl1";
             this.materialTabControl1.SelectedIndex = 0;
-            this.materialTabControl1.Size = new System.Drawing.Size(402, 239);
+            this.materialTabControl1.Size = new System.Drawing.Size(402, 228);
             this.materialTabControl1.TabIndex = 13;
             // 
             // tabPage_home
@@ -105,9 +109,9 @@
             this.tabPage_home.Location = new System.Drawing.Point(4, 31);
             this.tabPage_home.Name = "tabPage_home";
             this.tabPage_home.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_home.Size = new System.Drawing.Size(394, 204);
+            this.tabPage_home.Size = new System.Drawing.Size(394, 193);
             this.tabPage_home.TabIndex = 0;
-            this.tabPage_home.Text = "Home";
+            this.tabPage_home.Text = "메인화면";
             // 
             // materialCheckbox_testServer
             // 
@@ -567,9 +571,9 @@
             this.tabPage_settings.Location = new System.Drawing.Point(4, 31);
             this.tabPage_settings.Name = "tabPage_settings";
             this.tabPage_settings.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_settings.Size = new System.Drawing.Size(394, 204);
+            this.tabPage_settings.Size = new System.Drawing.Size(394, 198);
             this.tabPage_settings.TabIndex = 1;
-            this.tabPage_settings.Text = "Settings";
+            this.tabPage_settings.Text = "환경설정";
             // 
             // materialButton_setting_shortcut
             // 
@@ -633,6 +637,28 @@
             this.materialButton_setting_account.UseVisualStyleBackColor = true;
             this.materialButton_setting_account.Click += new System.EventHandler(this.materialButton_setting_Click);
             // 
+            // tabPage_help
+            // 
+            this.tabPage_help.ImageKey = "outline_help_outline_black_24dp.png";
+            this.tabPage_help.Location = new System.Drawing.Point(4, 31);
+            this.tabPage_help.Name = "tabPage_help";
+            this.tabPage_help.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage_help.Size = new System.Drawing.Size(394, 198);
+            this.tabPage_help.TabIndex = 2;
+            this.tabPage_help.Text = "도움말";
+            this.tabPage_help.UseVisualStyleBackColor = true;
+            // 
+            // tabPage_info
+            // 
+            this.tabPage_info.ImageKey = "outline_info_black_24dp.png";
+            this.tabPage_info.Location = new System.Drawing.Point(4, 31);
+            this.tabPage_info.Name = "tabPage_info";
+            this.tabPage_info.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage_info.Size = new System.Drawing.Size(394, 198);
+            this.tabPage_info.TabIndex = 4;
+            this.tabPage_info.Text = "프로그램 정보";
+            this.tabPage_info.UseVisualStyleBackColor = true;
+            // 
             // menuIconList
             // 
             this.menuIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
@@ -640,6 +666,9 @@
             this.menuIconList.TransparentColor = System.Drawing.Color.Transparent;
             this.menuIconList.Images.SetKeyName(0, "outline_home_black_24dp.png");
             this.menuIconList.Images.SetKeyName(1, "outline_settings_black_24dp.png");
+            this.menuIconList.Images.SetKeyName(2, "outline_help_outline_black_24dp.png");
+            this.menuIconList.Images.SetKeyName(3, "outline_favorite_black_24dp.png");
+            this.menuIconList.Images.SetKeyName(4, "outline_info_black_24dp.png");
             // 
             // folderBrowserDialog
             // 
@@ -652,7 +681,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.AutoScroll = true;
-            this.ClientSize = new System.Drawing.Size(408, 306);
+            this.ClientSize = new System.Drawing.Size(408, 295);
             this.Controls.Add(this.materialTabControl1);
             this.DrawerShowIconsWhenHidden = true;
             this.DrawerTabControl = this.materialTabControl1;
@@ -660,7 +689,7 @@
             this.Name = "Form1";
             this.Sizable = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Tag = "407, 313";
+            this.Tag = "408, 313 (탭5개기준)";
             this.Text = "GersangStation";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.Resize += new System.EventHandler(this.Form1_Resize);
@@ -704,5 +733,7 @@
         private MaterialSkin.Controls.MaterialButton materialButton_setting_client;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_shortcut;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_testServer;
+        private TabPage tabPage_help;
+        private TabPage tabPage_info;
     }
 }
