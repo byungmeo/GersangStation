@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
+using System.Text;
 
 namespace GersangStation {
     public partial class Form_Patcher : MaterialForm {
@@ -19,8 +20,8 @@ namespace GersangStation {
         private string url_info;
         private string url_patch;
         private string url_vsn;
-        private string current_version;
-        private string latest_version;
+        private string version_current;
+        private string version_latest;
 
         private bool isPatching;
 
@@ -41,8 +42,8 @@ namespace GersangStation {
                 url_vsn = url_main_vsn;
             }
 
-            current_version = GetCurrentVersion();
-            latest_version = GetLatestVersion();
+            version_current = GetCurrentVersion();
+            version_latest = GetLatestVersion();
 
             isPatching = false;
         }
@@ -110,8 +111,8 @@ namespace GersangStation {
         }
 
         private void Form_Patcher_Load(object sender, EventArgs e) {
-            textBox_currentVersion.Text = current_version;
-            textBox_latestVersion.Text = latest_version;
+            textBox_currentVersion.Text = version_current;
+            textBox_latestVersion.Text = version_latest;
             textBox_mainPath.Text = path_main;
         }
 
@@ -120,11 +121,14 @@ namespace GersangStation {
         }
 
         private void materialButton_startPatch_Click(object sender, EventArgs e) {
-            if (current_version == latest_version) {
+            int equal = 1;
+            if (version_current == version_latest) {
                 DialogResult dr = MessageBox.Show(this, "현재 버전과 최신 버전이 같습니다.\n그래도 패치 하시겠습니까?", "버전 같음", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 if (dr == DialogResult.No) {
                     this.DialogResult = DialogResult.OK;
                     return;
+                } else {
+                    equal = 0;
                 }
             }
 
@@ -132,6 +136,61 @@ namespace GersangStation {
             materialButton_close.Enabled = false;
             isPatching = true;
             Trace.WriteLine("패치 시작!");
+
+            ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+            DirectoryInfo directory_patch = new DirectoryInfo(Application.StartupPath + @"\patch");
+            if (!directory_patch.Exists) { directory_patch.Create(); }
+
+            DirectoryInfo directory_info = new DirectoryInfo(directory_patch + @"\info");
+            if (!directory_info.Exists) { directory_info.Create(); }
+
+            DirectoryInfo fileDirectory = new DirectoryInfo(directory_patch + @"\" + version_current + "-" + version_latest);
+            if (!fileDirectory.Exists) { fileDirectory.Create(); }
+
+            List<string> list_infoFile = new List<string>();
+
+            using (WebClient webClient = new WebClient()) {
+                for (int i = Int16.Parse(version_current) + equal; i <= Int16.Parse(version_latest); i++) {
+                    string url = url_info + i;
+                    try {
+                        webClient.DownloadFile(new Uri(url), directory_info + @"\" + i + ".txt");
+                        Trace.WriteLine(i + " 버전 패치정보 파일 다운로드 성공\n");
+                        list_infoFile.Add(i.ToString());
+                    } catch (Exception ex) {
+                        //다운로드 실패 시 다음 버전으로 넘어갑니다
+                        Trace.WriteLine("버전 " + i + " 이 존재하지 않아 다음 버전으로 넘어갑니다.\n");
+                        Trace.WriteLine(ex.Message);
+                    }
+                }
+
+                Dictionary<string, string> list_patchFile = new Dictionary<string, string>(); //key값으로 파일이름, value값으로 경로 저장
+
+                //몇번의 패치가 존재하든, 한꺼번에 패치하기위해 여러 패치정보파일에서 중복없이 파일 리스트를 뽑아옵니다.
+                if (list_infoFile.Count >= 1) {
+                    using (StreamWriter wr = new StreamWriter(directory_info + @"\" + version_current + "-" + version_latest + ".txt")) { //디버깅용으로 새로운 정보 파일을 생성합니다.
+                        wr.WriteLine("파일명\t경로"); //디버깅용
+                        foreach (string item in list_infoFile) {
+                            string[] lines = File.ReadAllLines(directory_info + @"\" + item + ".txt", Encoding.Default); //패치정보파일에서 모든 텍스트를 읽어옵니다.
+
+                            //패치정보파일의 첫 4줄은 쓸모없으므로 생략하고, 5번째 줄부터 읽습니다.
+                            for (int i = 4; i < lines.Length; i++) {
+                                string[] row = lines[i].Split('\t'); //한 줄을 탭을 간격으로 나눕니다. (디버깅용)
+
+                                //만약 EOF가 등장했다면 루프를 빠져나갑니다.
+                                if (row[0] == ";EOF") {
+                                    break;
+                                }
+
+                                if (!list_patchFile.ContainsKey(row[1])) {
+                                    list_patchFile.Add(row[1], row[3].Remove(0, 1));
+                                    wr.WriteLine(row[1] + "\t" + row[3].Remove(0, 1)); //디버깅용
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void Form_Patcher_FormClosing(object sender, FormClosingEventArgs e) {
