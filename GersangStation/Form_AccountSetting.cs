@@ -125,8 +125,8 @@ namespace GersangStation {
             backgroundForm.Dispose();
         }
 
-        private void materialButton2_Click(object sender, EventArgs e) {
-            Trace.WriteLine(materialListBox1.SelectedItem.Text);
+        private void materialButton_removeAccount_Click(object sender, EventArgs e) {
+            if (materialListBox1.SelectedIndex == -1) { return; }
             int index = materialListBox1.SelectedIndex;
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));

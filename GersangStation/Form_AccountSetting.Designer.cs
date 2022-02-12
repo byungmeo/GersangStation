@@ -23,33 +23,33 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            this.materialButton2 = new MaterialSkin.Controls.MaterialButton();
+            this.materialButton_removeAccount = new MaterialSkin.Controls.MaterialButton();
             this.materialListBox1 = new MaterialSkin.Controls.MaterialListBox();
             this.materialButton_addAccount = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_close = new MaterialSkin.Controls.MaterialButton();
             this.label3 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
-            // materialButton2
+            // materialButton_removeAccount
             // 
-            this.materialButton2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton2.Depth = 0;
-            this.materialButton2.HighEmphasis = true;
-            this.materialButton2.Icon = null;
-            this.materialButton2.Location = new System.Drawing.Point(257, 142);
-            this.materialButton2.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton2.Name = "materialButton2";
-            this.materialButton2.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton2.Size = new System.Drawing.Size(64, 36);
-            this.materialButton2.TabIndex = 45;
-            this.materialButton2.TabStop = false;
-            this.materialButton2.Text = "삭제";
-            this.materialButton2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton2.UseAccentColor = false;
-            this.materialButton2.UseVisualStyleBackColor = true;
-            this.materialButton2.Click += new System.EventHandler(this.materialButton2_Click);
+            this.materialButton_removeAccount.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_removeAccount.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.materialButton_removeAccount.Depth = 0;
+            this.materialButton_removeAccount.HighEmphasis = true;
+            this.materialButton_removeAccount.Icon = null;
+            this.materialButton_removeAccount.Location = new System.Drawing.Point(257, 142);
+            this.materialButton_removeAccount.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_removeAccount.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_removeAccount.Name = "materialButton_removeAccount";
+            this.materialButton_removeAccount.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_removeAccount.Size = new System.Drawing.Size(64, 36);
+            this.materialButton_removeAccount.TabIndex = 45;
+            this.materialButton_removeAccount.TabStop = false;
+            this.materialButton_removeAccount.Text = "삭제";
+            this.materialButton_removeAccount.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_removeAccount.UseAccentColor = false;
+            this.materialButton_removeAccount.UseVisualStyleBackColor = true;
+            this.materialButton_removeAccount.Click += new System.EventHandler(this.materialButton_removeAccount_Click);
             // 
             // materialListBox1
             // 
@@ -125,7 +125,7 @@
             this.ClientSize = new System.Drawing.Size(342, 335);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.materialButton_close);
-            this.Controls.Add(this.materialButton2);
+            this.Controls.Add(this.materialButton_removeAccount);
             this.Controls.Add(this.materialListBox1);
             this.Controls.Add(this.materialButton_addAccount);
             this.MaximizeBox = false;
@@ -143,7 +143,7 @@
         }
 
         #endregion
-        private MaterialSkin.Controls.MaterialButton materialButton2;
+        private MaterialSkin.Controls.MaterialButton materialButton_removeAccount;
         private MaterialSkin.Controls.MaterialListBox materialListBox1;
         private MaterialSkin.Controls.MaterialButton materialButton_addAccount;
         private MaterialSkin.Controls.MaterialButton materialButton_close;
