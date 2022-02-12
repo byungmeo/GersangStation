@@ -45,7 +45,7 @@ namespace GersangStation {
             };
 
             //id 입력 텍스트박스
-            MaterialTextBox2 textBox_id = new MaterialTextBox2() {
+            MaterialTextBox textBox_id = new MaterialTextBox() {
                 Hint = "ID 입력",
                 UseAccent = false,
                 Size = new Size(170, 50),
