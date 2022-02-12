@@ -1,6 +1,5 @@
 ﻿using MaterialSkin.Controls;
 using System.Diagnostics;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace GersangStation {
@@ -17,6 +16,8 @@ namespace GersangStation {
             textBox_path_test_1.Text = ConfigManager.getConfig("client_path_test_1");
             textBox_path_test_2.Text = ConfigManager.getConfig("client_path_test_2");
             textBox_path_test_3.Text = ConfigManager.getConfig("client_path_test_3");
+
+            materialCheckbox_autoUpdate.Checked = bool.Parse(ConfigManager.getConfig("is_auto_update"));
         }
 
         private void materialButton_findPath_Click(object sender, EventArgs e) {
@@ -33,6 +34,7 @@ namespace GersangStation {
         }
         private void materialButton_save_Click(object sender, EventArgs e) {
             SavePath();
+            ConfigManager.setConfig("is_auto_update", materialCheckbox_autoUpdate.Checked.ToString());
             this.DialogResult = DialogResult.OK;
         }
 

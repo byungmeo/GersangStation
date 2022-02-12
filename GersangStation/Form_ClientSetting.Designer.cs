@@ -48,16 +48,18 @@
             this.textBox_path_1 = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
+            this.materialCheckbox_autoUpdate = new MaterialSkin.Controls.MaterialCheckbox();
             this.SuspendLayout();
             // 
             // materialButton_save
             // 
+            this.materialButton_save.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             this.materialButton_save.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.materialButton_save.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             this.materialButton_save.Depth = 0;
             this.materialButton_save.HighEmphasis = true;
             this.materialButton_save.Icon = null;
-            this.materialButton_save.Location = new System.Drawing.Point(199, 399);
+            this.materialButton_save.Location = new System.Drawing.Point(199, 452);
             this.materialButton_save.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_save.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_save.Name = "materialButton_save";
@@ -402,11 +404,30 @@
             this.label1.Text = "본클라";
             this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // materialCheckbox_autoUpdate
+            // 
+            this.materialCheckbox_autoUpdate.AutoSize = true;
+            this.materialCheckbox_autoUpdate.Checked = true;
+            this.materialCheckbox_autoUpdate.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.materialCheckbox_autoUpdate.Depth = 0;
+            this.materialCheckbox_autoUpdate.Location = new System.Drawing.Point(110, 400);
+            this.materialCheckbox_autoUpdate.Margin = new System.Windows.Forms.Padding(0);
+            this.materialCheckbox_autoUpdate.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.materialCheckbox_autoUpdate.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialCheckbox_autoUpdate.Name = "materialCheckbox_autoUpdate";
+            this.materialCheckbox_autoUpdate.ReadOnly = false;
+            this.materialCheckbox_autoUpdate.Ripple = true;
+            this.materialCheckbox_autoUpdate.Size = new System.Drawing.Size(234, 37);
+            this.materialCheckbox_autoUpdate.TabIndex = 53;
+            this.materialCheckbox_autoUpdate.Text = "거상 자동 고속 업데이트 여부 (권장)";
+            this.materialCheckbox_autoUpdate.UseVisualStyleBackColor = true;
+            // 
             // Form_ClientSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(456, 452);
+            this.ClientSize = new System.Drawing.Size(456, 505);
+            this.Controls.Add(this.materialCheckbox_autoUpdate);
             this.Controls.Add(this.materialButton_save);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.materialButton_createClient_test);
@@ -472,5 +493,6 @@
         private TextBox textBox_path_1;
         private Label label1;
         private FolderBrowserDialog folderBrowserDialog;
+        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_autoUpdate;
     }
 }
