@@ -3,10 +3,13 @@ using MaterialSkin.Controls;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using Microsoft.Win32;
+using Octokit;
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Label = System.Windows.Forms.Label;
 
 namespace GersangStation {
     public partial class Form1 : MaterialForm {
@@ -41,6 +44,8 @@ namespace GersangStation {
 
         private const string url_main_vsn = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
         private const string url_test_vsn = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
+
+        private const string url_release = "https://github.com/byungmeo/GersangStation/releases/latest";
 
         private bool isWebFunctionDeactivated = false;
         private bool isSearch = false;
@@ -84,7 +89,7 @@ namespace GersangStation {
                 if (dr == DialogResult.Yes) {
                     Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
                 }
-                Application.Exit();
+                System.Windows.Forms.Application.Exit();
                 return;
             }
 
@@ -101,8 +106,52 @@ namespace GersangStation {
             LoadRadioButton();
             LoadAccountComboBox();
             LoadShortcut();
-
             CheckAccount();
+            CheckProgramUpdate();
+        }
+
+        private async void CheckProgramUpdate() {
+            //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
+            string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
+            Trace.WriteLine(version_current);
+
+            string version_latest;
+
+            try {
+                //깃허브에서 모든 릴리즈 정보를 받아옵니다.
+                GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
+                IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
+                version_latest = releases[0].TagName;
+
+                //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
+                //Version latestGitHubVersion = new Version(releases[0].TagName);
+                Version latestGitHubVersion = new Version(version_latest);
+                Version localVersion = new Version(version_current);
+                Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
+                Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
+
+                //버전 비교
+                int versionComparison = localVersion.CompareTo(latestGitHubVersion);
+                if (versionComparison < 0) {
+                    Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
+
+                    DialogResult dr = MessageBox.Show(releases[0].Body + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
+                        "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+
+                    if (dr == DialogResult.Yes) {
+                        Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
+                    }
+                } else if (versionComparison > 0) {
+                    Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
+                } else {
+                    Trace.WriteLine("현재 버전은 최신버전입니다!");
+                }
+            } catch (Exception ex) {
+                MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
+                MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
+                Trace.WriteLine(ex.Message);
+            }
         }
 
         private void CheckAccount() {
@@ -432,7 +481,7 @@ namespace GersangStation {
                 Owner = this
             };
 
-            Label label_otp = new Label() {
+            Label label_otp = new () {
                 Text = "OTP 입력",
                 Font = new Font("Noto Sans KR", 10, FontStyle.Bold),
                 Location = new Point(38, 30)
