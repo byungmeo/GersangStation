@@ -46,6 +46,7 @@
             this.materialCheckbox_delete = new MaterialSkin.Controls.MaterialCheckbox();
             this.materialButton_startPatch = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_close = new MaterialSkin.Controls.MaterialButton();
+            this.label6 = new System.Windows.Forms.Label();
             this.materialCard1.SuspendLayout();
             this.materialCard2.SuspendLayout();
             this.SuspendLayout();
@@ -325,11 +326,25 @@
             this.materialButton_close.UseVisualStyleBackColor = true;
             this.materialButton_close.Click += new System.EventHandler(this.materialButton_close_Click);
             // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.label6.Font = new System.Drawing.Font("Noto Sans KR", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label6.ForeColor = System.Drawing.Color.Blue;
+            this.label6.Location = new System.Drawing.Point(18, 75);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(164, 22);
+            this.label6.TabIndex = 42;
+            this.label6.Text = "거상 패치가 가능합니다!";
+            this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // Form_Patcher
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(623, 562);
+            this.Controls.Add(this.label6);
             this.Controls.Add(this.materialButton_close);
             this.Controls.Add(this.materialButton_startPatch);
             this.Controls.Add(this.materialCheckbox_delete);
@@ -382,5 +397,6 @@
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_delete;
         private MaterialSkin.Controls.MaterialButton materialButton_startPatch;
         private MaterialSkin.Controls.MaterialButton materialButton_close;
+        private Label label6;
     }
 }

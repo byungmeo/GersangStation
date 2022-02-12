@@ -39,6 +39,9 @@ namespace GersangStation {
         private const string url_search = "https://search.naver.com/search.naver?&query=거상";
         private const string url_search_gersang = "http://www.gersang.co.kr/main.gs";
 
+        private const string url_main_vsn = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
+        private const string url_test_vsn = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
+
         private bool isWebFunctionDeactivated = false;
         private bool isSearch = false;
         private bool isGameStartLogin = false;
@@ -500,15 +503,18 @@ namespace GersangStation {
             string configKey;
             string regKey;
             string server;
+            string url_vsn;
             if (materialCheckbox_testServer.Checked) {
                 configKey = "client_path_test_";
                 regKey = "TestPath";
                 server = "test";
+                url_vsn = url_test_vsn;
             } 
             else { 
                 configKey = "client_path_";
                 regKey = "InstallPath";
                 server = "main";
+                url_vsn = url_main_vsn;
             }
 
             string client_path;
@@ -528,12 +534,47 @@ namespace GersangStation {
             }
 
             if (client_path == "") {
-                DialogResult dr = MessageBox.Show("클라이언트 경로가 지정되어 있지 않습니다.\n설정 창으로 이동하시겠습니까?", "경로 미지정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                DialogResult dr = MessageBox.Show(this, "클라이언트 경로가 지정되어 있지 않습니다.\n설정 창으로 이동하시겠습니까?", "경로 미지정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) { OpenClientSettingDialog(); }
                 return;
             }
 
-            //
+            
+                string version_current = Form_Patcher.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
+                string version_latest = Form_Patcher.GetLatestVersion(this, url_vsn);
+                if (version_current != version_latest) {
+                    DialogResult dr = DialogResult.No;
+                    bool update = false;
+                    if (!bool.Parse(ConfigManager.getConfig("is_auto_update"))) {
+                        dr = MessageBox.Show(this, "거상 업데이트가 가능합니다! (" + version_current + "->" + version_latest + ")\n프로그램 기능을 사용하여 업데이트 하시겠습니까?\n거상 스테이션은 공식 패치 프로그램보다\n더 빠르게 업데이트 가능합니다.",
+                            "거상 패치", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                    } else {
+                        update = true;
+                    }
+
+                    if (dr == DialogResult.Yes || update == true) {
+                        this.BeginInvoke(() => {
+                            Form backgroundForm = InitBackgroundForm(this);
+
+                            Form_Patcher form_Patcher = new Form_Patcher() {
+                                Owner = this
+                            };
+
+                            try {
+                                backgroundForm.Show();
+                                form_Patcher.ShowDialog();
+                            } catch (Exception ex) {
+                                Trace.WriteLine(ex.StackTrace);
+                            } finally {
+                                backgroundForm.Dispose();
+                            }
+                        });
+                    return;
+                }
+                    Trace.WriteLine("일반 패치를 선택하였습니다.");
+                }
+            
+            
 
             try {
                 //해당 클라이언트의 경로를 레지스트리에 등록시킵니다.
@@ -932,11 +973,6 @@ namespace GersangStation {
                 Owner = owner
             };
             return backgroundForm;
-        }
-
-        private void materialButton2_Click(object sender, EventArgs e) {
-            Form_Patcher form_Patcher = new Form_Patcher();
-            form_Patcher.ShowDialog();
         }
     }
 }

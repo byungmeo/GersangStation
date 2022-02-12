@@ -55,7 +55,6 @@
             this.materialButton_setting_account = new MaterialSkin.Controls.MaterialButton();
             this.menuIconList = new System.Windows.Forms.ImageList(this.components);
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
-            this.materialButton2 = new MaterialSkin.Controls.MaterialButton();
             this.materialTabControl1.SuspendLayout();
             this.tabPage_home.SuspendLayout();
             this.tabPage_settings.SuspendLayout();
@@ -561,7 +560,6 @@
             // tabPage_settings
             // 
             this.tabPage_settings.AutoScroll = true;
-            this.tabPage_settings.Controls.Add(this.materialButton2);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_shortcut);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_client);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_account);
@@ -649,27 +647,6 @@
             this.folderBrowserDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             this.folderBrowserDialog.UseDescriptionForTitle = true;
             // 
-            // materialButton2
-            // 
-            this.materialButton2.AutoSize = false;
-            this.materialButton2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton2.Depth = 0;
-            this.materialButton2.HighEmphasis = true;
-            this.materialButton2.Icon = null;
-            this.materialButton2.Location = new System.Drawing.Point(251, 52);
-            this.materialButton2.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton2.Name = "materialButton2";
-            this.materialButton2.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton2.Size = new System.Drawing.Size(75, 36);
-            this.materialButton2.TabIndex = 27;
-            this.materialButton2.Text = "패치화면";
-            this.materialButton2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton2.UseAccentColor = false;
-            this.materialButton2.UseVisualStyleBackColor = true;
-            this.materialButton2.Click += new System.EventHandler(this.materialButton2_Click);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
@@ -727,6 +704,5 @@
         private MaterialSkin.Controls.MaterialButton materialButton_setting_client;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_shortcut;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_testServer;
-        private MaterialSkin.Controls.MaterialButton materialButton2;
     }
 }

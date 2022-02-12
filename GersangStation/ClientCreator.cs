@@ -14,13 +14,17 @@ namespace GersangStation {
             var assembly = Assembly.GetExecutingAssembly();
             var resourceName = "GersangStation.ClientCreatorCommand.txt";
             string command = "";
-#pragma warning disable CS8600 // null 리터럴 또는 가능한 null 값을 null을 허용하지 않는 형식으로 변환하는 중입니다.
-            using (Stream stream = assembly.GetManifestResourceStream(resourceName))
-#pragma warning restore CS8600 // null 리터럴 또는 가능한 null 값을 null을 허용하지 않는 형식으로 변환하는 중입니다.
-            using (StreamReader reader = new StreamReader(stream)) {
-                command = reader.ReadToEnd();
-            }
 
+#pragma warning disable CS8600 // null 리터럴 또는 가능한 null 값을 null을 허용하지 않는 형식으로 변환하는 중입니다.
+#pragma warning disable CS8604 // 가능한 null 참조 인수입니다.
+            using (Stream stream = assembly.GetManifestResourceStream(resourceName)) {
+                using (StreamReader reader = new StreamReader(stream)) {
+                    command = reader.ReadToEnd();
+                }
+            }
+#pragma warning restore CS8604 // 가능한 null 참조 인수입니다.
+#pragma warning restore CS8600 // null 리터럴 또는 가능한 null 값을 null을 허용하지 않는 형식으로 변환하는 중입니다.
+                
             //bat파일 초안의 경로 부분을 사용자가 설정한 경로로 바꿉니다.
             command = command.Replace("#PATH1#", original_path);
             string[] splitString = original_path.Split('\\');

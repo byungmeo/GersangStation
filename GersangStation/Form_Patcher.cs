@@ -33,27 +33,39 @@ namespace GersangStation {
             if (true == bool.Parse(ConfigManager.getConfig("is_test_server"))) {
                 //테섭
                 path_main = ConfigManager.getConfig("client_path_test_1");
-                name_client_2 = ConfigManager.getConfig("directory_name_client_test_2");
-                name_client_3 = ConfigManager.getConfig("directory_name_client_test_3");
+                name_client_2 = ConfigManager.getConfig("client_path_test_2");
+                if (name_client_2 == "") { name_client_2 = ConfigManager.getConfig("directory_name_client_test_2"); } 
+                else { name_client_2 = name_client_2.Substring(name_client_2.LastIndexOf('\\') + 1); }
+                name_client_3 = ConfigManager.getConfig("client_path_test_3");
+                if (name_client_3 == "") { name_client_3 = ConfigManager.getConfig("directory_name_client_test_3"); } 
+                else { name_client_3 = name_client_3.Substring(name_client_3.LastIndexOf('\\') + 1); }
                 url_info = url_test_info;
                 url_patch = url_test_patch;
                 url_vsn = url_test_vsn;
             } else {
                 //본섭
                 path_main = ConfigManager.getConfig("client_path_1");
-                name_client_2 = ConfigManager.getConfig("directory_name_client_2");
-                name_client_3 = ConfigManager.getConfig("directory_name_client_3");
+                name_client_2 = ConfigManager.getConfig("client_path_2");
+                if (name_client_2 == "") { name_client_2 = ConfigManager.getConfig("directory_name_client_2"); }
+                else { name_client_2 = name_client_2.Substring(name_client_2.LastIndexOf('\\') + 1); }
+                name_client_3 = ConfigManager.getConfig("client_path_3");
+                if (name_client_3 == "") { name_client_3 = ConfigManager.getConfig("directory_name_client_3"); } 
+                else { name_client_3 = name_client_3.Substring(name_client_3.LastIndexOf('\\') + 1); }
                 url_info = url_main_info;
                 url_patch = url_main_patch;
                 url_vsn = url_main_vsn;
             }
 
-            version_current = GetCurrentVersion();
-            version_latest = GetLatestVersion();
+            version_current = GetCurrentVersion(this, path_main);
+            version_latest = GetLatestVersion(this, url_vsn);
+            if (version_current == "" || version_latest == "") {
+                this.Close();
+                return;
+            }
 
             isPatching = false;
         }
-        private string GetCurrentVersion() {
+        public static string GetCurrentVersion(Form owner, string path_main) {
             string version;
             try {
                 FileStream fs = File.OpenRead(path_main + @"\Online\vsn.dat");
@@ -62,16 +74,15 @@ namespace GersangStation {
                 fs.Close();
                 br.Close();
             } catch (Exception e) {
-                MessageBox.Show(this, "현재 거상 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
+                MessageBox.Show(owner, "현재 거상 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
                     , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                this.Close();
                 return "";
             }
 
             return version;
         }
 
-        private string GetLatestVersion() {
+        public static string GetLatestVersion(Form owner, string url_vsn) {
             string version;
             try {
                 //현재 거상 최신 버전을 확인합니다
@@ -111,9 +122,8 @@ namespace GersangStation {
                     //client.DownloadFileAsync(new Uri(url_vsn), Application.StartupPath + @"\bin\vsn.dat.gsz");
                 }
             } catch (Exception e) {
-                MessageBox.Show(this, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
+                MessageBox.Show(owner, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
                     , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                this.Close();
                 return "";
             }
         }
@@ -291,7 +301,7 @@ namespace GersangStation {
                         } else {
                             lvi.SubItems[4].Text = "다운로드 완료";
                             lvi.SubItems[4].ForeColor = Color.Green;
-                            Trace.WriteLine(fileName + "다운로드 완료");
+                            Trace.WriteLine(name_file + "다운로드 완료");
 
                             try {
                                 //파일 다운로드가 완료되는 대로 압축 해제 후 압축 파일은 삭제

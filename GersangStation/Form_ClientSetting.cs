@@ -193,5 +193,22 @@ namespace GersangStation {
                 MessageBox.Show(this, "다클라 생성중 오류가 발생한 것 같습니다. 문의해주세요.\n" + ex.StackTrace, "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        private void materialButton_patch_Click(object sender, EventArgs e) {
+            Form backgroundForm = Form1.InitBackgroundForm(this);
+            
+            Form_Patcher form_Patcher = new Form_Patcher() {
+                Owner = this
+            };
+
+            try {
+                backgroundForm.Show();
+                form_Patcher.ShowDialog();
+            } catch (Exception ex) {
+                Trace.WriteLine(ex.StackTrace);
+            } finally {
+                backgroundForm.Dispose();
+            }
+        }
     }
 }

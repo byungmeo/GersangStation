@@ -23,6 +23,7 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_ClientSetting));
             this.materialButton_save = new MaterialSkin.Controls.MaterialButton();
             this.label10 = new System.Windows.Forms.Label();
             this.materialButton_createClient_test = new MaterialSkin.Controls.MaterialButton();
@@ -49,22 +50,24 @@
             this.label1 = new System.Windows.Forms.Label();
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.materialCheckbox_autoUpdate = new MaterialSkin.Controls.MaterialCheckbox();
+            this.materialButton_patch = new MaterialSkin.Controls.MaterialButton();
             this.SuspendLayout();
             // 
             // materialButton_save
             // 
             this.materialButton_save.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.materialButton_save.AutoSize = false;
             this.materialButton_save.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.materialButton_save.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             this.materialButton_save.Depth = 0;
             this.materialButton_save.HighEmphasis = true;
-            this.materialButton_save.Icon = null;
-            this.materialButton_save.Location = new System.Drawing.Point(199, 452);
+            this.materialButton_save.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_save.Icon")));
+            this.materialButton_save.Location = new System.Drawing.Point(188, 452);
             this.materialButton_save.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_save.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_save.Name = "materialButton_save";
             this.materialButton_save.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_save.Size = new System.Drawing.Size(64, 36);
+            this.materialButton_save.Size = new System.Drawing.Size(81, 36);
             this.materialButton_save.TabIndex = 38;
             this.materialButton_save.Text = "저장";
             this.materialButton_save.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
@@ -406,11 +409,10 @@
             // 
             // materialCheckbox_autoUpdate
             // 
-            this.materialCheckbox_autoUpdate.AutoSize = true;
             this.materialCheckbox_autoUpdate.Checked = true;
             this.materialCheckbox_autoUpdate.CheckState = System.Windows.Forms.CheckState.Checked;
             this.materialCheckbox_autoUpdate.Depth = 0;
-            this.materialCheckbox_autoUpdate.Location = new System.Drawing.Point(110, 400);
+            this.materialCheckbox_autoUpdate.Location = new System.Drawing.Point(63, 400);
             this.materialCheckbox_autoUpdate.Margin = new System.Windows.Forms.Padding(0);
             this.materialCheckbox_autoUpdate.MouseLocation = new System.Drawing.Point(-1, -1);
             this.materialCheckbox_autoUpdate.MouseState = MaterialSkin.MouseState.HOVER;
@@ -422,11 +424,33 @@
             this.materialCheckbox_autoUpdate.Text = "거상 자동 고속 업데이트 여부 (권장)";
             this.materialCheckbox_autoUpdate.UseVisualStyleBackColor = true;
             // 
+            // materialButton_patch
+            // 
+            this.materialButton_patch.AutoSize = false;
+            this.materialButton_patch.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_patch.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.materialButton_patch.Depth = 0;
+            this.materialButton_patch.HighEmphasis = true;
+            this.materialButton_patch.Icon = null;
+            this.materialButton_patch.Location = new System.Drawing.Point(316, 401);
+            this.materialButton_patch.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_patch.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_patch.Name = "materialButton_patch";
+            this.materialButton_patch.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_patch.Size = new System.Drawing.Size(75, 36);
+            this.materialButton_patch.TabIndex = 54;
+            this.materialButton_patch.Text = "수동패치";
+            this.materialButton_patch.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_patch.UseAccentColor = false;
+            this.materialButton_patch.UseVisualStyleBackColor = true;
+            this.materialButton_patch.Click += new System.EventHandler(this.materialButton_patch_Click);
+            // 
             // Form_ClientSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(456, 505);
+            this.Controls.Add(this.materialButton_patch);
             this.Controls.Add(this.materialCheckbox_autoUpdate);
             this.Controls.Add(this.materialButton_save);
             this.Controls.Add(this.label10);
@@ -494,5 +518,6 @@
         private Label label1;
         private FolderBrowserDialog folderBrowserDialog;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_autoUpdate;
+        private MaterialSkin.Controls.MaterialButton materialButton_patch;
     }
 }
