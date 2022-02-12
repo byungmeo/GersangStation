@@ -89,17 +89,27 @@ namespace GersangStation {
             webView_main.NavigationCompleted += webView_main_NavigationCompleted;
 
             webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
+
+            LoadComponent();
+        }
+
+        private void LoadComponent() {
+            LoadCheckBox();
             LoadRadioButton();
             LoadAccountComboBox();
             LoadShortcut();
         }
 
-        private void CoreWebView2_NewWindowRequested(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2NewWindowRequestedEventArgs e) {
+        private void LoadCheckBox() {
+            this.materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
+        }
+
+        private void CoreWebView2_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e) {
             if (sender != null) e.NewWindow = (CoreWebView2)sender;
             //e.Handled = true;
         }
 
-        private void CoreWebView2_ScriptDialogOpening(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2ScriptDialogOpeningEventArgs e) {
+        private void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
             string message = e.Message;
             Trace.WriteLine(message);
 
@@ -148,14 +158,14 @@ namespace GersangStation {
                 }
             });
         }
-        private void webView_main_NavigationStarting(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs e) {
+        private void webView_main_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
             Trace.WriteLine("NavigationStarting : " + e.Uri.ToString());
             Trace.WriteLine("NavigationStarting Previous URL : " + webView_main.Source);
             previousUrl = webView_main.CoreWebView2.Source;
             deactivateWebSideFunction();
         }
 
-        private void webView_main_NavigationCompleted(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs e) {
+        private void webView_main_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e) {
             /*
                 1. 스위치로 로그인 하는 경우
                 2. 스위치로 로그아웃 하는 경우
@@ -409,7 +419,8 @@ namespace GersangStation {
                 FormStyle = FormStyles.ActionBar_None,
                 Sizable = false,
                 StartPosition = FormStartPosition.CenterParent,
-                Size = new Size(200, 150),
+                //Size = new Size(200, 150),
+                Size = new Size(145, 130),
                 Text = "OTP",
                 MaximizeBox = false,
                 MinimizeBox = false,
@@ -418,20 +429,29 @@ namespace GersangStation {
                 Owner = this
             };
 
-            MaterialTextBox2 textBox_otp = new MaterialTextBox2() {
-                Hint = "OTP 코드 입력(8자)",
-                UseAccent = false,
+            Label label_otp = new Label() {
+                Text = "OTP 입력",
+                Font = new Font("Noto Sans KR", 10, FontStyle.Bold),
+                Location = new Point(38, 30)
+            };
+            dialog_otp.Controls.Add(label_otp);
+
+            TextBox textBox_otp = new TextBox() {
+                //Hint = "OTP 코드 입력(8자)",
+                //UseAccent = false,
                 MaxLength = 8,
-                Size = new Size(170, 50),
-                Location = new Point(15, 40),
+                //Size = new Size(170, 50),
+                Size = new Size(80, 50), //임시
+                Font = new Font("Noto Sans KR", 11),
+                Location = new Point(32, 55),
             };
             dialog_otp.Controls.Add(textBox_otp);
 
             MaterialButton button_confirm = new MaterialButton() {
                 Text = "확인",
                 AutoSize = false,
-                Size = new Size(64, 36),
-                Location = new Point(68, 100),
+                Size = new Size(50, 30),
+                Location = new Point(47, 90),
             };
             button_confirm.Click += (sender, e) => {
                 if(textBox_otp.Text.Length != 8) {
@@ -483,16 +503,30 @@ namespace GersangStation {
         private async void GameStart() {
             isGameStartLogin = false;
 
+            string configKey;
+            string regKey;
+            string server;
+            if (materialCheckbox_testServer.Checked) {
+                configKey = "client_path_test_";
+                regKey = "TestPath";
+                server = "test";
+            } 
+            else { 
+                configKey = "client_path_";
+                regKey = "InstallPath";
+                server = "main";
+            }
+
             string client_path;
             switch (currentClient) {
                 case Client.Client1:
-                    client_path = ConfigManager.getConfig("client_path_1");
+                    client_path = ConfigManager.getConfig(configKey + '1');
                     break;
                 case Client.Client2:
-                    client_path = ConfigManager.getConfig("client_path_2");
+                    client_path = ConfigManager.getConfig(configKey + '2');
                     break;
                 case Client.Client3:
-                    client_path = ConfigManager.getConfig("client_path_3");
+                    client_path = ConfigManager.getConfig(configKey + '3');
                     break;
                 default:
                     client_path = "";
@@ -508,7 +542,7 @@ namespace GersangStation {
                 //해당 클라이언트의 경로를 레지스트리에 등록시킵니다.
                 RegistryKey? registryKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\JOYON\Gersang\Korean", RegistryKeyPermissionCheck.ReadWriteSubTree);
                 if (registryKey != null) {
-                    registryKey.SetValue("InstallPath", client_path);
+                    registryKey.SetValue(regKey, client_path);
                     registryKey.Close();
                 }
             } catch (Exception ex) {
@@ -540,7 +574,7 @@ namespace GersangStation {
                 OpenGersangStarterInstallDialog();
                 return;
             } else {
-                await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('main')"", 2000);"); //소켓을 엽니다.
+                await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //소켓을 엽니다.
                 Process.Start(value.ToString()); //거상 스타터를 실행합니다.
             }
         }
@@ -897,6 +931,10 @@ namespace GersangStation {
             } finally {
                 backgroundForm.Dispose();
             }
+        }
+
+        private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
         }
     }
 }

@@ -37,7 +37,6 @@ namespace GersangStation {
                 StartPosition = FormStartPosition.CenterParent,
                 //Size = new Size(200, 270),
                 Size = new Size(200, 210),
-                Text = "계정 추가",
                 MaximizeBox = false,
                 MinimizeBox = false,
                 TopMost = true,
