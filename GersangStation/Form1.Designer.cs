@@ -54,12 +54,21 @@
             this.materialButton_setting_client = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_setting_account = new MaterialSkin.Controls.MaterialButton();
             this.tabPage_help = new System.Windows.Forms.TabPage();
+            this.materialButton_kakao = new MaterialSkin.Controls.MaterialButton();
             this.tabPage_info = new System.Windows.Forms.TabPage();
+            this.materialButton_patchNote = new MaterialSkin.Controls.MaterialButton();
+            this.materialButton_blog = new MaterialSkin.Controls.MaterialButton();
+            this.materialButton_gitHub = new MaterialSkin.Controls.MaterialButton();
+            this.label1 = new System.Windows.Forms.Label();
+            this.label_version_latest = new System.Windows.Forms.Label();
+            this.label_version_current = new System.Windows.Forms.Label();
             this.menuIconList = new System.Windows.Forms.ImageList(this.components);
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.materialTabControl1.SuspendLayout();
             this.tabPage_home.SuspendLayout();
             this.tabPage_settings.SuspendLayout();
+            this.tabPage_help.SuspendLayout();
+            this.tabPage_info.SuspendLayout();
             this.SuspendLayout();
             // 
             // materialTabControl1
@@ -571,7 +580,7 @@
             this.tabPage_settings.Location = new System.Drawing.Point(4, 31);
             this.tabPage_settings.Name = "tabPage_settings";
             this.tabPage_settings.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_settings.Size = new System.Drawing.Size(394, 198);
+            this.tabPage_settings.Size = new System.Drawing.Size(394, 193);
             this.tabPage_settings.TabIndex = 1;
             this.tabPage_settings.Text = "환경설정";
             // 
@@ -583,7 +592,7 @@
             this.materialButton_setting_shortcut.Depth = 0;
             this.materialButton_setting_shortcut.HighEmphasis = true;
             this.materialButton_setting_shortcut.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_shortcut.Icon")));
-            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(111, 148);
+            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(111, 145);
             this.materialButton_setting_shortcut.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_shortcut.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
@@ -604,7 +613,7 @@
             this.materialButton_setting_client.Depth = 0;
             this.materialButton_setting_client.HighEmphasis = true;
             this.materialButton_setting_client.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_client.Icon")));
-            this.materialButton_setting_client.Location = new System.Drawing.Point(111, 100);
+            this.materialButton_setting_client.Location = new System.Drawing.Point(111, 97);
             this.materialButton_setting_client.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_client.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_client.Name = "materialButton_setting_client";
@@ -624,7 +633,7 @@
             this.materialButton_setting_account.Depth = 0;
             this.materialButton_setting_account.HighEmphasis = true;
             this.materialButton_setting_account.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_account.Icon")));
-            this.materialButton_setting_account.Location = new System.Drawing.Point(111, 52);
+            this.materialButton_setting_account.Location = new System.Drawing.Point(111, 49);
             this.materialButton_setting_account.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_account.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_account.Name = "materialButton_setting_account";
@@ -639,25 +648,146 @@
             // 
             // tabPage_help
             // 
+            this.tabPage_help.Controls.Add(this.materialButton_kakao);
             this.tabPage_help.ImageKey = "outline_help_outline_black_24dp.png";
             this.tabPage_help.Location = new System.Drawing.Point(4, 31);
             this.tabPage_help.Name = "tabPage_help";
             this.tabPage_help.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_help.Size = new System.Drawing.Size(394, 198);
+            this.tabPage_help.Size = new System.Drawing.Size(394, 193);
             this.tabPage_help.TabIndex = 2;
             this.tabPage_help.Text = "도움말";
             this.tabPage_help.UseVisualStyleBackColor = true;
             // 
+            // materialButton_kakao
+            // 
+            this.materialButton_kakao.AutoSize = false;
+            this.materialButton_kakao.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_kakao.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.materialButton_kakao.Depth = 0;
+            this.materialButton_kakao.HighEmphasis = true;
+            this.materialButton_kakao.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_kakao.Icon")));
+            this.materialButton_kakao.Location = new System.Drawing.Point(91, 93);
+            this.materialButton_kakao.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_kakao.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_kakao.Name = "materialButton_kakao";
+            this.materialButton_kakao.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_kakao.Size = new System.Drawing.Size(161, 36);
+            this.materialButton_kakao.TabIndex = 1;
+            this.materialButton_kakao.Text = "카카오톡 오픈채팅 문의";
+            this.materialButton_kakao.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_kakao.UseAccentColor = false;
+            this.materialButton_kakao.UseVisualStyleBackColor = true;
+            this.materialButton_kakao.Click += new System.EventHandler(this.materialButton_kakao_Click);
+            // 
             // tabPage_info
             // 
+            this.tabPage_info.Controls.Add(this.materialButton_patchNote);
+            this.tabPage_info.Controls.Add(this.materialButton_blog);
+            this.tabPage_info.Controls.Add(this.materialButton_gitHub);
+            this.tabPage_info.Controls.Add(this.label1);
+            this.tabPage_info.Controls.Add(this.label_version_latest);
+            this.tabPage_info.Controls.Add(this.label_version_current);
             this.tabPage_info.ImageKey = "outline_info_black_24dp.png";
             this.tabPage_info.Location = new System.Drawing.Point(4, 31);
             this.tabPage_info.Name = "tabPage_info";
             this.tabPage_info.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_info.Size = new System.Drawing.Size(394, 198);
+            this.tabPage_info.Size = new System.Drawing.Size(394, 193);
             this.tabPage_info.TabIndex = 4;
             this.tabPage_info.Text = "프로그램 정보";
             this.tabPage_info.UseVisualStyleBackColor = true;
+            // 
+            // materialButton_patchNote
+            // 
+            this.materialButton_patchNote.AutoSize = false;
+            this.materialButton_patchNote.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_patchNote.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Dense;
+            this.materialButton_patchNote.Depth = 0;
+            this.materialButton_patchNote.HighEmphasis = true;
+            this.materialButton_patchNote.Icon = null;
+            this.materialButton_patchNote.Location = new System.Drawing.Point(245, 102);
+            this.materialButton_patchNote.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_patchNote.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_patchNote.Name = "materialButton_patchNote";
+            this.materialButton_patchNote.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_patchNote.Size = new System.Drawing.Size(55, 32);
+            this.materialButton_patchNote.TabIndex = 5;
+            this.materialButton_patchNote.Text = "패치노트";
+            this.materialButton_patchNote.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_patchNote.UseAccentColor = false;
+            this.materialButton_patchNote.UseVisualStyleBackColor = true;
+            this.materialButton_patchNote.Click += new System.EventHandler(this.materialButton_patchNote_Click);
+            // 
+            // materialButton_blog
+            // 
+            this.materialButton_blog.AutoSize = false;
+            this.materialButton_blog.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_blog.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.materialButton_blog.Depth = 0;
+            this.materialButton_blog.HighEmphasis = true;
+            this.materialButton_blog.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_blog.Icon")));
+            this.materialButton_blog.Location = new System.Drawing.Point(74, 165);
+            this.materialButton_blog.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_blog.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_blog.Name = "materialButton_blog";
+            this.materialButton_blog.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_blog.Size = new System.Drawing.Size(93, 36);
+            this.materialButton_blog.TabIndex = 4;
+            this.materialButton_blog.Text = "blog";
+            this.materialButton_blog.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_blog.UseAccentColor = false;
+            this.materialButton_blog.UseVisualStyleBackColor = true;
+            this.materialButton_blog.Click += new System.EventHandler(this.materialButton_blog_Click);
+            // 
+            // materialButton_gitHub
+            // 
+            this.materialButton_gitHub.AutoSize = false;
+            this.materialButton_gitHub.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_gitHub.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.materialButton_gitHub.Depth = 0;
+            this.materialButton_gitHub.HighEmphasis = true;
+            this.materialButton_gitHub.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_gitHub.Icon")));
+            this.materialButton_gitHub.Location = new System.Drawing.Point(176, 165);
+            this.materialButton_gitHub.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_gitHub.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_gitHub.Name = "materialButton_gitHub";
+            this.materialButton_gitHub.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_gitHub.Size = new System.Drawing.Size(93, 36);
+            this.materialButton_gitHub.TabIndex = 3;
+            this.materialButton_gitHub.Text = "GitHub";
+            this.materialButton_gitHub.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_gitHub.UseAccentColor = false;
+            this.materialButton_gitHub.UseVisualStyleBackColor = true;
+            this.materialButton_gitHub.Click += new System.EventHandler(this.materialButton_gitHub_Click);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Noto Sans KR", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label1.Location = new System.Drawing.Point(74, 18);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(195, 35);
+            this.label1.TabIndex = 2;
+            this.label1.Text = "GersangStation";
+            // 
+            // label_version_latest
+            // 
+            this.label_version_latest.AutoSize = true;
+            this.label_version_latest.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label_version_latest.Location = new System.Drawing.Point(108, 107);
+            this.label_version_latest.Name = "label_version_latest";
+            this.label_version_latest.Size = new System.Drawing.Size(130, 22);
+            this.label_version_latest.TabIndex = 1;
+            this.label_version_latest.Text = "최신 버전 : 00000";
+            // 
+            // label_version_current
+            // 
+            this.label_version_current.AutoSize = true;
+            this.label_version_current.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label_version_current.Location = new System.Drawing.Point(108, 74);
+            this.label_version_current.Name = "label_version_current";
+            this.label_version_current.Size = new System.Drawing.Size(130, 22);
+            this.label_version_current.TabIndex = 0;
+            this.label_version_current.Text = "현재 버전 : 00000";
             // 
             // menuIconList
             // 
@@ -698,6 +828,9 @@
             this.tabPage_home.PerformLayout();
             this.tabPage_settings.ResumeLayout(false);
             this.tabPage_settings.PerformLayout();
+            this.tabPage_help.ResumeLayout(false);
+            this.tabPage_info.ResumeLayout(false);
+            this.tabPage_info.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -735,5 +868,12 @@
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_testServer;
         private TabPage tabPage_help;
         private TabPage tabPage_info;
+        private MaterialSkin.Controls.MaterialButton materialButton_kakao;
+        private Label label_version_current;
+        private Label label_version_latest;
+        private Label label1;
+        private MaterialSkin.Controls.MaterialButton materialButton_blog;
+        private MaterialSkin.Controls.MaterialButton materialButton_gitHub;
+        private MaterialSkin.Controls.MaterialButton materialButton_patchNote;
     }
 }

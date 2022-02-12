@@ -122,6 +122,8 @@ namespace GersangStation {
                 GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
                 IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
                 version_latest = releases[0].TagName;
+                label_version_current.Text = label_version_current.Text.Replace("00000", version_current);
+                label_version_latest.Text = label_version_latest.Text.Replace("00000", version_latest);
 
                 //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
                 //Version latestGitHubVersion = new Version(releases[0].TagName);
@@ -1022,6 +1024,22 @@ namespace GersangStation {
                 Owner = owner
             };
             return backgroundForm;
+        }
+
+        private void materialButton_kakao_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
+        }
+
+        private void materialButton_patchNote_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
+        }
+
+        private void materialButton_blog_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
+        }
+
+        private void materialButton_gitHub_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
         }
     }
 }
