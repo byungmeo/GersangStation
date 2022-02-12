@@ -17,17 +17,7 @@ namespace GersangStation {
         }
 
         private void materialButton_addAccount_Click(object sender, EventArgs e) {
-            Form backgroundForm = new Form() {
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.None,
-                Opacity = .50d,
-                BackColor = Color.Black,
-                Location = this.Location,
-                Size = this.Size,
-                ShowInTaskbar = false,
-                TopMost = true,
-                Owner = this
-            };
+            Form backgroundForm = Form1.InitBackgroundForm(this);
             backgroundForm.Show();
 
             //계정 추가 대화상자용 폼
@@ -114,8 +104,8 @@ namespace GersangStation {
             if (dialog_addAccount.ShowDialog() == DialogResult.OK) {
                 string id = textBox_id.Text;
                 string pw = EncryptionSupporter.Protect(textBox_pw.Text);
-                Trace.WriteLine("ShowDialog ID : " + id);
-                Trace.WriteLine("ShowDialog PW : " + pw);
+                //Trace.WriteLine("ShowDialog ID : " + id);
+                //Trace.WriteLine("ShowDialog PW : " + pw);
 
                 ConfigManager.addConfig(id, pw);
                 ConfigManager.setConfig("account_list", ConfigManager.getConfig("account_list") + textBox_id.Text + ";");

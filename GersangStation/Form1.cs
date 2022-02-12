@@ -208,12 +208,8 @@ namespace GersangStation {
                 this.BeginInvoke(() => {
                     string? otpCode = showDialogOtp();
 
-                    Trace.WriteLine("otpCode : " + otpCode);
-                    if (otpCode == null) {
-                        MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
-                    } else {
-                        doOtpInput(otpCode);
-                    }
+                    if (otpCode == null) { MessageBox.Show("OTP 코드를 입력하지 않았습니다."); } 
+                    else { doOtpInput(otpCode); }
                 });
                 return;
             }
@@ -253,15 +249,10 @@ namespace GersangStation {
             int arg; //event_Search_Use 스크립트 실행 인자
 
             int koreaHour = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Korea Standard Time").Hour;
-            if (koreaHour >= 0 && koreaHour <= 5) {
-                arg = 1;
-            } else if (koreaHour >= 6 && koreaHour <= 11) {
-                arg = 2;
-            } else if (koreaHour >= 12 && koreaHour <= 17) {
-                arg = 3;
-            } else {
-                arg = 4;
-            }
+            if (koreaHour >= 0 && koreaHour <= 5) { arg = 1; } 
+            else if (koreaHour >= 6 && koreaHour <= 11) { arg = 2; } 
+            else if (koreaHour >= 12 && koreaHour <= 17) { arg = 3; } 
+            else { arg = 4; }
 
             await webView_main.ExecuteScriptAsync("event_Search_Use(" + arg + ");");
         }
@@ -399,9 +390,7 @@ namespace GersangStation {
 
             if (tag != null) { account = tag.Split(';'); } else { return; }
 
-            if (button_login != null && textBox_id != null && textBox_pw != null) {
-                Login(account[0], account[1]);
-            }
+            if (button_login != null && textBox_id != null && textBox_pw != null) { Login(account[0], account[1]); }
         }
 
         private async void doOtpInput(string otpCode) {
@@ -546,9 +535,7 @@ namespace GersangStation {
 
             if (client_path == "") {
                 DialogResult dr = MessageBox.Show("클라이언트 경로가 지정되어 있지 않습니다.\n설정 창으로 이동하시겠습니까?", "경로 미지정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if (dr == DialogResult.OK) {
-                    OpenClientSettingDialog();
-                }
+                if (dr == DialogResult.OK) { OpenClientSettingDialog(); }
                 return;
             }
 
@@ -658,9 +645,7 @@ namespace GersangStation {
 
             if (url == null || url.Equals("")) {
                 DialogResult dr = MessageBox.Show("나만의 바로가기 링크가 설정되어 있지 않습니다.\n설정화면으로 이동하시겠습니까?", "바로가기 미설정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if (dr == DialogResult.OK) {
-                    OpenShortcuttSettingDialog();
-                }
+                if (dr == DialogResult.OK) { OpenShortcuttSettingDialog(); }
                 return;
             }
 
@@ -702,11 +687,9 @@ namespace GersangStation {
 
             string id = comboBox.Text;
             string switchTag;
-            //Trace.WriteLine(id);
 
             if(id.Contains("선택안함")) { switchTag = id; }
             else { switchTag = id + ";" + ConfigManager.getConfig(comboBox.Text); }
-            //Trace.WriteLine(switchTag);
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
@@ -795,11 +778,8 @@ namespace GersangStation {
             else { loginSwitch = materialSwitch_login_3; }
 
             isSearch = true;
-            if (true == loginSwitch.Checked) {
-                webView_main.CoreWebView2.Navigate(url_search); //네이버 검색
-            } else {
-                SwitchClick(loginSwitch);
-            }
+            if (true == loginSwitch.Checked) { webView_main.CoreWebView2.Navigate(url_search); } //네이버 검색
+            else { SwitchClick(loginSwitch); }
         }
 
         private void radio_preset_CheckedChanged(object sender, EventArgs e) {
@@ -887,16 +867,7 @@ namespace GersangStation {
         }
 
         private void OpenShortcuttSettingDialog() {
-            Form backgroundForm = new Form() {
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.None,
-                Opacity = .50d,
-                BackColor = Color.Black,
-                Location = this.Location,
-                Size = this.Size,
-                ShowInTaskbar = false,
-                Owner = this
-            };
+            Form backgroundForm = InitBackgroundForm(this);
 
             Form_ShortcutSetting dialog_shortcutSetting = new Form_ShortcutSetting() {
                 Owner = this
@@ -914,16 +885,7 @@ namespace GersangStation {
         }
 
         private void OpenClientSettingDialog() {
-            Form backgroundForm = new Form() {
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.None,
-                Opacity = .50d,
-                BackColor = Color.Black,
-                Location = this.Location,
-                Size = this.Size,
-                ShowInTaskbar = false,
-                Owner = this
-            };
+            Form backgroundForm = InitBackgroundForm(this);
 
             Form_ClientSetting dialog_clientSetting = new Form_ClientSetting() {
                 Owner = this
@@ -940,16 +902,7 @@ namespace GersangStation {
         }
 
         private void OpenAccountSettingDialog() {
-            Form backgroundForm = new Form() {
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.None,
-                Opacity = .50d,
-                BackColor = Color.Black,
-                Location = this.Location,
-                Size = this.Size,
-                ShowInTaskbar = false,
-                Owner = this
-            };
+            Form backgroundForm = InitBackgroundForm(this);
 
             Form_AccountSetting dialog_accountSetting = new Form_AccountSetting() {
                 Owner = this
@@ -968,6 +921,21 @@ namespace GersangStation {
 
         private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
             ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
+        }
+
+        public static Form InitBackgroundForm(Form owner) {
+            Form backgroundForm = new Form() {
+                StartPosition = FormStartPosition.Manual,
+                FormBorderStyle = FormBorderStyle.None,
+                Opacity = .50d,
+                BackColor = Color.Black,
+                Location = owner.Location,
+                Size = owner.Size,
+                ShowInTaskbar = false,
+                TopMost = true,
+                Owner = owner
+            };
+            return backgroundForm;
         }
     }
 }

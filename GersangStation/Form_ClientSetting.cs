@@ -91,17 +91,7 @@ namespace GersangStation {
             string secondName = "";
             string thirdName = "";
 
-            Form backgroundForm = new Form() {
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.None,
-                Opacity = .50d,
-                BackColor = Color.Black,
-                Location = this.Location,
-                Size = this.Size,
-                ShowInTaskbar = false,
-                TopMost = true,
-                Owner = this
-            };
+            Form backgroundForm = Form1.InitBackgroundForm(this);
             backgroundForm.Show();
 
             //클라 폴더이름 지정 대화상자
