@@ -14,7 +14,9 @@ namespace GersangStation {
             var assembly = Assembly.GetExecutingAssembly();
             var resourceName = "GersangStation.ClientCreatorCommand.txt";
             string command = "";
+#pragma warning disable CS8600 // null 리터럴 또는 가능한 null 값을 null을 허용하지 않는 형식으로 변환하는 중입니다.
             using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+#pragma warning restore CS8600 // null 리터럴 또는 가능한 null 값을 null을 허용하지 않는 형식으로 변환하는 중입니다.
             using (StreamReader reader = new StreamReader(stream)) {
                 command = reader.ReadToEnd();
             }

@@ -42,8 +42,8 @@
             this.textBox_folderName_2 = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
             this.textBox_mainPath = new System.Windows.Forms.TextBox();
-            this.materialCheckbox1 = new MaterialSkin.Controls.MaterialCheckbox();
-            this.materialCheckbox2 = new MaterialSkin.Controls.MaterialCheckbox();
+            this.materialCheckbox_apply = new MaterialSkin.Controls.MaterialCheckbox();
+            this.materialCheckbox_delete = new MaterialSkin.Controls.MaterialCheckbox();
             this.materialButton_startPatch = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_close = new MaterialSkin.Controls.MaterialButton();
             this.materialCard1.SuspendLayout();
@@ -184,6 +184,7 @@
             // 
             this.textBox_folderName_3.Location = new System.Drawing.Point(107, 81);
             this.textBox_folderName_3.Name = "textBox_folderName_3";
+            this.textBox_folderName_3.ReadOnly = true;
             this.textBox_folderName_3.Size = new System.Drawing.Size(100, 23);
             this.textBox_folderName_3.TabIndex = 42;
             this.textBox_folderName_3.Text = "Gersang3";
@@ -217,6 +218,7 @@
             // 
             this.textBox_folderName_2.Location = new System.Drawing.Point(107, 46);
             this.textBox_folderName_2.Name = "textBox_folderName_2";
+            this.textBox_folderName_2.ReadOnly = true;
             this.textBox_folderName_2.Size = new System.Drawing.Size(100, 23);
             this.textBox_folderName_2.TabIndex = 39;
             this.textBox_folderName_2.Text = "Gersang2";
@@ -238,46 +240,47 @@
             // 
             this.textBox_mainPath.Location = new System.Drawing.Point(107, 14);
             this.textBox_mainPath.Name = "textBox_mainPath";
+            this.textBox_mainPath.ReadOnly = true;
             this.textBox_mainPath.Size = new System.Drawing.Size(280, 23);
             this.textBox_mainPath.TabIndex = 37;
             this.textBox_mainPath.Text = "G:\\AKInteractive\\Gersang";
             this.textBox_mainPath.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
-            // materialCheckbox1
+            // materialCheckbox_apply
             // 
-            this.materialCheckbox1.AutoSize = true;
-            this.materialCheckbox1.Checked = true;
-            this.materialCheckbox1.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.materialCheckbox1.Depth = 0;
-            this.materialCheckbox1.Location = new System.Drawing.Point(11, 205);
-            this.materialCheckbox1.Margin = new System.Windows.Forms.Padding(0);
-            this.materialCheckbox1.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialCheckbox1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialCheckbox1.Name = "materialCheckbox1";
-            this.materialCheckbox1.ReadOnly = false;
-            this.materialCheckbox1.Ripple = true;
-            this.materialCheckbox1.Size = new System.Drawing.Size(127, 37);
-            this.materialCheckbox1.TabIndex = 38;
-            this.materialCheckbox1.Text = "다클라 패치 적용";
-            this.materialCheckbox1.UseVisualStyleBackColor = true;
+            this.materialCheckbox_apply.AutoSize = true;
+            this.materialCheckbox_apply.Checked = true;
+            this.materialCheckbox_apply.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.materialCheckbox_apply.Depth = 0;
+            this.materialCheckbox_apply.Location = new System.Drawing.Point(11, 205);
+            this.materialCheckbox_apply.Margin = new System.Windows.Forms.Padding(0);
+            this.materialCheckbox_apply.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.materialCheckbox_apply.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialCheckbox_apply.Name = "materialCheckbox_apply";
+            this.materialCheckbox_apply.ReadOnly = false;
+            this.materialCheckbox_apply.Ripple = true;
+            this.materialCheckbox_apply.Size = new System.Drawing.Size(127, 37);
+            this.materialCheckbox_apply.TabIndex = 38;
+            this.materialCheckbox_apply.Text = "다클라 패치 적용";
+            this.materialCheckbox_apply.UseVisualStyleBackColor = true;
             // 
-            // materialCheckbox2
+            // materialCheckbox_delete
             // 
-            this.materialCheckbox2.AutoSize = true;
-            this.materialCheckbox2.Checked = true;
-            this.materialCheckbox2.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.materialCheckbox2.Depth = 0;
-            this.materialCheckbox2.Location = new System.Drawing.Point(154, 205);
-            this.materialCheckbox2.Margin = new System.Windows.Forms.Padding(0);
-            this.materialCheckbox2.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialCheckbox2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialCheckbox2.Name = "materialCheckbox2";
-            this.materialCheckbox2.ReadOnly = false;
-            this.materialCheckbox2.Ripple = true;
-            this.materialCheckbox2.Size = new System.Drawing.Size(131, 37);
-            this.materialCheckbox2.TabIndex = 39;
-            this.materialCheckbox2.Text = "패치 후 파일 삭제";
-            this.materialCheckbox2.UseVisualStyleBackColor = true;
+            this.materialCheckbox_delete.AutoSize = true;
+            this.materialCheckbox_delete.Checked = true;
+            this.materialCheckbox_delete.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.materialCheckbox_delete.Depth = 0;
+            this.materialCheckbox_delete.Location = new System.Drawing.Point(154, 205);
+            this.materialCheckbox_delete.Margin = new System.Windows.Forms.Padding(0);
+            this.materialCheckbox_delete.MouseLocation = new System.Drawing.Point(-1, -1);
+            this.materialCheckbox_delete.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialCheckbox_delete.Name = "materialCheckbox_delete";
+            this.materialCheckbox_delete.ReadOnly = false;
+            this.materialCheckbox_delete.Ripple = true;
+            this.materialCheckbox_delete.Size = new System.Drawing.Size(131, 37);
+            this.materialCheckbox_delete.TabIndex = 39;
+            this.materialCheckbox_delete.Text = "패치 후 파일 삭제";
+            this.materialCheckbox_delete.UseVisualStyleBackColor = true;
             // 
             // materialButton_startPatch
             // 
@@ -329,8 +332,8 @@
             this.ClientSize = new System.Drawing.Size(623, 562);
             this.Controls.Add(this.materialButton_close);
             this.Controls.Add(this.materialButton_startPatch);
-            this.Controls.Add(this.materialCheckbox2);
-            this.Controls.Add(this.materialCheckbox1);
+            this.Controls.Add(this.materialCheckbox_delete);
+            this.Controls.Add(this.materialCheckbox_apply);
             this.Controls.Add(this.materialCard2);
             this.Controls.Add(this.materialCard1);
             this.Controls.Add(this.progressBar);
@@ -344,6 +347,7 @@
             this.Text = "GersangPatcher";
             this.TopMost = true;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form_Patcher_FormClosing);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Form_Patcher_FormClosed);
             this.Load += new System.EventHandler(this.Form_Patcher_Load);
             this.materialCard1.ResumeLayout(false);
             this.materialCard1.PerformLayout();
@@ -374,8 +378,8 @@
         private TextBox textBox_folderName_2;
         private Label label5;
         private TextBox textBox_folderName_3;
-        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox1;
-        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox2;
+        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_apply;
+        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_delete;
         private MaterialSkin.Controls.MaterialButton materialButton_startPatch;
         private MaterialSkin.Controls.MaterialButton materialButton_close;
     }
