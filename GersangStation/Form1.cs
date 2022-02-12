@@ -98,6 +98,17 @@ namespace GersangStation {
             LoadRadioButton();
             LoadAccountComboBox();
             LoadShortcut();
+
+            CheckAccount();
+        }
+
+        private void CheckAccount() {
+            if (materialComboBox_account_1.Items.Count <= 1) {
+                DialogResult dr = MessageBox.Show("현재 저장된 계정이 하나도 없습니다.\n계정 설정 화면으로 이동하시겠습니까?", "계정 없음", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dr == DialogResult.OK) {
+                    OpenAccountSettingDialog();
+                }
+            }
         }
 
         private void LoadCheckBox() {
@@ -534,7 +545,10 @@ namespace GersangStation {
             }
 
             if (client_path == "") {
-                MessageBox.Show("클라이언트 경로가 지정되어 있지 않습니다. 설정창에서 클라이언트 경로를 설정해주세요.");
+                DialogResult dr = MessageBox.Show("클라이언트 경로가 지정되어 있지 않습니다.\n설정 창으로 이동하시겠습니까?", "경로 미지정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dr == DialogResult.OK) {
+                    OpenClientSettingDialog();
+                }
                 return;
             }
 
