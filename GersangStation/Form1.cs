@@ -657,6 +657,10 @@ namespace GersangStation {
             string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
 
             if (url == null || url.Equals("")) {
+                DialogResult dr = MessageBox.Show("나만의 바로가기 링크가 설정되어 있지 않습니다.\n설정화면으로 이동하시겠습니까?", "바로가기 미설정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dr == DialogResult.OK) {
+                    OpenShortcuttSettingDialog();
+                }
                 return;
             }
 
