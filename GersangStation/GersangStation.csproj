@@ -14,6 +14,9 @@
     <Copyright>Copyright © 2021 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
     <Company>Byungmeo</Company>
     <Authors>Byungmeo</Authors>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/byungmeo/GersangStation</RepositoryUrl>
+    <Description>거상 다클라 종합 유틸리티</Description>
   </PropertyGroup>
 
   <ItemGroup>
