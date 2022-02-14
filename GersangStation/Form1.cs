@@ -591,43 +591,42 @@ namespace GersangStation {
                 return;
             }
 
+            if (false == ValidationPath(client_path, server)) return;
             
-                string version_current = Form_Patcher.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
-                string version_latest = Form_Patcher.GetLatestVersion(this, url_vsn);
-                if (version_current != version_latest) {
-                    DialogResult dr = DialogResult.No;
-                    bool update = false;
-                    if (!bool.Parse(ConfigManager.getConfig("is_auto_update"))) {
-                        dr = MessageBox.Show(this, "거상 업데이트가 가능합니다! (" + version_current + "->" + version_latest + ")\n프로그램 기능을 사용하여 업데이트 하시겠습니까?\n거상 스테이션은 공식 패치 프로그램보다\n더 빠르게 업데이트 가능합니다.",
-                            "거상 패치", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    } else {
-                        update = true;
-                    }
+            string version_current = Form_Patcher.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
+            string version_latest = Form_Patcher.GetLatestVersion(this, url_vsn);
+            if (version_current != version_latest) {
+                DialogResult dr = DialogResult.No;
+                bool update = false;
+                if (!bool.Parse(ConfigManager.getConfig("is_auto_update"))) {
+                    dr = MessageBox.Show(this, "거상 업데이트가 가능합니다! (" + version_current + "->" + version_latest + ")\n프로그램 기능을 사용하여 업데이트 하시겠습니까?\n거상 스테이션은 공식 패치 프로그램보다\n더 빠르게 업데이트 가능합니다.",
+                        "거상 패치", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                } else {
+                    update = true;
+                }
 
-                    if (dr == DialogResult.Yes || update == true) {
-                        this.BeginInvoke(() => {
-                            Form backgroundForm = InitBackgroundForm(this);
+                if (dr == DialogResult.Yes || update == true) {
+                    this.BeginInvoke(() => {
+                        Form backgroundForm = InitBackgroundForm(this);
 
-                            Form_Patcher form_Patcher = new Form_Patcher() {
-                                Owner = this
-                            };
+                        Form_Patcher form_Patcher = new Form_Patcher() {
+                            Owner = this
+                        };
 
-                            try {
-                                backgroundForm.Show();
-                                form_Patcher.ShowDialog();
-                            } catch (Exception ex) {
-                                Trace.WriteLine(ex.StackTrace);
-                            } finally {
-                                backgroundForm.Dispose();
-                            }
-                        });
+                        try {
+                            backgroundForm.Show();
+                            form_Patcher.ShowDialog();
+                        } catch (Exception ex) {
+                            Trace.WriteLine(ex.StackTrace);
+                        } finally {
+                            backgroundForm.Dispose();
+                        }
+                    });
                     return;
                 }
-                    Trace.WriteLine("일반 패치를 선택하였습니다.");
-                }
+                Trace.WriteLine("일반 패치를 선택하였습니다.");
+            }
             
-            
-
             try {
                 //해당 클라이언트의 경로를 레지스트리에 등록시킵니다.
                 RegistryKey? registryKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\JOYON\Gersang\Korean", RegistryKeyPermissionCheck.ReadWriteSubTree);
@@ -667,6 +666,31 @@ namespace GersangStation {
                 await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //소켓을 엽니다.
                 Process.Start(value.ToString()); //거상 스타터를 실행합니다.
             }
+        }
+
+        private bool ValidationPath(string client_path, string server) {
+            string iniName;
+            if (server == "main") { iniName = "GerSangKR.ini"; } 
+            else { iniName = "GerSangKRTest.ini"; }
+
+            if (!File.Exists(client_path + "\\" + "Gersang.exe")) {
+                this.BeginInvoke(() => {
+                    MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : Gersang.exe 파일이 없습니다.", "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                }); 
+                return false;
+            }
+
+            if (!File.Exists(client_path + "\\" + iniName)) {
+                string message;
+                if (server == "main") { message = "본섭 경로가 아닙니다."; }
+                else { message = "테섭 경로가 아닙니다."; }
+                this.BeginInvoke(() => {
+                    MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : " + message, "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                });
+                return false;
+            }
+
+            return true;
         }
 
         private void OpenGersangStarterInstallDialog() {

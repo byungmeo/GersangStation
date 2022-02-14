@@ -52,7 +52,7 @@ namespace GersangStation {
             process.WaitForExit();
 
             //다클라가 생성된 폴더를 열어준다
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo() {
+            Process.Start(new ProcessStartInfo() {
                 FileName = original_path + "\\..\\",
                 UseShellExecute = true,
                 Verb = "open"
