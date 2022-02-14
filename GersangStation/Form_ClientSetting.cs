@@ -172,6 +172,10 @@ namespace GersangStation {
                 if (checkBox_apply.Checked) {
                     obj_path_2.Text = mainClientPath + "\\..\\" + secondName;
                     obj_path_3.Text = mainClientPath + "\\..\\" + thirdName;
+
+                    ConfigManager.setConfig("client_path_1", textBox_path_1.Text);
+                    ConfigManager.setConfig("client_path_2", textBox_path_2.Text);
+                    ConfigManager.setConfig("client_path_3", textBox_path_3.Text);
                 }
 
                 dialog_name.DialogResult = DialogResult.OK;
