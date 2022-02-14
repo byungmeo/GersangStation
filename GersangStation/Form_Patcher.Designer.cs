@@ -47,6 +47,7 @@
             this.materialButton_startPatch = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_close = new MaterialSkin.Controls.MaterialButton();
             this.label6 = new System.Windows.Forms.Label();
+            this.label_progress = new System.Windows.Forms.Label();
             this.materialCard1.SuspendLayout();
             this.materialCard2.SuspendLayout();
             this.SuspendLayout();
@@ -339,11 +340,23 @@
             this.label6.Text = "거상 패치가 가능합니다!";
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // label_progress
+            // 
+            this.label_progress.AutoSize = true;
+            this.label_progress.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
+            this.label_progress.Location = new System.Drawing.Point(393, 217);
+            this.label_progress.Name = "label_progress";
+            this.label_progress.Size = new System.Drawing.Size(34, 15);
+            this.label_progress.TabIndex = 43;
+            this.label_progress.Text = "0 / 0";
+            this.label_progress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // Form_Patcher
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(623, 562);
+            this.Controls.Add(this.label_progress);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.materialButton_close);
             this.Controls.Add(this.materialButton_startPatch);
@@ -398,5 +411,6 @@
         private MaterialSkin.Controls.MaterialButton materialButton_startPatch;
         private MaterialSkin.Controls.MaterialButton materialButton_close;
         private Label label6;
+        private Label label_progress;
     }
 }

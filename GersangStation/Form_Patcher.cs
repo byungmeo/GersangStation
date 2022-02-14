@@ -248,7 +248,7 @@ namespace GersangStation {
             Trace.WriteLine("총 패치 파일 수 : " + list_patchFile);
             Trace.WriteLine("실제로 다운로드 받는 총 파일 수 : " + list_readyDownloadFile);
             progressBar.Maximum = list_readyDownloadFile.Count;
-            bool isDownloading = false;
+            label_progress.Text = progressBar.Value + " / " + progressBar.Maximum;
 
             foreach (var item in list_readyDownloadFile) {
                 string url = url_patch + item.Value + item.Key;
@@ -282,17 +282,15 @@ namespace GersangStation {
 
                     //다운로드 진행도가 변경될 때 마다
                     client.DownloadProgressChanged += (object obj, DownloadProgressChangedEventArgs args) => {
-                        if (!isDownloading) {
-                            lvi.SubItems[3].Text = args.TotalBytesToReceive.ToString();
-                            lvi.SubItems[4].Text = "다운로드 중";
-                            isDownloading = true;
-                        }
+                        lvi.SubItems[3].Text = args.TotalBytesToReceive.ToString();
+                        lvi.SubItems[4].Text = "다운로드 중";
                         lvi.SubItems[2].Text = args.BytesReceived.ToString();
                     };
 
                     string errorMessageList = "";
                     client.DownloadFileCompleted += (object? obj, AsyncCompletedEventArgs args) => {
                         progressBar.Value += 1;
+                        label_progress.Text = progressBar.Value + " / " + progressBar.Maximum;
 
                         if (args.Error != null) {
                             lvi.SubItems[4].Text = "다운로드 실패";
@@ -355,7 +353,8 @@ namespace GersangStation {
 
                                 //10. 체크여부에 따라 다클라 패치 적용
                                 if (materialCheckbox_apply.Checked) {
-                                    ClientCreator.client_create(path_main, name_client_2, name_client_3);
+                                    if (bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path_main, name_client_2, name_client_3); }
+                                    else { ClientCreator.CreateClient_Default(this, path_main, name_client_2, name_client_3); }
                                 }
                             }
 

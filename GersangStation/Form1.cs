@@ -976,6 +976,25 @@ namespace GersangStation {
                 OpenClientSettingDialog();
             } else if (button.Equals(materialButton_setting_shortcut)) {
                 OpenShortcuttSettingDialog();
+            } else if (button.Equals(materialButton_setting_advanced)) {
+                OpenAdvancedSettingDialog();
+            }
+        }
+
+        private void OpenAdvancedSettingDialog() {
+            Form backgroundForm = InitBackgroundForm(this);
+
+            Form_AdvancedSetting dialog_shortcutSetting = new Form_AdvancedSetting() {
+                Owner = this
+            };
+
+            try {
+                backgroundForm.Show();
+                dialog_shortcutSetting.ShowDialog();
+            } catch (Exception ex) {
+                Trace.WriteLine(ex.StackTrace);
+            } finally {
+                backgroundForm.Dispose();
             }
         }
 
@@ -1066,5 +1085,5 @@ namespace GersangStation {
         private void materialButton_gitHub_Click(object sender, EventArgs e) {
             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
         }
-    }
-}
+    } //Form1
+} //namespace

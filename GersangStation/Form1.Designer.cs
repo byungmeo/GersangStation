@@ -50,6 +50,7 @@
             this.radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
             this.radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
             this.tabPage_settings = new System.Windows.Forms.TabPage();
+            this.materialButton_setting_advanced = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_setting_shortcut = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_setting_client = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_setting_account = new MaterialSkin.Controls.MaterialButton();
@@ -573,6 +574,7 @@
             // tabPage_settings
             // 
             this.tabPage_settings.AutoScroll = true;
+            this.tabPage_settings.Controls.Add(this.materialButton_setting_advanced);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_shortcut);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_client);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_account);
@@ -584,6 +586,27 @@
             this.tabPage_settings.TabIndex = 1;
             this.tabPage_settings.Text = "환경설정";
             // 
+            // materialButton_setting_advanced
+            // 
+            this.materialButton_setting_advanced.AutoSize = false;
+            this.materialButton_setting_advanced.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_setting_advanced.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            this.materialButton_setting_advanced.Depth = 0;
+            this.materialButton_setting_advanced.HighEmphasis = true;
+            this.materialButton_setting_advanced.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_advanced.Icon")));
+            this.materialButton_setting_advanced.Location = new System.Drawing.Point(111, 170);
+            this.materialButton_setting_advanced.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_setting_advanced.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_setting_advanced.Name = "materialButton_setting_advanced";
+            this.materialButton_setting_advanced.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_setting_advanced.Size = new System.Drawing.Size(117, 36);
+            this.materialButton_setting_advanced.TabIndex = 27;
+            this.materialButton_setting_advanced.Text = "고급 설정";
+            this.materialButton_setting_advanced.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_setting_advanced.UseAccentColor = false;
+            this.materialButton_setting_advanced.UseVisualStyleBackColor = true;
+            this.materialButton_setting_advanced.Click += new System.EventHandler(this.materialButton_setting_Click);
+            // 
             // materialButton_setting_shortcut
             // 
             this.materialButton_setting_shortcut.AutoSize = false;
@@ -592,7 +615,7 @@
             this.materialButton_setting_shortcut.Depth = 0;
             this.materialButton_setting_shortcut.HighEmphasis = true;
             this.materialButton_setting_shortcut.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_shortcut.Icon")));
-            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(111, 145);
+            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(111, 122);
             this.materialButton_setting_shortcut.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_shortcut.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
@@ -613,7 +636,7 @@
             this.materialButton_setting_client.Depth = 0;
             this.materialButton_setting_client.HighEmphasis = true;
             this.materialButton_setting_client.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_client.Icon")));
-            this.materialButton_setting_client.Location = new System.Drawing.Point(111, 97);
+            this.materialButton_setting_client.Location = new System.Drawing.Point(111, 74);
             this.materialButton_setting_client.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_client.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_client.Name = "materialButton_setting_client";
@@ -633,7 +656,7 @@
             this.materialButton_setting_account.Depth = 0;
             this.materialButton_setting_account.HighEmphasis = true;
             this.materialButton_setting_account.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_account.Icon")));
-            this.materialButton_setting_account.Location = new System.Drawing.Point(111, 49);
+            this.materialButton_setting_account.Location = new System.Drawing.Point(111, 26);
             this.materialButton_setting_account.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_setting_account.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_setting_account.Name = "materialButton_setting_account";
@@ -875,5 +898,6 @@
         private MaterialSkin.Controls.MaterialButton materialButton_blog;
         private MaterialSkin.Controls.MaterialButton materialButton_gitHub;
         private MaterialSkin.Controls.MaterialButton materialButton_patchNote;
+        private MaterialSkin.Controls.MaterialButton materialButton_setting_advanced;
     }
 }
