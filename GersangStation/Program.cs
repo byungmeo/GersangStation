@@ -7,7 +7,7 @@ namespace GersangStation {
         static void Main() {
             bool flagMutex; //중복 실행 여부 확인
 
-            Mutex mutex = new Mutex(true, "GersangClientStation", out flagMutex);
+            Mutex mutex = new Mutex(true, "GersangStation", out flagMutex);
             if (flagMutex) {
                 // To customize application configuration such as set high DPI settings or default font,
                 // see https://aka.ms/applicationconfiguration.
