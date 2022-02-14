@@ -471,11 +471,10 @@ namespace GersangStation {
             backgroundForm.Show();
 
             MaterialForm dialog_otp = new MaterialForm() {
-                FormStyle = FormStyles.ActionBar_None,
+                FormStyle = FormStyles.ActionBar_40,
                 Sizable = false,
                 StartPosition = FormStartPosition.CenterParent,
-                //Size = new Size(200, 150),
-                Size = new Size(145, 130),
+                Size = new Size(200, 129),
                 Text = "OTP",
                 MaximizeBox = false,
                 MinimizeBox = false,
@@ -484,29 +483,19 @@ namespace GersangStation {
                 Owner = this
             };
 
-            Label label_otp = new () {
-                Text = "OTP 입력",
-                Font = new Font("Noto Sans KR", 10, FontStyle.Bold),
-                Location = new Point(38, 30)
-            };
-            dialog_otp.Controls.Add(label_otp);
-
             TextBox textBox_otp = new TextBox() {
-                //Hint = "OTP 코드 입력(8자)",
-                //UseAccent = false,
                 MaxLength = 8,
-                //Size = new Size(170, 50),
-                Size = new Size(80, 50), //임시
-                Font = new Font("Noto Sans KR", 11),
-                Location = new Point(32, 55),
+                Location = new Point(15, 80),
+                Size = new Size(111, 33),
+                Font = new Font("맑은 고딕", (float)14.25, FontStyle.Bold)
             };
             dialog_otp.Controls.Add(textBox_otp);
 
             MaterialButton button_confirm = new MaterialButton() {
                 Text = "확인",
+                Location = new Point(133, 80),
                 AutoSize = false,
-                Size = new Size(50, 30),
-                Location = new Point(47, 90),
+                Size = new Size(50, 33)
             };
             button_confirm.Click += (sender, e) => {
                 if(textBox_otp.Text.Length != 8) {
