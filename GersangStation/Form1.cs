@@ -102,6 +102,7 @@ namespace GersangStation {
         }
 
         private void LoadComponent() {
+            ConfigManager.Validation();
             LoadCheckBox();
             LoadRadioButton();
             LoadAccountComboBox();
