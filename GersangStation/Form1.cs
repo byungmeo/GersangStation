@@ -474,8 +474,8 @@ namespace GersangStation {
                 FormStyle = FormStyles.ActionBar_40,
                 Sizable = false,
                 StartPosition = FormStartPosition.CenterParent,
-                Size = new Size(200, 129),
-                Text = "OTP",
+                Size = new Size(202, 136),
+                Text = "OTP ÀÔ·Â",
                 MaximizeBox = false,
                 MinimizeBox = false,
                 TopMost = true,
@@ -483,19 +483,19 @@ namespace GersangStation {
                 Owner = this
             };
 
-            TextBox textBox_otp = new TextBox() {
+            MaterialTextBox2 textBox_otp = new MaterialTextBox2() {
                 MaxLength = 8,
-                Location = new Point(15, 80),
-                Size = new Size(111, 33),
-                Font = new Font("¸¼Àº °íµñ", (float)14.25, FontStyle.Bold)
+                Location = new Point(17, 82),
+                Size = new Size(111, 36),
+                UseTallSize = false
             };
             dialog_otp.Controls.Add(textBox_otp);
 
             MaterialButton button_confirm = new MaterialButton() {
                 Text = "È®ÀÎ",
-                Location = new Point(133, 80),
+                Location = new Point(135, 82),
                 AutoSize = false,
-                Size = new Size(50, 33)
+                Size = new Size(50, 36)
             };
             button_confirm.Click += (sender, e) => {
                 if(textBox_otp.Text.Length != 8) {

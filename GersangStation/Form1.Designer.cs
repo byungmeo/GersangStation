@@ -651,6 +651,7 @@
             // 
             // materialButton_setting_account
             // 
+            this.materialButton_setting_account.AutoSize = false;
             this.materialButton_setting_account.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.materialButton_setting_account.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             this.materialButton_setting_account.Depth = 0;
@@ -850,7 +851,6 @@
             this.tabPage_home.ResumeLayout(false);
             this.tabPage_home.PerformLayout();
             this.tabPage_settings.ResumeLayout(false);
-            this.tabPage_settings.PerformLayout();
             this.tabPage_help.ResumeLayout(false);
             this.tabPage_info.ResumeLayout(false);
             this.tabPage_info.PerformLayout();
