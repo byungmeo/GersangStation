@@ -25,8 +25,7 @@ namespace GersangStation {
                 FormStyle = FormStyles.ActionBar_None,
                 Sizable = false,
                 StartPosition = FormStartPosition.CenterParent,
-                //Size = new Size(200, 270),
-                Size = new Size(200, 210),
+                Size = new Size(240, 268),
                 MaximizeBox = false,
                 MinimizeBox = false,
                 TopMost = true,
@@ -37,40 +36,56 @@ namespace GersangStation {
             //id 입력 텍스트박스
             MaterialTextBox2 textBox_id = new MaterialTextBox2() {
                 Hint = "ID 입력",
-                UseAccent = false,
-                Size = new Size(170, 50),
-                Location = new Point(15, 40),
+                Size = new Size(170, 48),
+                Location = new Point(17, 40),
             };
             dialog_addAccount.Controls.Add(textBox_id);
 
             //패스워드 입력 텍스트박스
             MaterialTextBox2 textBox_pw = new MaterialTextBox2() {
                 Hint = "패스워드 입력",
-                UseAccent = false,
-                Size = new Size(170, 50),
-                Location = new Point(15, 100),
+                Size = new Size(170, 48),
+                Location = new Point(17, 100),
                 UseSystemPasswordChar = true,
                 PasswordChar = '●'
             };
             dialog_addAccount.Controls.Add(textBox_pw);
 
-            /*
             //별명 입력
             MaterialTextBox2 textBox_nickname = new MaterialTextBox2() {
-                Hint = "별명 입력",
-                UseAccent = false,
-                Size = new Size(170, 50),
-                Location = new Point(15, 160),
+                Hint = "별명 입력 (선택사항)",
+                Size = new Size(162, 48),
+                Location = new Point(17, 160),
             };
             dialog_addAccount.Controls.Add(textBox_nickname);
-            */
+
+            MaterialCheckbox checkBox_useNickname = new MaterialCheckbox() {
+                Text = "",
+                Checked = false,
+                Location = new Point(184, 166),
+                TabStop = false
+            };
+            checkBox_useNickname.CheckedChanged += (sender, e) => {
+                if (true == checkBox_useNickname.Checked) {
+                    textBox_nickname.Enabled = true;
+                } else {
+                    textBox_nickname.Enabled = false;
+                    textBox_nickname.Text = textBox_id.Text;
+                }
+            };
+            textBox_id.TextChanged += (sender, e) => {
+                if (false == checkBox_useNickname.Checked) {
+                    textBox_nickname.Text = textBox_id.Text;
+                }
+            };
+            dialog_addAccount.Controls.Add(checkBox_useNickname);
 
             //계정 추가 버튼
             CustomButton button_confirm = new CustomButton() {
                 Text = "추가",
                 AutoSize = false,
                 Size = new Size(64, 36),
-                Location = new Point(68, 160),
+                Location = new Point(88, 219),
             };
             button_confirm.Click += (sender, e) => {
                 if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
