@@ -49,7 +49,7 @@ namespace GersangStation {
         }
 
         private void materialButton_createClient_Click(object sender, EventArgs e) {
-            MaterialButton button = (MaterialButton)sender;
+            CustomButton button = (CustomButton)sender;
 
             string mainClientPathConfigKey = "";
             string nameConfigKey = "";

@@ -24,8 +24,6 @@
         /// </summary>
         private void InitializeComponent() {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_ClientSetting));
-            this.materialButton_save = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_createClient_test = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_findPath_test_3 = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_findPath_test_2 = new MaterialSkin.Controls.MaterialButton();
             this.textBox_path_test_3 = new System.Windows.Forms.TextBox();
@@ -34,7 +32,6 @@
             this.textBox_path_test_1 = new System.Windows.Forms.TextBox();
             this.materialButton_findPath_3 = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_findPath_2 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_createClient = new MaterialSkin.Controls.MaterialButton();
             this.label4 = new System.Windows.Forms.Label();
             this.textBox_path_3 = new System.Windows.Forms.TextBox();
             this.textBox_path_2 = new System.Windows.Forms.TextBox();
@@ -42,7 +39,6 @@
             this.textBox_path_1 = new System.Windows.Forms.TextBox();
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.materialCheckbox_autoUpdate = new MaterialSkin.Controls.MaterialCheckbox();
-            this.materialButton_patch = new MaterialSkin.Controls.MaterialButton();
             this.label8 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
@@ -51,54 +47,11 @@
             this.label7 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
+            this.materialButton_createClient = new GersangStation.CustomButton();
+            this.materialButton_createClient_test = new GersangStation.CustomButton();
+            this.materialButton_patch = new GersangStation.CustomButton();
+            this.materialButton_save = new GersangStation.CustomButton();
             this.SuspendLayout();
-            // 
-            // materialButton_save
-            // 
-            this.materialButton_save.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.materialButton_save.AutoSize = false;
-            this.materialButton_save.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_save.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_save.Depth = 0;
-            this.materialButton_save.HighEmphasis = true;
-            this.materialButton_save.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_save.Icon")));
-            this.materialButton_save.Location = new System.Drawing.Point(188, 452);
-            this.materialButton_save.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_save.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_save.Name = "materialButton_save";
-            this.materialButton_save.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_save.Size = new System.Drawing.Size(81, 36);
-            this.materialButton_save.TabIndex = 38;
-            this.materialButton_save.Text = "저장";
-            this.materialButton_save.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_save.UseAccentColor = false;
-            this.materialButton_save.UseVisualStyleBackColor = true;
-            this.materialButton_save.Click += new System.EventHandler(this.materialButton_save_Click);
-            // 
-            // materialButton_createClient_test
-            // 
-            this.materialButton_createClient_test.AutoSize = false;
-            this.materialButton_createClient_test.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_createClient_test.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_createClient_test.Depth = 0;
-            this.materialButton_createClient_test.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.materialButton_createClient_test.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_createClient_test.HighEmphasis = true;
-            this.materialButton_createClient_test.Icon = null;
-            this.materialButton_createClient_test.Location = new System.Drawing.Point(364, 244);
-            this.materialButton_createClient_test.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_createClient_test.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_createClient_test.Name = "materialButton_createClient_test";
-            this.materialButton_createClient_test.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_createClient_test.Size = new System.Drawing.Size(75, 81);
-            this.materialButton_createClient_test.TabIndex = 51;
-            this.materialButton_createClient_test.TabStop = false;
-            this.materialButton_createClient_test.Text = "다클라\r\n생성하기";
-            this.materialButton_createClient_test.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_createClient_test.UseAccentColor = true;
-            this.materialButton_createClient_test.UseVisualStyleBackColor = true;
-            this.materialButton_createClient_test.Click += new System.EventHandler(this.materialButton_createClient_Click);
             // 
             // materialButton_findPath_test_3
             // 
@@ -234,39 +187,15 @@
             this.materialButton_findPath_2.UseVisualStyleBackColor = true;
             this.materialButton_findPath_2.Click += new System.EventHandler(this.materialButton_findPath_Click);
             // 
-            // materialButton_createClient
-            // 
-            this.materialButton_createClient.AutoSize = false;
-            this.materialButton_createClient.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_createClient.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_createClient.Depth = 0;
-            this.materialButton_createClient.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.materialButton_createClient.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_createClient.HighEmphasis = true;
-            this.materialButton_createClient.Icon = null;
-            this.materialButton_createClient.Location = new System.Drawing.Point(364, 110);
-            this.materialButton_createClient.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_createClient.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_createClient.Name = "materialButton_createClient";
-            this.materialButton_createClient.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_createClient.Size = new System.Drawing.Size(75, 81);
-            this.materialButton_createClient.TabIndex = 40;
-            this.materialButton_createClient.TabStop = false;
-            this.materialButton_createClient.Text = "다클라\r\n생성하기";
-            this.materialButton_createClient.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_createClient.UseAccentColor = true;
-            this.materialButton_createClient.UseVisualStyleBackColor = true;
-            this.materialButton_createClient.Click += new System.EventHandler(this.materialButton_createClient_Click);
-            // 
             // label4
             // 
             this.label4.AutoSize = true;
             this.label4.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.label4.Font = new System.Drawing.Font("Noto Sans KR", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label4.Font = new System.Drawing.Font("Noto Sans KR", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label4.ForeColor = System.Drawing.Color.Red;
-            this.label4.Location = new System.Drawing.Point(66, 344);
+            this.label4.Location = new System.Drawing.Point(45, 340);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(317, 38);
+            this.label4.Size = new System.Drawing.Size(365, 44);
             this.label4.TabIndex = 39;
             this.label4.Text = "본클라는 반드시 원본 거상 폴더여야만 합니다!!\r\n다클라 생성기로 생성한 폴더는 본클라가 될 수 없습니다!";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -332,27 +261,6 @@
             this.materialCheckbox_autoUpdate.TabIndex = 53;
             this.materialCheckbox_autoUpdate.Text = "거상 자동 고속 업데이트 여부 (권장)";
             this.materialCheckbox_autoUpdate.UseVisualStyleBackColor = true;
-            // 
-            // materialButton_patch
-            // 
-            this.materialButton_patch.AutoSize = false;
-            this.materialButton_patch.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_patch.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_patch.Depth = 0;
-            this.materialButton_patch.HighEmphasis = true;
-            this.materialButton_patch.Icon = null;
-            this.materialButton_patch.Location = new System.Drawing.Point(316, 401);
-            this.materialButton_patch.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_patch.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_patch.Name = "materialButton_patch";
-            this.materialButton_patch.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_patch.Size = new System.Drawing.Size(75, 36);
-            this.materialButton_patch.TabIndex = 54;
-            this.materialButton_patch.Text = "수동패치";
-            this.materialButton_patch.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_patch.UseAccentColor = false;
-            this.materialButton_patch.UseVisualStyleBackColor = true;
-            this.materialButton_patch.Click += new System.EventHandler(this.materialButton_patch_Click);
             // 
             // label8
             // 
@@ -434,24 +342,102 @@
             this.label6.Text = "2클라";
             this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
-            // button1
+            // materialButton_createClient
             // 
-            this.button1.BackColor = System.Drawing.Color.SeaGreen;
-            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button1.ForeColor = System.Drawing.Color.White;
-            this.button1.Location = new System.Drawing.Point(316, 452);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(116, 40);
-            this.button1.TabIndex = 63;
-            this.button1.Text = "button1";
-            this.button1.UseVisualStyleBackColor = false;
+            this.materialButton_createClient.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(129)))), ((int)(((byte)(212)))), ((int)(((byte)(250)))));
+            this.materialButton_createClient.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(129)))), ((int)(((byte)(212)))), ((int)(((byte)(250)))));
+            this.materialButton_createClient.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_createClient.BorderRadius = 5;
+            this.materialButton_createClient.BorderSize = 0;
+            this.materialButton_createClient.FlatAppearance.BorderSize = 0;
+            this.materialButton_createClient.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_createClient.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_createClient.ForeColor = System.Drawing.Color.White;
+            this.materialButton_createClient.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_createClient.Location = new System.Drawing.Point(364, 110);
+            this.materialButton_createClient.Name = "materialButton_createClient";
+            this.materialButton_createClient.Size = new System.Drawing.Size(75, 81);
+            this.materialButton_createClient.TabIndex = 64;
+            this.materialButton_createClient.Text = "다클라\r\n생성\r\n(본섭)";
+            this.materialButton_createClient.TextColor = System.Drawing.Color.White;
+            this.materialButton_createClient.UseVisualStyleBackColor = false;
+            this.materialButton_createClient.Click += new System.EventHandler(this.materialButton_createClient_Click);
+            // 
+            // materialButton_createClient_test
+            // 
+            this.materialButton_createClient_test.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(129)))), ((int)(((byte)(212)))), ((int)(((byte)(250)))));
+            this.materialButton_createClient_test.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(129)))), ((int)(((byte)(212)))), ((int)(((byte)(250)))));
+            this.materialButton_createClient_test.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_createClient_test.BorderRadius = 5;
+            this.materialButton_createClient_test.BorderSize = 0;
+            this.materialButton_createClient_test.FlatAppearance.BorderSize = 0;
+            this.materialButton_createClient_test.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_createClient_test.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_createClient_test.ForeColor = System.Drawing.Color.White;
+            this.materialButton_createClient_test.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_createClient_test.Location = new System.Drawing.Point(364, 244);
+            this.materialButton_createClient_test.Name = "materialButton_createClient_test";
+            this.materialButton_createClient_test.Size = new System.Drawing.Size(75, 81);
+            this.materialButton_createClient_test.TabIndex = 65;
+            this.materialButton_createClient_test.Text = "다클라\r\n생성\r\n(테섭)";
+            this.materialButton_createClient_test.TextColor = System.Drawing.Color.White;
+            this.materialButton_createClient_test.UseVisualStyleBackColor = false;
+            this.materialButton_createClient_test.Click += new System.EventHandler(this.materialButton_createClient_Click);
+            // 
+            // materialButton_patch
+            // 
+            this.materialButton_patch.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_patch.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_patch.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_patch.BorderRadius = 5;
+            this.materialButton_patch.BorderSize = 0;
+            this.materialButton_patch.FlatAppearance.BorderSize = 0;
+            this.materialButton_patch.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_patch.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_patch.ForeColor = System.Drawing.Color.White;
+            this.materialButton_patch.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_patch.Location = new System.Drawing.Point(316, 401);
+            this.materialButton_patch.Name = "materialButton_patch";
+            this.materialButton_patch.Size = new System.Drawing.Size(75, 36);
+            this.materialButton_patch.TabIndex = 66;
+            this.materialButton_patch.Text = "수동패치";
+            this.materialButton_patch.TextColor = System.Drawing.Color.White;
+            this.materialButton_patch.UseVisualStyleBackColor = false;
+            this.materialButton_patch.Click += new System.EventHandler(this.materialButton_patch_Click);
+            // 
+            // materialButton_save
+            // 
+            this.materialButton_save.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_save.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_save.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_save.BorderRadius = 5;
+            this.materialButton_save.BorderSize = 0;
+            this.materialButton_save.FlatAppearance.BorderSize = 0;
+            this.materialButton_save.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_save.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_save.ForeColor = System.Drawing.Color.White;
+            this.materialButton_save.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_save.Image")));
+            this.materialButton_save.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_save.Location = new System.Drawing.Point(177, 452);
+            this.materialButton_save.Name = "materialButton_save";
+            this.materialButton_save.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_save.Size = new System.Drawing.Size(102, 36);
+            this.materialButton_save.TabIndex = 67;
+            this.materialButton_save.Text = "저장하기";
+            this.materialButton_save.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_save.TextColor = System.Drawing.Color.White;
+            this.materialButton_save.UseVisualStyleBackColor = false;
+            this.materialButton_save.Click += new System.EventHandler(this.materialButton_save_Click);
             // 
             // Form_ClientSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(456, 505);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.materialButton_save);
+            this.Controls.Add(this.materialButton_patch);
+            this.Controls.Add(this.materialButton_createClient_test);
+            this.Controls.Add(this.materialButton_createClient);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label6);
             this.Controls.Add(this.label7);
@@ -460,10 +446,7 @@
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.label8);
-            this.Controls.Add(this.materialButton_patch);
             this.Controls.Add(this.materialCheckbox_autoUpdate);
-            this.Controls.Add(this.materialButton_save);
-            this.Controls.Add(this.materialButton_createClient_test);
             this.Controls.Add(this.materialButton_findPath_test_3);
             this.Controls.Add(this.materialButton_findPath_test_2);
             this.Controls.Add(this.textBox_path_test_3);
@@ -472,7 +455,6 @@
             this.Controls.Add(this.textBox_path_test_1);
             this.Controls.Add(this.materialButton_findPath_3);
             this.Controls.Add(this.materialButton_findPath_2);
-            this.Controls.Add(this.materialButton_createClient);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.textBox_path_3);
             this.Controls.Add(this.textBox_path_2);
@@ -493,9 +475,6 @@
         }
 
         #endregion
-
-        private MaterialSkin.Controls.MaterialButton materialButton_save;
-        private MaterialSkin.Controls.MaterialButton materialButton_createClient_test;
         private MaterialSkin.Controls.MaterialButton materialButton_findPath_test_3;
         private MaterialSkin.Controls.MaterialButton materialButton_findPath_test_2;
         private TextBox textBox_path_test_3;
@@ -504,7 +483,6 @@
         private TextBox textBox_path_test_1;
         private MaterialSkin.Controls.MaterialButton materialButton_findPath_3;
         private MaterialSkin.Controls.MaterialButton materialButton_findPath_2;
-        private MaterialSkin.Controls.MaterialButton materialButton_createClient;
         private Label label4;
         private TextBox textBox_path_3;
         private TextBox textBox_path_2;
@@ -512,7 +490,6 @@
         private TextBox textBox_path_1;
         private FolderBrowserDialog folderBrowserDialog;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_autoUpdate;
-        private MaterialSkin.Controls.MaterialButton materialButton_patch;
         private Label label8;
         private Label label1;
         private Label label2;
@@ -521,6 +498,9 @@
         private Label label7;
         private Label label3;
         private Label label6;
-        private Button button1;
+        private CustomButton materialButton_createClient;
+        private CustomButton materialButton_createClient_test;
+        private CustomButton materialButton_patch;
+        private CustomButton materialButton_save;
     }
 }

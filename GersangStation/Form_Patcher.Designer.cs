@@ -23,6 +23,7 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_Patcher));
             this.listView = new System.Windows.Forms.ListView();
             this.fileName = new System.Windows.Forms.ColumnHeader();
             this.filePath = new System.Windows.Forms.ColumnHeader();
@@ -44,10 +45,10 @@
             this.textBox_mainPath = new System.Windows.Forms.TextBox();
             this.materialCheckbox_apply = new MaterialSkin.Controls.MaterialCheckbox();
             this.materialCheckbox_delete = new MaterialSkin.Controls.MaterialCheckbox();
-            this.materialButton_startPatch = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_close = new MaterialSkin.Controls.MaterialButton();
             this.label6 = new System.Windows.Forms.Label();
             this.label_progress = new System.Windows.Forms.Label();
+            this.materialButton_startPatch = new GersangStation.CustomButton();
+            this.materialButton_close = new GersangStation.CustomButton();
             this.materialCard1.SuspendLayout();
             this.materialCard2.SuspendLayout();
             this.SuspendLayout();
@@ -97,7 +98,7 @@
             // 
             this.progressBar.Location = new System.Drawing.Point(306, 206);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(215, 36);
+            this.progressBar.Size = new System.Drawing.Size(203, 36);
             this.progressBar.TabIndex = 35;
             // 
             // materialCard1
@@ -284,55 +285,12 @@
             this.materialCheckbox_delete.Text = "패치 후 파일 삭제";
             this.materialCheckbox_delete.UseVisualStyleBackColor = true;
             // 
-            // materialButton_startPatch
-            // 
-            this.materialButton_startPatch.AutoSize = false;
-            this.materialButton_startPatch.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_startPatch.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_startPatch.Depth = 0;
-            this.materialButton_startPatch.HighEmphasis = true;
-            this.materialButton_startPatch.Icon = null;
-            this.materialButton_startPatch.Location = new System.Drawing.Point(528, 206);
-            this.materialButton_startPatch.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_startPatch.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_startPatch.Name = "materialButton_startPatch";
-            this.materialButton_startPatch.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_startPatch.Size = new System.Drawing.Size(89, 36);
-            this.materialButton_startPatch.TabIndex = 40;
-            this.materialButton_startPatch.Text = "패치 시작";
-            this.materialButton_startPatch.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_startPatch.UseAccentColor = true;
-            this.materialButton_startPatch.UseVisualStyleBackColor = true;
-            this.materialButton_startPatch.Click += new System.EventHandler(this.materialButton_startPatch_Click);
-            // 
-            // materialButton_close
-            // 
-            this.materialButton_close.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.materialButton_close.AutoSize = false;
-            this.materialButton_close.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_close.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_close.Depth = 0;
-            this.materialButton_close.HighEmphasis = true;
-            this.materialButton_close.Icon = null;
-            this.materialButton_close.Location = new System.Drawing.Point(274, 513);
-            this.materialButton_close.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_close.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_close.Name = "materialButton_close";
-            this.materialButton_close.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_close.Size = new System.Drawing.Size(75, 36);
-            this.materialButton_close.TabIndex = 41;
-            this.materialButton_close.Text = "닫기";
-            this.materialButton_close.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_close.UseAccentColor = false;
-            this.materialButton_close.UseVisualStyleBackColor = true;
-            this.materialButton_close.Click += new System.EventHandler(this.materialButton_close_Click);
-            // 
             // label6
             // 
             this.label6.AutoSize = true;
             this.label6.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.label6.Font = new System.Drawing.Font("Noto Sans KR", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label6.ForeColor = System.Drawing.Color.Blue;
+            this.label6.ForeColor = System.Drawing.Color.SeaGreen;
             this.label6.Location = new System.Drawing.Point(18, 75);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(164, 22);
@@ -344,22 +302,70 @@
             // 
             this.label_progress.AutoSize = true;
             this.label_progress.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-            this.label_progress.Location = new System.Drawing.Point(393, 217);
+            this.label_progress.Location = new System.Drawing.Point(388, 217);
             this.label_progress.Name = "label_progress";
             this.label_progress.Size = new System.Drawing.Size(34, 15);
             this.label_progress.TabIndex = 43;
             this.label_progress.Text = "0 / 0";
             this.label_progress.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
+            // materialButton_startPatch
+            // 
+            this.materialButton_startPatch.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_startPatch.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_startPatch.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_startPatch.BorderRadius = 5;
+            this.materialButton_startPatch.BorderSize = 0;
+            this.materialButton_startPatch.FlatAppearance.BorderSize = 0;
+            this.materialButton_startPatch.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_startPatch.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_startPatch.ForeColor = System.Drawing.Color.White;
+            this.materialButton_startPatch.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_startPatch.Image")));
+            this.materialButton_startPatch.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_startPatch.Location = new System.Drawing.Point(515, 206);
+            this.materialButton_startPatch.Name = "materialButton_startPatch";
+            this.materialButton_startPatch.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_startPatch.Size = new System.Drawing.Size(102, 36);
+            this.materialButton_startPatch.TabIndex = 68;
+            this.materialButton_startPatch.Text = "패치시작";
+            this.materialButton_startPatch.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_startPatch.TextColor = System.Drawing.Color.White;
+            this.materialButton_startPatch.UseVisualStyleBackColor = false;
+            this.materialButton_startPatch.Click += new System.EventHandler(this.materialButton_startPatch_Click);
+            // 
+            // materialButton_close
+            // 
+            this.materialButton_close.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_close.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_close.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_close.BorderRadius = 5;
+            this.materialButton_close.BorderSize = 0;
+            this.materialButton_close.FlatAppearance.BorderSize = 0;
+            this.materialButton_close.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_close.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_close.ForeColor = System.Drawing.Color.White;
+            this.materialButton_close.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_close.Image")));
+            this.materialButton_close.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_close.Location = new System.Drawing.Point(272, 513);
+            this.materialButton_close.Name = "materialButton_close";
+            this.materialButton_close.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_close.Size = new System.Drawing.Size(79, 36);
+            this.materialButton_close.TabIndex = 69;
+            this.materialButton_close.Text = "닫기";
+            this.materialButton_close.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_close.TextColor = System.Drawing.Color.White;
+            this.materialButton_close.UseVisualStyleBackColor = false;
+            this.materialButton_close.Click += new System.EventHandler(this.materialButton_close_Click);
+            // 
             // Form_Patcher
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(623, 562);
-            this.Controls.Add(this.label_progress);
-            this.Controls.Add(this.label6);
             this.Controls.Add(this.materialButton_close);
             this.Controls.Add(this.materialButton_startPatch);
+            this.Controls.Add(this.label_progress);
+            this.Controls.Add(this.label6);
             this.Controls.Add(this.materialCheckbox_delete);
             this.Controls.Add(this.materialCheckbox_apply);
             this.Controls.Add(this.materialCard2);
@@ -408,9 +414,9 @@
         private TextBox textBox_folderName_3;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_apply;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_delete;
-        private MaterialSkin.Controls.MaterialButton materialButton_startPatch;
-        private MaterialSkin.Controls.MaterialButton materialButton_close;
         private Label label6;
         private Label label_progress;
+        private CustomButton materialButton_startPatch;
+        private CustomButton materialButton_close;
     }
 }
