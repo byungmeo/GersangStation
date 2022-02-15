@@ -35,7 +35,7 @@ namespace GersangStation {
             };
 
             //id 입력 텍스트박스
-            MaterialTextBox textBox_id = new MaterialTextBox() {
+            MaterialTextBox2 textBox_id = new MaterialTextBox2() {
                 Hint = "ID 입력",
                 UseAccent = false,
                 Size = new Size(170, 50),
@@ -66,11 +66,11 @@ namespace GersangStation {
             */
 
             //계정 추가 버튼
-            MaterialButton button_confirm = new MaterialButton() {
+            CustomButton button_confirm = new CustomButton() {
                 Text = "추가",
                 AutoSize = false,
                 Size = new Size(64, 36),
-                Location = new Point(68, 160)
+                Location = new Point(68, 160),
             };
             button_confirm.Click += (sender, e) => {
                 if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
