@@ -27,6 +27,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.materialTabControl1 = new MaterialSkin.Controls.MaterialTabControl();
             this.tabPage_home = new System.Windows.Forms.TabPage();
+            this.label2 = new System.Windows.Forms.Label();
             this.materialCheckbox_testServer = new MaterialSkin.Controls.MaterialCheckbox();
             this.materialButton_start_3 = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_naver_3 = new MaterialSkin.Controls.MaterialButton();
@@ -93,6 +94,7 @@
             // 
             this.tabPage_home.AutoScroll = true;
             this.tabPage_home.BackColor = System.Drawing.Color.White;
+            this.tabPage_home.Controls.Add(this.label2);
             this.tabPage_home.Controls.Add(this.materialCheckbox_testServer);
             this.tabPage_home.Controls.Add(this.materialButton_start_3);
             this.tabPage_home.Controls.Add(this.materialButton_naver_3);
@@ -123,6 +125,16 @@
             this.tabPage_home.TabIndex = 0;
             this.tabPage_home.Text = "메인화면";
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label2.Location = new System.Drawing.Point(238, 12);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(40, 24);
+            this.label2.TabIndex = 38;
+            this.label2.Text = "테섭";
+            // 
             // materialCheckbox_testServer
             // 
             this.materialCheckbox_testServer.AutoSize = true;
@@ -134,10 +146,9 @@
             this.materialCheckbox_testServer.Name = "materialCheckbox_testServer";
             this.materialCheckbox_testServer.ReadOnly = false;
             this.materialCheckbox_testServer.Ripple = true;
-            this.materialCheckbox_testServer.Size = new System.Drawing.Size(59, 37);
+            this.materialCheckbox_testServer.Size = new System.Drawing.Size(35, 37);
             this.materialCheckbox_testServer.TabIndex = 37;
             this.materialCheckbox_testServer.TabStop = false;
-            this.materialCheckbox_testServer.Text = "테섭";
             this.materialCheckbox_testServer.UseVisualStyleBackColor = true;
             this.materialCheckbox_testServer.CheckedChanged += new System.EventHandler(this.materialCheckbox_testServer_CheckedChanged);
             // 
@@ -911,5 +922,6 @@
         private CustomButton materialButton_setting_client;
         private CustomButton materialButton_setting_shortcut;
         private CustomButton materialButton_setting_advanced;
+        private Label label2;
     }
 }
