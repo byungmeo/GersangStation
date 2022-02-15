@@ -50,11 +50,10 @@
             this.radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
             this.radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
             this.tabPage_settings = new System.Windows.Forms.TabPage();
-            this.customButton1 = new GersangStation.CustomButton();
-            this.materialButton_setting_advanced = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_setting_shortcut = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_setting_client = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_setting_account = new MaterialSkin.Controls.MaterialButton();
+            this.materialButton_setting_advanced = new GersangStation.CustomButton();
+            this.materialButton_setting_shortcut = new GersangStation.CustomButton();
+            this.materialButton_setting_client = new GersangStation.CustomButton();
+            this.materialButton_setting_account = new GersangStation.CustomButton();
             this.tabPage_help = new System.Windows.Forms.TabPage();
             this.materialButton_kakao = new MaterialSkin.Controls.MaterialButton();
             this.tabPage_info = new System.Windows.Forms.TabPage();
@@ -66,7 +65,6 @@
             this.label_version_current = new System.Windows.Forms.Label();
             this.menuIconList = new System.Windows.Forms.ImageList(this.components);
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
-            this.customButton2 = new GersangStation.CustomButton();
             this.materialTabControl1.SuspendLayout();
             this.tabPage_home.SuspendLayout();
             this.tabPage_settings.SuspendLayout();
@@ -576,8 +574,6 @@
             // tabPage_settings
             // 
             this.tabPage_settings.AutoScroll = true;
-            this.tabPage_settings.Controls.Add(this.customButton2);
-            this.tabPage_settings.Controls.Add(this.customButton1);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_advanced);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_shortcut);
             this.tabPage_settings.Controls.Add(this.materialButton_setting_client);
@@ -590,111 +586,100 @@
             this.tabPage_settings.TabIndex = 1;
             this.tabPage_settings.Text = "환경설정";
             // 
-            // customButton1
-            // 
-            this.customButton1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.customButton1.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.customButton1.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.customButton1.BorderRadius = 5;
-            this.customButton1.BorderSize = 0;
-            this.customButton1.FlatAppearance.BorderSize = 0;
-            this.customButton1.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.customButton1.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.customButton1.ForeColor = System.Drawing.Color.White;
-            this.customButton1.Image = ((System.Drawing.Image)(resources.GetObject("customButton1.Image")));
-            this.customButton1.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.customButton1.Location = new System.Drawing.Point(199, 26);
-            this.customButton1.Name = "customButton1";
-            this.customButton1.Padding = new System.Windows.Forms.Padding(5);
-            this.customButton1.Size = new System.Drawing.Size(149, 36);
-            this.customButton1.TabIndex = 28;
-            this.customButton1.Text = "계정 설정";
-            this.customButton1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.customButton1.TextColor = System.Drawing.Color.White;
-            this.customButton1.UseVisualStyleBackColor = false;
-            // 
             // materialButton_setting_advanced
             // 
-            this.materialButton_setting_advanced.AutoSize = false;
-            this.materialButton_setting_advanced.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_setting_advanced.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_setting_advanced.Depth = 0;
-            this.materialButton_setting_advanced.HighEmphasis = true;
-            this.materialButton_setting_advanced.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_advanced.Icon")));
-            this.materialButton_setting_advanced.Location = new System.Drawing.Point(111, 170);
-            this.materialButton_setting_advanced.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_setting_advanced.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_setting_advanced.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_advanced.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_advanced.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_setting_advanced.BorderRadius = 5;
+            this.materialButton_setting_advanced.BorderSize = 0;
+            this.materialButton_setting_advanced.FlatAppearance.BorderSize = 0;
+            this.materialButton_setting_advanced.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_setting_advanced.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_setting_advanced.ForeColor = System.Drawing.Color.White;
+            this.materialButton_setting_advanced.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_advanced.Image")));
+            this.materialButton_setting_advanced.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_setting_advanced.Location = new System.Drawing.Point(97, 159);
             this.materialButton_setting_advanced.Name = "materialButton_setting_advanced";
-            this.materialButton_setting_advanced.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_setting_advanced.Size = new System.Drawing.Size(117, 36);
-            this.materialButton_setting_advanced.TabIndex = 27;
+            this.materialButton_setting_advanced.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_setting_advanced.Size = new System.Drawing.Size(149, 36);
+            this.materialButton_setting_advanced.TabIndex = 31;
             this.materialButton_setting_advanced.Text = "고급 설정";
-            this.materialButton_setting_advanced.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_setting_advanced.UseAccentColor = false;
-            this.materialButton_setting_advanced.UseVisualStyleBackColor = true;
+            this.materialButton_setting_advanced.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_setting_advanced.TextColor = System.Drawing.Color.White;
+            this.materialButton_setting_advanced.UseVisualStyleBackColor = false;
             this.materialButton_setting_advanced.Click += new System.EventHandler(this.materialButton_setting_Click);
             // 
             // materialButton_setting_shortcut
             // 
-            this.materialButton_setting_shortcut.AutoSize = false;
-            this.materialButton_setting_shortcut.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_setting_shortcut.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_setting_shortcut.Depth = 0;
-            this.materialButton_setting_shortcut.HighEmphasis = true;
-            this.materialButton_setting_shortcut.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_shortcut.Icon")));
-            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(111, 122);
-            this.materialButton_setting_shortcut.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_setting_shortcut.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_setting_shortcut.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_shortcut.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_shortcut.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_setting_shortcut.BorderRadius = 5;
+            this.materialButton_setting_shortcut.BorderSize = 0;
+            this.materialButton_setting_shortcut.FlatAppearance.BorderSize = 0;
+            this.materialButton_setting_shortcut.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_setting_shortcut.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_setting_shortcut.ForeColor = System.Drawing.Color.White;
+            this.materialButton_setting_shortcut.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_shortcut.Image")));
+            this.materialButton_setting_shortcut.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(97, 117);
             this.materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
-            this.materialButton_setting_shortcut.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_setting_shortcut.Size = new System.Drawing.Size(117, 36);
-            this.materialButton_setting_shortcut.TabIndex = 26;
+            this.materialButton_setting_shortcut.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_setting_shortcut.Size = new System.Drawing.Size(149, 36);
+            this.materialButton_setting_shortcut.TabIndex = 30;
             this.materialButton_setting_shortcut.Text = "나만의 바로가기";
-            this.materialButton_setting_shortcut.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_setting_shortcut.UseAccentColor = false;
-            this.materialButton_setting_shortcut.UseVisualStyleBackColor = true;
+            this.materialButton_setting_shortcut.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_setting_shortcut.TextColor = System.Drawing.Color.White;
+            this.materialButton_setting_shortcut.UseVisualStyleBackColor = false;
             this.materialButton_setting_shortcut.Click += new System.EventHandler(this.materialButton_setting_Click);
             // 
             // materialButton_setting_client
             // 
-            this.materialButton_setting_client.AutoSize = false;
-            this.materialButton_setting_client.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_setting_client.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_setting_client.Depth = 0;
-            this.materialButton_setting_client.HighEmphasis = true;
-            this.materialButton_setting_client.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_client.Icon")));
-            this.materialButton_setting_client.Location = new System.Drawing.Point(40, 74);
-            this.materialButton_setting_client.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_setting_client.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_setting_client.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_client.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_client.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_setting_client.BorderRadius = 5;
+            this.materialButton_setting_client.BorderSize = 0;
+            this.materialButton_setting_client.FlatAppearance.BorderSize = 0;
+            this.materialButton_setting_client.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_setting_client.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_setting_client.ForeColor = System.Drawing.Color.White;
+            this.materialButton_setting_client.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_client.Image")));
+            this.materialButton_setting_client.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_setting_client.Location = new System.Drawing.Point(97, 75);
             this.materialButton_setting_client.Name = "materialButton_setting_client";
-            this.materialButton_setting_client.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_setting_client.Size = new System.Drawing.Size(117, 36);
-            this.materialButton_setting_client.TabIndex = 25;
+            this.materialButton_setting_client.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_setting_client.Size = new System.Drawing.Size(149, 36);
+            this.materialButton_setting_client.TabIndex = 29;
             this.materialButton_setting_client.Text = "클라이언트 설정";
-            this.materialButton_setting_client.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_setting_client.UseAccentColor = false;
-            this.materialButton_setting_client.UseVisualStyleBackColor = true;
+            this.materialButton_setting_client.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_setting_client.TextColor = System.Drawing.Color.White;
+            this.materialButton_setting_client.UseVisualStyleBackColor = false;
             this.materialButton_setting_client.Click += new System.EventHandler(this.materialButton_setting_Click);
             // 
             // materialButton_setting_account
             // 
-            this.materialButton_setting_account.AutoSize = false;
-            this.materialButton_setting_account.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_setting_account.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_setting_account.Depth = 0;
-            this.materialButton_setting_account.HighEmphasis = true;
-            this.materialButton_setting_account.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_account.Icon")));
-            this.materialButton_setting_account.Location = new System.Drawing.Point(40, 27);
-            this.materialButton_setting_account.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_setting_account.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_setting_account.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_account.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_setting_account.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_setting_account.BorderRadius = 5;
+            this.materialButton_setting_account.BorderSize = 0;
+            this.materialButton_setting_account.FlatAppearance.BorderSize = 0;
+            this.materialButton_setting_account.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_setting_account.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_setting_account.ForeColor = System.Drawing.Color.White;
+            this.materialButton_setting_account.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_account.Image")));
+            this.materialButton_setting_account.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_setting_account.Location = new System.Drawing.Point(97, 33);
             this.materialButton_setting_account.Name = "materialButton_setting_account";
-            this.materialButton_setting_account.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_setting_account.Size = new System.Drawing.Size(117, 36);
-            this.materialButton_setting_account.TabIndex = 24;
+            this.materialButton_setting_account.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_setting_account.Size = new System.Drawing.Size(149, 36);
+            this.materialButton_setting_account.TabIndex = 28;
             this.materialButton_setting_account.Text = "계정 설정";
-            this.materialButton_setting_account.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_setting_account.UseAccentColor = false;
-            this.materialButton_setting_account.UseVisualStyleBackColor = true;
+            this.materialButton_setting_account.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_setting_account.TextColor = System.Drawing.Color.White;
+            this.materialButton_setting_account.UseVisualStyleBackColor = false;
             this.materialButton_setting_account.Click += new System.EventHandler(this.materialButton_setting_Click);
             // 
             // tabPage_help
@@ -857,29 +842,6 @@
             this.folderBrowserDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             this.folderBrowserDialog.UseDescriptionForTitle = true;
             // 
-            // customButton2
-            // 
-            this.customButton2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.customButton2.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.customButton2.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.customButton2.BorderRadius = 5;
-            this.customButton2.BorderSize = 0;
-            this.customButton2.FlatAppearance.BorderSize = 0;
-            this.customButton2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.customButton2.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.customButton2.ForeColor = System.Drawing.Color.White;
-            this.customButton2.Image = ((System.Drawing.Image)(resources.GetObject("customButton2.Image")));
-            this.customButton2.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.customButton2.Location = new System.Drawing.Point(199, 74);
-            this.customButton2.Name = "customButton2";
-            this.customButton2.Padding = new System.Windows.Forms.Padding(5);
-            this.customButton2.Size = new System.Drawing.Size(149, 36);
-            this.customButton2.TabIndex = 29;
-            this.customButton2.Text = "클라이언트 설정";
-            this.customButton2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.customButton2.TextColor = System.Drawing.Color.White;
-            this.customButton2.UseVisualStyleBackColor = false;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
@@ -935,9 +897,6 @@
         private MaterialSkin.Controls.MaterialButton materialButton_naver_3;
         private MaterialSkin.Controls.MaterialButton materialButton_start_2;
         private MaterialSkin.Controls.MaterialButton materialButton_naver_2;
-        private MaterialSkin.Controls.MaterialButton materialButton_setting_account;
-        private MaterialSkin.Controls.MaterialButton materialButton_setting_client;
-        private MaterialSkin.Controls.MaterialButton materialButton_setting_shortcut;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_testServer;
         private TabPage tabPage_help;
         private TabPage tabPage_info;
@@ -948,8 +907,9 @@
         private MaterialSkin.Controls.MaterialButton materialButton_blog;
         private MaterialSkin.Controls.MaterialButton materialButton_gitHub;
         private MaterialSkin.Controls.MaterialButton materialButton_patchNote;
-        private MaterialSkin.Controls.MaterialButton materialButton_setting_advanced;
-        private CustomButton customButton1;
-        private CustomButton customButton2;
+        private CustomButton materialButton_setting_account;
+        private CustomButton materialButton_setting_client;
+        private CustomButton materialButton_setting_shortcut;
+        private CustomButton materialButton_setting_advanced;
     }
 }

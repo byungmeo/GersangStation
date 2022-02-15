@@ -958,7 +958,7 @@ namespace GersangStation {
         }
 
         private void materialButton_setting_Click(object sender, EventArgs e) {
-            MaterialButton button = (MaterialButton)sender;
+            CustomButton button = (CustomButton)sender;
             if (button.Equals(materialButton_setting_account)) {
                 OpenAccountSettingDialog();
             } else if (button.Equals(materialButton_setting_client)) {
