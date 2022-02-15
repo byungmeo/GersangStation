@@ -221,15 +221,14 @@
         d1/eR3bhO1aYjo5nvWv6UxjWzB/tL1EUn7e8oApaPrtrAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="materialButton_kakao.Icon" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="materialButton_kakao.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
-        iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABGdBTUEAALGPC/xhBQAAAUpJREFUaEPt
-        mNFtwzAMRL1VV+hW2TVdoBu0ug8WxuWcixSTrgA94H1R5FGBARvZFovFA5/Nr+ZPkchC5mncmyooU2Se
-        hgqo8DTU8ApPI20wkZaTNphIy0kbTKTlpA0m0nLSBhMuh+svvy+4MQuXw3X40vuCm7JwOVwPLd0Ng7gc
-        roeW7oZBXA7XQ0t3wyAuh+uhpbthEJfD9dDS3TCIy+F6aOluGMTlcD20dDcM4nK4HlpUw0fzu8m1M2XU
-        GWjhhorlIaPOQAs3VCyvPhHUOWhRTZkefaSps9CimsJbswqVDy2qCVYuD9QO0KKaqpcHag9o4YYrlge8
-        R2jZH1bL7+tXaImDR7/8ftgVWnDo2WPDA6u1uGdeDa30ba7483fv21T//c7+e/AIq8XDKXh2iWk4usRU
-        qEtMB19iSvaXmJa4xNTgEovF4o9t+wWsa8HfdvwAtQAAAABJRU5ErkJggg==
+        iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAARdJREFUSEvd
+        lT0KwlAQhKOXsIlewNJL6Ak8jl7D0ialrVfwFkIkFoJ4AIt1dncUwssPyYsgfjCQNztvR5sk+S9EZAVd
+        oL7o3SXXhWCYWyyOnOtCGBAeO8Pr9fc5DwKwUiiDrpQ+pxx/gGfwGMJ5KYCjLr/boIx6pRK3uxfor1WO
+        kJap9FnJGDPodS4o3JUpLfWmbklBy6DXraAKRBaelBstg15cAcYT6GRBkS1tg17/Aoxm0NlCIjtozJHh
+        dlzBwROyh0a0P/goruDhCZnTKsFZ/4I2eD3qHxg8BnD8wwVt8HpjQd3r+gmtGdPcml4Vja/rpg+OlVB1
+        y5s/OHXg0sau++L38g3Hw6ALfa8x7PI3uvhry/uRJC837NatVuyDnAAAAABJRU5ErkJggg==
 </value>
   </data>
   <data name="materialButton_blog.Icon" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
@@ -480,7 +479,7 @@
         AAEAAAD/////AQAAAAAAAAAMAgAAAEZTeXN0ZW0uV2luZG93cy5Gb3JtcywgQ3VsdHVyZT1uZXV0cmFs
         LCBQdWJsaWNLZXlUb2tlbj1iNzdhNWM1NjE5MzRlMDg5BQEAAAAmU3lzdGVtLldpbmRvd3MuRm9ybXMu
         SW1hZ2VMaXN0U3RyZWFtZXIBAAAABERhdGEHAgIAAAAJAwAAAA8DAAAAfBMAAAJNU0Z0AUkBTAIBAQUB
-        AAFoAQ8BaAEPARgBAAEYAQAE/wEhAQAI/wFCAU0BNgcAATYDAAEoAwABYAMAATADAAEBAQABIAYAAUj/
+        AAF4AQ8BeAEPARgBAAEYAQAE/wEhAQAI/wFCAU0BNgcAATYDAAEoAwABYAMAATADAAEBAQABIAYAAUj/
         AP8A/wA1AANJAYcDAAH/AwAB/wMAAf8DAAH/AwAB/wMAAf8DYAHjAxQBG/8AVQADNQFWAwAB/wMAAf8D
         AAH/AwAB/wMAAf8DAAH/AwAB/wMAAf8DAAH/AwAB/wNdAez/AE0AA1YBswMAAf8DAAH/A2AB6AMKAQ0U
         AAM+AWsDAAH/AwAB/wMAAf8DBwEJ/wBBAANOAZYDAAH/AwAB/wMnATokAANgAegDAAH/AwAB//8APQAD

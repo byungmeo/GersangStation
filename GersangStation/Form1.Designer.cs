@@ -56,7 +56,7 @@
             this.materialButton_setting_client = new GersangStation.CustomButton();
             this.materialButton_setting_account = new GersangStation.CustomButton();
             this.tabPage_help = new System.Windows.Forms.TabPage();
-            this.materialButton_kakao = new MaterialSkin.Controls.MaterialButton();
+            this.materialButton_kakao = new GersangStation.CustomButton();
             this.tabPage_info = new System.Windows.Forms.TabPage();
             this.materialButton_patchNote = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_blog = new MaterialSkin.Controls.MaterialButton();
@@ -707,23 +707,26 @@
             // 
             // materialButton_kakao
             // 
-            this.materialButton_kakao.AutoSize = false;
-            this.materialButton_kakao.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_kakao.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_kakao.Depth = 0;
-            this.materialButton_kakao.HighEmphasis = true;
-            this.materialButton_kakao.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_kakao.Icon")));
-            this.materialButton_kakao.Location = new System.Drawing.Point(91, 93);
-            this.materialButton_kakao.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_kakao.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_kakao.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_kakao.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_kakao.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_kakao.BorderRadius = 5;
+            this.materialButton_kakao.BorderSize = 0;
+            this.materialButton_kakao.FlatAppearance.BorderSize = 0;
+            this.materialButton_kakao.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_kakao.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_kakao.ForeColor = System.Drawing.Color.White;
+            this.materialButton_kakao.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_kakao.Image")));
+            this.materialButton_kakao.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_kakao.Location = new System.Drawing.Point(74, 90);
             this.materialButton_kakao.Name = "materialButton_kakao";
-            this.materialButton_kakao.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_kakao.Size = new System.Drawing.Size(161, 36);
-            this.materialButton_kakao.TabIndex = 1;
+            this.materialButton_kakao.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_kakao.Size = new System.Drawing.Size(192, 36);
+            this.materialButton_kakao.TabIndex = 30;
             this.materialButton_kakao.Text = "카카오톡 오픈채팅 문의";
-            this.materialButton_kakao.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_kakao.UseAccentColor = false;
-            this.materialButton_kakao.UseVisualStyleBackColor = true;
+            this.materialButton_kakao.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_kakao.TextColor = System.Drawing.Color.White;
+            this.materialButton_kakao.UseVisualStyleBackColor = false;
             this.materialButton_kakao.Click += new System.EventHandler(this.materialButton_kakao_Click);
             // 
             // tabPage_info
@@ -911,7 +914,6 @@
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_testServer;
         private TabPage tabPage_help;
         private TabPage tabPage_info;
-        private MaterialSkin.Controls.MaterialButton materialButton_kakao;
         private Label label_version_current;
         private Label label_version_latest;
         private Label label1;
@@ -923,5 +925,6 @@
         private CustomButton materialButton_setting_shortcut;
         private CustomButton materialButton_setting_advanced;
         private Label label2;
+        private CustomButton materialButton_kakao;
     }
 }
