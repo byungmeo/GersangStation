@@ -71,9 +71,11 @@ namespace GersangStation
         {
             this.FlatStyle = FlatStyle.Flat;
             this.FlatAppearance.BorderSize = 0;
+            this.Font = new Font("Microsoft Sans Serif", 11.25f, FontStyle.Bold);
             this.Size = new Size(150, 40);
             this.BackColor = Color.FromArgb(51, 71, 79);
             this.ForeColor = Color.White;
+            this.BorderRadius = 5;
             this.Resize += new EventHandler(Button_Resize);
         }
 

@@ -111,7 +111,7 @@ namespace GersangStation {
             };
 
             //2클라 폴더명
-            MaterialTextBox textBox_second = new MaterialTextBox() {
+            MaterialTextBox2 textBox_second = new MaterialTextBox2() {
                 Hint = "2클라 폴더명 입력",
                 UseAccent = false,
                 Size = new Size(170, 50),
@@ -121,7 +121,7 @@ namespace GersangStation {
             dialog_name.Controls.Add(textBox_second);
 
             //3클라 폴더명
-            MaterialTextBox textBox_third = new MaterialTextBox() {
+            MaterialTextBox2 textBox_third = new MaterialTextBox2() {
                 Hint = "3클라 폴더명 입력",
                 UseAccent = false,
                 Size = new Size(170, 50),
@@ -150,7 +150,7 @@ namespace GersangStation {
             dialog_name.Controls.Add(checkBox_apply);
 
             //생성 버튼
-            MaterialButton button_ok = new MaterialButton() {
+            CustomButton button_ok = new CustomButton() {
                 Text = "생성",
                 AutoSize = false,
                 Size = new Size(64, 36),
