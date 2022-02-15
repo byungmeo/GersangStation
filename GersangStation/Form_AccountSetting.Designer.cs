@@ -29,7 +29,7 @@
             this.label8 = new System.Windows.Forms.Label();
             this.materialButton_addAccount = new GersangStation.CustomButton();
             this.materialButton_removeAccount = new GersangStation.CustomButton();
-            this.customButton3 = new GersangStation.CustomButton();
+            this.materialButton_changeAccount = new GersangStation.CustomButton();
             this.SuspendLayout();
             // 
             // materialListBox1
@@ -128,34 +128,35 @@
             this.materialButton_removeAccount.UseVisualStyleBackColor = false;
             this.materialButton_removeAccount.Click += new System.EventHandler(this.materialButton_removeAccount_Click);
             // 
-            // customButton3
+            // materialButton_changeAccount
             // 
-            this.customButton3.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.customButton3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.customButton3.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.customButton3.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.customButton3.BorderRadius = 5;
-            this.customButton3.BorderSize = 0;
-            this.customButton3.FlatAppearance.BorderSize = 0;
-            this.customButton3.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.customButton3.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.customButton3.ForeColor = System.Drawing.Color.White;
-            this.customButton3.Image = ((System.Drawing.Image)(resources.GetObject("customButton3.Image")));
-            this.customButton3.Location = new System.Drawing.Point(278, 185);
-            this.customButton3.Name = "customButton3";
-            this.customButton3.Padding = new System.Windows.Forms.Padding(5);
-            this.customButton3.Size = new System.Drawing.Size(42, 36);
-            this.customButton3.TabIndex = 105;
-            this.customButton3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.customButton3.TextColor = System.Drawing.Color.White;
-            this.customButton3.UseVisualStyleBackColor = false;
+            this.materialButton_changeAccount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.materialButton_changeAccount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_changeAccount.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_changeAccount.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_changeAccount.BorderRadius = 5;
+            this.materialButton_changeAccount.BorderSize = 0;
+            this.materialButton_changeAccount.FlatAppearance.BorderSize = 0;
+            this.materialButton_changeAccount.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_changeAccount.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_changeAccount.ForeColor = System.Drawing.Color.White;
+            this.materialButton_changeAccount.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_changeAccount.Image")));
+            this.materialButton_changeAccount.Location = new System.Drawing.Point(278, 185);
+            this.materialButton_changeAccount.Name = "materialButton_changeAccount";
+            this.materialButton_changeAccount.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_changeAccount.Size = new System.Drawing.Size(42, 36);
+            this.materialButton_changeAccount.TabIndex = 105;
+            this.materialButton_changeAccount.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_changeAccount.TextColor = System.Drawing.Color.White;
+            this.materialButton_changeAccount.UseVisualStyleBackColor = false;
+            this.materialButton_changeAccount.Click += new System.EventHandler(this.materialButton_addAccount_Click);
             // 
             // Form_AccountSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(334, 335);
-            this.Controls.Add(this.customButton3);
+            this.Controls.Add(this.materialButton_changeAccount);
             this.Controls.Add(this.materialButton_removeAccount);
             this.Controls.Add(this.materialButton_addAccount);
             this.Controls.Add(this.label8);
@@ -181,6 +182,6 @@
         private Label label8;
         private CustomButton materialButton_addAccount;
         private CustomButton materialButton_removeAccount;
-        private CustomButton customButton3;
+        private CustomButton materialButton_changeAccount;
     }
 }

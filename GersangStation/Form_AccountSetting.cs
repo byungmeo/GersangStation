@@ -17,6 +17,12 @@ namespace GersangStation {
         }
 
         private void materialButton_addAccount_Click(object sender, EventArgs e) {
+            if (sender.Equals(materialButton_changeAccount)) {
+                if (materialListBox1.SelectedIndex == -1) {
+                    return;
+                }
+            }
+
             Form backgroundForm = Form1.InitBackgroundForm(this);
             backgroundForm.Show();
 
@@ -56,6 +62,7 @@ namespace GersangStation {
                 Hint = "별명 입력 (선택사항)",
                 Size = new Size(162, 48),
                 Location = new Point(17, 160),
+                Enabled = false
             };
             dialog_addAccount.Controls.Add(textBox_nickname);
 
@@ -87,46 +94,130 @@ namespace GersangStation {
                 Size = new Size(64, 36),
                 Location = new Point(88, 219),
             };
-            button_confirm.Click += (sender, e) => {
-                if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
-                    MessageBox.Show("아이디 또는 비밀번호를 입력 해주세요.");
-                    return;
-                }
-
-                if (textBox_id.Text.Contains(' ')) {
-                    MessageBox.Show("아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
-                    textBox_id.Text = "";
-                    return;
-                }
-
-                if (textBox_pw.Text.Contains(' ')) {
-                    MessageBox.Show("패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
-                    textBox_pw.Text = "";
-                    return;
-                }
-
-                if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
-                    MessageBox.Show("이미 동일한 계정이 존재합니다.");
-                    return;
-                }
-
-                dialog_addAccount.DialogResult = DialogResult.OK;
-            };
+            
             dialog_addAccount.Controls.Add(button_confirm);
             dialog_addAccount.AcceptButton = button_confirm; //엔터 버튼을 누르면 이 버튼을 클릭합니다.
 
-            //계정 추가 버튼 클릭 시
-            if (dialog_addAccount.ShowDialog() == DialogResult.OK) {
-                string id = textBox_id.Text;
-                string pw = EncryptionSupporter.Protect(textBox_pw.Text);
-                //Trace.WriteLine("ShowDialog ID : " + id);
-                //Trace.WriteLine("ShowDialog PW : " + pw);
+            if (sender.Equals(materialButton_addAccount)) {
+                button_confirm.Click += (sender, e) => {
+                    if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
+                        MessageBox.Show("아이디 또는 비밀번호를 입력 해주세요.");
+                        return;
+                    }
 
-                ConfigManager.addConfig(id, pw);
-                ConfigManager.setConfig("account_list", ConfigManager.getConfig("account_list") + textBox_id.Text + ";");
+                    if (textBox_id.Text.Contains(' ')) {
+                        MessageBox.Show("아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        textBox_id.Text = "";
+                        return;
+                    }
 
-                LoadListBox();
+                    if (textBox_pw.Text.Contains(' ')) {
+                        MessageBox.Show("패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        textBox_pw.Text = "";
+                        return;
+                    }
+
+                    if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
+                        MessageBox.Show("이미 동일한 계정이 존재합니다.");
+                        return;
+                    }
+
+                    if (ConfigManager.getKeyByValue(textBox_nickname.Text) != "") {
+                        MessageBox.Show("이미 동일한 별명이 존재합니다.");
+                        return;
+                    }
+
+                    dialog_addAccount.DialogResult = DialogResult.OK;
+                };
+
+                //계정 추가 버튼 클릭 시
+                if (dialog_addAccount.ShowDialog() == DialogResult.OK) {
+                    string id = textBox_id.Text;
+                    string pw = EncryptionSupporter.Protect(textBox_pw.Text);
+                    string nickname = textBox_nickname.Text;
+                    //Trace.WriteLine("ShowDialog ID : " + id);
+                    //Trace.WriteLine("ShowDialog PW : " + pw);
+
+                    ConfigManager.addConfig(id, pw);
+                    ConfigManager.addConfig(id + "_nickname", nickname);
+                    ConfigManager.setConfig("account_list", ConfigManager.getConfig("account_list") + textBox_id.Text + ";");
+
+                    LoadListBox();
+                }
+            } else {
+                string original_id = materialListBox1.SelectedItem.Text;
+                string original_nickname;
+                if (original_id.Contains(" (") && original_id.Contains(")")) {
+                    original_id = original_id.Substring(0, original_id.IndexOf(" "));
+                    original_nickname = ConfigManager.getConfig(original_id + "_nickname");
+                } else {
+                    original_nickname = original_id;
+                }
+
+                dialog_addAccount.Load += (sender, e) => {
+                    if (original_id == original_nickname) { checkBox_useNickname.Checked = false; }
+                    else { checkBox_useNickname.Checked = true; }
+                    textBox_id.Text = original_id;
+                    textBox_pw.Text = EncryptionSupporter.Unprotect(ConfigManager.getConfig(original_id));
+                    textBox_nickname.Text = original_nickname;
+                };
+
+                button_confirm.Click += (sender, e) => {
+                    if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
+                        MessageBox.Show("아이디 또는 비밀번호를 입력 해주세요.");
+                        return;
+                    }
+
+                    if (textBox_id.Text.Contains(' ')) {
+                        MessageBox.Show("아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        textBox_id.Text = "";
+                        return;
+                    }
+
+                    if (textBox_pw.Text.Contains(' ')) {
+                        MessageBox.Show("패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        textBox_pw.Text = "";
+                        return;
+                    }
+
+                    if (original_id != textBox_id.Text) {
+                        if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
+                            MessageBox.Show("이미 동일한 계정이 존재합니다.");
+                            return;
+                        }
+                    }
+                    
+                    if (original_nickname != textBox_nickname.Text) {
+                        if (ConfigManager.getKeyByValue(textBox_nickname.Text) != "") {
+                            MessageBox.Show("이미 동일한 별명이 존재합니다.");
+                            return;
+                        }
+                    } 
+
+                    dialog_addAccount.DialogResult = DialogResult.OK;
+                };
+
+                if (dialog_addAccount.ShowDialog() == DialogResult.OK) {
+                    string id = textBox_id.Text;
+                    string pw = EncryptionSupporter.Protect(textBox_pw.Text);
+                    string nickname = textBox_nickname.Text;
+                    //Trace.WriteLine("ShowDialog ID : " + id);
+                    //Trace.WriteLine("ShowDialog PW : " + pw);
+
+                    ConfigManager.removeConfig(original_id); //기존 아이디,비번 삭제
+                    ConfigManager.addConfig(id, pw); //새로운 아이디, 비번 등록
+
+                    ConfigManager.removeConfig(original_id + "_nickname"); //기존 닉네임 삭제
+                    ConfigManager.addConfig(id + "_nickname", nickname); //새로운 닉네임 등록
+
+                    string list = ConfigManager.getConfig("account_list");
+                    list = list.Replace(original_id, id);
+                    ConfigManager.setConfig("account_list", list);
+
+                    LoadListBox();
+                }
             }
+
             backgroundForm.Dispose();
         }
 
@@ -141,9 +232,14 @@ namespace GersangStation {
             }
             sb.Remove(sb.Length - 1, 1);
             ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
-            ConfigManager.removeConfig(materialListBox1.SelectedItem.Text);
+            string id = materialListBox1.SelectedItem.Text;
+            if (id.Contains(" (") && id.Contains(")")) {
+                id = id.Substring(0, id.IndexOf(" "));
+            }
+            ConfigManager.removeConfig(id);
+            ConfigManager.removeConfig(id + "_nickname");
             string account_list = ConfigManager.getConfig("account_list");
-            account_list = account_list.Remove(account_list.IndexOf(materialListBox1.SelectedItem.Text), materialListBox1.SelectedItem.Text.Length + 1);
+            account_list = account_list.Remove(account_list.IndexOf(id), id.Length + 1);
             ConfigManager.setConfig("account_list", account_list);
             materialListBox1.RemoveItemAt(index);
 
@@ -153,7 +249,13 @@ namespace GersangStation {
         private void LoadListBox() {
             materialListBox1.Clear();
             string[] accountList = ConfigManager.getConfig("account_list").Split(';');
-            foreach (var item in accountList) { if (!item.Equals("")) { materialListBox1.AddItem(item); } }
+            foreach (var item in accountList) {
+                if (item == "") continue;
+
+                string nickname = ConfigManager.getConfig(item + "_nickname");
+                if (nickname == "" || nickname == item) { materialListBox1.AddItem(item); } 
+                else { materialListBox1.AddItem(item + " (" + nickname + ")"); }
+            }
         }
     }
 }

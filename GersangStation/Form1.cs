@@ -787,11 +787,12 @@ namespace GersangStation {
                 return;
             }
 
-            string id = comboBox.Text;
+            string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
+            if (id == "") id = comboBox.Text;
             string switchTag;
-
+            Trace.WriteLine(id);
             if(id.Contains("선택안함")) { switchTag = id; }
-            else { switchTag = id + ";" + ConfigManager.getConfig(comboBox.Text); }
+            else { switchTag = id + ";" + ConfigManager.getConfig(id); }
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
@@ -833,9 +834,11 @@ namespace GersangStation {
             materialComboBox_account_3.Items.Add("선택안함");
 
             foreach (var item in accountList) {
-                materialComboBox_account_1.Items.Add(item);
-                materialComboBox_account_2.Items.Add(item);
-                materialComboBox_account_3.Items.Add(item);
+                string id = ConfigManager.getConfig(item + "_nickname");
+                if (id == "") id = item;
+                materialComboBox_account_1.Items.Add(id);
+                materialComboBox_account_2.Items.Add(id);
+                materialComboBox_account_3.Items.Add(id);
             }
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));

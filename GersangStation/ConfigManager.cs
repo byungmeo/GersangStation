@@ -92,5 +92,15 @@ namespace GersangStation {
             configuration.Save(ConfigurationSaveMode.Full, true);
             ConfigurationManager.RefreshSection("appSettings");
         }
+
+        public static string getKeyByValue(string value) {
+            //중복되지 않는 Value를 사용하는 Key여야만 원하는 결과를 얻을 수 있습니다.
+            foreach (KeyValueConfigurationElement item in configuration.AppSettings.Settings) {
+                if (item.Value == value) {
+                    return item.Key;
+                }
+            }
+            return "";
+        }
     }
 }
