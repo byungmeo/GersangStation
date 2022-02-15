@@ -175,9 +175,25 @@ namespace GersangStation {
             //e.Handled = true;
         }
 
-        private void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
+        private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
             string message = e.Message;
             Trace.WriteLine(message);
+            Trace.WriteLine("대화창 종류 : " + e.Kind);
+
+            if (e.Kind == CoreWebView2ScriptDialogKind.Confirm) {
+                Trace.WriteLine("선택지가 있는 대화상자 판정");
+                DialogResult dr = DialogResult.None;
+                var task = Task.Run(() => {
+                    dr = MessageBox.Show(message, "선택", MessageBoxButtons.YesNo, MessageBoxIcon.Information, 
+                        MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
+                });
+                await task;
+                if (dr == DialogResult.Yes) {
+                    e.Accept();
+                }
+
+                return;
+            }
 
             this.BeginInvoke(async () => {
                 //message가 정확히 "5초 후에 재로그인 가능합니다." 일 경우, 사용자가 로그인 실패 후 5초 이내에 로그인을 시도한 경우입니다.
