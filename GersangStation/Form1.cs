@@ -204,7 +204,7 @@ namespace GersangStation {
                 }
 
                 //검색 보상 지급 메시지
-                else if (message.Contains("아이템이 지급되었습니다.") || message.Contains("이미 아이템을 수령하셨습니다.")) {
+                else if (message.Contains("아이템이 지급되었습니다.") || message.Contains("이미 아이템을 수령하셨습니다.") || message.Contains("참여 시간이 아닙니다.")) {
                     if (MessageBox.Show(message) == DialogResult.OK) { 
                         webView_main.CoreWebView2.Navigate(url_main); 
                     }
