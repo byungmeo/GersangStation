@@ -7,6 +7,8 @@ using System.Text;
 
 namespace GersangStation {
     public partial class Form_Patcher : MaterialForm {
+        private static bool isDownloadedVsn = false; //vsn파일 다운로드 남용을 차단
+
         private const string url_main = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
         private const string url_test = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/";
         private const string url_main_info = url_main + @"Client_info_File/"; // + "00000"
@@ -83,8 +85,42 @@ namespace GersangStation {
         }
 
         public static string GetLatestVersion(Form owner, string url_vsn) {
-            string version;
             try {
+                Trace.WriteLine("vsn파일을 다운로드 합니다.");
+                return CheckServerVsn(url_vsn, true);
+            } catch (Exception e) {
+                MessageBox.Show(owner, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
+                    , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return "";
+            }
+        }
+
+        //게임 시작 시 마다 vsn.dat을 받는 것은 부담이 될 수 있으므로,
+        //1회 게임 시작 시 vsn.dat을 받으면 그 이후엔 받지 않도록 함.
+        public static string GetLatestVersion_Safe(Form owner, string url_vsn) {
+            string version;
+
+            if (true == isDownloadedVsn) {
+                try {
+                    Trace.WriteLine("vsn파일을 다운로드 하지 않습니다.");
+                    return CheckServerVsn(url_vsn, false);
+                } catch (Exception e) {
+                    MessageBox.Show(owner, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요. (Safe)" + e.Message
+                    , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return "";
+                }
+            } else {
+                version = GetLatestVersion(owner, url_vsn);
+                if (version != "") { isDownloadedVsn = true; }
+                return version;
+            }
+        }
+
+        private static string CheckServerVsn(string url_vsn, bool download) {
+            string version;
+            DirectoryInfo binDirectory = new DirectoryInfo(Application.StartupPath + @"\bin");
+
+            if (true == download) {
                 //현재 거상 최신 버전을 확인합니다
 #pragma warning disable SYSLIB0014 // 형식 또는 멤버는 사용되지 않습니다.
                 using (WebClient client = new()) {
@@ -97,8 +133,8 @@ namespace GersangStation {
 
                     client.Headers.Add("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0)");
 
-                    DirectoryInfo binDirectory = new DirectoryInfo(Application.StartupPath + @"\bin");
-                    if (!binDirectory.Exists) { binDirectory.Create(); } else {
+                    if (!binDirectory.Exists) { binDirectory.Create(); }
+                    else {
                         foreach (FileInfo file in binDirectory.GetFiles()) {
                             if (file.Name.Equals("vsn.dat")) {
                                 file.Delete();
@@ -111,21 +147,16 @@ namespace GersangStation {
                     Trace.WriteLine("vsn.dat.gsz 파일 다운로드 완료");
                     ZipFile.ExtractToDirectory(binDirectory.FullName + @"\vsn.dat.gsz", binDirectory.FullName);
                     Trace.WriteLine("vsn.dat 파일 압축 해제 완료");
-
-                    FileStream fs = File.OpenRead(binDirectory.FullName + @"\vsn.dat");
-                    BinaryReader br = new BinaryReader(fs);
-                    version = (-(br.ReadInt32() + 1)).ToString();
-                    Trace.WriteLine("서버에 게시된 거상 최신 버전 : " + version);
-                    fs.Close();
-                    br.Close();
-                    return version;
-                    //client.DownloadFileAsync(new Uri(url_vsn), Application.StartupPath + @"\bin\vsn.dat.gsz");
                 }
-            } catch (Exception e) {
-                MessageBox.Show(owner, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
-                    , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return "";
             }
+
+            FileStream fs = File.OpenRead(binDirectory.FullName + @"\vsn.dat");
+            BinaryReader br = new BinaryReader(fs);
+            version = (-(br.ReadInt32() + 1)).ToString();
+            Trace.WriteLine("서버에 게시된 거상 최신 버전 : " + version);
+            fs.Close();
+            br.Close();
+            return version;
         }
 
         private void Form_Patcher_Load(object sender, EventArgs e) {
