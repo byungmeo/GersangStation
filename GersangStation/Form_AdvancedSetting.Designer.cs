@@ -25,7 +25,7 @@
         private void InitializeComponent() {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_AdvancedSetting));
             this.materialCheckbox_useBAT = new MaterialSkin.Controls.MaterialCheckbox();
-            this.materialButton_save = new MaterialSkin.Controls.MaterialButton();
+            this.materialButton_save = new GersangStation.CustomButton();
             this.SuspendLayout();
             // 
             // materialCheckbox_useBAT
@@ -47,24 +47,26 @@
             // 
             // materialButton_save
             // 
-            this.materialButton_save.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.materialButton_save.AutoSize = false;
-            this.materialButton_save.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_save.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_save.Depth = 0;
-            this.materialButton_save.HighEmphasis = true;
-            this.materialButton_save.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_save.Icon")));
-            this.materialButton_save.Location = new System.Drawing.Point(159, 143);
-            this.materialButton_save.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_save.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_save.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_save.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_save.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_save.BorderRadius = 5;
+            this.materialButton_save.BorderSize = 0;
+            this.materialButton_save.FlatAppearance.BorderSize = 0;
+            this.materialButton_save.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_save.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_save.ForeColor = System.Drawing.Color.White;
+            this.materialButton_save.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_save.Image")));
+            this.materialButton_save.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_save.Location = new System.Drawing.Point(148, 142);
             this.materialButton_save.Name = "materialButton_save";
-            this.materialButton_save.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_save.Size = new System.Drawing.Size(81, 36);
-            this.materialButton_save.TabIndex = 39;
-            this.materialButton_save.Text = "저장";
-            this.materialButton_save.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_save.UseAccentColor = false;
-            this.materialButton_save.UseVisualStyleBackColor = true;
+            this.materialButton_save.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_save.Size = new System.Drawing.Size(102, 36);
+            this.materialButton_save.TabIndex = 68;
+            this.materialButton_save.Text = "저장하기";
+            this.materialButton_save.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_save.TextColor = System.Drawing.Color.White;
+            this.materialButton_save.UseVisualStyleBackColor = false;
             this.materialButton_save.Click += new System.EventHandler(this.materialButton_save_Click);
             // 
             // Form_AdvancedSetting
@@ -91,6 +93,6 @@
         #endregion
 
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_useBAT;
-        private MaterialSkin.Controls.MaterialButton materialButton_save;
+        private CustomButton materialButton_save;
     }
 }
