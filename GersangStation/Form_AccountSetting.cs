@@ -222,6 +222,8 @@ namespace GersangStation {
         }
 
         private void materialButton_removeAccount_Click(object sender, EventArgs e) {
+            DialogResult dr = MessageBox.Show(this, "정말로 삭제하시겠습니까?", "계정 삭제", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            if (dr == DialogResult.No) { return; }
             if (materialListBox1.SelectedIndex == -1) { return; }
             int index = materialListBox1.SelectedIndex;
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
