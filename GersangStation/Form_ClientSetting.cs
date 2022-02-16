@@ -201,16 +201,32 @@ namespace GersangStation {
 
         private void materialButton_patch_Click(object sender, EventArgs e) {
             bool isTest = (sender.Equals(materialButton_patch_test)) ? true : false;
+
+            string mainClientPathConfigKey;
+            string mainClientPath;
+
             if (isTest) {
-                if (textBox_path_test_1.Text == "") {
-                    MessageBox.Show(this, "테스트서버의 본클라 경로가 지정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                mainClientPathConfigKey = "client_path_test_1";
+                mainClientPath = textBox_path_test_1.Text;
+                
             } else {
-                if (textBox_path_1.Text == "") { 
-                    MessageBox.Show(this, "본서버의 본클라 경로가 지정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
+                mainClientPathConfigKey = "client_path_1";
+                mainClientPath = textBox_path_1.Text;
+            }
+
+            string path = ConfigManager.getConfig(mainClientPathConfigKey);
+
+            if (path != mainClientPath) {
+                DialogResult dr = MessageBox.Show(this, "현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if (dr == DialogResult.OK) {
+                    SavePath();
+                    path = ConfigManager.getConfig(mainClientPathConfigKey);
                 }
+            }
+
+            if (path == "") {
+                MessageBox.Show(this, "본클라 경로가 설정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
 
             Form backgroundForm = Form1.InitBackgroundForm(this);
