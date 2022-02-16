@@ -139,6 +139,12 @@ namespace GersangStation {
             //Online 폴더 생성
             string secondOnlinePath = secondPath + "\\Online";
             string thirdOnlinePath = thirdPath + "\\Online";
+            if (true == Directory.Exists(secondOnlinePath)) {
+                if (true == File.GetAttributes(secondOnlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(secondOnlinePath); };
+            }
+            if (true == Directory.Exists(thirdOnlinePath)) {
+                if (true == File.GetAttributes(thirdOnlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(thirdOnlinePath); };
+            }
             Directory.CreateDirectory(secondOnlinePath);
             Directory.CreateDirectory(thirdOnlinePath);
 
