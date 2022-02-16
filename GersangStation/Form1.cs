@@ -107,8 +107,46 @@ namespace GersangStation {
             LoadRadioButton();
             LoadAccountComboBox();
             LoadShortcut();
+            SetToolTip();
             CheckAccount();
             CheckProgramUpdate();
+        }
+
+        private void SetToolTip() {
+            toolTip1.Active = true;
+            /**
+             * <-- 메인화면 -->
+             */
+            toolTip1.SetToolTip(radio_preset_1, "1번 세팅");
+            toolTip1.SetToolTip(radio_preset_2, "2번 세팅");
+            toolTip1.SetToolTip(radio_preset_3, "3번 세팅");
+            toolTip1.SetToolTip(radio_preset_4, "4번 세팅");
+            toolTip1.SetToolTip(materialCheckbox_testServer, "활성화 시 테스트 서버로 실행합니다.\n(설치 별도)");
+            toolTip1.SetToolTip(materialButton_debugging, "작동하는 브라우저 직접 보기");
+            toolTip1.SetToolTip(materialComboBox_account_1, "본클라 계정 선택");
+            toolTip1.SetToolTip(materialComboBox_account_2, "2클라 계정 선택");
+            toolTip1.SetToolTip(materialComboBox_account_3, "3클라 계정 선택");
+            toolTip1.SetToolTip(materialSwitch_login_1, "본클라 홈페이지 로그인");
+            toolTip1.SetToolTip(materialSwitch_login_2, "2클라 홈페이지 로그인");
+            toolTip1.SetToolTip(materialSwitch_login_3, "3클라 홈페이지 로그인");
+            toolTip1.SetToolTip(materialButton_search_1, "본클라 검색보상 수령");
+            toolTip1.SetToolTip(materialButton_search_2, "2클라 검색보상 수령");
+            toolTip1.SetToolTip(materialButton_search_3, "3클라 검색보상 수령");
+            toolTip1.SetToolTip(materialButton_start_1, "본클라 게임 실행");
+            toolTip1.SetToolTip(materialButton_start_2, "2클라 게임 실행");
+            toolTip1.SetToolTip(materialButton_start_3, "3클라 게임 실행");
+            string shortcut_1 = ConfigManager.getConfig("shortcut_1");
+            if (shortcut_1 == "") shortcut_1 = "링크가 설정되지 않았습니다.";
+            string shortcut_2 = ConfigManager.getConfig("shortcut_2");
+            if (shortcut_2 == "") shortcut_2 = "링크가 설정되지 않았습니다.";
+            string shortcut_3 = ConfigManager.getConfig("shortcut_3");
+            if (shortcut_3 == "") shortcut_3 = "링크가 설정되지 않았습니다.";
+            string shortcut_4 = ConfigManager.getConfig("shortcut_4");
+            if (shortcut_4 == "") shortcut_4 = "링크가 설정되지 않았습니다.";
+            toolTip1.SetToolTip(materialButton_shortcut_1, shortcut_1);
+            toolTip1.SetToolTip(materialButton_shortcut_2, shortcut_2);
+            toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
+            toolTip1.SetToolTip(materialButton_shortcut_4, shortcut_4);
         }
 
         private async void CheckProgramUpdate() {
@@ -340,9 +378,9 @@ namespace GersangStation {
             //materialSwitch_login_1.Enabled = false;
             //materialSwitch_login_2.Enabled = false;
             //materialSwitch_login_3.Enabled = false;
-            materialButton_naver_1.Enabled = false;
-            materialButton_naver_2.Enabled = false;
-            materialButton_naver_3.Enabled = false;
+            materialButton_search_1.Enabled = false;
+            materialButton_search_2.Enabled = false;
+            materialButton_search_3.Enabled = false;
             materialButton_start_1.Enabled = false;
             materialButton_start_2.Enabled = false;
             materialButton_start_3.Enabled = false;
@@ -358,9 +396,9 @@ namespace GersangStation {
             //materialSwitch_login_1.Enabled = true;
             //materialSwitch_login_2.Enabled = true;
             //materialSwitch_login_3.Enabled = true;
-            materialButton_naver_1.Enabled = true;
-            materialButton_naver_2.Enabled = true;
-            materialButton_naver_3.Enabled = true;
+            materialButton_search_1.Enabled = true;
+            materialButton_search_2.Enabled = true;
+            materialButton_search_3.Enabled = true;
             materialButton_start_1.Enabled = true;
             materialButton_start_2.Enabled = true;
             materialButton_start_3.Enabled = true;
@@ -894,8 +932,8 @@ namespace GersangStation {
             MaterialButton searchButton = (MaterialButton)sender;
             MaterialSwitch? loginSwitch = null;
 
-            if(searchButton.Equals(materialButton_naver_1)) { loginSwitch = materialSwitch_login_1; } 
-            else if(searchButton.Equals(materialButton_naver_2)) { loginSwitch = materialSwitch_login_2; }
+            if(searchButton.Equals(materialButton_search_1)) { loginSwitch = materialSwitch_login_1; } 
+            else if(searchButton.Equals(materialButton_search_2)) { loginSwitch = materialSwitch_login_2; }
             else { loginSwitch = materialSwitch_login_3; }
 
             isSearch = true;
