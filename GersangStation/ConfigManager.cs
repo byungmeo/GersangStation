@@ -55,7 +55,7 @@ namespace GersangStation {
             sb.AppendLine("</appSettings>");
             sb.AppendLine("</configuration>");
 
-            File.WriteAllText(Assembly.GetEntryAssembly().Location + ".config",  sb.ToString());
+            File.WriteAllText(@".\GersangStation.dll.config",  sb.ToString());
         }
 
         private static void AddKey(StringBuilder sb, string key, string value) {
@@ -63,8 +63,8 @@ namespace GersangStation {
         }
 
         private static bool ExistsConfig() {
-            return File.Exists(Assembly.GetEntryAssembly().Location + ".config");
-    }
+            return File.Exists(@".\GersangStation.dll.config");
+        }
 
         public static string getConfig(string key) {
             string? value = ConfigurationManager.AppSettings[key];
