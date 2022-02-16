@@ -42,7 +42,7 @@ namespace GersangStation {
             //id 입력 텍스트박스
             MaterialTextBox2 textBox_id = new MaterialTextBox2() {
                 Hint = "ID 입력",
-                Size = new Size(170, 48),
+                Size = new Size(206, 48),
                 Location = new Point(17, 40),
             };
             dialog_addAccount.Controls.Add(textBox_id);
@@ -50,7 +50,7 @@ namespace GersangStation {
             //패스워드 입력 텍스트박스
             MaterialTextBox2 textBox_pw = new MaterialTextBox2() {
                 Hint = "패스워드 입력",
-                Size = new Size(170, 48),
+                Size = new Size(206, 48),
                 Location = new Point(17, 100),
                 UseSystemPasswordChar = true,
                 PasswordChar = '●'
@@ -101,29 +101,29 @@ namespace GersangStation {
             if (sender.Equals(materialButton_addAccount)) {
                 button_confirm.Click += (sender, e) => {
                     if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
-                        MessageBox.Show("아이디 또는 비밀번호를 입력 해주세요.");
+                        MessageBox.Show(dialog_addAccount, "아이디 또는 비밀번호를 입력 해주세요.");
                         return;
                     }
 
                     if (textBox_id.Text.Contains(' ')) {
-                        MessageBox.Show("아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        MessageBox.Show(dialog_addAccount, "아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
                         textBox_id.Text = "";
                         return;
                     }
 
                     if (textBox_pw.Text.Contains(' ')) {
-                        MessageBox.Show("패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        MessageBox.Show(dialog_addAccount, "패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
                         textBox_pw.Text = "";
                         return;
                     }
 
                     if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
-                        MessageBox.Show("이미 동일한 계정이 존재합니다.");
+                        MessageBox.Show(dialog_addAccount, "이미 동일한 계정이 존재합니다.");
                         return;
                     }
 
                     if (ConfigManager.getKeyByValue(textBox_nickname.Text) != "") {
-                        MessageBox.Show("이미 동일한 별명이 존재합니다.");
+                        MessageBox.Show(dialog_addAccount, "이미 동일한 별명이 존재합니다.");
                         return;
                     }
 
@@ -164,32 +164,32 @@ namespace GersangStation {
 
                 button_confirm.Click += (sender, e) => {
                     if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
-                        MessageBox.Show("아이디 또는 비밀번호를 입력 해주세요.");
+                        MessageBox.Show(dialog_addAccount, "아이디 또는 비밀번호를 입력 해주세요.");
                         return;
                     }
 
                     if (textBox_id.Text.Contains(' ')) {
-                        MessageBox.Show("아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        MessageBox.Show(dialog_addAccount, "아이디에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
                         textBox_id.Text = "";
                         return;
                     }
 
                     if (textBox_pw.Text.Contains(' ')) {
-                        MessageBox.Show("패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
+                        MessageBox.Show(dialog_addAccount, "패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
                         textBox_pw.Text = "";
                         return;
                     }
 
                     if (original_id != textBox_id.Text) {
                         if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
-                            MessageBox.Show("이미 동일한 계정이 존재합니다.");
+                            MessageBox.Show(dialog_addAccount, "이미 동일한 계정이 존재합니다.");
                             return;
                         }
                     }
                     
                     if (original_nickname != textBox_nickname.Text) {
                         if (ConfigManager.getKeyByValue(textBox_nickname.Text) != "") {
-                            MessageBox.Show("이미 동일한 별명이 존재합니다.");
+                            MessageBox.Show(dialog_addAccount, "이미 동일한 별명이 존재합니다.");
                             return;
                         }
                     } 

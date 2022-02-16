@@ -29,10 +29,10 @@ namespace GersangStation {
 
         private bool isPatching;
 
-        public Form_Patcher() {
+        public Form_Patcher(bool isTest) {
             InitializeComponent();
 
-            if (true == bool.Parse(ConfigManager.getConfig("is_test_server"))) {
+            if (true == isTest) {
                 //테섭
                 path_main = ConfigManager.getConfig("client_path_test_1");
                 name_client_2 = ConfigManager.getConfig("client_path_test_2");

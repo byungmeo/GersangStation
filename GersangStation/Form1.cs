@@ -653,7 +653,8 @@ namespace GersangStation {
                     this.BeginInvoke(() => {
                         Form backgroundForm = InitBackgroundForm(this);
 
-                        Form_Patcher form_Patcher = new Form_Patcher() {
+                        bool isTest = (server == "test") ? true : false;
+                        Form_Patcher form_Patcher = new Form_Patcher(isTest) {
                             Owner = this
                         };
 
