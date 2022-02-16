@@ -251,16 +251,16 @@
             this.materialCheckbox_autoUpdate.Checked = true;
             this.materialCheckbox_autoUpdate.CheckState = System.Windows.Forms.CheckState.Checked;
             this.materialCheckbox_autoUpdate.Depth = 0;
-            this.materialCheckbox_autoUpdate.Location = new System.Drawing.Point(63, 400);
+            this.materialCheckbox_autoUpdate.Location = new System.Drawing.Point(57, 400);
             this.materialCheckbox_autoUpdate.Margin = new System.Windows.Forms.Padding(0);
             this.materialCheckbox_autoUpdate.MouseLocation = new System.Drawing.Point(-1, -1);
             this.materialCheckbox_autoUpdate.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialCheckbox_autoUpdate.Name = "materialCheckbox_autoUpdate";
             this.materialCheckbox_autoUpdate.ReadOnly = false;
             this.materialCheckbox_autoUpdate.Ripple = true;
-            this.materialCheckbox_autoUpdate.Size = new System.Drawing.Size(234, 37);
+            this.materialCheckbox_autoUpdate.Size = new System.Drawing.Size(343, 37);
             this.materialCheckbox_autoUpdate.TabIndex = 53;
-            this.materialCheckbox_autoUpdate.Text = "거상 자동 고속 업데이트 여부 (권장)";
+            this.materialCheckbox_autoUpdate.Text = "거상 업데이트 시 패치기능 사용 여부를 묻지않음 (권장)";
             this.materialCheckbox_autoUpdate.UseVisualStyleBackColor = true;
             // 
             // label8
