@@ -17,10 +17,15 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/byungmeo/GersangStation</RepositoryUrl>
     <Description>거상 다클라 종합 유틸리티</Description>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="ClientCreatorCommand.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="icon.ico" />
   </ItemGroup>
 
   <ItemGroup>

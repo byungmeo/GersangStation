@@ -58,6 +58,8 @@
             this.tabPage_help = new System.Windows.Forms.TabPage();
             this.materialButton_kakao = new GersangStation.CustomButton();
             this.tabPage_info = new System.Windows.Forms.TabPage();
+            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.materialButton_patchNote = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_blog = new MaterialSkin.Controls.MaterialButton();
             this.materialButton_gitHub = new MaterialSkin.Controls.MaterialButton();
@@ -74,6 +76,7 @@
             this.tabPage_settings.SuspendLayout();
             this.tabPage_help.SuspendLayout();
             this.tabPage_info.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
             // materialTabControl1
@@ -734,6 +737,8 @@
             // 
             // tabPage_info
             // 
+            this.tabPage_info.Controls.Add(this.linkLabel1);
+            this.tabPage_info.Controls.Add(this.pictureBox1);
             this.tabPage_info.Controls.Add(this.materialButton_patchNote);
             this.tabPage_info.Controls.Add(this.materialButton_blog);
             this.tabPage_info.Controls.Add(this.materialButton_gitHub);
@@ -749,6 +754,27 @@
             this.tabPage_info.Text = "프로그램 정보";
             this.tabPage_info.UseVisualStyleBackColor = true;
             // 
+            // linkLabel1
+            // 
+            this.linkLabel1.AutoSize = true;
+            this.linkLabel1.Location = new System.Drawing.Point(73, 199);
+            this.linkLabel1.Name = "linkLabel1";
+            this.linkLabel1.Size = new System.Drawing.Size(200, 15);
+            this.linkLabel1.TabIndex = 7;
+            this.linkLabel1.TabStop = true;
+            this.linkLabel1.Text = "Created logo at LogoMakr.com/app";
+            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = global::GersangStation.Properties.Resources.iconNoBack;
+            this.pictureBox1.Location = new System.Drawing.Point(52, 11);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(48, 48);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBox1.TabIndex = 6;
+            this.pictureBox1.TabStop = false;
+            // 
             // materialButton_patchNote
             // 
             this.materialButton_patchNote.AutoSize = false;
@@ -757,12 +783,12 @@
             this.materialButton_patchNote.Depth = 0;
             this.materialButton_patchNote.HighEmphasis = true;
             this.materialButton_patchNote.Icon = null;
-            this.materialButton_patchNote.Location = new System.Drawing.Point(245, 102);
+            this.materialButton_patchNote.Location = new System.Drawing.Point(211, 98);
             this.materialButton_patchNote.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_patchNote.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_patchNote.Name = "materialButton_patchNote";
             this.materialButton_patchNote.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_patchNote.Size = new System.Drawing.Size(55, 32);
+            this.materialButton_patchNote.Size = new System.Drawing.Size(58, 32);
             this.materialButton_patchNote.TabIndex = 5;
             this.materialButton_patchNote.Text = "패치노트";
             this.materialButton_patchNote.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
@@ -778,7 +804,7 @@
             this.materialButton_blog.Depth = 0;
             this.materialButton_blog.HighEmphasis = true;
             this.materialButton_blog.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_blog.Icon")));
-            this.materialButton_blog.Location = new System.Drawing.Point(74, 165);
+            this.materialButton_blog.Location = new System.Drawing.Point(74, 149);
             this.materialButton_blog.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_blog.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_blog.Name = "materialButton_blog";
@@ -799,7 +825,7 @@
             this.materialButton_gitHub.Depth = 0;
             this.materialButton_gitHub.HighEmphasis = true;
             this.materialButton_gitHub.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_gitHub.Icon")));
-            this.materialButton_gitHub.Location = new System.Drawing.Point(176, 165);
+            this.materialButton_gitHub.Location = new System.Drawing.Point(176, 149);
             this.materialButton_gitHub.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_gitHub.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_gitHub.Name = "materialButton_gitHub";
@@ -814,9 +840,8 @@
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Noto Sans KR", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label1.Location = new System.Drawing.Point(74, 18);
+            this.label1.Location = new System.Drawing.Point(99, 18);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(195, 35);
             this.label1.TabIndex = 2;
@@ -826,7 +851,7 @@
             // 
             this.label_version_latest.AutoSize = true;
             this.label_version_latest.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_version_latest.Location = new System.Drawing.Point(108, 107);
+            this.label_version_latest.Location = new System.Drawing.Point(74, 103);
             this.label_version_latest.Name = "label_version_latest";
             this.label_version_latest.Size = new System.Drawing.Size(130, 22);
             this.label_version_latest.TabIndex = 1;
@@ -836,7 +861,7 @@
             // 
             this.label_version_current.AutoSize = true;
             this.label_version_current.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_version_current.Location = new System.Drawing.Point(108, 74);
+            this.label_version_current.Location = new System.Drawing.Point(74, 70);
             this.label_version_current.Name = "label_version_current";
             this.label_version_current.Size = new System.Drawing.Size(130, 22);
             this.label_version_current.TabIndex = 0;
@@ -905,6 +930,7 @@
             this.tabPage_help.ResumeLayout(false);
             this.tabPage_info.ResumeLayout(false);
             this.tabPage_info.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -954,5 +980,7 @@
         private ToolTip toolTip1;
         private Button button_tray;
         private NotifyIcon notifyIcon1;
+        private PictureBox pictureBox1;
+        private LinkLabel linkLabel1;
     }
 }

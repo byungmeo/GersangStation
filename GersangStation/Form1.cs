@@ -1145,5 +1145,9 @@ namespace GersangStation {
             notifyIcon1.Visible = false;
             this.Show();
         }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
+        }
     } //Form1
 } //namespace
