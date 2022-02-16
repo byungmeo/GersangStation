@@ -51,6 +51,7 @@
             this.materialButton_createClient_test = new GersangStation.CustomButton();
             this.materialButton_patch = new GersangStation.CustomButton();
             this.materialButton_save = new GersangStation.CustomButton();
+            this.materialButton_patch_test = new GersangStation.CustomButton();
             this.SuspendLayout();
             // 
             // materialButton_findPath_test_3
@@ -354,11 +355,11 @@
             this.materialButton_createClient.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.materialButton_createClient.ForeColor = System.Drawing.Color.White;
             this.materialButton_createClient.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_createClient.Location = new System.Drawing.Point(364, 110);
+            this.materialButton_createClient.Location = new System.Drawing.Point(364, 141);
             this.materialButton_createClient.Name = "materialButton_createClient";
-            this.materialButton_createClient.Size = new System.Drawing.Size(75, 81);
+            this.materialButton_createClient.Size = new System.Drawing.Size(75, 50);
             this.materialButton_createClient.TabIndex = 64;
-            this.materialButton_createClient.Text = "다클라\r\n생성\r\n(본섭)";
+            this.materialButton_createClient.Text = "다클생성\r\n(본섭)";
             this.materialButton_createClient.TextColor = System.Drawing.Color.White;
             this.materialButton_createClient.UseVisualStyleBackColor = false;
             this.materialButton_createClient.Click += new System.EventHandler(this.materialButton_createClient_Click);
@@ -375,11 +376,11 @@
             this.materialButton_createClient_test.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.materialButton_createClient_test.ForeColor = System.Drawing.Color.White;
             this.materialButton_createClient_test.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_createClient_test.Location = new System.Drawing.Point(364, 244);
+            this.materialButton_createClient_test.Location = new System.Drawing.Point(364, 273);
             this.materialButton_createClient_test.Name = "materialButton_createClient_test";
-            this.materialButton_createClient_test.Size = new System.Drawing.Size(75, 81);
+            this.materialButton_createClient_test.Size = new System.Drawing.Size(75, 52);
             this.materialButton_createClient_test.TabIndex = 65;
-            this.materialButton_createClient_test.Text = "다클라\r\n생성\r\n(테섭)";
+            this.materialButton_createClient_test.Text = "다클생성\r\n(테섭)";
             this.materialButton_createClient_test.TextColor = System.Drawing.Color.White;
             this.materialButton_createClient_test.UseVisualStyleBackColor = false;
             this.materialButton_createClient_test.Click += new System.EventHandler(this.materialButton_createClient_Click);
@@ -396,9 +397,9 @@
             this.materialButton_patch.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.materialButton_patch.ForeColor = System.Drawing.Color.White;
             this.materialButton_patch.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_patch.Location = new System.Drawing.Point(316, 401);
+            this.materialButton_patch.Location = new System.Drawing.Point(364, 110);
             this.materialButton_patch.Name = "materialButton_patch";
-            this.materialButton_patch.Size = new System.Drawing.Size(75, 36);
+            this.materialButton_patch.Size = new System.Drawing.Size(75, 23);
             this.materialButton_patch.TabIndex = 66;
             this.materialButton_patch.Text = "수동패치";
             this.materialButton_patch.TextColor = System.Drawing.Color.White;
@@ -429,11 +430,33 @@
             this.materialButton_save.UseVisualStyleBackColor = false;
             this.materialButton_save.Click += new System.EventHandler(this.materialButton_save_Click);
             // 
+            // materialButton_patch_test
+            // 
+            this.materialButton_patch_test.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_patch_test.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_patch_test.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_patch_test.BorderRadius = 5;
+            this.materialButton_patch_test.BorderSize = 0;
+            this.materialButton_patch_test.FlatAppearance.BorderSize = 0;
+            this.materialButton_patch_test.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_patch_test.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_patch_test.ForeColor = System.Drawing.Color.White;
+            this.materialButton_patch_test.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_patch_test.Location = new System.Drawing.Point(364, 244);
+            this.materialButton_patch_test.Name = "materialButton_patch_test";
+            this.materialButton_patch_test.Size = new System.Drawing.Size(75, 23);
+            this.materialButton_patch_test.TabIndex = 68;
+            this.materialButton_patch_test.Text = "수동패치";
+            this.materialButton_patch_test.TextColor = System.Drawing.Color.White;
+            this.materialButton_patch_test.UseVisualStyleBackColor = false;
+            this.materialButton_patch_test.Click += new System.EventHandler(this.materialButton_patch_Click);
+            // 
             // Form_ClientSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(456, 505);
+            this.Controls.Add(this.materialButton_patch_test);
             this.Controls.Add(this.materialButton_save);
             this.Controls.Add(this.materialButton_patch);
             this.Controls.Add(this.materialButton_createClient_test);
@@ -502,5 +525,6 @@
         private CustomButton materialButton_createClient_test;
         private CustomButton materialButton_patch;
         private CustomButton materialButton_save;
+        private CustomButton materialButton_patch_test;
     }
 }

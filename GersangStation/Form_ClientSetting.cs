@@ -86,7 +86,7 @@ namespace GersangStation {
             }
 
             if (path == "") {
-                MessageBox.Show("본클라 경로가 설정되지 않았습니다.", "생성 불가", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("본클라 경로가 설정되지 않았습니다.", "생성 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -200,9 +200,22 @@ namespace GersangStation {
         }
 
         private void materialButton_patch_Click(object sender, EventArgs e) {
+            bool isTest = (sender.Equals(materialButton_patch_test)) ? true : false;
+            if (isTest) {
+                if (textBox_path_test_1.Text == "") {
+                    MessageBox.Show(this, "테스트서버의 본클라 경로가 지정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            } else {
+                if (textBox_path_1.Text == "") { 
+                    MessageBox.Show(this, "본서버의 본클라 경로가 지정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+            }
+
             Form backgroundForm = Form1.InitBackgroundForm(this);
             
-            Form_Patcher form_Patcher = new Form_Patcher() {
+            Form_Patcher form_Patcher = new Form_Patcher(isTest) {
                 Owner = this
             };
 
