@@ -117,6 +117,7 @@ namespace GersangStation {
             /**
              * <-- 메인화면 -->
              */
+            toolTip1.SetToolTip(button_tray, "트레이에 숨기기");
             toolTip1.SetToolTip(radio_preset_1, "1번 세팅");
             toolTip1.SetToolTip(radio_preset_2, "2번 세팅");
             toolTip1.SetToolTip(radio_preset_3, "3번 세팅");
@@ -1130,6 +1131,19 @@ namespace GersangStation {
 
         private void materialButton_gitHub_Click(object sender, EventArgs e) {
             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
+        }
+
+        private void button_tray_Click(object sender, EventArgs e) {
+            notifyIcon1.Visible = true;
+            notifyIcon1.BalloonTipTitle = "알림";
+            notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";
+            notifyIcon1.ShowBalloonTip(5000);
+            this.Hide();
+        }
+
+        private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
+            notifyIcon1.Visible = false;
+            this.Show();
         }
     } //Form1
 } //namespace

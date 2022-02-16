@@ -67,6 +67,8 @@
             this.menuIconList = new System.Windows.Forms.ImageList(this.components);
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.button_tray = new System.Windows.Forms.Button();
+            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.materialTabControl1.SuspendLayout();
             this.tabPage_home.SuspendLayout();
             this.tabPage_settings.SuspendLayout();
@@ -857,15 +859,37 @@
             this.folderBrowserDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             this.folderBrowserDialog.UseDescriptionForTitle = true;
             // 
+            // button_tray
+            // 
+            this.button_tray.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(38)))), ((int)(((byte)(50)))), ((int)(((byte)(56)))));
+            this.button_tray.FlatAppearance.BorderSize = 0;
+            this.button_tray.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.button_tray.Image = ((System.Drawing.Image)(resources.GetObject("button_tray.Image")));
+            this.button_tray.Location = new System.Drawing.Point(334, 0);
+            this.button_tray.Name = "button_tray";
+            this.button_tray.Size = new System.Drawing.Size(26, 24);
+            this.button_tray.TabIndex = 14;
+            this.button_tray.UseVisualStyleBackColor = false;
+            this.button_tray.Click += new System.EventHandler(this.button_tray_Click);
+            // 
+            // notifyIcon1
+            // 
+            this.notifyIcon1.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
+            this.notifyIcon1.Text = "거상 스테이션";
+            this.notifyIcon1.DoubleClick += new System.EventHandler(this.notifyIcon1_DoubleClick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.AutoScroll = true;
             this.ClientSize = new System.Drawing.Size(408, 295);
+            this.Controls.Add(this.button_tray);
             this.Controls.Add(this.materialTabControl1);
             this.DrawerShowIconsWhenHidden = true;
             this.DrawerTabControl = this.materialTabControl1;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.Sizable = false;
@@ -928,5 +952,7 @@
         private Label label2;
         private CustomButton materialButton_kakao;
         private ToolTip toolTip1;
+        private Button button_tray;
+        private NotifyIcon notifyIcon1;
     }
 }
