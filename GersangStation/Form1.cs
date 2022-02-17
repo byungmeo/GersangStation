@@ -837,17 +837,6 @@ namespace GersangStation {
             MaterialComboBox comboBox = (MaterialComboBox)sender;
             Logger.Log("CheckedChanged : " + comboBox.Name + "->" + comboBox.SelectedIndex);
 
-            if (Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
-                Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
-                webView_main.CoreWebView2.Navigate(url_logout);
-                materialSwitch_login_1.CheckState = CheckState.Unchecked;
-                materialSwitch_login_2.CheckState = CheckState.Unchecked;
-                materialSwitch_login_3.CheckState = CheckState.Unchecked;
-                currentState = State.None;
-                currentClient = Client.None;
-                return;
-            }
-
             string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
             if (id == "") id = comboBox.Text;
             string switchTag;
@@ -875,6 +864,17 @@ namespace GersangStation {
             }
             sb.Remove(sb.Length - 1, 1);
             ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
+
+            if (Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
+                Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
+                webView_main.CoreWebView2.Navigate(url_logout);
+                materialSwitch_login_1.CheckState = CheckState.Unchecked;
+                materialSwitch_login_2.CheckState = CheckState.Unchecked;
+                materialSwitch_login_3.CheckState = CheckState.Unchecked;
+                currentState = State.None;
+                currentClient = Client.None;
+                return;
+            }
         }
 
         private void LoadAccountComboBox() {
@@ -887,7 +887,7 @@ namespace GersangStation {
             if (temp.Length != 0) {
                 accountList = temp.Remove(temp.Length - 1, 1).Split(';');
             } else {
-                accountList = new string[0];
+                accountList = Array.Empty<string>();
             }
 
             materialComboBox_account_1.Items.Add("선택안함");
@@ -939,7 +939,7 @@ namespace GersangStation {
         private void materialButton_naver_Click(object sender, EventArgs e) {
             MaterialButton searchButton = (MaterialButton)sender;
             Logger.Log("Click : " + searchButton.Name);
-            MaterialSwitch? loginSwitch = null;
+            MaterialSwitch loginSwitch;
 
             if(searchButton.Equals(materialButton_search_1)) { loginSwitch = materialSwitch_login_1; } 
             else if(searchButton.Equals(materialButton_search_2)) { loginSwitch = materialSwitch_login_2; }
