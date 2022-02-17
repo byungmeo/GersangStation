@@ -1026,6 +1026,7 @@ namespace GersangStation {
 
         private void materialButton_setting_Click(object sender, EventArgs e) {
             CustomButton button = (CustomButton)sender;
+            Logger.Log("Click : " + button.Name);
             if (button.Equals(materialButton_setting_account)) {
                 OpenAccountSettingDialog();
             } else if (button.Equals(materialButton_setting_client)) {
@@ -1129,18 +1130,22 @@ namespace GersangStation {
         }
 
         private void materialButton_kakao_Click(object sender, EventArgs e) {
+            Logger.Log("Click : " + materialButton_kakao.Name);
             Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
         }
 
         private void materialButton_patchNote_Click(object sender, EventArgs e) {
+            Logger.Log("Click : " + materialButton_patchNote.Name);
             Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
         }
 
         private void materialButton_blog_Click(object sender, EventArgs e) {
+            Logger.Log("Click : " + materialButton_blog.Name);
             Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
         }
 
         private void materialButton_gitHub_Click(object sender, EventArgs e) {
+            Logger.Log("Click : " + materialButton_gitHub.Name);
             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
         }
 
@@ -1154,11 +1159,13 @@ namespace GersangStation {
         }
 
         private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
+            Logger.Log("DoubleClick : " + "notifyIcon1");
             notifyIcon1.Visible = false;
             this.Show();
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            Logger.Log("Click : " + linkLabel1.Name);
             Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
         }
     } //Form1
