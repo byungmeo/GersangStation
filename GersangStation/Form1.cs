@@ -55,6 +55,7 @@ namespace GersangStation {
 
         public Form1() {
             Logger.Log("Log : " + "폼 생성자 실행");
+            Logger.DeleteOldLogFile();
             InitializeComponent();
 
             // Initialize MaterialSkinManager
