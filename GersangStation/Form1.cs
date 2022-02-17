@@ -580,6 +580,7 @@ namespace GersangStation {
 
         private void materialButton_start_Click(object sender, EventArgs e) {
             MaterialButton startButton = (MaterialButton)sender;
+            Logger.Log("Click : " + startButton.Name);
             MaterialSwitch? loginSwitch = null;
 
             if (startButton.Equals(materialButton_start_1)) { loginSwitch = materialSwitch_login_1; } 
@@ -752,7 +753,9 @@ namespace GersangStation {
         }
 
         private void materialSwitch_login_Click(object sender, EventArgs e) {
-            SwitchClick((MaterialSwitch)sender);
+            MaterialSwitch @switch = (MaterialSwitch)sender;
+            Logger.Log("Click : " + @switch.Name);
+            SwitchClick(@switch);
         }
 
         private void SwitchClick(MaterialSwitch sender) {
@@ -799,6 +802,7 @@ namespace GersangStation {
 
         private void materialButton_shortcut_Click(object sender, EventArgs e) {
             MaterialButton button = (MaterialButton)sender;
+            Logger.Log("Click : " + button.Name);
             string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
 
             if (url == null || url.Equals("")) {
@@ -831,6 +835,7 @@ namespace GersangStation {
 
         private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
             MaterialComboBox comboBox = (MaterialComboBox)sender;
+            Logger.Log("CheckedChanged : " + comboBox.Name + "->" + comboBox.SelectedIndex);
 
             if (Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
                 Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
@@ -907,7 +912,8 @@ namespace GersangStation {
             materialComboBox_account_3.Refresh();
         }
 
-        private void materialButton1_Click(object sender, EventArgs e) {
+        private void materialButton_debugging_Click(object sender, EventArgs e) {
+            Logger.Log("Click : " + materialButton_debugging.Name);
             MaterialForm form = new MaterialForm() {
                 Size = new Size(1100, 800),
                 FormStyle = FormStyles.ActionBar_None,
@@ -932,6 +938,7 @@ namespace GersangStation {
 
         private void materialButton_naver_Click(object sender, EventArgs e) {
             MaterialButton searchButton = (MaterialButton)sender;
+            Logger.Log("Click : " + searchButton.Name);
             MaterialSwitch? loginSwitch = null;
 
             if(searchButton.Equals(materialButton_search_1)) { loginSwitch = materialSwitch_login_1; } 
@@ -945,8 +952,9 @@ namespace GersangStation {
 
         private void radio_preset_CheckedChanged(object sender, EventArgs e) {
             MaterialRadioButton radio = (MaterialRadioButton)sender;
+            Logger.Log("CheckedChanged : " + radio.Name + "->" + radio.Checked);
             string? value = radio.Tag.ToString();
-            if(value == null) {
+            if (value == null) {
                 MessageBox.Show("RadioButton의 Tag가 Null입니다.");
                 return;
             }
@@ -1100,6 +1108,8 @@ namespace GersangStation {
         }
 
         private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
+            MaterialCheckbox checkbox = (MaterialCheckbox)sender;
+            Logger.Log("CheckedChanged : " + checkbox.Name + "->" + checkbox.Checked);
             ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
         }
 
@@ -1135,6 +1145,7 @@ namespace GersangStation {
         }
 
         private void button_tray_Click(object sender, EventArgs e) {
+            Logger.Log("Click : " + button_tray.Name);
             notifyIcon1.Visible = true;
             notifyIcon1.BalloonTipTitle = "알림";
             notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";

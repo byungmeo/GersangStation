@@ -300,7 +300,7 @@
             this.materialButton_debugging.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             this.materialButton_debugging.UseAccentColor = false;
             this.materialButton_debugging.UseVisualStyleBackColor = true;
-            this.materialButton_debugging.Click += new System.EventHandler(this.materialButton1_Click);
+            this.materialButton_debugging.Click += new System.EventHandler(this.materialButton_debugging_Click);
             // 
             // materialButton_shortcut_4
             // 
