@@ -1014,6 +1014,7 @@ namespace GersangStation {
             string[] account_list = temp.Remove(temp.Length - 1, 1).Split(';');
             foreach (var item in account_list) {
                 ConfigManager.removeConfig(item);
+                ConfigManager.removeConfig(item + "_nickname");
             }
             ConfigManager.setConfig("account_list", "");
 
