@@ -21,6 +21,7 @@ namespace GersangStation {
         }
 
         private void materialButton_save_Click(object sender, EventArgs e) {
+            Logger.Log("Click : (" + this.Name + ") " + materialButton_save.Name);
             StringBuilder sb = new StringBuilder();
             sb.Append(textBox_shortcutName_1.Text + ";");
             sb.Append(textBox_shortcutName_2.Text + ";");

@@ -11,6 +11,12 @@ namespace GersangStation {
         }
 
         private void materialButton_save_Click(object sender, EventArgs e) {
+            Logger.Log("Click : (" + this.Name + ") " + materialButton_save.Name);
+            ConfigManager.setConfig("use_bat_creator", materialCheckbox_useBAT.Checked.ToString());
+        }
+
+        private void materialCheckbox_useBAT_CheckedChanged(object sender, EventArgs e) {
+            Logger.Log("CheckedChanged : (" + this.Name + ") " + materialButton_save.Name);
             ConfigManager.setConfig("use_bat_creator", materialCheckbox_useBAT.Checked.ToString());
         }
     }

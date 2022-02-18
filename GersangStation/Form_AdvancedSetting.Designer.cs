@@ -44,6 +44,7 @@
             this.materialCheckbox_useBAT.TabStop = false;
             this.materialCheckbox_useBAT.Text = "다클라 생성 시 커맨드라인 방식 사용 (권장하지 않음)";
             this.materialCheckbox_useBAT.UseVisualStyleBackColor = true;
+            this.materialCheckbox_useBAT.CheckedChanged += new System.EventHandler(this.materialCheckbox_useBAT_CheckedChanged);
             // 
             // materialButton_save
             // 
