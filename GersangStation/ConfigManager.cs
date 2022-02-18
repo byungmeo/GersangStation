@@ -1,5 +1,4 @@
 ﻿using System.Configuration;
-using System.Reflection;
 using System.Text;
 
 namespace GersangStation {
@@ -7,6 +6,7 @@ namespace GersangStation {
         public static Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
 
         public static void Validation() {
+            Logger.Log("Log : (" + "ConfigManager" + ") " + "vsn.dat 파일 유효성 검사");
             Dictionary<string, string> keyValuePairs = new Dictionary<string, string>();
             keyValuePairs.Add("current_preset", "1");
             keyValuePairs.Add("account_list", "");
@@ -38,6 +38,7 @@ namespace GersangStation {
         }
 
         private static void CheckKey(Dictionary<string, string> keyValuePairs) {
+            Logger.Log("Log : (" + "ConfigManager" + ") " + "vsn.dat파일이 존재하며, 필수 Key값이 모두 존재하는지 검사");
             foreach (var item in keyValuePairs) {
                 KeyValueConfigurationElement element = configuration.AppSettings.Settings[item.Key];
                 if (element == null) { addConfig(item.Key, item.Value); }
@@ -45,6 +46,7 @@ namespace GersangStation {
         }
 
         private static void CreateConfigFile(Dictionary<string,string> keyValuePairs) {
+            Logger.Log("Log : (" + "ConfigManager" + ") " + "vsn.dat파일이 존재하지 않아 새로 생성");
             StringBuilder sb = new StringBuilder();
             sb.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\" ?>");
             sb.AppendLine("<configuration>");
