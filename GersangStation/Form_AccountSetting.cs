@@ -1,5 +1,4 @@
 ﻿using MaterialSkin.Controls;
-using System.Diagnostics;
 using System.Text;
 
 namespace GersangStation {
@@ -13,10 +12,12 @@ namespace GersangStation {
         }
 
         private void materialButton_close_Click(object sender, EventArgs e) {
+            Logger.Log("Click : (" + "Form_AccountSetting" + ") " + materialButton_close.Name);
             this.DialogResult = DialogResult.OK;
         }
 
         private void materialButton_addAccount_Click(object sender, EventArgs e) {
+            Logger.Log("Click : (" + "Form_AccountSetting" + ") " + materialButton_addAccount.Name);
             if (sender.Equals(materialButton_changeAccount)) {
                 if (materialListBox1.SelectedIndex == -1) {
                     return;
@@ -73,6 +74,7 @@ namespace GersangStation {
                 TabStop = false
             };
             checkBox_useNickname.CheckedChanged += (sender, e) => {
+                Logger.Log("CheckedChanged : (" + "Form_AccountSetting" + ") " + "(추가편집창) checkBox_useNickname");
                 if (true == checkBox_useNickname.Checked) {
                     textBox_nickname.Enabled = true;
                 } else {
@@ -100,6 +102,7 @@ namespace GersangStation {
 
             if (sender.Equals(materialButton_addAccount)) {
                 button_confirm.Click += (sender, e) => {
+                    Logger.Log("Click : (" + "Form_AccountSetting" + ") " + "(추가창) button_confirm");
                     if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
                         MessageBox.Show(dialog_addAccount, "아이디 또는 비밀번호를 입력 해주세요.");
                         return;
@@ -130,6 +133,7 @@ namespace GersangStation {
                     dialog_addAccount.DialogResult = DialogResult.OK;
                 };
 
+                Logger.Log("Log : (" + "Form_AccountSetting" + ") " + "추가모드로 dialog_addAccount폼 출력");
                 //계정 추가 버튼 클릭 시
                 if (dialog_addAccount.ShowDialog() == DialogResult.OK) {
                     string id = textBox_id.Text;
@@ -163,6 +167,7 @@ namespace GersangStation {
                 };
 
                 button_confirm.Click += (sender, e) => {
+                    Logger.Log("Click : (" + "Form_AccountSetting" + ") " + "(편집창) button_confirm");
                     if (textBox_id.Text.Length == 0 || textBox_pw.Text.Length == 0) {
                         MessageBox.Show(dialog_addAccount, "아이디 또는 비밀번호를 입력 해주세요.");
                         return;
@@ -197,6 +202,7 @@ namespace GersangStation {
                     dialog_addAccount.DialogResult = DialogResult.OK;
                 };
 
+                Logger.Log("Log : (" + "Form_AccountSetting" + ") " + "편집모드로 dialog_addAccount폼 출력");
                 if (dialog_addAccount.ShowDialog() == DialogResult.OK) {
                     string id = textBox_id.Text;
                     string pw = EncryptionSupporter.Protect(textBox_pw.Text);
@@ -222,6 +228,7 @@ namespace GersangStation {
         }
 
         private void materialButton_removeAccount_Click(object sender, EventArgs e) {
+            Logger.Log("Click : (" + "Form_AccountSetting" + ") " + materialButton_removeAccount.Name);
             DialogResult dr = MessageBox.Show(this, "정말로 삭제하시겠습니까?", "계정 삭제", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (dr == DialogResult.No) { return; }
             if (materialListBox1.SelectedIndex == -1) { return; }
@@ -249,6 +256,7 @@ namespace GersangStation {
         }
 
         private void LoadListBox() {
+            Logger.Log("Click : (" + "Form_AccountSetting" + ") " + "리스트박스를 로딩");
             materialListBox1.Clear();
             string[] accountList = ConfigManager.getConfig("account_list").Split(';');
             foreach (var item in accountList) {
