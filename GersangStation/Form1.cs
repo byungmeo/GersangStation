@@ -1016,6 +1016,7 @@ namespace GersangStation {
         private void radio_preset_CheckedChanged(object sender, EventArgs e) {
             MaterialRadioButton radio = (MaterialRadioButton)sender;
             Logger.Log("CheckedChanged : " + radio.Name + "->" + radio.Checked);
+            if (radio.Checked == false) { return; }
             string? value = radio.Tag.ToString();
             if (value == null) {
                 MessageBox.Show("RadioButton의 Tag가 Null입니다.");
@@ -1027,6 +1028,7 @@ namespace GersangStation {
         }
 
         private void LoadRadioButton() {
+            Logger.Log("Log : " + "라디오 버튼 로딩");
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             switch (current_preset) {
                 case 1 :
