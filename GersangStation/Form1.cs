@@ -113,6 +113,30 @@ namespace GersangStation {
             SetToolTip();
             CheckAccount();
             CheckProgramUpdate();
+            LoadAnnouncements();
+        }
+
+        private async void LoadAnnouncements() {
+            try {
+                GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
+                IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
+                Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
+                string content = r.Content;
+                string[] announcements = content.Substring(content.LastIndexOf("# 공지사항")).Split('\n');
+                if (announcements.Length <= 1) {
+                    linkLabel_announcement.Text = "공지사항이 없습니다";
+                } else {
+                    string latestAnnouncement = announcements[1];
+                    linkLabel_announcement.Text = latestAnnouncement.Split('{')[0];
+                    linkLabel_announcement.Click += (sender, e) => {
+                        string announcementPage = latestAnnouncement.Substring(latestAnnouncement.LastIndexOf('{') + 1, 1);
+                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/" + announcementPage) { UseShellExecute = true });
+                    };
+                }
+            } catch (Exception e) {
+                Logger.Log("Exception: " + "공지사항을 불러오던 중 예외가 발생하였습니다. -> " + e.Message);
+                linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
+            }
         }
 
         private void SetToolTip() {

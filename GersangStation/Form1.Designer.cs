@@ -27,6 +27,8 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.materialTabControl1 = new MaterialSkin.Controls.MaterialTabControl();
             this.tabPage_home = new System.Windows.Forms.TabPage();
+            this.linkLabel_announcement = new System.Windows.Forms.LinkLabel();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.label2 = new System.Windows.Forms.Label();
             this.materialCheckbox_testServer = new MaterialSkin.Controls.MaterialCheckbox();
             this.materialButton_start_3 = new MaterialSkin.Controls.MaterialButton();
@@ -73,6 +75,7 @@
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.materialTabControl1.SuspendLayout();
             this.tabPage_home.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.tabPage_settings.SuspendLayout();
             this.tabPage_help.SuspendLayout();
             this.tabPage_info.SuspendLayout();
@@ -93,13 +96,15 @@
             this.materialTabControl1.Multiline = true;
             this.materialTabControl1.Name = "materialTabControl1";
             this.materialTabControl1.SelectedIndex = 0;
-            this.materialTabControl1.Size = new System.Drawing.Size(402, 228);
+            this.materialTabControl1.Size = new System.Drawing.Size(402, 253);
             this.materialTabControl1.TabIndex = 13;
             // 
             // tabPage_home
             // 
             this.tabPage_home.AutoScroll = true;
             this.tabPage_home.BackColor = System.Drawing.Color.White;
+            this.tabPage_home.Controls.Add(this.linkLabel_announcement);
+            this.tabPage_home.Controls.Add(this.pictureBox2);
             this.tabPage_home.Controls.Add(this.label2);
             this.tabPage_home.Controls.Add(this.materialCheckbox_testServer);
             this.tabPage_home.Controls.Add(this.materialButton_start_3);
@@ -127,9 +132,29 @@
             this.tabPage_home.Location = new System.Drawing.Point(4, 31);
             this.tabPage_home.Name = "tabPage_home";
             this.tabPage_home.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_home.Size = new System.Drawing.Size(394, 193);
+            this.tabPage_home.Size = new System.Drawing.Size(394, 218);
             this.tabPage_home.TabIndex = 0;
             this.tabPage_home.Text = "메인화면";
+            // 
+            // linkLabel_announcement
+            // 
+            this.linkLabel_announcement.AutoSize = true;
+            this.linkLabel_announcement.Location = new System.Drawing.Point(46, 224);
+            this.linkLabel_announcement.Name = "linkLabel_announcement";
+            this.linkLabel_announcement.Size = new System.Drawing.Size(132, 15);
+            this.linkLabel_announcement.TabIndex = 40;
+            this.linkLabel_announcement.TabStop = true;
+            this.linkLabel_announcement.Text = "공지사항 불러오는 중...";
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
+            this.pictureBox2.Location = new System.Drawing.Point(18, 219);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(24, 24);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.pictureBox2.TabIndex = 39;
+            this.pictureBox2.TabStop = false;
             // 
             // label2
             // 
@@ -599,7 +624,7 @@
             this.tabPage_settings.Location = new System.Drawing.Point(4, 31);
             this.tabPage_settings.Name = "tabPage_settings";
             this.tabPage_settings.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_settings.Size = new System.Drawing.Size(394, 193);
+            this.tabPage_settings.Size = new System.Drawing.Size(394, 226);
             this.tabPage_settings.TabIndex = 1;
             this.tabPage_settings.Text = "환경설정";
             // 
@@ -706,7 +731,7 @@
             this.tabPage_help.Location = new System.Drawing.Point(4, 31);
             this.tabPage_help.Name = "tabPage_help";
             this.tabPage_help.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_help.Size = new System.Drawing.Size(394, 193);
+            this.tabPage_help.Size = new System.Drawing.Size(394, 226);
             this.tabPage_help.TabIndex = 2;
             this.tabPage_help.Text = "도움말";
             this.tabPage_help.UseVisualStyleBackColor = true;
@@ -749,7 +774,7 @@
             this.tabPage_info.Location = new System.Drawing.Point(4, 31);
             this.tabPage_info.Name = "tabPage_info";
             this.tabPage_info.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_info.Size = new System.Drawing.Size(394, 193);
+            this.tabPage_info.Size = new System.Drawing.Size(394, 226);
             this.tabPage_info.TabIndex = 4;
             this.tabPage_info.Text = "프로그램 정보";
             this.tabPage_info.UseVisualStyleBackColor = true;
@@ -909,7 +934,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.AutoScroll = true;
-            this.ClientSize = new System.Drawing.Size(408, 295);
+            this.ClientSize = new System.Drawing.Size(408, 320);
             this.Controls.Add(this.button_tray);
             this.Controls.Add(this.materialTabControl1);
             this.DrawerShowIconsWhenHidden = true;
@@ -919,13 +944,14 @@
             this.Name = "Form1";
             this.Sizable = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Tag = "408, 313 (탭5개기준)";
+            this.Tag = "408, 295";
             this.Text = "GersangStation";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.Resize += new System.EventHandler(this.Form1_Resize);
             this.materialTabControl1.ResumeLayout(false);
             this.tabPage_home.ResumeLayout(false);
             this.tabPage_home.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.tabPage_settings.ResumeLayout(false);
             this.tabPage_help.ResumeLayout(false);
             this.tabPage_info.ResumeLayout(false);
@@ -982,5 +1008,7 @@
         private NotifyIcon notifyIcon1;
         private PictureBox pictureBox1;
         private LinkLabel linkLabel1;
+        private LinkLabel linkLabel_announcement;
+        private PictureBox pictureBox2;
     }
 }
