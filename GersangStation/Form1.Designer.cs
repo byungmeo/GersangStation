@@ -641,7 +641,7 @@
             this.materialButton_setting_advanced.ForeColor = System.Drawing.Color.White;
             this.materialButton_setting_advanced.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_advanced.Image")));
             this.materialButton_setting_advanced.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_advanced.Location = new System.Drawing.Point(97, 159);
+            this.materialButton_setting_advanced.Location = new System.Drawing.Point(97, 173);
             this.materialButton_setting_advanced.Name = "materialButton_setting_advanced";
             this.materialButton_setting_advanced.Padding = new System.Windows.Forms.Padding(5);
             this.materialButton_setting_advanced.Size = new System.Drawing.Size(149, 36);
@@ -665,7 +665,7 @@
             this.materialButton_setting_shortcut.ForeColor = System.Drawing.Color.White;
             this.materialButton_setting_shortcut.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_shortcut.Image")));
             this.materialButton_setting_shortcut.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(97, 117);
+            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(97, 131);
             this.materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
             this.materialButton_setting_shortcut.Padding = new System.Windows.Forms.Padding(5);
             this.materialButton_setting_shortcut.Size = new System.Drawing.Size(149, 36);
@@ -689,7 +689,7 @@
             this.materialButton_setting_client.ForeColor = System.Drawing.Color.White;
             this.materialButton_setting_client.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_client.Image")));
             this.materialButton_setting_client.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_client.Location = new System.Drawing.Point(97, 75);
+            this.materialButton_setting_client.Location = new System.Drawing.Point(97, 89);
             this.materialButton_setting_client.Name = "materialButton_setting_client";
             this.materialButton_setting_client.Padding = new System.Windows.Forms.Padding(5);
             this.materialButton_setting_client.Size = new System.Drawing.Size(149, 36);
@@ -713,7 +713,7 @@
             this.materialButton_setting_account.ForeColor = System.Drawing.Color.White;
             this.materialButton_setting_account.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_account.Image")));
             this.materialButton_setting_account.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_account.Location = new System.Drawing.Point(97, 33);
+            this.materialButton_setting_account.Location = new System.Drawing.Point(97, 47);
             this.materialButton_setting_account.Name = "materialButton_setting_account";
             this.materialButton_setting_account.Padding = new System.Windows.Forms.Padding(5);
             this.materialButton_setting_account.Size = new System.Drawing.Size(149, 36);
@@ -749,7 +749,7 @@
             this.materialButton_kakao.ForeColor = System.Drawing.Color.White;
             this.materialButton_kakao.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_kakao.Image")));
             this.materialButton_kakao.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_kakao.Location = new System.Drawing.Point(74, 90);
+            this.materialButton_kakao.Location = new System.Drawing.Point(74, 103);
             this.materialButton_kakao.Name = "materialButton_kakao";
             this.materialButton_kakao.Padding = new System.Windows.Forms.Padding(5);
             this.materialButton_kakao.Size = new System.Drawing.Size(192, 36);
@@ -782,7 +782,7 @@
             // linkLabel1
             // 
             this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Location = new System.Drawing.Point(73, 199);
+            this.linkLabel1.Location = new System.Drawing.Point(73, 212);
             this.linkLabel1.Name = "linkLabel1";
             this.linkLabel1.Size = new System.Drawing.Size(200, 15);
             this.linkLabel1.TabIndex = 7;
@@ -793,7 +793,7 @@
             // pictureBox1
             // 
             this.pictureBox1.Image = global::GersangStation.Properties.Resources.iconNoBack;
-            this.pictureBox1.Location = new System.Drawing.Point(52, 11);
+            this.pictureBox1.Location = new System.Drawing.Point(52, 24);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(48, 48);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -808,7 +808,7 @@
             this.materialButton_patchNote.Depth = 0;
             this.materialButton_patchNote.HighEmphasis = true;
             this.materialButton_patchNote.Icon = null;
-            this.materialButton_patchNote.Location = new System.Drawing.Point(211, 98);
+            this.materialButton_patchNote.Location = new System.Drawing.Point(211, 111);
             this.materialButton_patchNote.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_patchNote.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_patchNote.Name = "materialButton_patchNote";
@@ -829,7 +829,7 @@
             this.materialButton_blog.Depth = 0;
             this.materialButton_blog.HighEmphasis = true;
             this.materialButton_blog.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_blog.Icon")));
-            this.materialButton_blog.Location = new System.Drawing.Point(74, 149);
+            this.materialButton_blog.Location = new System.Drawing.Point(74, 162);
             this.materialButton_blog.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_blog.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_blog.Name = "materialButton_blog";
@@ -850,7 +850,7 @@
             this.materialButton_gitHub.Depth = 0;
             this.materialButton_gitHub.HighEmphasis = true;
             this.materialButton_gitHub.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_gitHub.Icon")));
-            this.materialButton_gitHub.Location = new System.Drawing.Point(176, 149);
+            this.materialButton_gitHub.Location = new System.Drawing.Point(176, 162);
             this.materialButton_gitHub.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_gitHub.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_gitHub.Name = "materialButton_gitHub";
@@ -866,7 +866,7 @@
             // label1
             // 
             this.label1.Font = new System.Drawing.Font("Noto Sans KR", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label1.Location = new System.Drawing.Point(99, 18);
+            this.label1.Location = new System.Drawing.Point(99, 31);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(195, 35);
             this.label1.TabIndex = 2;
@@ -876,7 +876,7 @@
             // 
             this.label_version_latest.AutoSize = true;
             this.label_version_latest.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_version_latest.Location = new System.Drawing.Point(74, 103);
+            this.label_version_latest.Location = new System.Drawing.Point(74, 116);
             this.label_version_latest.Name = "label_version_latest";
             this.label_version_latest.Size = new System.Drawing.Size(130, 22);
             this.label_version_latest.TabIndex = 1;
@@ -886,7 +886,7 @@
             // 
             this.label_version_current.AutoSize = true;
             this.label_version_current.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_version_current.Location = new System.Drawing.Point(74, 70);
+            this.label_version_current.Location = new System.Drawing.Point(74, 83);
             this.label_version_current.Name = "label_version_current";
             this.label_version_current.Size = new System.Drawing.Size(130, 22);
             this.label_version_current.TabIndex = 0;
