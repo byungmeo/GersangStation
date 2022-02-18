@@ -33,6 +33,7 @@ namespace GersangStation {
             InitializeComponent();
 
             if (true == isTest) {
+                Logger.Log("Log : (" + this.Name + ") " + "테스트서버 패치 시작 전");
                 //테섭
                 path_main = ConfigManager.getConfig("client_path_test_1");
                 name_client_2 = ConfigManager.getConfig("client_path_test_2");
@@ -45,6 +46,7 @@ namespace GersangStation {
                 url_patch = url_test_patch;
                 url_vsn = url_test_vsn;
             } else {
+                Logger.Log("Log : (" + this.Name + ") " + "본서버 패치 시작 전");
                 //본섭
                 path_main = ConfigManager.getConfig("client_path_1");
                 name_client_2 = ConfigManager.getConfig("client_path_2");
@@ -68,6 +70,7 @@ namespace GersangStation {
             isPatching = false;
         }
         public static string GetCurrentVersion(Form owner, string path_main) {
+            Logger.Log("Log : (" + "*static*_Form_ClientSetting" + ") " + "현재 거상 본클라 버전 확인 시도");
             string version;
             try {
                 FileStream fs = File.OpenRead(path_main + @"\Online\vsn.dat");
@@ -85,6 +88,7 @@ namespace GersangStation {
         }
 
         public static string GetLatestVersion(Form owner, string url_vsn) {
+            Logger.Log("Log : (" + "*static*_Form_ClientSetting" + ") " + "현재 거상 최신 버전 확인 시도");
             try {
                 Trace.WriteLine("vsn파일을 다운로드 합니다.");
                 return CheckServerVsn(url_vsn, true);
@@ -98,10 +102,12 @@ namespace GersangStation {
         //게임 시작 시 마다 vsn.dat을 받는 것은 부담이 될 수 있으므로,
         //1회 게임 시작 시 vsn.dat을 받으면 그 이후엔 받지 않도록 함.
         public static string GetLatestVersion_Safe(Form owner, string url_vsn) {
+            Logger.Log("Log : (" + "*static*_Form_ClientSetting" + ") " + "현재 거상 최신 버전 확인 시도_Safe");
             string version;
 
             if (true == isDownloadedVsn) {
                 try {
+                    Logger.Log("Log : (" + "*static*_Form_ClientSetting" + ") " + "현재 거상 최신 버전 확인 시도_Safe -> 체크하지 않음");
                     Trace.WriteLine("vsn파일을 다운로드 하지 않습니다.");
                     return CheckServerVsn(url_vsn, false);
                 } catch (Exception e) {
@@ -168,12 +174,15 @@ namespace GersangStation {
         }
 
         private void materialButton_close_Click(object sender, EventArgs e) {
+            Logger.Log("Click : (" + this.Name + ") " + materialButton_close.Name);
             this.DialogResult = DialogResult.OK;
         }
 
         private void materialButton_startPatch_Click(object sender, EventArgs e) {
+            Logger.Log("Click : (" + this.Name + ") " + materialButton_startPatch.Name);
             int equal = 1;
             if (version_current == version_latest) {
+                Logger.Log("Log : (" + this.Name + ") " + "현재 버전과 최신 버전이 같아 패치 여부를 묻는 메시지 출력");
                 DialogResult dr = MessageBox.Show(this, "현재 버전과 최신 버전이 같습니다.\n그래도 패치 하시겠습니까?", "버전 같음", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 if (dr == DialogResult.No) {
                     this.DialogResult = DialogResult.OK;
@@ -186,10 +195,12 @@ namespace GersangStation {
             materialButton_startPatch.Enabled = false;
             materialButton_close.Enabled = false;
             isPatching = true;
+            Logger.Log("Log : (" + this.Name + ") " + "패치 시작");
             Trace.WriteLine("패치 시작!");
 
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            
+            Logger.Log("Log : (" + this.Name + ") " + "패치에 필요한 디렉토리 미리 생성");
+
             DirectoryInfo directory_patch = new DirectoryInfo(Application.StartupPath + @"\patch");
             if (!directory_patch.Exists) { directory_patch.Create(); }
 
@@ -201,6 +212,7 @@ namespace GersangStation {
 
             List<string> list_infoFile = new List<string>();
 
+            Logger.Log("Log : (" + this.Name + ") " + "현재 버전부터 최신 버전까지 필요한 패치정보파일 다운로드");
 #pragma warning disable SYSLIB0014 // 형식 또는 멤버는 사용되지 않습니다.
             using (WebClient webClient = new()) {
 #pragma warning restore SYSLIB0014 // 형식 또는 멤버는 사용되지 않습니다.
@@ -219,6 +231,7 @@ namespace GersangStation {
                 Trace.WriteLine("모든 패치정보 파일 다운로드 성공"); ////////////////////////////////////////////////////////////////////////////////--
             }
 
+            Logger.Log("Log : (" + this.Name + ") " + "패치정보파일에서 패치파일리스트를 추출 및 병합");
             Dictionary<string, string> list_patchFile = new Dictionary<string, string>(); //key값으로 파일이름, value값으로 경로 저장
 
             //몇번의 패치가 존재하든, 한꺼번에 패치하기위해 여러 패치정보파일에서 중복없이 파일 리스트를 뽑아옵니다.
@@ -247,6 +260,7 @@ namespace GersangStation {
             }
             Trace.WriteLine("패치 정보 파일 병합 완료"); //////////////////////////////////////////////////////////////////////////////////////--
 
+            Logger.Log("Log : (" + this.Name + ") " + "패치파일 다운로드 시작");
             Dictionary<string, string> list_readyDownloadFile = new Dictionary<string, string>(); //실질적으로 다운로드 받는 파일입니다.
             List<ListViewItem> list_listViewItem = new List<ListViewItem>();
 
@@ -338,6 +352,7 @@ namespace GersangStation {
                                 ZipFile.ExtractToDirectory(path_file, new FileInfo(path_file).DirectoryName);
 #pragma warning restore CS8604 // 가능한 null 참조 인수입니다.
                             } catch (Exception ex) {
+                                Logger.Log("Exception : (" + this.Name + ") " + "패치파일 압축 해제 중 예외 발생 -> " + ex.Message);
                                 MessageBox.Show(this, "파일 압축 해제 중 오류가 발생하였습니다.\n다시 시도해주세요.\n" + ex.Message, "압축 해제 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                 return;
                             }
@@ -345,6 +360,7 @@ namespace GersangStation {
                             try {
                                 File.Delete(path_file);
                             } catch (Exception ex) {
+                                Logger.Log("Exception : (" + this.Name + ") " + "압축하고 남은 압축파일 삭제 중 예외 발생 -> " + ex.Message);
                                 Trace.WriteLine("압축 파일 삭제 중 오류가 발생하였습니다.\n패치는 계속해서 진행됩니다.\n" + ex.Message);
                             }
                         }
@@ -352,6 +368,7 @@ namespace GersangStation {
                         //파일 다운로드가 모두 완료
                         if (progressBar.Value == list_readyDownloadFile.Count) {
                             if (!errorMessageList.Equals("")) {
+                                Logger.Log("Exception : (" + this.Name + ") " + "파일 다운로드 중 예외가 발생\r\n  :" + errorMessageList);
                                 MessageBox.Show(this, "파일 다운로드 중 오류가 발생하였습니다.\n다시 시도해주세요.\n" + errorMessageList, "다운로드 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             } else {
                                 //원본 폴더로 패치 파일 복사
@@ -363,9 +380,11 @@ namespace GersangStation {
                                     //Copy all the files & Replaces any files with the same name
                                     foreach (string newPath in Directory.GetFiles(directory_file.FullName, "*.*", System.IO.SearchOption.AllDirectories))
                                         File.Copy(newPath, newPath.Replace(directory_file.FullName, path_main), true);
-                                    
+
+                                    Logger.Log("Log : (" + this.Name + ") " + "패치 파일 적용 완료");
                                     MessageBox.Show(this, "패치 다운로드 및 적용이 모두 완료되었습니다.", "패치 적용 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
                                 } catch (Exception ex) {
+                                    Logger.Log("Exception : (" + this.Name + ") " + "패치 파일을 본클라에 적용 도중 예외가 발생 -> " + ex.Message);
                                     MessageBox.Show(this, "패치 적용 중 오류가 발생하였습니다.\n다시 시도해주세요.\n" + ex.Message, "패치적용 에러", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                     isPatching = false;
                                     materialButton_close.Enabled = true;
@@ -375,15 +394,18 @@ namespace GersangStation {
                                 //체크여부에 따라 저장된 패치 파일 삭제
                                 if (materialCheckbox_delete.Checked) {
                                     try {
+                                        Logger.Log("Log : (" + this.Name + ") " + "남은 패치 파일 삭제 시도");
                                         directory_file.Delete(true);
                                         Trace.WriteLine("패치 파일 폴더 삭제 완료");
                                     } catch (Exception ex) {
+                                        Logger.Log("Exception : (" + this.Name + ") " + "남은 패치 파일 삭제 도중 예외가 발생 -> " + ex.Message);
                                         Trace.WriteLine("패치 파일 폴더 삭제 실패\n" + ex.Message);
                                     }
                                 }
 
                                 //10. 체크여부에 따라 다클라 패치 적용
                                 if (materialCheckbox_apply.Checked) {
+                                    Logger.Log("Log : (" + this.Name + ") " + "다클라 패치 적용 옵션이 체크되어있어 다클라 패치 적용 시작 (다클생성과 동일)");
                                     if (bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path_main, name_client_2, name_client_3); }
                                     else { ClientCreator.CreateClient_Default(this, path_main, name_client_2, name_client_3); }
                                 }
@@ -408,6 +430,7 @@ namespace GersangStation {
 
         private void Form_Patcher_FormClosed(object sender, FormClosedEventArgs e) {
             if (true == isPatching) {
+                Logger.Log("Log : (" + this.Name + ") " + "다클라 패치 도중 폼을 종료");
                 MessageBox.Show("다운로드는 계속해서 진행됩니다.\n다시 시도하시려면 거상 스테이션 폴더 내의\n" + @"patch 폴더를 삭제 해주세요."
                         , "패치가 강제로 종료됨", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
