@@ -4,6 +4,7 @@ using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using Microsoft.Win32;
 using Octokit;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -432,6 +433,15 @@ namespace GersangStation {
             isWebFunctionDeactivated = false;
         }
 
+        private void activateWebSideFunction_invoke() {
+            DelegateActivateWebSideFunction d = () => {
+                activateWebSideFunction();
+            };
+            this.Invoke(d);
+        }
+
+        private delegate void DelegateActivateWebSideFunction();
+
         private void handleWebError(CoreWebView2WebErrorStatus webErrorStatus) {
             Logger.Log("Error : " + "WebView2에서 에러가 발생하여 핸들링 -> " + webErrorStatus);
             Trace.WriteLine("NavigationFailed - WebErrorStatus : " + webErrorStatus);
@@ -746,7 +756,15 @@ namespace GersangStation {
             } else {
                 Logger.Log("Log : " + "거상 소켓을 실행 후 거상 스타터를 실행");
                 await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //소켓을 엽니다.
-                Process.Start(value.ToString()); //거상 스타터를 실행합니다.
+                Process starter = new Process();
+                starter.StartInfo.FileName = value.ToString();
+                starter.EnableRaisingEvents = true;
+                starter.Exited += (sender, e) => {
+                    Trace.WriteLine("게임 스타터가 종료됨.");
+                    activateWebSideFunction_invoke();
+                };
+                deactivateWebSideFunction();
+                starter.Start();
             }
         }
 
