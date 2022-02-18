@@ -30,6 +30,8 @@
             this.materialButton_addAccount = new GersangStation.CustomButton();
             this.materialButton_removeAccount = new GersangStation.CustomButton();
             this.materialButton_changeAccount = new GersangStation.CustomButton();
+            this.label4 = new System.Windows.Forms.Label();
+            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.SuspendLayout();
             // 
             // materialListBox1
@@ -61,7 +63,7 @@
             this.materialButton_close.ForeColor = System.Drawing.Color.White;
             this.materialButton_close.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_close.Image")));
             this.materialButton_close.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_close.Location = new System.Drawing.Point(128, 279);
+            this.materialButton_close.Location = new System.Drawing.Point(128, 398);
             this.materialButton_close.Name = "materialButton_close";
             this.materialButton_close.Padding = new System.Windows.Forms.Padding(5);
             this.materialButton_close.Size = new System.Drawing.Size(79, 36);
@@ -151,11 +153,35 @@
             this.materialButton_changeAccount.UseVisualStyleBackColor = false;
             this.materialButton_changeAccount.Click += new System.EventHandler(this.materialButton_addAccount_Click);
             // 
+            // label4
+            // 
+            this.label4.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.label4.Font = new System.Drawing.Font("Noto Sans KR", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label4.ForeColor = System.Drawing.Color.Red;
+            this.label4.Location = new System.Drawing.Point(44, 279);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(246, 68);
+            this.label4.TabIndex = 106;
+            this.label4.Text = "패스워드는 암호화되어 저장됩니다.\r\n신뢰할 수 없는 장소(PC방 등)에서는\r\n사용을 자제해주세요. (삭제필수)";
+            this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // linkLabel1
+            // 
+            this.linkLabel1.Location = new System.Drawing.Point(61, 364);
+            this.linkLabel1.Name = "linkLabel1";
+            this.linkLabel1.Size = new System.Drawing.Size(213, 23);
+            this.linkLabel1.TabIndex = 107;
+            this.linkLabel1.TabStop = true;
+            this.linkLabel1.Text = "[Notice] 계정정보와 해킹에 대한 안내";
+            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
+            // 
             // Form_AccountSetting
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(334, 335);
+            this.ClientSize = new System.Drawing.Size(334, 454);
+            this.Controls.Add(this.linkLabel1);
+            this.Controls.Add(this.label4);
             this.Controls.Add(this.materialButton_changeAccount);
             this.Controls.Add(this.materialButton_removeAccount);
             this.Controls.Add(this.materialButton_addAccount);
@@ -183,5 +209,7 @@
         private CustomButton materialButton_addAccount;
         private CustomButton materialButton_removeAccount;
         private CustomButton materialButton_changeAccount;
+        private Label label4;
+        private LinkLabel linkLabel1;
     }
 }

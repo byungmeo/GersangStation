@@ -1,4 +1,5 @@
 ﻿using MaterialSkin.Controls;
+using System.Diagnostics;
 using System.Text;
 
 namespace GersangStation {
@@ -266,6 +267,10 @@ namespace GersangStation {
                 if (nickname == "" || nickname == item) { materialListBox1.AddItem(item); } 
                 else { materialListBox1.AddItem(item + " (" + nickname + ")"); }
             }
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222650978419") { UseShellExecute = true });
         }
     }
 }
