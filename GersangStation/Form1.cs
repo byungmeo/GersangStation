@@ -50,6 +50,7 @@ namespace GersangStation {
         private bool isSearch = false;
         private bool isGameStartLogin = false;
         private string previousUrl = "";
+        private bool isGetSearchItem = false;
 
         WebView2? webView_main = null;
 
@@ -297,13 +298,16 @@ namespace GersangStation {
 
                 //검색 보상 지급 메시지
                 else if (message.Contains("아이템이 지급되었습니다.") || message.Contains("이미 아이템을 수령하셨습니다.") || message.Contains("참여 시간이 아닙니다.")) {
-                    if (MessageBox.Show(message) == DialogResult.OK) { 
-                        webView_main.CoreWebView2.Navigate(url_main); 
+                    MessageBox.Show(message);
+                    if (e.Uri.Contains("attendance") && true == isGetSearchItem) {
+                        webView_main.CoreWebView2.Navigate(url_main);
+                        isGetSearchItem = false;
                     }
+                    
                 }
 
-                //아이디 또는 비밀번호가 틀린 경우입니다.
-                else if (message.Contains("아이디 또는 비밀번호 오류")) {
+                  //아이디 또는 비밀번호가 틀린 경우입니다.
+                  else if (message.Contains("아이디 또는 비밀번호 오류")) {
                     currentState = State.None;
                     currentClient = Client.None;
                     Trace.WriteLine("로그인 실패 판정");
@@ -404,6 +408,7 @@ namespace GersangStation {
             else if (koreaHour >= 12 && koreaHour <= 17) { arg = 3; } 
             else { arg = 4; }
 
+            isGetSearchItem = true;
             Logger.Log("Log : " + "검색 보상 수령 시간대 : " + arg);
             await webView_main.ExecuteScriptAsync("event_Search_Use(" + arg + ");");
         }
@@ -643,7 +648,7 @@ namespace GersangStation {
         private void materialButton_start_Click(object sender, EventArgs e) {
             MaterialButton startButton = (MaterialButton)sender;
             Logger.Log("Click : " + startButton.Name);
-            MaterialSwitch? loginSwitch = null;
+            MaterialSwitch? loginSwitch;
 
             if (startButton.Equals(materialButton_start_1)) { loginSwitch = materialSwitch_login_1; } 
             else if (startButton.Equals(materialButton_start_2)) { loginSwitch = materialSwitch_login_2; } 
