@@ -1265,5 +1265,21 @@ namespace GersangStation {
             Logger.Log("Click : " + linkLabel1.Name);
             Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
         }
+
+        private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+            ToolStripItem item = e.ClickedItem;
+            if (item.Equals(toolStripMenuItem_open)) {
+                Logger.Log("ItemClicked : " + "(contextMenuStrip_tray) " + "toolStripMenuItem_open");
+                notifyIcon1.Visible = false;
+                this.Show();
+            } else if (item.Equals(toolStripMenuItem_exit)) {
+                Logger.Log("ItemClicked : " + "(contextMenuStrip_tray) " + "toolStripMenuItem_exit");
+                System.Windows.Forms.Application.Exit();
+            }
+        }
+
+        private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+
+        }
     } //Form1
 } //namespace

@@ -73,6 +73,20 @@
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.button_tray = new System.Windows.Forms.Button();
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
+            this.contextMenuStrip_tray = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.toolStripMenuItem_open = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripMenuItem_client_1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_search_1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_start_1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_client_2 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_search_2 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_start_2 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_client_3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_search_3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem_start_3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.toolStripMenuItem_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.materialTabControl1.SuspendLayout();
             this.tabPage_home.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -80,6 +94,7 @@
             this.tabPage_help.SuspendLayout();
             this.tabPage_info.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.contextMenuStrip_tray.SuspendLayout();
             this.SuspendLayout();
             // 
             // materialTabControl1
@@ -925,9 +940,112 @@
             // notifyIcon1
             // 
             this.notifyIcon1.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            this.notifyIcon1.ContextMenuStrip = this.contextMenuStrip_tray;
             this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
             this.notifyIcon1.Text = "거상 스테이션";
             this.notifyIcon1.DoubleClick += new System.EventHandler(this.notifyIcon1_DoubleClick);
+            // 
+            // contextMenuStrip_tray
+            // 
+            this.contextMenuStrip_tray.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem_open,
+            this.toolStripSeparator1,
+            this.toolStripMenuItem_client_1,
+            this.toolStripMenuItem_client_2,
+            this.toolStripMenuItem_client_3,
+            this.toolStripSeparator2,
+            this.toolStripMenuItem_exit});
+            this.contextMenuStrip_tray.Name = "contextMenuStrip_tray";
+            this.contextMenuStrip_tray.Size = new System.Drawing.Size(181, 148);
+            this.contextMenuStrip_tray.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip_tray_ItemClicked);
+            // 
+            // toolStripMenuItem_open
+            // 
+            this.toolStripMenuItem_open.Name = "toolStripMenuItem_open";
+            this.toolStripMenuItem_open.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_open.Text = "열기";
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            // 
+            // toolStripMenuItem_client_1
+            // 
+            this.toolStripMenuItem_client_1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem_search_1,
+            this.toolStripMenuItem_start_1});
+            this.toolStripMenuItem_client_1.Name = "toolStripMenuItem_client_1";
+            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_1.Text = "1클라";
+            this.toolStripMenuItem_client_1.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
+            // 
+            // toolStripMenuItem_search_1
+            // 
+            this.toolStripMenuItem_search_1.Name = "toolStripMenuItem_search_1";
+            this.toolStripMenuItem_search_1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_search_1.Text = "검색보상수령";
+            // 
+            // toolStripMenuItem_start_1
+            // 
+            this.toolStripMenuItem_start_1.Name = "toolStripMenuItem_start_1";
+            this.toolStripMenuItem_start_1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_start_1.Text = "게임시작";
+            // 
+            // toolStripMenuItem_client_2
+            // 
+            this.toolStripMenuItem_client_2.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem_search_2,
+            this.toolStripMenuItem_start_2});
+            this.toolStripMenuItem_client_2.Name = "toolStripMenuItem_client_2";
+            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_2.Text = "2클라";
+            this.toolStripMenuItem_client_2.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
+            // 
+            // toolStripMenuItem_search_2
+            // 
+            this.toolStripMenuItem_search_2.Name = "toolStripMenuItem_search_2";
+            this.toolStripMenuItem_search_2.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_search_2.Text = "검색보상수령";
+            // 
+            // toolStripMenuItem_start_2
+            // 
+            this.toolStripMenuItem_start_2.Name = "toolStripMenuItem_start_2";
+            this.toolStripMenuItem_start_2.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_start_2.Text = "게임시작";
+            // 
+            // toolStripMenuItem_client_3
+            // 
+            this.toolStripMenuItem_client_3.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem_search_3,
+            this.toolStripMenuItem_start_3});
+            this.toolStripMenuItem_client_3.Name = "toolStripMenuItem_client_3";
+            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_3.Text = "3클라";
+            this.toolStripMenuItem_client_3.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
+            // 
+            // toolStripMenuItem_search_3
+            // 
+            this.toolStripMenuItem_search_3.Name = "toolStripMenuItem_search_3";
+            this.toolStripMenuItem_search_3.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_search_3.Text = "검색보상수령";
+            // 
+            // toolStripMenuItem_start_3
+            // 
+            this.toolStripMenuItem_start_3.Name = "toolStripMenuItem_start_3";
+            this.toolStripMenuItem_start_3.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_start_3.Text = "게임시작";
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
+            // 
+            // toolStripMenuItem_exit
+            // 
+            this.toolStripMenuItem_exit.Name = "toolStripMenuItem_exit";
+            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_exit.Text = "종료";
             // 
             // Form1
             // 
@@ -957,6 +1075,7 @@
             this.tabPage_info.ResumeLayout(false);
             this.tabPage_info.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            this.contextMenuStrip_tray.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -1010,5 +1129,19 @@
         private LinkLabel linkLabel1;
         private LinkLabel linkLabel_announcement;
         private PictureBox pictureBox2;
+        private ContextMenuStrip contextMenuStrip_tray;
+        private ToolStripMenuItem toolStripMenuItem_open;
+        private ToolStripMenuItem toolStripMenuItem_client_1;
+        private ToolStripMenuItem toolStripMenuItem_exit;
+        private ToolStripSeparator toolStripSeparator1;
+        private ToolStripSeparator toolStripSeparator2;
+        private ToolStripMenuItem toolStripMenuItem_search_1;
+        private ToolStripMenuItem toolStripMenuItem_start_1;
+        private ToolStripMenuItem toolStripMenuItem_client_2;
+        private ToolStripMenuItem toolStripMenuItem_search_2;
+        private ToolStripMenuItem toolStripMenuItem_start_2;
+        private ToolStripMenuItem toolStripMenuItem_client_3;
+        private ToolStripMenuItem toolStripMenuItem_search_3;
+        private ToolStripMenuItem toolStripMenuItem_start_3;
     }
 }
