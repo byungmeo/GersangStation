@@ -909,6 +909,8 @@ namespace GersangStation {
                 return;
             }
 
+            webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
+
             MaterialForm form = new MaterialForm() {
                 Size = new Size(1500, 1000),
                 FormStyle = FormStyles.ActionBar_None,
@@ -920,6 +922,7 @@ namespace GersangStation {
                 webView_main.CoreWebView2.Navigate(ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1)));
             };
             form.FormClosed += (sender, e) => {
+                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
                 webView_main.CoreWebView2.Navigate(url_main);
                 form.Controls.Clear();
             };
