@@ -648,6 +648,10 @@ namespace GersangStation {
         private void materialButton_start_Click(object sender, EventArgs e) {
             MaterialButton startButton = (MaterialButton)sender;
             Logger.Log("Click : " + startButton.Name);
+            StartClick(startButton);
+        }
+
+        private void StartClick(MaterialButton startButton) {
             MaterialSwitch? loginSwitch;
 
             if (startButton.Equals(materialButton_start_1)) { loginSwitch = materialSwitch_login_1; } 
@@ -655,9 +659,9 @@ namespace GersangStation {
             else { loginSwitch = materialSwitch_login_3; }
 
             if (true == loginSwitch.Checked) { GameStart(); } 
-            else { 
-                isGameStartLogin = true; 
-                SwitchClick(loginSwitch); 
+            else {
+                isGameStartLogin = true;
+                SwitchClick(loginSwitch);
             }
         }
 
@@ -1030,10 +1034,14 @@ namespace GersangStation {
         private void materialButton_naver_Click(object sender, EventArgs e) {
             MaterialButton searchButton = (MaterialButton)sender;
             Logger.Log("Click : " + searchButton.Name);
+            SearchClick(searchButton);
+        }
+
+        private void SearchClick(MaterialButton searchButton) {
             MaterialSwitch loginSwitch;
 
-            if(searchButton.Equals(materialButton_search_1)) { loginSwitch = materialSwitch_login_1; } 
-            else if(searchButton.Equals(materialButton_search_2)) { loginSwitch = materialSwitch_login_2; }
+            if (searchButton.Equals(materialButton_search_1)) { loginSwitch = materialSwitch_login_1; } 
+            else if (searchButton.Equals(materialButton_search_2)) { loginSwitch = materialSwitch_login_2; } 
             else { loginSwitch = materialSwitch_login_3; }
 
             isSearch = true;
@@ -1279,7 +1287,20 @@ namespace GersangStation {
         }
 
         private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+            ToolStripItem item = e.ClickedItem;
+            Logger.Log("ItemClicked : " + "(" + menuItem.Name + ") " + item.Name);
 
+            if (menuItem.Equals(toolStripMenuItem_client_1)) {
+                if (item.Equals(toolStripMenuItem_search_1)) { SearchClick(materialButton_search_1); } 
+                else if (item.Equals(toolStripMenuItem_start_1)) { StartClick(materialButton_start_1); }
+            } else if (menuItem.Equals(toolStripMenuItem_client_2)) {
+                if (item.Equals(toolStripMenuItem_search_2)) { SearchClick(materialButton_search_2); } 
+                else if (item.Equals(toolStripMenuItem_start_2)) { StartClick(materialButton_start_2); }
+            } else if ( menuItem.Equals(toolStripMenuItem_client_3)) {
+                if (item.Equals(toolStripMenuItem_search_3)) { SearchClick(materialButton_search_3); } 
+                else if (item.Equals(toolStripMenuItem_start_3)) { StartClick(materialButton_start_3); }
+            }
         }
     } //Form1
 } //namespace
