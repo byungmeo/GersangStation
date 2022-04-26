@@ -51,6 +51,7 @@ namespace GersangStation {
         private bool isGameStartLogin = false;
         private string previousUrl = "";
         private bool isGetSearchItem = false;
+        private bool isExceptSearch = false; //2022-04-26 거상 홈페이지 검색 시 이벤트 페이지로 바로 넘어가는 경우
 
         WebView2? webView_main = null;
 
@@ -82,7 +83,8 @@ namespace GersangStation {
 
             try {
                 //webView_main.CoreWebView2InitializationCompleted += WebView_main_CoreWebView2InitializationCompleted;
-                await webView_main.EnsureCoreWebView2Async(null); //무조건 CoreWebView2InitializationCompleted 리스너를 부착 후 실행해야 함.
+                //await webView_main.EnsureCoreWebView2Async(null); //무조건 CoreWebView2InitializationCompleted 리스너를 부착 후 실행해야 함.
+                await InitializeAsync();
                 webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert 등의 메시지창이 뜨지않고 ScriptDialogOpening 이벤트를 통해 제어할 수 있도록 합니다.
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
@@ -104,6 +106,14 @@ namespace GersangStation {
 
             LoadComponent();
         }
+
+        private async Task InitializeAsync() {
+            Trace.WriteLine("InitializeAsync");
+            await webView_main.EnsureCoreWebView2Async(null);
+            Trace.WriteLine("WebView2 Runtime version: " + webView_main.CoreWebView2.Environment.BrowserVersionString);
+            Logger.Log("Log : " + "WebView2 런타임 버전 확인 완료");
+        }
+
 
         private void LoadComponent() {
             ConfigManager.Validation();
@@ -379,14 +389,28 @@ namespace GersangStation {
             }
 
             if (url.Contains("main/index.gs")) {
-                if(isSearch && previousUrl.Contains("search.naver")) {
-                    doNavigateAttendancePage();
-                    return;
+                if(isSearch) {
+                    if(previousUrl.Contains("search.naver")) {
+                        doNavigateAttendancePage();
+                        return;
+                    }
+
+                    if(previousUrl.Contains("event") && isExceptSearch) {
+                        isExceptSearch = false;
+                        doNavigateAttendancePage();
+                        return;
+                    }
                 }
 
                 if(currentState == State.LoginOther) { doLoginOther(); } 
                 else if (currentState == State.LoggedIn) { doCheckLogin(); }
                 return;
+            } else if (url.Contains("event")) {
+                if(isSearch && previousUrl.Contains("search.naver")) {
+                    isExceptSearch = true;
+                    webView_main.CoreWebView2.Navigate(url_main);
+                    return;
+                }
             }
         }
 
