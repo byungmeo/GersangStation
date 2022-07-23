@@ -95,7 +95,11 @@ namespace GersangStation {
             }
             Trace.WriteLine("드라이브 유효성 검사 완료");
 
-            FileInfo pathInfo = new FileInfo(originalPath + "\\char");
+            string originalOnlinePath = originalPath + "\\Online";
+            string secondPath = originalPath + "\\..\\" + name2;
+            string thirdPath = originalPath + "\\..\\" + name3;
+
+            DirectoryInfo pathInfo = new DirectoryInfo(originalPath + "\\char");
             if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
                 Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 실패 -> 본클라 경로가 다클라 생성기로 생성된 경로");
                 owner.BeginInvoke(() => {
@@ -104,9 +108,18 @@ namespace GersangStation {
                 return false;
             }
 
-            string originalOnlinePath = originalPath + "\\Online";
-            string secondPath = originalPath + "\\..\\" + name2;
-            string thirdPath = originalPath + "\\..\\" + name3;
+            DirectoryInfo pathInfo2 = new DirectoryInfo(secondPath + "\\char");
+            DirectoryInfo pathInfo3 = new DirectoryInfo(thirdPath + "\\char");
+            if (pathInfo2.Exists && pathInfo3.Exists) {
+                if (false == pathInfo2.Attributes.HasFlag(FileAttributes.ReparsePoint) || false == pathInfo3.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
+                    Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 패치 적용 실패 -> 복사-붙여넣기로 생성한 다클라 폴더");
+                    owner.BeginInvoke(() => {
+                        MessageBox.Show(owner, "복사-붙여넣기로 생성한 다클라 폴더에 패치를 적용할 수 없습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "다클라 패치 적용 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
+                    });
+                    return false;
+                }
+            }
 
             //거상 폴더 생성
             Directory.CreateDirectory(secondPath);

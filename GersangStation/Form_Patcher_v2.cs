@@ -88,6 +88,13 @@ namespace GersangStation {
         }
 
         private void materialButton_startPatch_Click(object sender, EventArgs e) {
+            DirectoryInfo pathInfo = new DirectoryInfo(path_main + "\\char");
+            if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
+                Logger.Log("Log : (" + "Form_Patcher_v2" + ") " + "본클라 경로가 다클라 생성기로 생성된 경로");
+                MessageBox.Show("잘못된 본클라 경로입니다. 다시 지정해주세요.\n원인 : 원본 폴더가 아닌 생성기로 생성된 폴더입니다.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             Logger.Log("Click : (" + this.Name + ") " + materialButton_startPatch.Name);
             int equal = 1;
             if (version_current == version_latest) {
