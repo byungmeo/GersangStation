@@ -753,7 +753,7 @@ namespace GersangStation {
                         Form backgroundForm = InitBackgroundForm(this);
 
                         bool isTest = (server == "test") ? true : false;
-                        Form_Patcher form_Patcher = new Form_Patcher(isTest) {
+                        Form_Patcher_v2 form_Patcher = new Form_Patcher_v2(isTest) {
                             Owner = this
                         };
 

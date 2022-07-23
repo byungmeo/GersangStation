@@ -187,10 +187,10 @@ namespace GersangStation {
                 string secondLinkPath = secondOnlinePath + '\\' + dirName;
                 string thirdLinkPath = thirdOnlinePath + '\\' + dirName;
                 Trace.WriteLine("SYMLINK_DIR : " + eachDirPath + " -> " + secondLinkPath);
-                if (Directory.Exists(secondLinkPath)) { Directory.Delete(secondLinkPath); }
+                if (Directory.Exists(secondLinkPath)) { Directory.Delete(secondLinkPath, true); }
                 Directory.CreateSymbolicLink(secondLinkPath, eachDirPath);
                 Trace.WriteLine("SYMLINK_DIR : " + eachDirPath + " -> " + thirdLinkPath);
-                if (Directory.Exists(thirdLinkPath)) { Directory.Delete(thirdLinkPath); }
+                if (Directory.Exists(thirdLinkPath)) { Directory.Delete(thirdLinkPath, true); }
                 Directory.CreateSymbolicLink(thirdLinkPath, eachDirPath);
             }
 

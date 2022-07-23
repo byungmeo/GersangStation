@@ -203,6 +203,7 @@ namespace GersangStation {
                 if (bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path, secondName, thirdName); }
                 else {  if (false == ClientCreator.CreateClient_Default(this, path, secondName, thirdName)) { return; } }
                 MessageBox.Show(this, "다클라 생성을 완료하였습니다.\n다클라 폴더의 이름은 " + secondName + ", " + thirdName + " 입니다.", "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                SavePath();
             } catch (Exception ex) {
                 Trace.WriteLine(ex.Message);
                 MessageBox.Show(this, "다클라 생성중 오류가 발생한 것 같습니다. 문의해주세요.\n" + ex.StackTrace, "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -244,7 +245,7 @@ namespace GersangStation {
 
             Form backgroundForm = Form1.InitBackgroundForm(this);
             
-            Form_Patcher form_Patcher = new Form_Patcher(isTest) {
+            Form_Patcher_v2 form_Patcher = new Form_Patcher_v2(isTest) {
                 Owner = this
             };
 
