@@ -371,7 +371,10 @@ namespace GersangStation {
                 this.BeginInvoke(() => {
                     string? otpCode = showDialogOtp();
 
-                    if (otpCode == null) { MessageBox.Show("OTP 코드를 입력하지 않았습니다."); } 
+                    if (otpCode == null) { 
+                        MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
+                        isSearch = false;
+                    } 
                     else { doOtpInput(otpCode); }
                 });
                 return;
