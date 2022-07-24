@@ -210,14 +210,14 @@ namespace GersangStation {
                                 break;
                             }
 
-                            if (!list_patchFile.ContainsKey(row[1])) {
-                                //row[1] == 파일명
-                                //row[3] == 내부경로
-                                string file_name = row[1];
-                                string file_inner_path = row[3];
-                                string file_download_address = url_patch + file_inner_path + file_name;
-                                string file_full_path = directory_file.FullName + @"\" + file_inner_path + file_name;
+                            //row[1] == 파일명
+                            //row[3] == 내부경로
+                            string file_name = row[1];
+                            string file_inner_path = row[3];
+                            string file_download_address = url_patch + file_inner_path + file_name;
+                            string file_full_path = directory_file.FullName + @"\" + file_inner_path + file_name;
 
+                            if (!list_patchFile.ContainsKey(file_download_address)) {
                                 //내부 폴더 생성
                                 DirectoryInfo fileInnerDirectory = new DirectoryInfo(new FileInfo(file_full_path).DirectoryName);
                                 if (!fileInnerDirectory.Exists) { fileInnerDirectory.Create(); }
