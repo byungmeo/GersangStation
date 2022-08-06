@@ -176,7 +176,7 @@ namespace GersangStation {
             //Online 폴더 내 파일 심볼릭링크 생성 (KeySetting.dat , PetSetting.dat은 없을 경우에만 복사)
             foreach (string eachFilePath in Directory.GetFiles(originalOnlinePath)) {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
-                if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat") {
+                if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg") {
                     if (File.Exists(secondOnlinePath + fileName)) continue;
                     Trace.WriteLine("COPY : " + eachFilePath + " -> " + secondOnlinePath + fileName);
                     File.Copy(eachFilePath, secondOnlinePath + fileName, false);
