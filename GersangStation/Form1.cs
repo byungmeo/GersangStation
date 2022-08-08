@@ -618,7 +618,7 @@ namespace GersangStation {
 
         private async void doPwReset() {
             Logger.Log("Log : " + "거상 패스워드 변경 여부 페이지에서 메인 홈페이지로 이동함");
-            await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href = '" + url_main + @"']"").click()");
+            await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href *= '" + "www.gersang.co.kr/main/index.gs?" + @"']"").click()");
         }
 
         private string? showDialogOtp() {
