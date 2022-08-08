@@ -35,14 +35,14 @@ namespace GersangStation {
         private State currentState = State.None;
         private Client currentClient = Client.None;
 
-        private const string url_main = "http://www.gersang.co.kr/main/index.gs?";
-        private const string url_logout = "http://www.gersang.co.kr/member/logoutProc.gs";
-        private const string url_installStarter = "http://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe";
+        private const string url_main = "https://www.gersang.co.kr/main/index.gs?";
+        private const string url_logout = "https://www.gersang.co.kr/member/logoutProc.gs";
+        private const string url_installStarter = "https://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe";
         private const string url_search = "https://search.naver.com/search.naver?&query=°Å»ó";
-        private const string url_search_gersang = "http://www.gersang.co.kr/main.gs";
+        private const string url_search_gersang = "https://www.gersang.co.kr/main.gs";
 
-        private const string url_main_vsn = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
-        private const string url_test_vsn = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
+        private const string url_main_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
+        private const string url_test_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
 
         private const string url_release = "https://github.com/byungmeo/GersangStation/releases/latest";
 

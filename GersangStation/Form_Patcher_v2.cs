@@ -6,8 +6,8 @@ using System.Text;
 
 namespace GersangStation {
     public partial class Form_Patcher_v2 : MaterialForm {
-        private const string url_main = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
-        private const string url_test = @"http://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/";
+        private const string url_main = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
+        private const string url_test = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/";
         private const string url_main_info = url_main + @"Client_info_File/"; // + "00000"
         private const string url_test_info = url_test + @"Client_info_File/"; // + "00000"
         private const string url_main_patch = url_main + @"Client_Patch_File/"; // + "{경로}/{파일명.확장자}"
