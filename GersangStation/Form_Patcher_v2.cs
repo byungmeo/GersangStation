@@ -131,7 +131,7 @@ namespace GersangStation {
 
             label_status.Text = "패치 파일 목록을 추출하는 중...";
             list_patchFile = GetPatchFileList(equal, directory_info, directory_file);
-            label_total.Text = "파일 개수 : " + list_patchFile.Count.ToString() + "개 (많을수록 오래 걸림)";
+            label_total.Text = "파일 개수 : " + list_patchFile.Count.ToString() + "개";
             Trace.WriteLine("패치 정보 파일 병합 완료"); //////////////////////////////////////////////////////////////////////////////////////--
 
             label_status.Text = "패치 파일을 다운로드 중... (오래 걸릴 수 있음)";
