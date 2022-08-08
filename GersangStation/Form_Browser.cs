@@ -39,8 +39,8 @@ namespace GersangStation {
 
         private void WebView_NavigationStarting(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs e) {
             String uri = e.Uri;
-            if (!uri.StartsWith("https://") && !uri.StartsWith("http://")) {
-                webView.CoreWebView2.ExecuteScriptAsync($"alert('올바른 경로를 입력해주세요.\n(http:// 또는 https://로 시작해야 합니다.')");
+            if (!uri.StartsWith("https://")) {
+                webView.CoreWebView2.ExecuteScriptAsync($"alert('접속 불가 : 보안이 취약한 사이트입니다. (HTTPS가 아님)')");
                 e.Cancel = true;
             }
         }
@@ -53,7 +53,11 @@ namespace GersangStation {
 
         private void goButton_Click(object sender, EventArgs e) {
             if (webView != null && webView.CoreWebView2 != null) {
-                webView.CoreWebView2.Navigate(addressBar.Text);
+                try {
+                    webView.CoreWebView2.Navigate(addressBar.Text);
+                } catch (Exception ex) {
+                    webView.CoreWebView2.ExecuteScriptAsync($"alert('{ex.Message}')");
+                }
             }
         }
     }
