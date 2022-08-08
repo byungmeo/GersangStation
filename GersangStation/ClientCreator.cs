@@ -130,7 +130,7 @@ namespace GersangStation {
             foreach (string eachFilePath in Directory.GetFiles(originalPath)) {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
                 string extension = Path.GetExtension(eachFilePath); // '.' 포함
-                if (extension == ".tmp" || extension == ".bmp") continue;
+                if (extension == ".tmp" || extension == ".bmp" || extension == ".dmp") continue;
                 Trace.WriteLine("COPY : " + eachFilePath + " -> " + secondPath + fileName);
                 File.Copy(eachFilePath, secondPath + fileName, true);
                 Trace.WriteLine("COPY : " + eachFilePath + " -> " + thirdPath + fileName);
