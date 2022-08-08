@@ -9,9 +9,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
-    <AssemblyVersion>1.1.1.0</AssemblyVersion>
-    <FileVersion>1.1.1.0</FileVersion>
-    <Copyright>Copyright © 2021 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
+    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <FileVersion>1.2.0.0</FileVersion>
+    <Copyright>Copyright © 2022 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
     <Company>Byungmeo</Company>
     <Authors>Byungmeo</Authors>
     <RepositoryType>git</RepositoryType>
