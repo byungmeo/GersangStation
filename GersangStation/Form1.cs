@@ -85,7 +85,7 @@ namespace GersangStation {
                 //webView_main.CoreWebView2InitializationCompleted += WebView_main_CoreWebView2InitializationCompleted;
                 //await webView_main.EnsureCoreWebView2Async(null); //무조건 CoreWebView2InitializationCompleted 리스너를 부착 후 실행해야 함.
                 await InitializeAsync();
-                webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested;
+                //webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested; //Edge 보안 업데이트로 인해 NewWindow 로직 제거
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert 등의 메시지창이 뜨지않고 ScriptDialogOpening 이벤트를 통해 제어할 수 있도록 합니다.
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
             } catch (WebView2RuntimeNotFoundException ex) {
@@ -256,10 +256,12 @@ namespace GersangStation {
             this.materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
         }
 
+        /* Edge 보안 업데이트로 인해 로직 제거
         private void CoreWebView2_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e) {
-            if (sender != null) e.NewWindow = (CoreWebView2)sender;
-            //e.Handled = true;
+            if (sender != null) e.NewWindow = (CoreWebView2)sender; //WebView2가 죽고 새로운 창이 뜨는 대신 WebView2에서 모든 것을 진행
+            //e.Handled = true; //true면 새로운 창이 뜨는 걸 취소
         }
+        */
 
         private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
             string message = e.Message;
@@ -381,7 +383,7 @@ namespace GersangStation {
             }
 
             if (url.Contains("search.naver")) {
-                doNavigateGersangSite();
+                if (isSearch) { doNavigateGersangSite(); }
                 return;
             }
 
@@ -442,12 +444,19 @@ namespace GersangStation {
 
         private async void doNavigateAttendancePage() {
             Logger.Log("Log : " + "거상 메인페이지에서 출석체크 이벤트 페이지로 이동하는 a태그를 찾아 클릭 시도");
-            await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href *= '" + "attendance" + @"']"").click();");
+            Trace.WriteLine("(검색) 메인 -> 출석페이지");
+            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""attendance""]').click();");
         }
 
         private async void doNavigateGersangSite() {
             Logger.Log("Log : " + "검색엔진사이트에서 거상 메인페이지로 이동하는 a태그를 찾아 클릭 시도");
-            await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href = '" + url_search_gersang + @"']"").click();");
+            Trace.WriteLine("(검색) 네이버 -> 거상");
+
+            //새로운 창이 뜨지 않도록 a태그에 target 속성을 제거
+            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= """ + url_search_gersang + @"""]').removeAttribute(""target"");");
+
+            //target 속성이 제거된 a태그를 클릭
+            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= """ + url_search_gersang + @"""]').click();");
         }
 
         private void deactivateWebSideFunction() {
