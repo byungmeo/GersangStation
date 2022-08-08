@@ -97,6 +97,13 @@ namespace GersangStation {
                 }
                 System.Windows.Forms.Application.Exit();
                 return;
+            } catch (DllNotFoundException ex) {
+                DialogResult dr = MessageBox.Show("실행 파일의 위치가 잘못되었습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 실행 파일 위치", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (dr == DialogResult.OK) {
+                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
+                }
+                System.Windows.Forms.Application.Exit();
+                return;
             }
 
             webView_main.NavigationStarting += webView_main_NavigationStarting;
