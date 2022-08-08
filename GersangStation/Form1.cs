@@ -947,13 +947,7 @@ namespace GersangStation {
 
             webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
 
-            MaterialForm form = new MaterialForm() {
-                Size = new Size(1500, 1000),
-                FormStyle = FormStyles.ActionBar_None,
-                StartPosition = FormStartPosition.CenterParent
-            };
-
-            form.Controls.Add(webView_main);
+            Form_Browser form = new Form_Browser(webView_main);
             form.Load += (sender, e) => {
                 webView_main.CoreWebView2.Navigate(ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1)));
             };
@@ -1050,15 +1044,10 @@ namespace GersangStation {
 
             webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
 
-            MaterialForm form = new MaterialForm() {
-                Size = new Size(1100, 800),
-                FormStyle = FormStyles.ActionBar_None,
-                StartPosition = FormStartPosition.CenterScreen
-            };
-
-            form.Controls.Add(webView_main);
+            Form_Browser form = new Form_Browser(webView_main);
             form.FormClosed += (sender, e) => {
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
+                webView_main.CoreWebView2.Navigate(url_main);
                 form.Controls.Clear();
             };
 
