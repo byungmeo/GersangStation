@@ -1047,6 +1047,9 @@ namespace GersangStation {
 
         private void materialButton_debugging_Click(object sender, EventArgs e) {
             Logger.Log("Click : " + materialButton_debugging.Name);
+
+            webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
+
             MaterialForm form = new MaterialForm() {
                 Size = new Size(1100, 800),
                 FormStyle = FormStyles.ActionBar_None,
@@ -1055,9 +1058,10 @@ namespace GersangStation {
 
             form.Controls.Add(webView_main);
             form.FormClosed += (sender, e) => {
+                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
                 form.Controls.Clear();
             };
-            
+
             form.Show();
         }
 
