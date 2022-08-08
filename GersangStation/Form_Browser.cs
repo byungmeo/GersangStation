@@ -15,9 +15,7 @@ namespace GersangStation {
 
             InitializeAsync();
         }
-        async void InitializeAsync() {
-            webView.NavigationStarting += WebView_NavigationStarting;
-            
+        async void InitializeAsync() {       
             await webView.EnsureCoreWebView2Async(null);
 
             webView.WebMessageReceived += WebView_WebMessageReceived;
@@ -35,14 +33,6 @@ namespace GersangStation {
             String uri = e.TryGetWebMessageAsString();
             addressBar.Text = uri;
             webView.CoreWebView2.PostWebMessageAsString(uri);
-        }
-
-        private void WebView_NavigationStarting(object? sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationStartingEventArgs e) {
-            String uri = e.Uri;
-            if (!uri.StartsWith("https://")) {
-                webView.CoreWebView2.ExecuteScriptAsync($"alert('접속 불가 : 보안이 취약한 사이트입니다. (HTTPS가 아님)')");
-                e.Cancel = true;
-            }
         }
 
         private void Form_Browser_Resize(object sender, EventArgs e) {
