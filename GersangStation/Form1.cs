@@ -39,7 +39,7 @@ namespace GersangStation {
         private const string url_logout = "https://www.gersang.co.kr/member/logoutProc.gs";
         private const string url_installStarter = "https://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe";
         private const string url_search = "https://search.naver.com/search.naver?&query=거상";
-        private const string url_search_gersang = "https://www.gersang.co.kr/main.gs";
+        //private const string url_search_gersang = "http://www.gersang.co.kr/main.gs";
 
         private const string url_main_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
         private const string url_test_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
@@ -460,10 +460,10 @@ namespace GersangStation {
             Trace.WriteLine("(검색) 네이버 -> 거상");
 
             //새로운 창이 뜨지 않도록 a태그에 target 속성을 제거
-            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= """ + url_search_gersang + @"""]').removeAttribute(""target"");");
+            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""gersang.co.kr""]').removeAttribute(""target"");");
 
             //target 속성이 제거된 a태그를 클릭
-            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= """ + url_search_gersang + @"""]').click();");
+            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""gersang.co.kr""]').click();");
         }
 
         private void deactivateWebSideFunction() {
