@@ -3,11 +3,13 @@ using Microsoft.Web.WebView2.WinForms;
 
 namespace GersangStation {
     public partial class Form_Browser : Form {
-        WebView2 webView = null;
-        public Form_Browser(WebView2 webView) {
-            InitializeComponent();
+        WebView2 webView;
 
-            this.webView = webView;
+        public Form_Browser(WebView2 webView) {
+            this.webView = webView; //Win10에서 InitializeComponent 뒤에 넣으면 Resize에서 NullException 발생
+
+            InitializeComponent();
+            
             this.webView.Dock = DockStyle.Bottom;
             this.webView.Size = new Size(webView.Width, this.ClientSize.Height - (addressBar.Height + addressBar.Location.Y * 2));
             this.addressBar.Text = this.webView.Source.ToString();
@@ -36,7 +38,13 @@ namespace GersangStation {
         }
 
         private void Form_Browser_Resize(object sender, EventArgs e) {
-            webView.Size = new Size(webView.Width, this.ClientSize.Height - (addressBar.Height + addressBar.Location.Y));
+            try {
+                webView.Size = new Size(webView.Width, this.ClientSize.Height - (addressBar.Height + addressBar.Location.Y));
+                
+            } catch (NullReferenceException) {
+                Logger.Log("Form_Browser_Resize -> NullReferenceException");
+            }
+
             goButton.Left = this.ClientSize.Width - goButton.Width;
             addressBar.Width = goButton.Left - addressBar.Left;
         }
