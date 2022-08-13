@@ -60,8 +60,8 @@ namespace GersangStation {
                 server = Server.Main;
             }
 
-            version_current = Form_Patcher.GetCurrentVersion(this, path_main);
-            version_latest = Form_Patcher.GetLatestVersion(this, url_vsn);
+            version_current = VersionChecker.GetCurrentVersion(this, path_main);
+            version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
             if (version_current == "" || version_latest == "") {
                 this.Close();
                 return;
@@ -313,7 +313,7 @@ namespace GersangStation {
                 string file_name = item.Value.Substring(item.Value.LastIndexOf('\\') + 1);
 
                 //내부 폴더 생성
-                DirectoryInfo fileInnerDirectory = new DirectoryInfo(new FileInfo(item.Value).DirectoryName);
+                DirectoryInfo fileInnerDirectory = new(path: new FileInfo(item.Value).DirectoryName);
                 if (!fileInnerDirectory.Exists) { fileInnerDirectory.Create(); }
 
                 Trace.WriteLine($"[재다운로드 시작] {file_name}");

@@ -93,7 +93,7 @@ namespace GersangStation {
                 }
                 System.Windows.Forms.Application.Exit();
                 return;
-            } catch (DllNotFoundException ex) {
+            } catch (DllNotFoundException) {
                 DialogResult dr = MessageBox.Show("실행 파일의 위치가 잘못되었습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 실행 파일 위치", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 if (dr == DialogResult.OK) {
                     Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
@@ -146,7 +146,7 @@ namespace GersangStation {
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/" + announcementPage) { UseShellExecute = true });
                     };
                 }
-            } catch (Exception e) {
+            } catch (Exception) {
                 linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
             }
         }
@@ -717,8 +717,8 @@ namespace GersangStation {
 
             if (false == ValidationPath(client_path, server)) return;
             
-            string version_current = Form_Patcher.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
-            string version_latest = Form_Patcher.GetLatestVersion_Safe(this, url_vsn);
+            string version_current = VersionChecker.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
+            string version_latest = VersionChecker.GetLatestVersion_Safe(this, url_vsn);
             if (version_current != version_latest) {
                 DialogResult dr = DialogResult.No;
                 bool update = false;
