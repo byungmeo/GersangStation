@@ -140,7 +140,10 @@ namespace GersangStation {
                     string latestAnnouncement = announcements[1];
                     linkLabel_announcement.Text = latestAnnouncement.Split('{')[0];
                     linkLabel_announcement.Click += (sender, e) => {
-                        string announcementPage = latestAnnouncement.Substring(latestAnnouncement.LastIndexOf('{') + 1, 1);
+                        
+                        int startIndex = latestAnnouncement.LastIndexOf('{');
+                        int length = latestAnnouncement.LastIndexOf('}') - (startIndex + 1);
+                        string announcementPage = latestAnnouncement.Substring(startIndex, length);
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/" + announcementPage) { UseShellExecute = true });
                     };
                 }
