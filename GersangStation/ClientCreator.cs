@@ -6,7 +6,6 @@ namespace GersangStation {
     internal class ClientCreator {
 
         public static void CreateClient_BAT(string original_path, string name2, string name3) {
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "BAT 방식으로 클라 생성을 시작합니다.");
             // 파일 복사 시 제외할 확장자명이 담긴 txt파일을 생성합니다.
             string excludeList = ".tmp\n.bmp";
             System.IO.File.WriteAllText("exclude.txt", excludeList);
@@ -62,9 +61,7 @@ namespace GersangStation {
 
         //성공 여부를 반환합니다.
         public static bool CreateClient_Default(Form owner, string originalPath, string name2, string name3) {
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "프로그래밍 방식으로 클라 생성을 시작합니다.");
             if (false == Directory.Exists(originalPath)) {
-                Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 실패 -> 거상 폴더를 찾을 수 없음");
                 owner.BeginInvoke(() => {
                     MessageBox.Show(owner, "거상 폴더를 찾을 수 없습니다. 경로를 다시 지정해주세요.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 });
@@ -73,11 +70,9 @@ namespace GersangStation {
 
             string pathDrive = originalPath.Substring(0, 3).ToUpper();
             Trace.WriteLine("거상 폴더 드라이브 : " + pathDrive);
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "드라이브 유효성 검사 시작");
             foreach (DriveInfo item in DriveInfo.GetDrives()) {
                 if (pathDrive != item.Name) { continue; }
                 if (false == item.IsReady) {
-                    Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 실패 -> 준비된 드라이브가 아님");
                     owner.BeginInvoke(() => {
                         MessageBox.Show(owner, "다클라 생성(패치 적용)이 불가능한 경로입니다.\n원인 : 준비된 드라이브가 아닙니다.\n관리자에게 문의해주세요.", "다클라 생성(패치 적용) 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     });
@@ -85,7 +80,6 @@ namespace GersangStation {
                 }
 
                 if (item.DriveFormat != "NTFS") {
-                    Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 실패 -> 드라이브 포맷이 NTFS가 아님");
                     owner.BeginInvoke(() => {
                         MessageBox.Show(owner, "다클라 생성(패치 적용)이 불가능한 경로입니다.\n원인 : 드라이브 포맷이 NTFS가 아닙니다.\n관리자에게 문의해주세요.", "다클라 생성(패치 적용) 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     });
@@ -101,7 +95,6 @@ namespace GersangStation {
 
             DirectoryInfo pathInfo = new DirectoryInfo(originalPath + "\\char");
             if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-                Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 실패 -> 본클라 경로가 다클라 생성기로 생성된 경로");
                 owner.BeginInvoke(() => {
                     MessageBox.Show(owner, "잘못된 본클라 경로입니다. 다시 지정해주세요.\n원인 : 원본 폴더가 아닌 생성기로 생성된 폴더입니다.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 });
@@ -112,7 +105,6 @@ namespace GersangStation {
             DirectoryInfo pathInfo3 = new DirectoryInfo(thirdPath + "\\char");
             if (pathInfo2.Exists && pathInfo3.Exists) {
                 if (false == pathInfo2.Attributes.HasFlag(FileAttributes.ReparsePoint) || false == pathInfo3.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-                    Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 패치 적용 실패 -> 복사-붙여넣기로 생성한 다클라 폴더");
                     owner.BeginInvoke(() => {
                         MessageBox.Show(owner, "복사-붙여넣기로 생성한 다클라 폴더에 패치를 적용할 수 없습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "다클라 패치 적용 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
@@ -125,7 +117,6 @@ namespace GersangStation {
             Directory.CreateDirectory(secondPath);
             Directory.CreateDirectory(thirdPath);
 
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 중... -> 거상 폴더 내 파일 복사");
             //거상 폴더 내 파일 복사
             foreach (string eachFilePath in Directory.GetFiles(originalPath)) {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
@@ -137,7 +128,6 @@ namespace GersangStation {
                 File.Copy(eachFilePath, thirdPath + fileName, true);
             }
 
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 중... -> 거상 폴더 내 폴더 심볼릭링크 생성");
             //거상 폴더 내 폴더 심볼릭링크 생성 (XIGNCODE, Online 제외)
             foreach (string eachDirPath in Directory.GetDirectories(originalPath)) {
                 string? dirName = new DirectoryInfo(eachDirPath).Name;
@@ -152,14 +142,12 @@ namespace GersangStation {
                 Directory.CreateSymbolicLink(thirdLinkPath, eachDirPath);
             }
 
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 중... -> XIGNCODE 폴더 복사");
             //XIGNCODE 폴더 복사
             Trace.WriteLine("COPY_DIR : " + originalPath + "\\XIGNCODE" + " -> " + secondPath + "\\XIGNCODE");
             DirectoryCopy(originalPath + "\\XIGNCODE", secondPath + "\\XIGNCODE", true);
             Trace.WriteLine("COPY_DIR : " + originalPath + "\\XIGNCODE" + " -> " + thirdPath + "\\XIGNCODE");
             DirectoryCopy(originalPath + "\\XIGNCODE", thirdPath + "\\XIGNCODE", true);
 
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 중... -> Online 폴더 생성");
             //Online 폴더 생성
             string secondOnlinePath = secondPath + "\\Online";
             string thirdOnlinePath = thirdPath + "\\Online";
@@ -172,7 +160,6 @@ namespace GersangStation {
             Directory.CreateDirectory(secondOnlinePath);
             Directory.CreateDirectory(thirdOnlinePath);
 
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 중... -> Online 폴더 내 파일 심볼릭링크 생성");
             //Online 폴더 내 파일 심볼릭링크 생성 (KeySetting.dat , PetSetting.dat은 없을 경우에만 복사)
             foreach (string eachFilePath in Directory.GetFiles(originalOnlinePath)) {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
@@ -193,7 +180,6 @@ namespace GersangStation {
                 File.CreateSymbolicLink(thirdOnlinePath + fileName, eachFilePath);
             }
 
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 중... -> Online 폴더 내 폴더 심볼릭링크 생성");
             //Online 폴더 내 폴더 심볼릭링크 생성
             foreach (string eachDirPath in Directory.GetDirectories(originalOnlinePath)) {
                 string? dirName = new DirectoryInfo(eachDirPath).Name;
@@ -207,7 +193,6 @@ namespace GersangStation {
                 Directory.CreateSymbolicLink(thirdLinkPath, eachDirPath);
             }
 
-            Logger.Log("Log : (" + "ClientCreator" + ") " + "다클라 생성 완료!");
             Trace.WriteLine("다클라 생성 끝");
             return true;
         }

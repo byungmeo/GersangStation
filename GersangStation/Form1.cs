@@ -56,8 +56,6 @@ namespace GersangStation {
         WebView2? webView_main = null;
 
         public Form1() {
-            Logger.Log("Log : " + "폼 생성자 실행");
-            Logger.DeleteOldLogFile();
             InitializeComponent();
 
             // Initialize MaterialSkinManager
@@ -74,7 +72,6 @@ namespace GersangStation {
         }
 
         private async void Form1_Load(object sender, EventArgs e) {
-            Logger.Log("Log : " + "폼이 로드됨");
             webView_main = new WebView2() {
                 Visible = true,
                 Dock = DockStyle.Fill,
@@ -89,7 +86,6 @@ namespace GersangStation {
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert 등의 메시지창이 뜨지않고 ScriptDialogOpening 이벤트를 통해 제어할 수 있도록 합니다.
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
             } catch (WebView2RuntimeNotFoundException ex) {
-                Logger.Log("Exception : " + "WebView2런타임을 찾을 수 없어 설치 안내메시지 출력");
                 Trace.WriteLine(ex.StackTrace);
                 DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 if (dr == DialogResult.Yes) {
@@ -118,7 +114,6 @@ namespace GersangStation {
             Trace.WriteLine("InitializeAsync");
             await webView_main.EnsureCoreWebView2Async(null);
             Trace.WriteLine("WebView2 Runtime version: " + webView_main.CoreWebView2.Environment.BrowserVersionString);
-            Logger.Log("Log : " + "WebView2 런타임 버전 확인 완료");
         }
 
 
@@ -152,13 +147,11 @@ namespace GersangStation {
                     };
                 }
             } catch (Exception e) {
-                Logger.Log("Exception: " + "공지사항을 불러오던 중 예외가 발생하였습니다. -> " + e.Message);
                 linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
             }
         }
 
         private void SetToolTip() {
-            Logger.Log("Log : " + "메인화면 컴포넌트의 툴팁을 설정");
             toolTip1.Active = true;
             /**
              * <-- 메인화면 -->
@@ -197,7 +190,6 @@ namespace GersangStation {
         }
 
         private async void CheckProgramUpdate() {
-            Logger.Log("Log : " + "깃허브에서 최신 프로그램 릴리즈가 존재하는지 확인 시도");
             //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
             string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
             Trace.WriteLine(version_current);
@@ -222,7 +214,6 @@ namespace GersangStation {
                 //버전 비교
                 int versionComparison = localVersion.CompareTo(latestGitHubVersion);
                 if (versionComparison < 0) {
-                    Logger.Log("Log : " + "구버전으로 판단하여 업데이트 안내메시지를 출력");
                     Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
 
                     DialogResult dr = MessageBox.Show(releases[0].Body + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
@@ -232,14 +223,11 @@ namespace GersangStation {
                         Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
                     }
                 } else if (versionComparison > 0) {
-                    Logger.Log("Log : " + "깃허브에 게시된 릴리즈 버전보다 최신버전이라고 판단");
                     Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
                 } else {
-                    Logger.Log("Log : " + "깃허브에 게시된 릴리즈 버전과 동일한 최신버전이라고 판단");
                     Trace.WriteLine("현재 버전은 최신버전입니다!");
                 }
             } catch (Exception ex) {
-                Logger.Log("Exception : " + "프로그램 업데이트 확인 중 예외가 발생\r\n  :" + ex.Message);
                 MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
                 MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
@@ -248,9 +236,7 @@ namespace GersangStation {
         }
 
         private void CheckAccount() {
-            Logger.Log("Log : " + "저장된 계정이 하나도 없는지 확인");
             if (materialComboBox_account_1.Items.Count <= 1) {
-                Logger.Log("Log : " + "저장된 계정이 하나도 없다고 판단하여 계정 설정 화면으로 이동할지 여부를 묻는 메시지 출력");
                 DialogResult dr = MessageBox.Show("현재 저장된 계정이 하나도 없습니다.\n계정 설정 화면으로 이동하시겠습니까?", "계정 없음", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) {
                     OpenAccountSettingDialog();
@@ -259,7 +245,6 @@ namespace GersangStation {
         }
 
         private void LoadCheckBox() {
-            Logger.Log("Log : " + "테스트서버 여부 체크박스 설정 로딩");
             this.materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
         }
 
@@ -272,7 +257,6 @@ namespace GersangStation {
 
         private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
             string message = e.Message;
-            Logger.Log("Event : " + "WebView2_ScriptDialogOpening\r\n  :" + message + "\r\n  :" + e.Kind);
             Trace.WriteLine(message);
             Trace.WriteLine("대화창 종류 : " + e.Kind);
 
@@ -340,7 +324,6 @@ namespace GersangStation {
             });
         }
         private void webView_main_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
-            Logger.Log("Event : " + "WebView2 NavigationStarting\r\n  :" + e.Uri.ToString() + "\r\n  :" + "(previous)" + webView_main.Source);
             Trace.WriteLine("NavigationStarting : " + e.Uri.ToString());
             Trace.WriteLine("NavigationStarting Previous URL : " + webView_main.Source);
             previousUrl = webView_main.CoreWebView2.Source;
@@ -368,7 +351,6 @@ namespace GersangStation {
             } else { if (isWebFunctionDeactivated) { activateWebSideFunction(); } } //WebView2 활용 기능이 비활성화 상태인 경우 활성화 처리
 
             string? url = ((WebView2)sender).Source.ToString();
-            Logger.Log("Event : " + "WebView2 NavigationCompleted\r\n  :" + url);
             Trace.WriteLine("NavigationCompleted : " + url);
 
             if (url.Contains("pw_reset.gs")) {
@@ -427,7 +409,6 @@ namespace GersangStation {
         }
 
         private async void doGetEventItem() {
-            Logger.Log("Log : " + "검색 보상 수령 시간대 확인 시도");
             isSearch = false;
 
             /* 검색보상 수령 시간대별 인자 값
@@ -445,18 +426,15 @@ namespace GersangStation {
             else { arg = 4; }
 
             isGetSearchItem = true;
-            Logger.Log("Log : " + "검색 보상 수령 시간대 : " + arg);
             await webView_main.ExecuteScriptAsync("event_Search_Use(" + arg + ");");
         }
 
         private async void doNavigateAttendancePage() {
-            Logger.Log("Log : " + "거상 메인페이지에서 출석체크 이벤트 페이지로 이동하는 a태그를 찾아 클릭 시도");
             Trace.WriteLine("(검색) 메인 -> 출석페이지");
             await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""attendance""]').click();");
         }
 
         private async void doNavigateGersangSite() {
-            Logger.Log("Log : " + "검색엔진사이트에서 거상 메인페이지로 이동하는 a태그를 찾아 클릭 시도");
             Trace.WriteLine("(검색) 네이버 -> 거상");
 
             //새로운 창이 뜨지 않도록 a태그에 target 속성을 제거
@@ -467,7 +445,6 @@ namespace GersangStation {
         }
 
         private void deactivateWebSideFunction() {
-            Logger.Log("Log : " + @"WebView2와 연관된 컴포넌트들이 ""비활성화""됨");
             //materialSwitch_login_1.Enabled = false;
             //materialSwitch_login_2.Enabled = false;
             //materialSwitch_login_3.Enabled = false;
@@ -486,7 +463,6 @@ namespace GersangStation {
         }
 
         private void activateWebSideFunction() {
-            Logger.Log("Log : " + @"WebView2와 연관된 컴포넌트들이 ""활성화""됨");
             //materialSwitch_login_1.Enabled = true;
             //materialSwitch_login_2.Enabled = true;
             //materialSwitch_login_3.Enabled = true;
@@ -514,7 +490,6 @@ namespace GersangStation {
         private delegate void DelegateActivateWebSideFunction();
 
         private void handleWebError(CoreWebView2WebErrorStatus webErrorStatus) {
-            Logger.Log("Error : " + "WebView2에서 에러가 발생하여 핸들링 -> " + webErrorStatus);
             Trace.WriteLine("NavigationFailed - WebErrorStatus : " + webErrorStatus);
             Trace.WriteLine("NavigationFailed - DocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
 
@@ -552,10 +527,8 @@ namespace GersangStation {
         }
 
         private async void doCheckLogin() {
-            Logger.Log("Log : " + "로그인이 되었는지 확인 시도");
             var logout_btn = await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href = '" + "/member/logoutProc.gs" + @"']"")");
             if (logout_btn != null) {
-                Logger.Log("Log : " + "로그인이 되어있는 상태");
                 Trace.WriteLine("체크하였더니 로그인이 되어있음.");
                 switch (currentClient) {
                     case Client.Client1:
@@ -571,7 +544,6 @@ namespace GersangStation {
                         break;
                 }
             } else {
-                Logger.Log("Log : " + "로그인이 안되있는 상태");
                 Trace.WriteLine("체크하였더니 로그인이 안되어있는 상태.");
                 currentState = State.None;
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
@@ -584,7 +556,6 @@ namespace GersangStation {
         }
 
         private async void doLoginOther() {
-            Logger.Log("Log : " + "doLoginOther() -> 로그아웃 한 다음 홈페이지에 로그인을 위한 컴포넌트가 로딩되었는지 확인하고 로그인을 시도");
             var button_login = await webView_main.ExecuteScriptAsync("document.getElementById('btn_Login')");
             var textBox_id = await webView_main.ExecuteScriptAsync("document.getElementById('GSuserID')");
             var textBox_pw = await webView_main.ExecuteScriptAsync("document.getElementById('GSuserPW')");
@@ -611,18 +582,15 @@ namespace GersangStation {
         }
 
         private async void doOtpInput(string otpCode) {
-            Logger.Log("Log : " + "입력한 OTP코드를 이용해 OTP로그인 시도");
             await webView_main.ExecuteScriptAsync("document.getElementById('GSotpNo').value = '" + otpCode + "'");
             await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
         }
 
         private async void doPwReset() {
-            Logger.Log("Log : " + "거상 패스워드 변경 여부 페이지에서 메인 홈페이지로 이동함");
             await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href *= '" + "www.gersang.co.kr/main/index.gs?" + @"']"").click()");
         }
 
         private string? showDialogOtp() {
-            Logger.Log("Log : " + "OTP폼을 출력");
             Form backgroundForm = new Form() {
                 StartPosition = FormStartPosition.Manual,
                 FormBorderStyle = FormBorderStyle.None,
@@ -664,12 +632,10 @@ namespace GersangStation {
             };
             button_confirm.Click += (sender, e) => {
                 if(textBox_otp.Text.Length != 8) {
-                    MessageBox.Show("OTP 코드는 8자리 입니다.\n다시 입력해주세요.");
                     return;
                 }
 
                 if(!Regex.IsMatch(textBox_otp.Text, @"^[0-9]+$")) {
-                    MessageBox.Show("OTP 코드는 숫자로만 이루어져야 합니다.\n다시 입력해주세요.");
                     return;
                 }
 
@@ -690,7 +656,6 @@ namespace GersangStation {
 
         private void materialButton_start_Click(object sender, EventArgs e) {
             MaterialButton startButton = (MaterialButton)sender;
-            Logger.Log("Click : " + startButton.Name);
             StartClick(startButton);
         }
 
@@ -745,7 +710,6 @@ namespace GersangStation {
             }
 
             if (client_path == "") {
-                Logger.Log("Log : " + "클라이언트의 경로가 설정되어있지않아 설정 창으로 이동할지 여부를 묻는 메시지 출력");
                 DialogResult dr = MessageBox.Show(this, "클라이언트 경로가 지정되어 있지 않습니다.\n설정 창으로 이동하시겠습니까?", "경로 미지정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) { OpenClientSettingDialog(); }
                 return;
@@ -759,7 +723,6 @@ namespace GersangStation {
                 DialogResult dr = DialogResult.No;
                 bool update = false;
                 if (!bool.Parse(ConfigManager.getConfig("is_auto_update"))) {
-                    Logger.Log("Log : " + "거상 업데이트가 가능하여 프로그램의 패치 기능을 사용하여 패치할 것인지 여부를 묻는 메시지 출력");
                     dr = MessageBox.Show(this, "거상 업데이트가 가능합니다! (" + version_current + "->" + version_latest + ")\n프로그램 기능을 사용하여 업데이트 하시겠습니까?\n거상 스테이션은 공식 패치 프로그램보다\n더 빠르게 업데이트 가능합니다.",
                         "거상 패치", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 } else {
@@ -767,7 +730,6 @@ namespace GersangStation {
                 }
 
                 if (dr == DialogResult.Yes || update == true) {
-                    Logger.Log("Log : " + "프로그램의 패치 기능을 사용하여 패치한다고 응답(또는 자동) 하여 패치폼을 띄움");
                     this.BeginInvoke(() => {
                         Form backgroundForm = InitBackgroundForm(this);
 
@@ -787,7 +749,6 @@ namespace GersangStation {
                     });
                     return;
                 }
-                Logger.Log("Log : " + "사용자가 일반 패치를 선택함");
                 Trace.WriteLine("일반 패치를 선택하였습니다.");
             }
             
@@ -799,7 +760,6 @@ namespace GersangStation {
                     registryKey.Close();
                 }
             } catch (Exception ex) {
-                Logger.Log("Exception : " + "거상 클라이언트 경로를 레지스트리에 등록하던 중 예외가 발생\r\n  :" + ex.Message);
                 Trace.WriteLine(ex.Message);
                 Trace.WriteLine(ex.StackTrace);
             }
@@ -809,7 +769,6 @@ namespace GersangStation {
                 //Gersang Game Starter 경로가 저장되어있는 레지스트리 경로에 접근하여 경로를 얻습니다.
                 value = Registry.ClassesRoot.OpenSubKey("Gersang").OpenSubKey("shell").OpenSubKey("open").OpenSubKey("command").GetValue("").ToString();
             } catch (Exception ex) {
-                Logger.Log("Exception : " + "게임스타터의 경로를 레지스트리에서 받아오던 중 예외가 발생\r\n  :" + ex.Message);
                 Trace.WriteLine(ex.Message);
                 Trace.WriteLine(ex.StackTrace);
                 value = null;
@@ -829,7 +788,6 @@ namespace GersangStation {
                 OpenGersangStarterInstallDialog();
                 return;
             } else {
-                Logger.Log("Log : " + "거상 소켓을 실행 후 거상 스타터를 실행");
                 await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //소켓을 엽니다.
                 Process starter = new Process();
                 starter.StartInfo.FileName = value.ToString();
@@ -844,14 +802,12 @@ namespace GersangStation {
         }
 
         private bool ValidationPath(string client_path, string server) {
-            Logger.Log("Log : " + "거상 경로 유효성 검사를 시도");
             string iniName;
             if (server == "main") { iniName = "GerSangKR.ini"; } 
             else { iniName = "GerSangKRTest.ini"; }
 
             if (!File.Exists(client_path + "\\" + "Gersang.exe")) {
                 this.BeginInvoke(() => {
-                    Logger.Log("Log : " + "거상 경로가 유효하지 않다고 판단하여 안내메시지 출력 (Gersang.exe 파일이 없음)");
                     MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : Gersang.exe 파일이 없습니다.", "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 }); 
                 return false;
@@ -862,7 +818,6 @@ namespace GersangStation {
                 if (server == "main") { message = "본섭 경로가 아닙니다."; }
                 else { message = "테섭 경로가 아닙니다."; }
                 this.BeginInvoke(() => {
-                    Logger.Log("Log : " + "거상 경로가 유효하지 않다고 판단하여 안내메시지 출력 (" + message + ")");
                     MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : " + message, "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 });
                 return false;
@@ -872,7 +827,6 @@ namespace GersangStation {
         }
 
         private void OpenGersangStarterInstallDialog() {
-            Logger.Log("MessageBox : " + "게임스타터가 설치되어있지 않다고 감지하고, 다운로드 링크를 안내");
             if (MessageBox.Show("GersangGameStarter가 설치되어 있지 않습니다.\n다운로드 받으시겠습니까? (거상 공식 다운로드 링크입니다)", "게임 실행 실패", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes) {
                 try {
                     Process.Start(new ProcessStartInfo(url_installStarter) { UseShellExecute = true });
@@ -887,7 +841,6 @@ namespace GersangStation {
 
         private void materialSwitch_login_Click(object sender, EventArgs e) {
             MaterialSwitch @switch = (MaterialSwitch)sender;
-            Logger.Log("Click : " + @switch.Name);
             SwitchClick(@switch);
         }
 
@@ -903,7 +856,6 @@ namespace GersangStation {
 
             //로그아웃
             if (materialSwitch.Checked) {
-                Logger.Log("Log : " + "단순 로그아웃 시도");
                 Trace.WriteLine("로그아웃 합니다.");
                 webView_main.CoreWebView2.Navigate(url_logout);
                 materialSwitch.CheckState = CheckState.Unchecked;
@@ -913,7 +865,6 @@ namespace GersangStation {
             }
 
             if (this.currentState == State.LoggedIn) {
-                Logger.Log("Log : " + "타계정 로그인을 위한 현재 계정의 로그아웃 시도");
                 Trace.WriteLine("다른 계정에 로그인 하기 위해 로그아웃 합니다.");
 
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
@@ -937,7 +888,6 @@ namespace GersangStation {
 
         private void materialButton_shortcut_Click(object sender, EventArgs e) {
             MaterialButton button = (MaterialButton)sender;
-            Logger.Log("Click : " + button.Name);
             string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
 
             if (url == null || url.Equals("")) {
@@ -947,7 +897,6 @@ namespace GersangStation {
             }
 
             if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) {
-                Logger.Log("MessageBox : " + "나만의 바로가기 링크를 잘못된 형식으로 판단하여 안내메시지 출력\r\n  :" + url);
                 MessageBox.Show("잘못된 링크 형식 입니다. 다시 설정해주세요.");
                 return;
             }
@@ -968,7 +917,6 @@ namespace GersangStation {
 
         private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
             MaterialComboBox comboBox = (MaterialComboBox)sender;
-            Logger.Log("CheckedChanged : " + comboBox.Name + "->" + comboBox.SelectedIndex);
 
             string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
             if (id == "") id = comboBox.Text;
@@ -1011,7 +959,6 @@ namespace GersangStation {
         }
 
         private void LoadAccountComboBox() {
-            Logger.Log("Log : " + "계정 콤보박스 로딩");
             materialComboBox_account_1.Items.Clear();
             materialComboBox_account_2.Items.Clear();
             materialComboBox_account_3.Items.Clear();
@@ -1047,7 +994,6 @@ namespace GersangStation {
         }
 
         private void materialButton_debugging_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_debugging.Name);
 
             webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
 
@@ -1062,7 +1008,6 @@ namespace GersangStation {
         }
 
         private void LoadShortcut() {
-            Logger.Log("Log : " + "나만의 바로가기 설정 로딩");
             string[] names = ConfigManager.getConfig("shortcut_name").Split(';');
             materialButton_shortcut_1.Text = names[0];
             materialButton_shortcut_2.Text = names[1];
@@ -1072,7 +1017,6 @@ namespace GersangStation {
 
         private void materialButton_naver_Click(object sender, EventArgs e) {
             MaterialButton searchButton = (MaterialButton)sender;
-            Logger.Log("Click : " + searchButton.Name);
             SearchClick(searchButton);
         }
 
@@ -1090,7 +1034,6 @@ namespace GersangStation {
 
         private void radio_preset_CheckedChanged(object sender, EventArgs e) {
             MaterialRadioButton radio = (MaterialRadioButton)sender;
-            Logger.Log("CheckedChanged : " + radio.Name + "->" + radio.Checked);
             if (radio.Checked == false) { return; }
             string? value = radio.Tag.ToString();
             if (value == null) {
@@ -1103,7 +1046,6 @@ namespace GersangStation {
         }
 
         private void LoadRadioButton() {
-            Logger.Log("Log : " + "라디오 버튼 로딩");
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             switch (current_preset) {
                 case 1 :
@@ -1125,7 +1067,6 @@ namespace GersangStation {
         }
 
         private void Form1_Resize(object sender, EventArgs e) {
-            Logger.Log("Event : " + "Resize -> " + this.WindowState);
             Trace.WriteLine("Form Resize! : " + this.WindowState);
             if(this.WindowState == FormWindowState.Minimized) {
                 //this.WindowState = FormWindowState.Normal;
@@ -1133,7 +1074,6 @@ namespace GersangStation {
         }
 
         private async void Login(string id, string protected_pw) {
-            Logger.Log("Log : " + "로그인 시도");
             try {
                 await webView_main.ExecuteScriptAsync("document.getElementById('GSuserID').value = '" + id + "'");
                 await webView_main.ExecuteScriptAsync("document.getElementById('GSuserPW').value = '" + EncryptionSupporter.Unprotect(protected_pw) + "'");
@@ -1152,7 +1092,6 @@ namespace GersangStation {
         }
 
         private void ClearAccount() {
-            Logger.Log("Log : " + "계정 초기화 시도");
             string temp = ConfigManager.getConfig("account_list");
             string[] account_list = temp.Remove(temp.Length - 1, 1).Split(';');
             foreach (var item in account_list) {
@@ -1170,7 +1109,6 @@ namespace GersangStation {
 
         private void materialButton_setting_Click(object sender, EventArgs e) {
             CustomButton button = (CustomButton)sender;
-            Logger.Log("Click : " + button.Name);
             if (button.Equals(materialButton_setting_account)) {
                 OpenAccountSettingDialog();
             } else if (button.Equals(materialButton_setting_client)) {
@@ -1254,7 +1192,6 @@ namespace GersangStation {
 
         private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
             MaterialCheckbox checkbox = (MaterialCheckbox)sender;
-            Logger.Log("CheckedChanged : " + checkbox.Name + "->" + checkbox.Checked);
             ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
         }
 
@@ -1274,27 +1211,22 @@ namespace GersangStation {
         }
 
         private void materialButton_kakao_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_kakao.Name);
             Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
         }
 
         private void materialButton_patchNote_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_patchNote.Name);
             Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
         }
 
         private void materialButton_blog_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_blog.Name);
             Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
         }
 
         private void materialButton_gitHub_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_gitHub.Name);
             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
         }
 
         private void button_tray_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + button_tray.Name);
             notifyIcon1.Visible = true;
             notifyIcon1.BalloonTipTitle = "알림";
             notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";
@@ -1303,24 +1235,20 @@ namespace GersangStation {
         }
 
         private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
-            Logger.Log("DoubleClick : " + "notifyIcon1");
             notifyIcon1.Visible = false;
             this.Show();
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-            Logger.Log("Click : " + linkLabel1.Name);
             Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
         }
 
         private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {
             ToolStripItem item = e.ClickedItem;
             if (item.Equals(toolStripMenuItem_open)) {
-                Logger.Log("ItemClicked : " + "(contextMenuStrip_tray) " + "toolStripMenuItem_open");
                 notifyIcon1.Visible = false;
                 this.Show();
             } else if (item.Equals(toolStripMenuItem_exit)) {
-                Logger.Log("ItemClicked : " + "(contextMenuStrip_tray) " + "toolStripMenuItem_exit");
                 System.Windows.Forms.Application.Exit();
             }
         }
@@ -1328,7 +1256,6 @@ namespace GersangStation {
         private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e) {
             ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
             ToolStripItem item = e.ClickedItem;
-            Logger.Log("ItemClicked : " + "(" + menuItem.Name + ") " + item.Name);
 
             if (menuItem.Equals(toolStripMenuItem_client_1)) {
                 if (item.Equals(toolStripMenuItem_search_1)) { SearchClick(materialButton_search_1); } 

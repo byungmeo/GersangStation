@@ -22,7 +22,6 @@ namespace GersangStation {
 
         private void materialButton_findPath_Click(object sender, EventArgs e) {
             MaterialButton button = (MaterialButton)sender;
-            Logger.Log("Click : (" + this.Name + ") " + button.Name);
             folderBrowserDialog.ShowDialog();
             if (folderBrowserDialog.SelectedPath.Length == 0) { return; }
             
@@ -34,14 +33,12 @@ namespace GersangStation {
             else if (button.Equals (materialButton_findPath_test_3)) { textBox_path_test_3.Text = folderBrowserDialog.SelectedPath; }
         }
         private void materialButton_save_Click(object sender, EventArgs e) {
-            Logger.Log("Click : (" + this.Name + ") " + materialButton_save.Name);
             SavePath();
             ConfigManager.setConfig("is_auto_update", materialCheckbox_autoUpdate.Checked.ToString());
             this.DialogResult = DialogResult.OK;
         }
 
         private void SavePath() {
-            Logger.Log("Log : (" + this.Name + ") " + "경로를 저장");
             ConfigManager.setConfig("client_path_1", textBox_path_1.Text);
             ConfigManager.setConfig("client_path_2", textBox_path_2.Text);
             ConfigManager.setConfig("client_path_3", textBox_path_3.Text);
@@ -53,7 +50,6 @@ namespace GersangStation {
 
         private void materialButton_createClient_Click(object sender, EventArgs e) {
             CustomButton button = (CustomButton)sender;
-            Logger.Log("Click : (" + this.Name + ") " + button.Name);
 
             string mainClientPathConfigKey = "";
             string nameConfigKey = "";
@@ -82,7 +78,6 @@ namespace GersangStation {
             path = ConfigManager.getConfig(mainClientPathConfigKey);
 
             if (path != mainClientPath) {
-                Logger.Log("Log : (" + this.Name + ") " + "현재 본클라 경로 변경사항을 저장 후 생성할지 여부를 묻는 메시지 출력");
                 DialogResult dr = MessageBox.Show("현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) {
                     SavePath();
@@ -91,7 +86,6 @@ namespace GersangStation {
             }
 
             if (path == "") {
-                Logger.Log("Log : (" + this.Name + ") " + "다클라 생성 불가 -> 본클라 경로가 설정되지 않음");
                 MessageBox.Show("본클라 경로가 설정되지 않았습니다.", "생성 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -163,7 +157,6 @@ namespace GersangStation {
                 Location = new Point(68, 205)
             };
             button_ok.Click += (sender, e) => {
-                Logger.Log("Click : (" + this.Name + ") " + "(폴더명 설정창) button_ok");
                 Regex regex = new Regex("^([a-zA-Z0-9][^*/><?\"|:]*)$");
                 if (!regex.IsMatch(textBox_second.Text) || !regex.IsMatch(textBox_third.Text)) {
                     MessageBox.Show(this, "폴더 이름으로 사용할 수 없는 문자가 포함되어 있습니다.\n다시 입력해주세요.", "잘못된 폴더명", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -177,7 +170,6 @@ namespace GersangStation {
                 ConfigManager.setConfig(nameConfigKey + '3', thirdName);
 
                 if (checkBox_apply.Checked) {
-                    Logger.Log("Log : (" + this.Name + ") " + "(폴더명 설정창) 생성 경로를 부클라 경로로 설정 옵션 체크");
                     obj_path_2.Text = mainClientPath + "\\..\\" + secondName;
                     obj_path_3.Text = mainClientPath + "\\..\\" + thirdName;
 
@@ -191,7 +183,6 @@ namespace GersangStation {
             dialog_name.Controls.Add(button_ok);
             dialog_name.AcceptButton = button_ok; //엔터 버튼을 누르면 이 버튼을 클릭합니다.
 
-            Logger.Log("Log : (" + this.Name + ") " + "폴더명 설정창 출력");
             if (dialog_name.ShowDialog() != DialogResult.OK) {
                 backgroundForm.Dispose();
                 return;
@@ -211,7 +202,6 @@ namespace GersangStation {
         }
 
         private void materialButton_patch_Click(object sender, EventArgs e) {
-            Logger.Log("Click : (" + this.Name + ") " + materialButton_patch.Name);
             bool isTest = (sender.Equals(materialButton_patch_test)) ? true : false;
 
             string mainClientPathConfigKey;
@@ -229,7 +219,6 @@ namespace GersangStation {
             string path = ConfigManager.getConfig(mainClientPathConfigKey);
 
             if (path != mainClientPath) {
-                Logger.Log("Log : (" + this.Name + ") " + "현재 본클라 경로 변경사항을 저장 후 생성할지 여부를 묻는 메시지 출력");
                 DialogResult dr = MessageBox.Show(this, "현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) {
                     SavePath();
@@ -238,7 +227,6 @@ namespace GersangStation {
             }
 
             if (path == "") {
-                Logger.Log("Log : (" + this.Name + ") " + "패치 시작 불가 -> 본클라 경로가 설정되지 않음");
                 MessageBox.Show(this, "본클라 경로가 설정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -249,7 +237,6 @@ namespace GersangStation {
                 Owner = this
             };
 
-            Logger.Log("Log : (" + this.Name + ") " + "패치창 출력");
             try {
                 backgroundForm.Show();
                 form_Patcher.ShowDialog();
