@@ -1,10 +1,9 @@
 # GersangStation
-GersangClientStation 리뉴얼
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/byungmeo/GersangStation)
+![GitHub](https://img.shields.io/github/license/byungmeo/GersangStation)
+![GitHub all releases](https://img.shields.io/github/downloads/byungmeo/GersangStation/total)
+
+거상 다클라 유저를 위한 종합 유틸리티 프로그램 입니다.
 
 # 공지사항
-[2022-08-09] 검색 기능 수정 완료{3}
-<!-- [2022-04-21] 거상 게임스타터 오류 해결방법{6} -->
-<!-- [2022-03-24] 패치 후 오류 발생 시 해결방법{5} -->
-<!-- [2022-03-07] 검색보상 수령 시 오류가 뜬다면?{4} -->
-<!-- [2022-02-23] 오늘 패치하는데 오류가 뜬다면?{3} -->
-<!-- [2022-02-18] 리뉴얼 기념 인사말{1} -->
+[2022-08-24] 자주 하는 질문 Q&A {3}
