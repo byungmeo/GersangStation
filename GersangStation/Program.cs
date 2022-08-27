@@ -1,11 +1,11 @@
-namespace GersangStation {
+ï»¿namespace GersangStation {
     internal static class Program {
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
         [STAThread]
         static void Main() {
-            bool flagMutex; //Áßº¹ ½ÇÇà ¿©ºÎ È®ÀÎ
+            bool flagMutex; //ì¤‘ë³µ ì‹¤í–‰ ì—¬ë¶€ í™•ì¸
 
             Mutex mutex = new Mutex(true, "GersangStation", out flagMutex);
             if (flagMutex) {
@@ -15,13 +15,13 @@ namespace GersangStation {
 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                //Application.SetHighDpiMode(HighDpiMode.SystemAware); -> 100% º¸´Ù ³ôÀº DPI »ç¿ë ½Ã ÀÎÅÍÆäÀÌ½º À§Ä¡°¡ ±úÁü
+                //Application.SetHighDpiMode(HighDpiMode.SystemAware); -> 100% ë³´ë‹¤ ë†’ì€ DPI ì‚¬ìš© ì‹œ ì¸í„°í˜ì´ìŠ¤ ìœ„ì¹˜ê°€ ê¹¨ì§
                 Application.SetHighDpiMode(HighDpiMode.DpiUnaware);
 
                 Application.Run(new Form1());
                 mutex.ReleaseMutex();
             } else {
-                MessageBox.Show("Áßº¹ ½ÇÇàÀº ºÒ°¡´É ÇÕ´Ï´Ù.", "Áßº¹ ½ÇÇà", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                MessageBox.Show("ì¤‘ë³µ ì‹¤í–‰ì€ ë¶ˆê°€ëŠ¥ í•©ë‹ˆë‹¤.", "ì¤‘ë³µ ì‹¤í–‰", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
     }

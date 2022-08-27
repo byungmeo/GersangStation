@@ -1,4 +1,4 @@
-using MaterialSkin;
+ï»¿using MaterialSkin;
 using MaterialSkin.Controls;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
@@ -38,7 +38,7 @@ namespace GersangStation {
         private const string url_main = "https://www.gersang.co.kr/main/index.gs?";
         private const string url_logout = "https://www.gersang.co.kr/member/logoutProc.gs";
         private const string url_installStarter = "https://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe";
-        private const string url_search = "https://search.naver.com/search.naver?&query=°Å»ó";
+        private const string url_search = "https://search.naver.com/search.naver?&query=ê±°ìƒ";
         //private const string url_search_gersang = "http://www.gersang.co.kr/main.gs";
 
         private const string url_main_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
@@ -51,13 +51,11 @@ namespace GersangStation {
         private bool isGameStartLogin = false;
         private string previousUrl = "";
         private bool isGetSearchItem = false;
-        private bool isExceptSearch = false; //2022-04-26 °Å»ó È¨ÆäÀÌÁö °Ë»ö ½Ã ÀÌº¥Æ® ÆäÀÌÁö·Î ¹Ù·Î ³Ñ¾î°¡´Â °æ¿ì
+        private bool isExceptSearch = false; //2022-04-26 ê±°ìƒ í™ˆí˜ì´ì§€ ê²€ìƒ‰ ì‹œ ì´ë²¤íŠ¸ í˜ì´ì§€ë¡œ ë°”ë¡œ ë„˜ì–´ê°€ëŠ” ê²½ìš°
 
         WebView2? webView_main = null;
 
         public Form1() {
-            Logger.Log("Log : " + "Æû »ı¼ºÀÚ ½ÇÇà");
-            Logger.DeleteOldLogFile();
             InitializeComponent();
 
             // Initialize MaterialSkinManager
@@ -74,7 +72,6 @@ namespace GersangStation {
         }
 
         private async void Form1_Load(object sender, EventArgs e) {
-            Logger.Log("Log : " + "ÆûÀÌ ·ÎµåµÊ");
             webView_main = new WebView2() {
                 Visible = true,
                 Dock = DockStyle.Fill,
@@ -82,23 +79,20 @@ namespace GersangStation {
             };
 
             try {
-                //webView_main.CoreWebView2InitializationCompleted += WebView_main_CoreWebView2InitializationCompleted;
-                //await webView_main.EnsureCoreWebView2Async(null); //¹«Á¶°Ç CoreWebView2InitializationCompleted ¸®½º³Ê¸¦ ºÎÂø ÈÄ ½ÇÇàÇØ¾ß ÇÔ.
                 await InitializeAsync();
-                //webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested; //Edge º¸¾È ¾÷µ¥ÀÌÆ®·Î ÀÎÇØ NewWindow ·ÎÁ÷ Á¦°Å
-                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert µîÀÇ ¸Ş½ÃÁöÃ¢ÀÌ ¶ßÁö¾Ê°í ScriptDialogOpening ÀÌº¥Æ®¸¦ ÅëÇØ Á¦¾îÇÒ ¼ö ÀÖµµ·Ï ÇÕ´Ï´Ù.
+                //webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested; //Edge ë³´ì•ˆ ì—…ë°ì´íŠ¸ë¡œ ì¸í•´ NewWindow ë¡œì§ ì œê±°
+                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert ë“±ì˜ ë©”ì‹œì§€ì°½ì´ ëœ¨ì§€ì•Šê³  ScriptDialogOpening ì´ë²¤íŠ¸ë¥¼ í†µí•´ ì œì–´í•  ìˆ˜ ìˆë„ë¡ í•©ë‹ˆë‹¤.
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
             } catch (WebView2RuntimeNotFoundException ex) {
-                Logger.Log("Exception : " + "WebView2·±Å¸ÀÓÀ» Ã£À» ¼ö ¾ø¾î ¼³Ä¡ ¾È³»¸Ş½ÃÁö Ãâ·Â");
                 Trace.WriteLine(ex.StackTrace);
-                DialogResult dr = MessageBox.Show("´ÙÅ¬¶ó ½ºÅ×ÀÌ¼ÇÀ» ÀÌ¿ëÇÏ±â À§ÇØ¼±\nWebView2 ·±Å¸ÀÓÀ» ¹İµå½Ã ¼³Ä¡ÇÏ¼Å¾ß ÇÕ´Ï´Ù.\n¼³Ä¡ ÇÏ½Ã°Ú½À´Ï±î? (¼³Ä¡ ¸µÅ©¿¡ ÀÚµ¿À¸·Î Á¢¼ÓÇÕ´Ï´Ù.)", "·±Å¸ÀÓ ¼³Ä¡ ÇÊ¿ä", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                DialogResult dr = MessageBox.Show("ë‹¤í´ë¼ ìŠ¤í…Œì´ì…˜ì„ ì´ìš©í•˜ê¸° ìœ„í•´ì„ \nWebView2 ëŸ°íƒ€ì„ì„ ë°˜ë“œì‹œ ì„¤ì¹˜í•˜ì…”ì•¼ í•©ë‹ˆë‹¤.\nì„¤ì¹˜ í•˜ì‹œê² ìŠµë‹ˆê¹Œ? (ì„¤ì¹˜ ë§í¬ì— ìë™ìœ¼ë¡œ ì ‘ì†í•©ë‹ˆë‹¤.)", "ëŸ°íƒ€ì„ ì„¤ì¹˜ í•„ìš”", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 if (dr == DialogResult.Yes) {
                     Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
                 }
                 System.Windows.Forms.Application.Exit();
                 return;
-            } catch (DllNotFoundException ex) {
-                DialogResult dr = MessageBox.Show("½ÇÇà ÆÄÀÏÀÇ À§Ä¡°¡ Àß¸øµÇ¾ú½À´Ï´Ù.\nÈ®ÀÎ ¹öÆ°À» ´©¸£¸é ¿­¸®´Â È¨ÆäÀÌÁö¸¦ Âü°íÇØÁÖ¼¼¿ä.", "Àß¸øµÈ ½ÇÇà ÆÄÀÏ À§Ä¡", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            } catch (DllNotFoundException) {
+                DialogResult dr = MessageBox.Show("ì‹¤í–‰ íŒŒì¼ì˜ ìœ„ì¹˜ê°€ ì˜ëª»ë˜ì—ˆìŠµë‹ˆë‹¤.\ní™•ì¸ ë²„íŠ¼ì„ ëˆ„ë¥´ë©´ ì—´ë¦¬ëŠ” í™ˆí˜ì´ì§€ë¥¼ ì°¸ê³ í•´ì£¼ì„¸ìš”.", "ì˜ëª»ëœ ì‹¤í–‰ íŒŒì¼ ìœ„ì¹˜", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 if (dr == DialogResult.OK) {
                     Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
                 }
@@ -118,7 +112,6 @@ namespace GersangStation {
             Trace.WriteLine("InitializeAsync");
             await webView_main.EnsureCoreWebView2Async(null);
             Trace.WriteLine("WebView2 Runtime version: " + webView_main.CoreWebView2.Environment.BrowserVersionString);
-            Logger.Log("Log : " + "WebView2 ·±Å¸ÀÓ ¹öÀü È®ÀÎ ¿Ï·á");
         }
 
 
@@ -140,56 +133,57 @@ namespace GersangStation {
                 IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
                 Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
                 string content = r.Content;
-                string[] announcements = content.Substring(content.LastIndexOf("# °øÁö»çÇ×")).Split('\n');
+                string[] announcements = content.Substring(content.LastIndexOf("# ê³µì§€ì‚¬í•­")).Split('\n');
                 if (announcements.Length <= 1) {
-                    linkLabel_announcement.Text = "°øÁö»çÇ×ÀÌ ¾ø½À´Ï´Ù";
+                    linkLabel_announcement.Text = "ê³µì§€ì‚¬í•­ì´ ì—†ìŠµë‹ˆë‹¤";
                 } else {
                     string latestAnnouncement = announcements[1];
                     linkLabel_announcement.Text = latestAnnouncement.Split('{')[0];
                     linkLabel_announcement.Click += (sender, e) => {
-                        string announcementPage = latestAnnouncement.Substring(latestAnnouncement.LastIndexOf('{') + 1, 1);
+                        
+                        int startIndex = latestAnnouncement.LastIndexOf('{');
+                        int length = latestAnnouncement.LastIndexOf('}') - (startIndex + 1);
+                        string announcementPage = latestAnnouncement.Substring(startIndex, length);
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/" + announcementPage) { UseShellExecute = true });
                     };
                 }
-            } catch (Exception e) {
-                Logger.Log("Exception: " + "°øÁö»çÇ×À» ºÒ·¯¿À´ø Áß ¿¹¿Ü°¡ ¹ß»ıÇÏ¿´½À´Ï´Ù. -> " + e.Message);
-                linkLabel_announcement.Text = "°øÁö»çÇ×À» ºÒ·¯¿À´Âµ¥ ½ÇÆĞÇÏ¿´½À´Ï´Ù";
+            } catch (Exception) {
+                linkLabel_announcement.Text = "ê³µì§€ì‚¬í•­ì„ ë¶ˆëŸ¬ì˜¤ëŠ”ë° ì‹¤íŒ¨í•˜ì˜€ìŠµë‹ˆë‹¤";
             }
         }
 
         private void SetToolTip() {
-            Logger.Log("Log : " + "¸ŞÀÎÈ­¸é ÄÄÆ÷³ÍÆ®ÀÇ ÅøÆÁÀ» ¼³Á¤");
             toolTip1.Active = true;
             /**
-             * <-- ¸ŞÀÎÈ­¸é -->
+             * <-- ë©”ì¸í™”ë©´ -->
              */
-            toolTip1.SetToolTip(button_tray, "Æ®·¹ÀÌ¿¡ ¼û±â±â");
-            toolTip1.SetToolTip(radio_preset_1, "1¹ø ¼¼ÆÃ");
-            toolTip1.SetToolTip(radio_preset_2, "2¹ø ¼¼ÆÃ");
-            toolTip1.SetToolTip(radio_preset_3, "3¹ø ¼¼ÆÃ");
-            toolTip1.SetToolTip(radio_preset_4, "4¹ø ¼¼ÆÃ");
-            toolTip1.SetToolTip(materialCheckbox_testServer, "È°¼ºÈ­ ½Ã Å×½ºÆ® ¼­¹ö·Î ½ÇÇàÇÕ´Ï´Ù.\n(¼³Ä¡ º°µµ)");
-            toolTip1.SetToolTip(materialButton_debugging, "ÀÛµ¿ÇÏ´Â ºê¶ó¿ìÀú Á÷Á¢ º¸±â");
-            toolTip1.SetToolTip(materialComboBox_account_1, "º»Å¬¶ó °èÁ¤ ¼±ÅÃ");
-            toolTip1.SetToolTip(materialComboBox_account_2, "2Å¬¶ó °èÁ¤ ¼±ÅÃ");
-            toolTip1.SetToolTip(materialComboBox_account_3, "3Å¬¶ó °èÁ¤ ¼±ÅÃ");
-            toolTip1.SetToolTip(materialSwitch_login_1, "º»Å¬¶ó È¨ÆäÀÌÁö ·Î±×ÀÎ");
-            toolTip1.SetToolTip(materialSwitch_login_2, "2Å¬¶ó È¨ÆäÀÌÁö ·Î±×ÀÎ");
-            toolTip1.SetToolTip(materialSwitch_login_3, "3Å¬¶ó È¨ÆäÀÌÁö ·Î±×ÀÎ");
-            toolTip1.SetToolTip(materialButton_search_1, "º»Å¬¶ó °Ë»öº¸»ó ¼ö·É");
-            toolTip1.SetToolTip(materialButton_search_2, "2Å¬¶ó °Ë»öº¸»ó ¼ö·É");
-            toolTip1.SetToolTip(materialButton_search_3, "3Å¬¶ó °Ë»öº¸»ó ¼ö·É");
-            toolTip1.SetToolTip(materialButton_start_1, "º»Å¬¶ó °ÔÀÓ ½ÇÇà");
-            toolTip1.SetToolTip(materialButton_start_2, "2Å¬¶ó °ÔÀÓ ½ÇÇà");
-            toolTip1.SetToolTip(materialButton_start_3, "3Å¬¶ó °ÔÀÓ ½ÇÇà");
+            toolTip1.SetToolTip(button_tray, "íŠ¸ë ˆì´ì— ìˆ¨ê¸°ê¸°");
+            toolTip1.SetToolTip(radio_preset_1, "1ë²ˆ ì„¸íŒ…");
+            toolTip1.SetToolTip(radio_preset_2, "2ë²ˆ ì„¸íŒ…");
+            toolTip1.SetToolTip(radio_preset_3, "3ë²ˆ ì„¸íŒ…");
+            toolTip1.SetToolTip(radio_preset_4, "4ë²ˆ ì„¸íŒ…");
+            toolTip1.SetToolTip(materialCheckbox_testServer, "í™œì„±í™” ì‹œ í…ŒìŠ¤íŠ¸ ì„œë²„ë¡œ ì‹¤í–‰í•©ë‹ˆë‹¤.\n(ì„¤ì¹˜ ë³„ë„)");
+            toolTip1.SetToolTip(materialButton_debugging, "ì‘ë™í•˜ëŠ” ë¸Œë¼ìš°ì € ì§ì ‘ ë³´ê¸°");
+            toolTip1.SetToolTip(materialComboBox_account_1, "ë³¸í´ë¼ ê³„ì • ì„ íƒ");
+            toolTip1.SetToolTip(materialComboBox_account_2, "2í´ë¼ ê³„ì • ì„ íƒ");
+            toolTip1.SetToolTip(materialComboBox_account_3, "3í´ë¼ ê³„ì • ì„ íƒ");
+            toolTip1.SetToolTip(materialSwitch_login_1, "ë³¸í´ë¼ í™ˆí˜ì´ì§€ ë¡œê·¸ì¸");
+            toolTip1.SetToolTip(materialSwitch_login_2, "2í´ë¼ í™ˆí˜ì´ì§€ ë¡œê·¸ì¸");
+            toolTip1.SetToolTip(materialSwitch_login_3, "3í´ë¼ í™ˆí˜ì´ì§€ ë¡œê·¸ì¸");
+            toolTip1.SetToolTip(materialButton_search_1, "ë³¸í´ë¼ ê²€ìƒ‰ë³´ìƒ ìˆ˜ë ¹");
+            toolTip1.SetToolTip(materialButton_search_2, "2í´ë¼ ê²€ìƒ‰ë³´ìƒ ìˆ˜ë ¹");
+            toolTip1.SetToolTip(materialButton_search_3, "3í´ë¼ ê²€ìƒ‰ë³´ìƒ ìˆ˜ë ¹");
+            toolTip1.SetToolTip(materialButton_start_1, "ë³¸í´ë¼ ê²Œì„ ì‹¤í–‰");
+            toolTip1.SetToolTip(materialButton_start_2, "2í´ë¼ ê²Œì„ ì‹¤í–‰");
+            toolTip1.SetToolTip(materialButton_start_3, "3í´ë¼ ê²Œì„ ì‹¤í–‰");
             string shortcut_1 = ConfigManager.getConfig("shortcut_1");
-            if (shortcut_1 == "") shortcut_1 = "¸µÅ©°¡ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.";
+            if (shortcut_1 == "") shortcut_1 = "ë§í¬ê°€ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.";
             string shortcut_2 = ConfigManager.getConfig("shortcut_2");
-            if (shortcut_2 == "") shortcut_2 = "¸µÅ©°¡ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.";
+            if (shortcut_2 == "") shortcut_2 = "ë§í¬ê°€ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.";
             string shortcut_3 = ConfigManager.getConfig("shortcut_3");
-            if (shortcut_3 == "") shortcut_3 = "¸µÅ©°¡ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.";
+            if (shortcut_3 == "") shortcut_3 = "ë§í¬ê°€ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.";
             string shortcut_4 = ConfigManager.getConfig("shortcut_4");
-            if (shortcut_4 == "") shortcut_4 = "¸µÅ©°¡ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.";
+            if (shortcut_4 == "") shortcut_4 = "ë§í¬ê°€ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.";
             toolTip1.SetToolTip(materialButton_shortcut_1, shortcut_1);
             toolTip1.SetToolTip(materialButton_shortcut_2, shortcut_2);
             toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
@@ -197,61 +191,54 @@ namespace GersangStation {
         }
 
         private async void CheckProgramUpdate() {
-            Logger.Log("Log : " + "±êÇãºê¿¡¼­ ÃÖ½Å ÇÁ·Î±×·¥ ¸±¸®Áî°¡ Á¸ÀçÇÏ´ÂÁö È®ÀÎ ½Ãµµ");
-            //¹öÀü ¾÷µ¥ÀÌÆ® ½Ã Properties -> AssemblyInfo.cs ÀÇ AssemblyVersion°ú AssemblyFileVersionÀ» ¹Ù²ãÁÖ¼¼¿ä.
+            //ë²„ì „ ì—…ë°ì´íŠ¸ ì‹œ Properties -> AssemblyInfo.cs ì˜ AssemblyVersionê³¼ AssemblyFileVersionì„ ë°”ê¿”ì£¼ì„¸ìš”.
             string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
             Trace.WriteLine(version_current);
 
             string version_latest;
 
             try {
-                //±êÇãºê¿¡¼­ ¸ğµç ¸±¸®Áî Á¤º¸¸¦ ¹Ş¾Æ¿É´Ï´Ù.
+                //ê¹ƒí—ˆë¸Œì—ì„œ ëª¨ë“  ë¦´ë¦¬ì¦ˆ ì •ë³´ë¥¼ ë°›ì•„ì˜µë‹ˆë‹¤.
                 GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
                 IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
                 version_latest = releases[0].TagName;
                 label_version_current.Text = label_version_current.Text.Replace("00000", version_current);
                 label_version_latest.Text = label_version_latest.Text.Replace("00000", version_latest);
 
-                //±êÇãºê¿¡ °Ô½ÃµÈ ¸¶Áö¸· ¹öÀü°ú ÇöÀç ¹öÀüÀ» ÃÊ±âÈ­ ÇÕ´Ï´Ù.
+                //ê¹ƒí—ˆë¸Œì— ê²Œì‹œëœ ë§ˆì§€ë§‰ ë²„ì „ê³¼ í˜„ì¬ ë²„ì „ì„ ì´ˆê¸°í™” í•©ë‹ˆë‹¤.
                 //Version latestGitHubVersion = new Version(releases[0].TagName);
                 Version latestGitHubVersion = new Version(version_latest);
                 Version localVersion = new Version(version_current);
-                Trace.WriteLine("±êÇãºê¿¡ ¸¶Áö¸·À¸·Î °Ô½ÃµÈ ¹öÀü : " + latestGitHubVersion);
-                Trace.WriteLine("ÇöÀç ÇÁ·ÎÁ§Æ® ¹öÀü : " + localVersion);
+                Trace.WriteLine("ê¹ƒí—ˆë¸Œì— ë§ˆì§€ë§‰ìœ¼ë¡œ ê²Œì‹œëœ ë²„ì „ : " + latestGitHubVersion);
+                Trace.WriteLine("í˜„ì¬ í”„ë¡œì íŠ¸ ë²„ì „ : " + localVersion);
 
-                //¹öÀü ºñ±³
+                //Â¹Ã¶Ã€Ã¼ ÂºÃ±Â±Â³
                 int versionComparison = localVersion.CompareTo(latestGitHubVersion);
                 if (versionComparison < 0) {
-                    Logger.Log("Log : " + "±¸¹öÀüÀ¸·Î ÆÇ´ÜÇÏ¿© ¾÷µ¥ÀÌÆ® ¾È³»¸Ş½ÃÁö¸¦ Ãâ·Â");
-                    Trace.WriteLine("±¸¹öÀüÀÔ´Ï´Ù! ¾÷µ¥ÀÌÆ® ¸Ş½ÃÁö¹Ú½º¸¦ Ãâ·ÂÇÕ´Ï´Ù!");
+                    Trace.WriteLine("êµ¬ë²„ì „ì…ë‹ˆë‹¤! ì—…ë°ì´íŠ¸ ë©”ì‹œì§€ë°•ìŠ¤ë¥¼ ì¶œë ¥í•©ë‹ˆë‹¤!");
 
-                    DialogResult dr = MessageBox.Show(releases[0].Body + "\n\n¾÷µ¥ÀÌÆ® ÇÏ½Ã°Ú½À´Ï±î? (GitHub Á¢¼Ó)",
-                        "¾÷µ¥ÀÌÆ® ¾È³»", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                    DialogResult dr = MessageBox.Show(releases[0].Body + "\n\nì—…ë°ì´íŠ¸ í•˜ì‹œê² ìŠµë‹ˆê¹Œ? (GitHub ì ‘ì†)",
+                        "ì—…ë°ì´íŠ¸ ì•ˆë‚´", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
 
                     if (dr == DialogResult.Yes) {
                         Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
                     }
                 } else if (versionComparison > 0) {
-                    Logger.Log("Log : " + "±êÇãºê¿¡ °Ô½ÃµÈ ¸±¸®Áî ¹öÀüº¸´Ù ÃÖ½Å¹öÀüÀÌ¶ó°í ÆÇ´Ü");
-                    Trace.WriteLine("±êÇãºê¿¡ ¸±¸®ÁîµÈ ¹öÀüº¸´Ù ÃÖ½ÅÀÔ´Ï´Ù!");
+                    Trace.WriteLine("ê¹ƒí—ˆë¸Œì— ë¦´ë¦¬ì¦ˆëœ ë²„ì „ë³´ë‹¤ ìµœì‹ ì…ë‹ˆë‹¤!");
                 } else {
-                    Logger.Log("Log : " + "±êÇãºê¿¡ °Ô½ÃµÈ ¸±¸®Áî ¹öÀü°ú µ¿ÀÏÇÑ ÃÖ½Å¹öÀüÀÌ¶ó°í ÆÇ´Ü");
-                    Trace.WriteLine("ÇöÀç ¹öÀüÀº ÃÖ½Å¹öÀüÀÔ´Ï´Ù!");
+                    Trace.WriteLine("í˜„ì¬ ë²„ì „ì€ ìµœì‹ ë²„ì „ì…ë‹ˆë‹¤!");
                 }
             } catch (Exception ex) {
-                Logger.Log("Exception : " + "ÇÁ·Î±×·¥ ¾÷µ¥ÀÌÆ® È®ÀÎ Áß ¿¹¿Ü°¡ ¹ß»ı\r\n  :" + ex.Message);
-                MessageBox.Show(this, "ÇÁ·Î±×·¥ ¾÷µ¥ÀÌÆ® È®ÀÎ µµÁß ¿¡·¯°¡ ¹ß»ıÇÏ¿´½À´Ï´Ù.\n¿¡·¯ ¸Ş½ÃÁö¸¦ Ä¸ÃÄÇÏ°í, ¹®ÀÇ ºÎÅ¹µå¸³´Ï´Ù.", "¾÷µ¥ÀÌÆ® È®ÀÎ ¿À·ù", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                MessageBox.Show(this, "¿¡·¯ ¸Ş½ÃÁö1 : \n" + ex.Message);
-                MessageBox.Show(this, "¿¡·¯ ¸Ş½ÃÁö2 : \n" + ex.ToString());
+                MessageBox.Show(this, "í”„ë¡œê·¸ë¨ ì—…ë°ì´íŠ¸ í™•ì¸ ë„ì¤‘ ì—ëŸ¬ê°€ ë°œìƒí•˜ì˜€ìŠµë‹ˆë‹¤.\nì—ëŸ¬ ë©”ì‹œì§€ë¥¼ ìº¡ì³í•˜ê³ , ë¬¸ì˜ ë¶€íƒë“œë¦½ë‹ˆë‹¤.", "ì—…ë°ì´íŠ¸ í™•ì¸ ì˜¤ë¥˜", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, "ì—ëŸ¬ ë©”ì‹œì§€1 : \n" + ex.Message);
+                MessageBox.Show(this, "ì—ëŸ¬ ë©”ì‹œì§€2 : \n" + ex.ToString());
                 Trace.WriteLine(ex.Message);
             }
         }
 
         private void CheckAccount() {
-            Logger.Log("Log : " + "ÀúÀåµÈ °èÁ¤ÀÌ ÇÏ³ªµµ ¾ø´ÂÁö È®ÀÎ");
             if (materialComboBox_account_1.Items.Count <= 1) {
-                Logger.Log("Log : " + "ÀúÀåµÈ °èÁ¤ÀÌ ÇÏ³ªµµ ¾ø´Ù°í ÆÇ´ÜÇÏ¿© °èÁ¤ ¼³Á¤ È­¸éÀ¸·Î ÀÌµ¿ÇÒÁö ¿©ºÎ¸¦ ¹¯´Â ¸Ş½ÃÁö Ãâ·Â");
-                DialogResult dr = MessageBox.Show("ÇöÀç ÀúÀåµÈ °èÁ¤ÀÌ ÇÏ³ªµµ ¾ø½À´Ï´Ù.\n°èÁ¤ ¼³Á¤ È­¸éÀ¸·Î ÀÌµ¿ÇÏ½Ã°Ú½À´Ï±î?", "°èÁ¤ ¾øÀ½", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                DialogResult dr = MessageBox.Show("í˜„ì¬ ì €ì¥ëœ ê³„ì •ì´ í•˜ë‚˜ë„ ì—†ìŠµë‹ˆë‹¤.\nê³„ì • ì„¤ì • í™”ë©´ìœ¼ë¡œ ì´ë™í•˜ì‹œê² ìŠµë‹ˆê¹Œ?", "ê³„ì • ì—†ìŒ", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) {
                     OpenAccountSettingDialog();
                 }
@@ -259,28 +246,26 @@ namespace GersangStation {
         }
 
         private void LoadCheckBox() {
-            Logger.Log("Log : " + "Å×½ºÆ®¼­¹ö ¿©ºÎ Ã¼Å©¹Ú½º ¼³Á¤ ·Îµù");
             this.materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
         }
 
-        /* Edge º¸¾È ¾÷µ¥ÀÌÆ®·Î ÀÎÇØ ·ÎÁ÷ Á¦°Å
+        /* Edge ë³´ì•ˆ ì—…ë°ì´íŠ¸ë¡œ ì¸í•´ ë¡œì§ ì œê±°
         private void CoreWebView2_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e) {
-            if (sender != null) e.NewWindow = (CoreWebView2)sender; //WebView2°¡ Á×°í »õ·Î¿î Ã¢ÀÌ ¶ß´Â ´ë½Å WebView2¿¡¼­ ¸ğµç °ÍÀ» ÁøÇà
-            //e.Handled = true; //true¸é »õ·Î¿î Ã¢ÀÌ ¶ß´Â °É Ãë¼Ò
+            if (sender != null) e.NewWindow = (CoreWebView2)sender; //WebView2ê°€ ì£½ê³  ìƒˆë¡œìš´ ì°½ì´ ëœ¨ëŠ” ëŒ€ì‹  WebView2ì—ì„œ ëª¨ë“  ê²ƒì„ ì§„í–‰
+            //e.Handled = true; //trueë©´ ìƒˆë¡œìš´ ì°½ì´ ëœ¨ëŠ” ê±¸ ì·¨ì†Œ
         }
         */
 
         private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
             string message = e.Message;
-            Logger.Log("Event : " + "WebView2_ScriptDialogOpening\r\n  :" + message + "\r\n  :" + e.Kind);
             Trace.WriteLine(message);
-            Trace.WriteLine("´ëÈ­Ã¢ Á¾·ù : " + e.Kind);
+            Trace.WriteLine("ëŒ€í™”ì°½ ì¢…ë¥˜ : " + e.Kind);
 
             if (e.Kind == CoreWebView2ScriptDialogKind.Confirm) {
-                Trace.WriteLine("¼±ÅÃÁö°¡ ÀÖ´Â ´ëÈ­»óÀÚ ÆÇÁ¤");
+                Trace.WriteLine("ì„ íƒì§€ê°€ ìˆëŠ” ëŒ€í™”ìƒì íŒì •");
                 DialogResult dr = DialogResult.None;
                 var task = Task.Run(() => {
-                    dr = MessageBox.Show(message, "¼±ÅÃ", MessageBoxButtons.YesNo, MessageBoxIcon.Information, 
+                    dr = MessageBox.Show(message, "ì„ íƒ", MessageBoxButtons.YesNo, MessageBoxIcon.Information,
                         MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
                 });
                 await task;
@@ -292,55 +277,54 @@ namespace GersangStation {
             }
 
             this.BeginInvoke(async () => {
-                //message°¡ Á¤È®È÷ "5ÃÊ ÈÄ¿¡ Àç·Î±×ÀÎ °¡´ÉÇÕ´Ï´Ù." ÀÏ °æ¿ì, »ç¿ëÀÚ°¡ ·Î±×ÀÎ ½ÇÆĞ ÈÄ 5ÃÊ ÀÌ³»¿¡ ·Î±×ÀÎÀ» ½ÃµµÇÑ °æ¿ìÀÔ´Ï´Ù.
-                if (message.Equals("5ÃÊ ÈÄ¿¡ Àç·Î±×ÀÎ °¡´ÉÇÕ´Ï´Ù.")) {
-                    Trace.WriteLine("·Î±×ÀÎ ½ÇÆĞ ÈÄ 5ÃÊ ¾È¿¡ ·Î±×ÀÎ ½Ãµµ ÆÇÁ¤");
-                    MessageBox.Show("¾ÆÁ÷ 5ÃÊ°¡ Áö³ªÁö ¾Ê¾Ò½À´Ï´Ù. 5ÃÊ ÈÄ¿¡ ´Ù½Ã ·Î±×ÀÎÀ» ½ÃµµÇØÁÖ¼¼¿ä.");
+                //messageê°€ ì •í™•íˆ "5ì´ˆ í›„ì— ì¬ë¡œê·¸ì¸ ê°€ëŠ¥í•©ë‹ˆë‹¤." ì¼ ê²½ìš°, ì‚¬ìš©ìê°€ ë¡œê·¸ì¸ ì‹¤íŒ¨ í›„ 5ì´ˆ ì´ë‚´ì— ë¡œê·¸ì¸ì„ ì‹œë„í•œ ê²½ìš°ì…ë‹ˆë‹¤.
+                if (message.Equals("5ì´ˆ í›„ì— ì¬ë¡œê·¸ì¸ ê°€ëŠ¥í•©ë‹ˆë‹¤.")) {
+                    Trace.WriteLine("ë¡œê·¸ì¸ ì‹¤íŒ¨ í›„ 5ì´ˆ ì•ˆì— ë¡œê·¸ì¸ ì‹œë„ íŒì •");
+                    MessageBox.Show("ì•„ì§ 5ì´ˆê°€ ì§€ë‚˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤. 5ì´ˆ í›„ì— ë‹¤ì‹œ ë¡œê·¸ì¸ì„ ì‹œë„í•´ì£¼ì„¸ìš”.");
                     currentState = State.None;
                     currentClient = Client.None;
                 }
 
-                //otp ÀÎÁõ¹øÈ£°¡ Æ²¸± ½Ã ´Ù½Ã ÀÔ·ÂÇÏµµ·Ï ÇÕ´Ï´Ù.
-                else if (message.Contains("ÀÎÁõ¹øÈ£°¡ ´Ù¸¨´Ï´Ù")) {
-                    Trace.WriteLine("Àß¸øµÈ OTP ÄÚµå ÀÔ·Â ÆÇÁ¤");
-                    MessageBox.Show("Àß¸øµÈ OTP ÄÚµå¸¦ ÀÔ·ÂÇÏ¿´½À´Ï´Ù. ´Ù½Ã ÀÔ·ÂÇØÁÖ¼¼¿ä.");
+                //otp ì¸ì¦ë²ˆí˜¸ê°€ í‹€ë¦´ ì‹œ ë‹¤ì‹œ ì…ë ¥í•˜ë„ë¡ í•©ë‹ˆë‹¤.
+                else if (message.Contains("ì¸ì¦ë²ˆí˜¸ê°€ ë‹¤ë¦…ë‹ˆë‹¤")) {
+                    Trace.WriteLine("ì˜ëª»ëœ OTP ì½”ë“œ ì…ë ¥ íŒì •");
+                    MessageBox.Show("ì˜ëª»ëœ OTP ì½”ë“œë¥¼ ì…ë ¥í•˜ì˜€ìŠµë‹ˆë‹¤. ë‹¤ì‹œ ì…ë ¥í•´ì£¼ì„¸ìš”.");
                     string? otpCode = showDialogOtp();
 
                     Trace.WriteLine("otpCode : " + otpCode);
                     if (otpCode == null) {
-                        MessageBox.Show("OTP ÄÚµå¸¦ ÀÔ·ÂÇÏÁö ¾Ê¾Ò½À´Ï´Ù.");
-                    } else {
+                        MessageBox.Show("OTP ì½”ë“œë¥¼ ì…ë ¥í•˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
+                    }
+                    else {
                         await webView_main.ExecuteScriptAsync("document.getElementById('GSotpNo').value = '" + otpCode + "'");
                         await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
                     }
                 }
 
-                //°Ë»ö º¸»ó Áö±Ş ¸Ş½ÃÁö
-                else if (message.Contains("¾ÆÀÌÅÛÀÌ Áö±ŞµÇ¾ú½À´Ï´Ù.") || message.Contains("ÀÌ¹Ì ¾ÆÀÌÅÛÀ» ¼ö·ÉÇÏ¼Ì½À´Ï´Ù.") || message.Contains("Âü¿© ½Ã°£ÀÌ ¾Æ´Õ´Ï´Ù.")) {
+                //ê²€ìƒ‰ ë³´ìƒ ì§€ê¸‰ ë©”ì‹œì§€
+                else if (message.Contains("ì•„ì´í…œì´ ì§€ê¸‰ë˜ì—ˆìŠµë‹ˆë‹¤.") || message.Contains("ì´ë¯¸ ì•„ì´í…œì„ ìˆ˜ë ¹í•˜ì…¨ìŠµë‹ˆë‹¤.") || message.Contains("ì°¸ì—¬ ì‹œê°„ì´ ì•„ë‹™ë‹ˆë‹¤.")) {
                     MessageBox.Show(message);
                     if (e.Uri.Contains("attendance") && true == isGetSearchItem) {
                         webView_main.CoreWebView2.Navigate(url_main);
                         isGetSearchItem = false;
                     }
-                    
                 }
 
-                  //¾ÆÀÌµğ ¶Ç´Â ºñ¹Ğ¹øÈ£°¡ Æ²¸° °æ¿ìÀÔ´Ï´Ù.
-                  else if (message.Contains("¾ÆÀÌµğ ¶Ç´Â ºñ¹Ğ¹øÈ£ ¿À·ù")) {
+                //ì•„ì´ë”” ë˜ëŠ” ë¹„ë°€ë²ˆí˜¸ê°€ í‹€ë¦° ê²½ìš°ì…ë‹ˆë‹¤.
+                else if (message.Contains("ì•„ì´ë”” ë˜ëŠ” ë¹„ë°€ë²ˆí˜¸ ì˜¤ë¥˜")) {
                     currentState = State.None;
                     currentClient = Client.None;
-                    Trace.WriteLine("·Î±×ÀÎ ½ÇÆĞ ÆÇÁ¤");
-                    MessageBox.Show("·Î±×ÀÎ¿¡ ½ÇÆĞÇÏ¿´½À´Ï´Ù. 5ÃÊÈÄ¿¡ ´Ù½Ã ·Î±×ÀÎ ÇØÁÖ¼¼¿ä.");
-                } 
-                
+                    Trace.WriteLine("ë¡œê·¸ì¸ ì‹¤íŒ¨ íŒì •");
+                    MessageBox.Show("ë¡œê·¸ì¸ì— ì‹¤íŒ¨í•˜ì˜€ìŠµë‹ˆë‹¤. 5ì´ˆí›„ì— ë‹¤ì‹œ ë¡œê·¸ì¸ í•´ì£¼ì„¸ìš”.");
+                }
+
                 else {
-                    Trace.WriteLine("¿¹¿Ü·Î Ã³¸®µÇÁö ¾ÊÀº ¸Ş½ÃÁö ÆÇÁ¤");
+                    Trace.WriteLine("ì˜ˆì™¸ë¡œ ì²˜ë¦¬ë˜ì§€ ì•Šì€ ë©”ì‹œì§€ íŒì •");
                     MessageBox.Show(message);
                 }
             });
         }
         private void webView_main_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
-            Logger.Log("Event : " + "WebView2 NavigationStarting\r\n  :" + e.Uri.ToString() + "\r\n  :" + "(previous)" + webView_main.Source);
             Trace.WriteLine("NavigationStarting : " + e.Uri.ToString());
             Trace.WriteLine("NavigationStarting Previous URL : " + webView_main.Source);
             previousUrl = webView_main.CoreWebView2.Source;
@@ -349,11 +333,11 @@ namespace GersangStation {
 
         private void webView_main_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e) {
             /*
-                1. ½ºÀ§Ä¡·Î ·Î±×ÀÎ ÇÏ´Â °æ¿ì
-                2. ½ºÀ§Ä¡·Î ·Î±×¾Æ¿ô ÇÏ´Â °æ¿ì
-                3. ½ºÀ§Ä¡·Î ·Î±×¾Æ¿ô -> ·Î±×ÀÎ ÇÏ´Â °æ¿ì (2)
-                4. (·Î±×ÀÎ µÈ »óÅÂ¿¡¼­) °Ë»ö¹öÆ°À¸·Î °Ë»öº¸»ó ¼ö·É
-                5. (·Î±×ÀÎ µÈ »óÅÂ¿¡¼­) ½ÇÇà¹öÆ°À¸·Î ½ÇÇà
+                1. ìŠ¤ìœ„ì¹˜ë¡œ ë¡œê·¸ì¸ í•˜ëŠ” ê²½ìš°
+                2. ìŠ¤ìœ„ì¹˜ë¡œ ë¡œê·¸ì•„ì›ƒ í•˜ëŠ” ê²½ìš°
+                3. ìŠ¤ìœ„ì¹˜ë¡œ ë¡œê·¸ì•„ì›ƒ -> ë¡œê·¸ì¸ í•˜ëŠ” ê²½ìš° (2)
+                4. (ë¡œê·¸ì¸ ëœ ìƒíƒœì—ì„œ) ê²€ìƒ‰ë²„íŠ¼ìœ¼ë¡œ ê²€ìƒ‰ë³´ìƒ ìˆ˜ë ¹
+                5. (ë¡œê·¸ì¸ ëœ ìƒíƒœì—ì„œ) ì‹¤í–‰ë²„íŠ¼ìœ¼ë¡œ ì‹¤í–‰
             */
 
             if (sender == null) {
@@ -362,13 +346,12 @@ namespace GersangStation {
             }
 
             if (!e.IsSuccess) {
-                deactivateWebSideFunction(); //WebView2 È°¿ë ±â´É ºñÈ°¼ºÈ­ Ã³¸®
+                deactivateWebSideFunction(); //WebView2 í™œìš© ê¸°ëŠ¥ ë¹„í™œì„±í™” ì²˜ë¦¬
                 this.BeginInvoke(() => { handleWebError(e.WebErrorStatus); });
                 return;
-            } else { if (isWebFunctionDeactivated) { activateWebSideFunction(); } } //WebView2 È°¿ë ±â´ÉÀÌ ºñÈ°¼ºÈ­ »óÅÂÀÎ °æ¿ì È°¼ºÈ­ Ã³¸®
+            } else { if (isWebFunctionDeactivated) { activateWebSideFunction(); } } //WebView2 í™œìš© ê¸°ëŠ¥ì´ ë¹„í™œì„±í™” ìƒíƒœì¸ ê²½ìš° í™œì„±í™” ì²˜ë¦¬
 
             string? url = ((WebView2)sender).Source.ToString();
-            Logger.Log("Event : " + "WebView2 NavigationCompleted\r\n  :" + url);
             Trace.WriteLine("NavigationCompleted : " + url);
 
             if (url.Contains("pw_reset.gs")) {
@@ -381,7 +364,7 @@ namespace GersangStation {
                     string? otpCode = showDialogOtp();
 
                     if (otpCode == null) { 
-                        MessageBox.Show("OTP ÄÚµå¸¦ ÀÔ·ÂÇÏÁö ¾Ê¾Ò½À´Ï´Ù.");
+                        MessageBox.Show("OTP ì½”ë“œë¥¼ ì…ë ¥í•˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
                         isSearch = false;
                     } 
                     else { doOtpInput(otpCode); }
@@ -427,16 +410,15 @@ namespace GersangStation {
         }
 
         private async void doGetEventItem() {
-            Logger.Log("Log : " + "°Ë»ö º¸»ó ¼ö·É ½Ã°£´ë È®ÀÎ ½Ãµµ");
             isSearch = false;
 
-            /* °Ë»öº¸»ó ¼ö·É ½Ã°£´ëº° ÀÎÀÚ °ª
+            /* ê²€ìƒ‰ë³´ìƒ ìˆ˜ë ¹ ì‹œê°„ëŒ€ë³„ ì¸ì ê°’
             1-> 00:05 ~05:55
             2-> 06:05 ~11:55
             3-> 12:05 ~17:55
             4-> 18:05 ~23:55
             */
-            int arg; //event_Search_Use ½ºÅ©¸³Æ® ½ÇÇà ÀÎÀÚ
+            int arg; //event_Search_Use ìŠ¤í¬ë¦½íŠ¸ ì‹¤í–‰ ì¸ì
 
             int koreaHour = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Korea Standard Time").Hour;
             if (koreaHour >= 0 && koreaHour <= 5) { arg = 1; } 
@@ -445,29 +427,25 @@ namespace GersangStation {
             else { arg = 4; }
 
             isGetSearchItem = true;
-            Logger.Log("Log : " + "°Ë»ö º¸»ó ¼ö·É ½Ã°£´ë : " + arg);
             await webView_main.ExecuteScriptAsync("event_Search_Use(" + arg + ");");
         }
 
         private async void doNavigateAttendancePage() {
-            Logger.Log("Log : " + "°Å»ó ¸ŞÀÎÆäÀÌÁö¿¡¼­ Ãâ¼®Ã¼Å© ÀÌº¥Æ® ÆäÀÌÁö·Î ÀÌµ¿ÇÏ´Â aÅÂ±×¸¦ Ã£¾Æ Å¬¸¯ ½Ãµµ");
-            Trace.WriteLine("(°Ë»ö) ¸ŞÀÎ -> Ãâ¼®ÆäÀÌÁö");
+            Trace.WriteLine("(ê²€ìƒ‰) ë©”ì¸ -> ì¶œì„í˜ì´ì§€");
             await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""attendance""]').click();");
         }
 
         private async void doNavigateGersangSite() {
-            Logger.Log("Log : " + "°Ë»ö¿£Áø»çÀÌÆ®¿¡¼­ °Å»ó ¸ŞÀÎÆäÀÌÁö·Î ÀÌµ¿ÇÏ´Â aÅÂ±×¸¦ Ã£¾Æ Å¬¸¯ ½Ãµµ");
-            Trace.WriteLine("(°Ë»ö) ³×ÀÌ¹ö -> °Å»ó");
+            Trace.WriteLine("(ê²€ìƒ‰) ë„¤ì´ë²„ -> ê±°ìƒ");
 
-            //»õ·Î¿î Ã¢ÀÌ ¶ßÁö ¾Êµµ·Ï aÅÂ±×¿¡ target ¼Ó¼ºÀ» Á¦°Å
+            //ìƒˆë¡œìš´ ì°½ì´ ëœ¨ì§€ ì•Šë„ë¡ aíƒœê·¸ì— target ì†ì„±ì„ ì œê±°
             await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""gersang.co.kr""]').removeAttribute(""target"");");
 
-            //target ¼Ó¼ºÀÌ Á¦°ÅµÈ aÅÂ±×¸¦ Å¬¸¯
+            //target ì†ì„±ì´ ì œê±°ëœ aíƒœê·¸ë¥¼ í´ë¦­
             await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""gersang.co.kr""]').click();");
         }
 
         private void deactivateWebSideFunction() {
-            Logger.Log("Log : " + @"WebView2¿Í ¿¬°üµÈ ÄÄÆ÷³ÍÆ®µéÀÌ ""ºñÈ°¼ºÈ­""µÊ");
             //materialSwitch_login_1.Enabled = false;
             //materialSwitch_login_2.Enabled = false;
             //materialSwitch_login_3.Enabled = false;
@@ -481,12 +459,11 @@ namespace GersangStation {
             materialButton_shortcut_2.Enabled = false;
             materialButton_shortcut_3.Enabled = false;
             materialButton_shortcut_4.Enabled = false;
-            Trace.WriteLine("À¥ºä °ü·Ã ±â´ÉµéÀÌ ºñÈ°¼ºÈ­ µÇ¾ú½À´Ï´Ù.");
+            Trace.WriteLine("ì›¹ë·° ê´€ë ¨ ê¸°ëŠ¥ë“¤ì´ ë¹„í™œì„±í™” ë˜ì—ˆìŠµë‹ˆë‹¤.");
             isWebFunctionDeactivated = true;
         }
 
         private void activateWebSideFunction() {
-            Logger.Log("Log : " + @"WebView2¿Í ¿¬°üµÈ ÄÄÆ÷³ÍÆ®µéÀÌ ""È°¼ºÈ­""µÊ");
             //materialSwitch_login_1.Enabled = true;
             //materialSwitch_login_2.Enabled = true;
             //materialSwitch_login_3.Enabled = true;
@@ -500,7 +477,7 @@ namespace GersangStation {
             materialButton_shortcut_2.Enabled = true;
             materialButton_shortcut_3.Enabled = true;
             materialButton_shortcut_4.Enabled = true;
-            Trace.WriteLine("À¥ºä °ü·Ã ±â´ÉµéÀÌ ´Ù½Ã È°¼ºÈ­ µÇ¾ú½À´Ï´Ù.");
+            Trace.WriteLine("ì›¹ë·° ê´€ë ¨ ê¸°ëŠ¥ë“¤ì´ ë‹¤ì‹œ í™œì„±í™” ë˜ì—ˆìŠµë‹ˆë‹¤.");
             isWebFunctionDeactivated = false;
         }
 
@@ -514,49 +491,47 @@ namespace GersangStation {
         private delegate void DelegateActivateWebSideFunction();
 
         private void handleWebError(CoreWebView2WebErrorStatus webErrorStatus) {
-            Logger.Log("Error : " + "WebView2¿¡¼­ ¿¡·¯°¡ ¹ß»ıÇÏ¿© ÇÚµé¸µ -> " + webErrorStatus);
             Trace.WriteLine("NavigationFailed - WebErrorStatus : " + webErrorStatus);
             Trace.WriteLine("NavigationFailed - DocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
 
-            //ÀÛ¾÷ÀÌ Ãë¼ÒµÇ¾úÀ½À» ³ªÅ¸³À´Ï´Ù. (MS DOC)
+            //ì‘ì—…ì´ ì·¨ì†Œë˜ì—ˆìŒì„ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤. (MS DOC)
             if (webErrorStatus == CoreWebView2WebErrorStatus.OperationCanceled) { return; }
 
-            //¿¬°áÀÌ ÁßÁöµÇ¾úÀ½À» ³ªÅ¸³À´Ï´Ù. (MS DOC)
+            //ì—°ê²°ì´ ì¤‘ì§€ë˜ì—ˆìŒì„ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤. (MS DOC)
             if (webErrorStatus == CoreWebView2WebErrorStatus.ConnectionAborted) { return; }
 
             this.BeginInvoke(() => {
-                //¾Ë ¼ö ¾ø´Â ¿À·ù°¡ ¹ß»ıÇßÀ½À» ³ªÅ¸³À´Ï´Ù. (MS DOC)
+                //ì•Œ ìˆ˜ ì—†ëŠ” ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŒì„ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤. (MS DOC)
                 if (webErrorStatus == CoreWebView2WebErrorStatus.Unknown) {
                     string title = webView_main.CoreWebView2.DocumentTitle;
                     if (title != null) {
-                        if (title.Contains("Á¡°Ë")) {
-                            MessageBox.Show("ÇöÀç °Å»ó È¨ÆäÀÌÁö°¡ Á¡°Ë ÁßÀÔ´Ï´Ù.\nÁ¡°ËÀÌ ³¡³­ ÈÄ¿¡ ÁÖ¿ä ±â´É ÀÌ¿ëÀÌ °¡´ÉÇÕ´Ï´Ù.");
+                        if (title.Contains("ì ê²€")) {
+                            MessageBox.Show("í˜„ì¬ ê±°ìƒ í™ˆí˜ì´ì§€ê°€ ì ê²€ ì¤‘ì…ë‹ˆë‹¤.\nì ê²€ì´ ëë‚œ í›„ì— ì£¼ìš” ê¸°ëŠ¥ ì´ìš©ì´ ê°€ëŠ¥í•©ë‹ˆë‹¤.");
                             return;
                         }
-                        MessageBox.Show("¾Ë ¼ö ¾ø´Â ¿À·ù·Î ÀÎÇØ °Å»ó È¨ÆäÀÌÁö Á¢¼Ó¿¡ ½ÇÆĞÇÏ¿´½À´Ï´Ù.\nDocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
-                    } else {
-                        MessageBox.Show("¾Ë ¼ö ¾ø´Â ¿À·ù·Î ÀÎÇØ °Å»ó È¨ÆäÀÌÁö Á¢¼Ó¿¡ ½ÇÆĞÇÏ¿´½À´Ï´Ù.\nDocumentTitle : NULL");
+                        MessageBox.Show("ì•Œ ìˆ˜ ì—†ëŠ” ì˜¤ë¥˜ë¡œ ì¸í•´ ê±°ìƒ í™ˆí˜ì´ì§€ ì ‘ì†ì— ì‹¤íŒ¨í•˜ì˜€ìŠµë‹ˆë‹¤.\nDocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
+                    }
+                    else {
+                        MessageBox.Show("ì•Œ ìˆ˜ ì—†ëŠ” ì˜¤ë¥˜ë¡œ ì¸í•´ ê±°ìƒ í™ˆí˜ì´ì§€ ì ‘ì†ì— ì‹¤íŒ¨í•˜ì˜€ìŠµë‹ˆë‹¤.\nDocumentTitle : NULL");
                     }
                     return;
                 }
 
-                //ÀÎÅÍ³İ ¿¬°áÀÌ ²÷¾îÁ³À½À» ³ªÅ¸³À´Ï´Ù. (MS DOC)
+                //ì¸í„°ë„· ì—°ê²°ì´ ëŠì–´ì¡ŒìŒì„ ë‚˜íƒ€ëƒ…ë‹ˆë‹¤. (MS DOC)
                 if (webErrorStatus == CoreWebView2WebErrorStatus.Disconnected) {
-                    MessageBox.Show("°Å»ó È¨ÆäÀÌÁö Á¢¼Ó¿¡ ½ÇÆĞÇÏ¿´½À´Ï´Ù.\nÀÎÅÍ³İ ¿¬°áÀ» È®ÀÎ ÇØÁÖ¼¼¿ä.");
+                    MessageBox.Show("ê±°ìƒ í™ˆí˜ì´ì§€ ì ‘ì†ì— ì‹¤íŒ¨í•˜ì˜€ìŠµë‹ˆë‹¤.\nì¸í„°ë„· ì—°ê²°ì„ í™•ì¸ í•´ì£¼ì„¸ìš”.");
                     return;
                 }
 
-                MessageBox.Show("°Å»ó È¨ÆäÀÌÁö Á¢¼Ó¿¡ ½ÇÆĞÇÏ¿´½À´Ï´Ù.\n¹®Á¦ ¿øÀÎ : " + webErrorStatus + "\n¹®ÀÇ ¹Ù¶ø´Ï´Ù.");
+                MessageBox.Show("ê±°ìƒ í™ˆí˜ì´ì§€ ì ‘ì†ì— ì‹¤íŒ¨í•˜ì˜€ìŠµë‹ˆë‹¤.\në¬¸ì œ ì›ì¸ : " + webErrorStatus + "\në¬¸ì˜ ë°”ëë‹ˆë‹¤.");
                 return;
             });
         }
 
         private async void doCheckLogin() {
-            Logger.Log("Log : " + "·Î±×ÀÎÀÌ µÇ¾ú´ÂÁö È®ÀÎ ½Ãµµ");
             var logout_btn = await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href = '" + "/member/logoutProc.gs" + @"']"")");
             if (logout_btn != null) {
-                Logger.Log("Log : " + "·Î±×ÀÎÀÌ µÇ¾îÀÖ´Â »óÅÂ");
-                Trace.WriteLine("Ã¼Å©ÇÏ¿´´õ´Ï ·Î±×ÀÎÀÌ µÇ¾îÀÖÀ½.");
+                Trace.WriteLine("ì²´í¬í•˜ì˜€ë”ë‹ˆ ë¡œê·¸ì¸ì´ ë˜ì–´ìˆìŒ.");
                 switch (currentClient) {
                     case Client.Client1:
                         materialSwitch_login_1.CheckState = CheckState.Checked;
@@ -570,21 +545,20 @@ namespace GersangStation {
                     default:
                         break;
                 }
-            } else {
-                Logger.Log("Log : " + "·Î±×ÀÎÀÌ ¾ÈµÇÀÖ´Â »óÅÂ");
-                Trace.WriteLine("Ã¼Å©ÇÏ¿´´õ´Ï ·Î±×ÀÎÀÌ ¾ÈµÇ¾îÀÖ´Â »óÅÂ.");
+            }
+            else {
+                Trace.WriteLine("ì²´í¬í•˜ì˜€ë”ë‹ˆ ë¡œê·¸ì¸ì´ ì•ˆë˜ì–´ìˆëŠ” ìƒíƒœ.");
                 currentState = State.None;
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
                 materialSwitch_login_2.CheckState = CheckState.Unchecked;
                 materialSwitch_login_3.CheckState = CheckState.Unchecked;
             }
 
-            if (true == isSearch) { webView_main.CoreWebView2.Navigate(url_search); } //³×ÀÌ¹ö °Ë»ö
+            if (true == isSearch) { webView_main.CoreWebView2.Navigate(url_search); } //ë„¤ì´ë²„ ê²€ìƒ‰
             else if (true == isGameStartLogin) { GameStart(); }
         }
 
         private async void doLoginOther() {
-            Logger.Log("Log : " + "doLoginOther() -> ·Î±×¾Æ¿ô ÇÑ ´ÙÀ½ È¨ÆäÀÌÁö¿¡ ·Î±×ÀÎÀ» À§ÇÑ ÄÄÆ÷³ÍÆ®°¡ ·ÎµùµÇ¾ú´ÂÁö È®ÀÎÇÏ°í ·Î±×ÀÎÀ» ½Ãµµ");
             var button_login = await webView_main.ExecuteScriptAsync("document.getElementById('btn_Login')");
             var textBox_id = await webView_main.ExecuteScriptAsync("document.getElementById('GSuserID')");
             var textBox_pw = await webView_main.ExecuteScriptAsync("document.getElementById('GSuserPW')");
@@ -611,18 +585,15 @@ namespace GersangStation {
         }
 
         private async void doOtpInput(string otpCode) {
-            Logger.Log("Log : " + "ÀÔ·ÂÇÑ OTPÄÚµå¸¦ ÀÌ¿ëÇØ OTP·Î±×ÀÎ ½Ãµµ");
             await webView_main.ExecuteScriptAsync("document.getElementById('GSotpNo').value = '" + otpCode + "'");
             await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
         }
 
         private async void doPwReset() {
-            Logger.Log("Log : " + "°Å»ó ÆĞ½º¿öµå º¯°æ ¿©ºÎ ÆäÀÌÁö¿¡¼­ ¸ŞÀÎ È¨ÆäÀÌÁö·Î ÀÌµ¿ÇÔ");
             await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href *= '" + "www.gersang.co.kr/main/index.gs?" + @"']"").click()");
         }
 
         private string? showDialogOtp() {
-            Logger.Log("Log : " + "OTPÆûÀ» Ãâ·Â");
             Form backgroundForm = new Form() {
                 StartPosition = FormStartPosition.Manual,
                 FormBorderStyle = FormBorderStyle.None,
@@ -640,7 +611,7 @@ namespace GersangStation {
                 Sizable = false,
                 StartPosition = FormStartPosition.CenterParent,
                 Size = new Size(202, 136),
-                Text = "OTP ÀÔ·Â",
+                Text = "OTP ì…ë ¥",
                 MaximizeBox = false,
                 MinimizeBox = false,
                 TopMost = true,
@@ -657,19 +628,17 @@ namespace GersangStation {
             dialog_otp.Controls.Add(textBox_otp);
 
             MaterialButton button_confirm = new MaterialButton() {
-                Text = "È®ÀÎ",
+                Text = "í™•ì¸",
                 Location = new Point(135, 82),
                 AutoSize = false,
                 Size = new Size(50, 36)
             };
             button_confirm.Click += (sender, e) => {
                 if(textBox_otp.Text.Length != 8) {
-                    MessageBox.Show("OTP ÄÚµå´Â 8ÀÚ¸® ÀÔ´Ï´Ù.\n´Ù½Ã ÀÔ·ÂÇØÁÖ¼¼¿ä.");
                     return;
                 }
 
                 if(!Regex.IsMatch(textBox_otp.Text, @"^[0-9]+$")) {
-                    MessageBox.Show("OTP ÄÚµå´Â ¼ıÀÚ·Î¸¸ ÀÌ·ç¾îÁ®¾ß ÇÕ´Ï´Ù.\n´Ù½Ã ÀÔ·ÂÇØÁÖ¼¼¿ä.");
                     return;
                 }
 
@@ -677,7 +646,7 @@ namespace GersangStation {
             };
 
             dialog_otp.Controls.Add(button_confirm);
-            dialog_otp.AcceptButton = button_confirm; //¿£ÅÍ ¹öÆ°À» ´©¸£¸é ÀÌ ¹öÆ°À» Å¬¸¯ÇÕ´Ï´Ù.
+            dialog_otp.AcceptButton = button_confirm; //Â¿Â£Ã…Ã Â¹Ã¶Ã†Â°Ã€Â» Â´Â©Â¸Â£Â¸Ã© Ã€ÃŒ Â¹Ã¶Ã†Â°Ã€Â» Ã…Â¬Â¸Â¯Ã‡Ã•Â´ÃÂ´Ã™.
 
             if (dialog_otp.ShowDialog() == DialogResult.OK) {
                 backgroundForm.Dispose();
@@ -690,7 +659,6 @@ namespace GersangStation {
 
         private void materialButton_start_Click(object sender, EventArgs e) {
             MaterialButton startButton = (MaterialButton)sender;
-            Logger.Log("Click : " + startButton.Name);
             StartClick(startButton);
         }
 
@@ -745,29 +713,27 @@ namespace GersangStation {
             }
 
             if (client_path == "") {
-                Logger.Log("Log : " + "Å¬¶óÀÌ¾ğÆ®ÀÇ °æ·Î°¡ ¼³Á¤µÇ¾îÀÖÁö¾Ê¾Æ ¼³Á¤ Ã¢À¸·Î ÀÌµ¿ÇÒÁö ¿©ºÎ¸¦ ¹¯´Â ¸Ş½ÃÁö Ãâ·Â");
-                DialogResult dr = MessageBox.Show(this, "Å¬¶óÀÌ¾ğÆ® °æ·Î°¡ ÁöÁ¤µÇ¾î ÀÖÁö ¾Ê½À´Ï´Ù.\n¼³Á¤ Ã¢À¸·Î ÀÌµ¿ÇÏ½Ã°Ú½À´Ï±î?", "°æ·Î ¹ÌÁöÁ¤", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                DialogResult dr = MessageBox.Show(this, "í´ë¼ì´ì–¸íŠ¸ ê²½ë¡œê°€ ì§€ì •ë˜ì–´ ìˆì§€ ì•ŠìŠµë‹ˆë‹¤.\nì„¤ì • ì°½ìœ¼ë¡œ ì´ë™í•˜ì‹œê² ìŠµë‹ˆê¹Œ?", "ê²½ë¡œ ë¯¸ì§€ì •", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) { OpenClientSettingDialog(); }
                 return;
             }
 
             if (false == ValidationPath(client_path, server)) return;
-            
-            string version_current = Form_Patcher.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
-            string version_latest = Form_Patcher.GetLatestVersion_Safe(this, url_vsn);
+
+            string version_current = VersionChecker.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
+            string version_latest = VersionChecker.GetLatestVersion_Safe(this, url_vsn);
             if (version_current != version_latest) {
                 DialogResult dr = DialogResult.No;
                 bool update = false;
                 if (!bool.Parse(ConfigManager.getConfig("is_auto_update"))) {
-                    Logger.Log("Log : " + "°Å»ó ¾÷µ¥ÀÌÆ®°¡ °¡´ÉÇÏ¿© ÇÁ·Î±×·¥ÀÇ ÆĞÄ¡ ±â´ÉÀ» »ç¿ëÇÏ¿© ÆĞÄ¡ÇÒ °ÍÀÎÁö ¿©ºÎ¸¦ ¹¯´Â ¸Ş½ÃÁö Ãâ·Â");
-                    dr = MessageBox.Show(this, "°Å»ó ¾÷µ¥ÀÌÆ®°¡ °¡´ÉÇÕ´Ï´Ù! (" + version_current + "->" + version_latest + ")\nÇÁ·Î±×·¥ ±â´ÉÀ» »ç¿ëÇÏ¿© ¾÷µ¥ÀÌÆ® ÇÏ½Ã°Ú½À´Ï±î?\n°Å»ó ½ºÅ×ÀÌ¼ÇÀº °ø½Ä ÆĞÄ¡ ÇÁ·Î±×·¥º¸´Ù\n´õ ºü¸£°Ô ¾÷µ¥ÀÌÆ® °¡´ÉÇÕ´Ï´Ù.",
-                        "°Å»ó ÆĞÄ¡", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                } else {
+                    dr = MessageBox.Show(this, "ê±°ìƒ ì—…ë°ì´íŠ¸ê°€ ê°€ëŠ¥í•©ë‹ˆë‹¤! (" + version_current + "->" + version_latest + ")\ní”„ë¡œê·¸ë¨ ê¸°ëŠ¥ì„ ì‚¬ìš©í•˜ì—¬ ì—…ë°ì´íŠ¸ í•˜ì‹œê² ìŠµë‹ˆê¹Œ?\nê±°ìƒ ìŠ¤í…Œì´ì…˜ì€ ê³µì‹ íŒ¨ì¹˜ í”„ë¡œê·¸ë¨ë³´ë‹¤\në” ë¹ ë¥´ê²Œ ì—…ë°ì´íŠ¸ ê°€ëŠ¥í•©ë‹ˆë‹¤.",
+                        "ê±°ìƒ íŒ¨ì¹˜", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                }
+                else {
                     update = true;
                 }
 
                 if (dr == DialogResult.Yes || update == true) {
-                    Logger.Log("Log : " + "ÇÁ·Î±×·¥ÀÇ ÆĞÄ¡ ±â´ÉÀ» »ç¿ëÇÏ¿© ÆĞÄ¡ÇÑ´Ù°í ÀÀ´ä(¶Ç´Â ÀÚµ¿) ÇÏ¿© ÆĞÄ¡ÆûÀ» ¶ç¿ò");
                     this.BeginInvoke(() => {
                         Form backgroundForm = InitBackgroundForm(this);
 
@@ -779,44 +745,43 @@ namespace GersangStation {
                         try {
                             backgroundForm.Show();
                             form_Patcher.ShowDialog();
-                        } catch (Exception ex) {
+                        }
+                        catch (Exception ex) {
                             Trace.WriteLine(ex.StackTrace);
-                        } finally {
+                        }
+                        finally {
                             backgroundForm.Dispose();
                         }
                     });
                     return;
                 }
-                Logger.Log("Log : " + "»ç¿ëÀÚ°¡ ÀÏ¹İ ÆĞÄ¡¸¦ ¼±ÅÃÇÔ");
-                Trace.WriteLine("ÀÏ¹İ ÆĞÄ¡¸¦ ¼±ÅÃÇÏ¿´½À´Ï´Ù.");
+                Trace.WriteLine("ì¼ë°˜ íŒ¨ì¹˜ë¥¼ ì„ íƒí•˜ì˜€ìŠµë‹ˆë‹¤.");
             }
             
             try {
-                //ÇØ´ç Å¬¶óÀÌ¾ğÆ®ÀÇ °æ·Î¸¦ ·¹Áö½ºÆ®¸®¿¡ µî·Ï½ÃÅµ´Ï´Ù.
+                //í•´ë‹¹ í´ë¼ì´ì–¸íŠ¸ì˜ ê²½ë¡œë¥¼ ë ˆì§€ìŠ¤íŠ¸ë¦¬ì— ë“±ë¡ì‹œí‚µë‹ˆë‹¤.
                 RegistryKey? registryKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\JOYON\Gersang\Korean", RegistryKeyPermissionCheck.ReadWriteSubTree);
                 if (registryKey != null) {
                     registryKey.SetValue(regKey, client_path);
                     registryKey.Close();
                 }
             } catch (Exception ex) {
-                Logger.Log("Exception : " + "°Å»ó Å¬¶óÀÌ¾ğÆ® °æ·Î¸¦ ·¹Áö½ºÆ®¸®¿¡ µî·ÏÇÏ´ø Áß ¿¹¿Ü°¡ ¹ß»ı\r\n  :" + ex.Message);
                 Trace.WriteLine(ex.Message);
                 Trace.WriteLine(ex.StackTrace);
             }
 
             string? value = null;
             try {
-                //Gersang Game Starter °æ·Î°¡ ÀúÀåµÇ¾îÀÖ´Â ·¹Áö½ºÆ®¸® °æ·Î¿¡ Á¢±ÙÇÏ¿© °æ·Î¸¦ ¾ò½À´Ï´Ù.
+                //Gersang Game Starter ê²½ë¡œê°€ ì €ì¥ë˜ì–´ìˆëŠ” ë ˆì§€ìŠ¤íŠ¸ë¦¬ ê²½ë¡œì— ì ‘ê·¼í•˜ì—¬ ê²½ë¡œë¥¼ ì–»ìŠµë‹ˆë‹¤.
                 value = Registry.ClassesRoot.OpenSubKey("Gersang").OpenSubKey("shell").OpenSubKey("open").OpenSubKey("command").GetValue("").ToString();
             } catch (Exception ex) {
-                Logger.Log("Exception : " + "°ÔÀÓ½ºÅ¸ÅÍÀÇ °æ·Î¸¦ ·¹Áö½ºÆ®¸®¿¡¼­ ¹Ş¾Æ¿À´ø Áß ¿¹¿Ü°¡ ¹ß»ı\r\n  :" + ex.Message);
                 Trace.WriteLine(ex.Message);
                 Trace.WriteLine(ex.StackTrace);
                 value = null;
             }
 
-            string starterPath; //°Å»ó ½ºÅ¸ÅÍÀÇ °æ·Î¸¦ ÀúÀå
-            //GameStarter °æ·Î¸¦ Ã£À» ¼ö ¾ø´Â °æ¿ì, Starter ´Ù¿î·Îµå ¾È³»Ã¢À» ¶ç¿ó´Ï´Ù.
+            string starterPath; //ê±°ìƒ ìŠ¤íƒ€í„°ì˜ ê²½ë¡œë¥¼ ì €ì¥
+            //GameStarter ê²½ë¡œë¥¼ ì°¾ì„ ìˆ˜ ì—†ëŠ” ê²½ìš°, Starter ë‹¤ìš´ë¡œë“œ ì•ˆë‚´ì°½ì„ ë„ì›ë‹ˆë‹¤.
             if (value == null) {
                 OpenGersangStarterInstallDialog();
                 return;
@@ -824,18 +789,18 @@ namespace GersangStation {
                 starterPath = value.Replace(@"""", String.Empty);
             }
 
-            //·¹Áö½ºÆ®¸®¿¡ ÀúÀåµÈ GameStarterÀÇ °æ·Î¿¡ ½ÇÁ¦·Î Starter°¡ ¼³Ä¡µÇ¾î ÀÖÁö ¾ÊÀº °æ¿ì, ´Ù¿î·Îµå ¾È³»Ã¢À» ¶ç¿ó´Ï´Ù.
+            //ë ˆì§€ìŠ¤íŠ¸ë¦¬ì— ì €ì¥ëœ GameStarterì˜ ê²½ë¡œì— ì‹¤ì œë¡œ Starterê°€ ì„¤ì¹˜ë˜ì–´ ìˆì§€ ì•Šì€ ê²½ìš°, ë‹¤ìš´ë¡œë“œ ì•ˆë‚´ì°½ì„ ë„ì›ë‹ˆë‹¤.
             if (!File.Exists(starterPath)) {
                 OpenGersangStarterInstallDialog();
                 return;
-            } else {
-                Logger.Log("Log : " + "°Å»ó ¼ÒÄÏÀ» ½ÇÇà ÈÄ °Å»ó ½ºÅ¸ÅÍ¸¦ ½ÇÇà");
-                await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //¼ÒÄÏÀ» ¿±´Ï´Ù.
+            }
+            else {
+                await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //ì†Œì¼“ì„ ì—½ë‹ˆë‹¤.
                 Process starter = new Process();
                 starter.StartInfo.FileName = value.ToString();
                 starter.EnableRaisingEvents = true;
                 starter.Exited += (sender, e) => {
-                    Trace.WriteLine("°ÔÀÓ ½ºÅ¸ÅÍ°¡ Á¾·áµÊ.");
+                    Trace.WriteLine("ê²Œì„ ìŠ¤íƒ€í„°ê°€ ì¢…ë£Œë¨.");
                     activateWebSideFunction_invoke();
                 };
                 deactivateWebSideFunction();
@@ -844,26 +809,23 @@ namespace GersangStation {
         }
 
         private bool ValidationPath(string client_path, string server) {
-            Logger.Log("Log : " + "°Å»ó °æ·Î À¯È¿¼º °Ë»ç¸¦ ½Ãµµ");
             string iniName;
-            if (server == "main") { iniName = "GerSangKR.ini"; } 
+            if (server == "main") { iniName = "GerSangKR.ini"; }
             else { iniName = "GerSangKRTest.ini"; }
 
             if (!File.Exists(client_path + "\\" + "Gersang.exe")) {
                 this.BeginInvoke(() => {
-                    Logger.Log("Log : " + "°Å»ó °æ·Î°¡ À¯È¿ÇÏÁö ¾Ê´Ù°í ÆÇ´ÜÇÏ¿© ¾È³»¸Ş½ÃÁö Ãâ·Â (Gersang.exe ÆÄÀÏÀÌ ¾øÀ½)");
-                    MessageBox.Show(this, "°Å»ó °æ·Î¸¦ ´Ù½Ã ¼³Á¤ÇØÁÖ¼¼¿ä.\n¿øÀÎ : Gersang.exe ÆÄÀÏÀÌ ¾ø½À´Ï´Ù.", "½ÇÇà ºÒ°¡", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-                }); 
+                    MessageBox.Show(this, "ê±°ìƒ ê²½ë¡œë¥¼ ë‹¤ì‹œ ì„¤ì •í•´ì£¼ì„¸ìš”.\nì›ì¸ : Gersang.exe íŒŒì¼ì´ ì—†ìŠµë‹ˆë‹¤.", "ì‹¤í–‰ ë¶ˆê°€", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                });
                 return false;
             }
 
             if (!File.Exists(client_path + "\\" + iniName)) {
                 string message;
-                if (server == "main") { message = "º»¼· °æ·Î°¡ ¾Æ´Õ´Ï´Ù."; }
-                else { message = "Å×¼· °æ·Î°¡ ¾Æ´Õ´Ï´Ù."; }
+                if (server == "main") { message = "ë³¸ì„­ ê²½ë¡œê°€ ì•„ë‹™ë‹ˆë‹¤."; }
+                else { message = "í…Œì„­ ê²½ë¡œê°€ ì•„ë‹™ë‹ˆë‹¤."; }
                 this.BeginInvoke(() => {
-                    Logger.Log("Log : " + "°Å»ó °æ·Î°¡ À¯È¿ÇÏÁö ¾Ê´Ù°í ÆÇ´ÜÇÏ¿© ¾È³»¸Ş½ÃÁö Ãâ·Â (" + message + ")");
-                    MessageBox.Show(this, "°Å»ó °æ·Î¸¦ ´Ù½Ã ¼³Á¤ÇØÁÖ¼¼¿ä.\n¿øÀÎ : " + message, "½ÇÇà ºÒ°¡", MessageBoxButtons.OK, MessageBoxIcon.Stop);
+                    MessageBox.Show(this, "ê±°ìƒ ê²½ë¡œë¥¼ ë‹¤ì‹œ ì„¤ì •í•´ì£¼ì„¸ìš”.\nì›ì¸ : " + message, "ì‹¤í–‰ ë¶ˆê°€", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 });
                 return false;
             }
@@ -872,28 +834,28 @@ namespace GersangStation {
         }
 
         private void OpenGersangStarterInstallDialog() {
-            Logger.Log("MessageBox : " + "°ÔÀÓ½ºÅ¸ÅÍ°¡ ¼³Ä¡µÇ¾îÀÖÁö ¾Ê´Ù°í °¨ÁöÇÏ°í, ´Ù¿î·Îµå ¸µÅ©¸¦ ¾È³»");
-            if (MessageBox.Show("GersangGameStarter°¡ ¼³Ä¡µÇ¾î ÀÖÁö ¾Ê½À´Ï´Ù.\n´Ù¿î·Îµå ¹ŞÀ¸½Ã°Ú½À´Ï±î? (°Å»ó °ø½Ä ´Ù¿î·Îµå ¸µÅ©ÀÔ´Ï´Ù)", "°ÔÀÓ ½ÇÇà ½ÇÆĞ", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes) {
+            if (MessageBox.Show("GersangGameStarterê°€ ì„¤ì¹˜ë˜ì–´ ìˆì§€ ì•ŠìŠµë‹ˆë‹¤.\në‹¤ìš´ë¡œë“œ ë°›ìœ¼ì‹œê² ìŠµë‹ˆê¹Œ? (ê±°ìƒ ê³µì‹ ë‹¤ìš´ë¡œë“œ ë§í¬ì…ë‹ˆë‹¤)", "ê²Œì„ ì‹¤í–‰ ì‹¤íŒ¨", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes) {
                 try {
                     Process.Start(new ProcessStartInfo(url_installStarter) { UseShellExecute = true });
-                } catch (Exception ex2) {
+                }
+                catch (Exception ex2) {
                     Trace.WriteLine(ex2.Message);
                     Trace.WriteLine(ex2.StackTrace);
                 }
-            } else {
-                MessageBox.Show("°Å»ó È¨ÆäÀÌÁö -> ÀÚ·á½Ç -> Å¬¶óÀÌ¾ğÆ® -> GersangGameStarter ¼öµ¿ ¼³Ä¡\nÀ§ °æ·Î¿¡¼­ °Å»ó ½ÇÇà±â¸¦ ´Ù¿î·Îµå ¹ŞÀ¸¼Å¾ß °ÔÀÓ ½ÇÇàÀÌ °¡´ÉÇÕ´Ï´Ù.", "°ÔÀÓ ½ÇÇà ½ÇÆĞ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else {
+                MessageBox.Show("ê±°ìƒ í™ˆí˜ì´ì§€ -> ìë£Œì‹¤ -> í´ë¼ì´ì–¸íŠ¸ -> GersangGameStarter ìˆ˜ë™ ì„¤ì¹˜\nìœ„ ê²½ë¡œì—ì„œ ê±°ìƒ ì‹¤í–‰ê¸°ë¥¼ ë‹¤ìš´ë¡œë“œ ë°›ìœ¼ì…”ì•¼ ê²Œì„ ì‹¤í–‰ì´ ê°€ëŠ¥í•©ë‹ˆë‹¤.", "ê²Œì„ ì‹¤í–‰ ì‹¤íŒ¨", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
         private void materialSwitch_login_Click(object sender, EventArgs e) {
             MaterialSwitch @switch = (MaterialSwitch)sender;
-            Logger.Log("Click : " + @switch.Name);
             SwitchClick(@switch);
         }
 
         private void SwitchClick(MaterialSwitch sender) {
             if (isWebFunctionDeactivated) {
-                Trace.WriteLine("À¥ ·Îµù Áß ½ºÀ§Ä¡ ÀÛµ¿ÀÌ ºÒ°¡´É ÇÕ´Ï´Ù.");
+                Trace.WriteLine("ì›¹ ë¡œë”© ì¤‘ ìŠ¤ìœ„ì¹˜ ì‘ë™ì´ ë¶ˆê°€ëŠ¥ í•©ë‹ˆë‹¤.");
                 return;
             }
 
@@ -901,10 +863,9 @@ namespace GersangStation {
             string name = materialSwitch.Name;
             currentClient = (Client)Byte.Parse(name.Substring(name.Length - 1));
 
-            //·Î±×¾Æ¿ô
+            //ë¡œê·¸ì•„ì›ƒ
             if (materialSwitch.Checked) {
-                Logger.Log("Log : " + "´Ü¼ø ·Î±×¾Æ¿ô ½Ãµµ");
-                Trace.WriteLine("·Î±×¾Æ¿ô ÇÕ´Ï´Ù.");
+                Trace.WriteLine("ë¡œê·¸ì•„ì›ƒ í•©ë‹ˆë‹¤.");
                 webView_main.CoreWebView2.Navigate(url_logout);
                 materialSwitch.CheckState = CheckState.Unchecked;
                 currentState = State.None;
@@ -913,8 +874,7 @@ namespace GersangStation {
             }
 
             if (this.currentState == State.LoggedIn) {
-                Logger.Log("Log : " + "Å¸°èÁ¤ ·Î±×ÀÎÀ» À§ÇÑ ÇöÀç °èÁ¤ÀÇ ·Î±×¾Æ¿ô ½Ãµµ");
-                Trace.WriteLine("´Ù¸¥ °èÁ¤¿¡ ·Î±×ÀÎ ÇÏ±â À§ÇØ ·Î±×¾Æ¿ô ÇÕ´Ï´Ù.");
+                Trace.WriteLine("ë‹¤ë¥¸ ê³„ì •ì— ë¡œê·¸ì¸ í•˜ê¸° ìœ„í•´ ë¡œê·¸ì•„ì›ƒ í•©ë‹ˆë‹¤.");
 
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
                 materialSwitch_login_2.CheckState = CheckState.Unchecked;
@@ -926,8 +886,13 @@ namespace GersangStation {
                 return;
             }
 
-            if (materialSwitch.Tag == null || materialSwitch.Tag.ToString().Length == 0 || materialSwitch.Tag.ToString().Contains("¼±ÅÃ¾ÈÇÔ")) {
-                MessageBox.Show("·Î±×ÀÎ ÇÒ °èÁ¤ÀÌ ¼±ÅÃµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            if (materialSwitch.Tag == null || materialSwitch.Tag.ToString().Length == 0 || materialSwitch.Tag.ToString().Contains("ì„ íƒì•ˆí•¨")) {
+                MessageBox.Show("ë¡œê·¸ì¸ í•  ê³„ì •ì´ ì„ íƒë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
+                return;
+            }
+
+            if (materialSwitch.Tag.ToString().Contains("SNS_")) {
+                SNS_Login(materialSwitch.Tag.ToString());
                 return;
             }
 
@@ -935,20 +900,30 @@ namespace GersangStation {
             Login(account[0], account[1]);
         }
 
+        private async void SNS_Login(string platform) {
+            if (platform == "SNS_ë„¤ì´ë²„") await webView_main.ExecuteScriptAsync("document.getElementById('btn_naver').click()");
+            else if (platform == "SNS_ì¹´ì¹´ì˜¤") await webView_main.ExecuteScriptAsync("document.getElementById('btn_kakao').click()");
+            else if (platform == "SNS_êµ¬ê¸€") await webView_main.ExecuteScriptAsync("document.getElementById('btn_google').click()");
+            else {
+                MessageBox.Show("SNS ë¡œê·¸ì¸ì— ì‹¤íŒ¨í•˜ì˜€ìŠµë‹ˆë‹¤. ê´€ë¦¬ìì—ê²Œ ë¬¸ì˜í•´ì£¼ì„¸ìš”.", "SNS ë¡œê·¸ì¸ ì‹¤íŒ¨", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+           
+            currentState = State.LoggedIn;
+        }
+
         private void materialButton_shortcut_Click(object sender, EventArgs e) {
             MaterialButton button = (MaterialButton)sender;
-            Logger.Log("Click : " + button.Name);
             string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
 
             if (url == null || url.Equals("")) {
-                DialogResult dr = MessageBox.Show("³ª¸¸ÀÇ ¹Ù·Î°¡±â ¸µÅ©°¡ ¼³Á¤µÇ¾î ÀÖÁö ¾Ê½À´Ï´Ù.\n¼³Á¤È­¸éÀ¸·Î ÀÌµ¿ÇÏ½Ã°Ú½À´Ï±î?", "¹Ù·Î°¡±â ¹Ì¼³Á¤", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                DialogResult dr = MessageBox.Show("ë‚˜ë§Œì˜ ë°”ë¡œê°€ê¸° ë§í¬ê°€ ì„¤ì •ë˜ì–´ ìˆì§€ ì•ŠìŠµë‹ˆë‹¤.\nì„¤ì •í™”ë©´ìœ¼ë¡œ ì´ë™í•˜ì‹œê² ìŠµë‹ˆê¹Œ?", "ë°”ë¡œê°€ê¸° ë¯¸ì„¤ì •", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
                 if (dr == DialogResult.OK) { OpenShortcuttSettingDialog(); }
                 return;
             }
 
             if (!Uri.IsWellFormedUriString(url, UriKind.Absolute)) {
-                Logger.Log("MessageBox : " + "³ª¸¸ÀÇ ¹Ù·Î°¡±â ¸µÅ©¸¦ Àß¸øµÈ Çü½ÄÀ¸·Î ÆÇ´ÜÇÏ¿© ¾È³»¸Ş½ÃÁö Ãâ·Â\r\n  :" + url);
-                MessageBox.Show("Àß¸øµÈ ¸µÅ© Çü½Ä ÀÔ´Ï´Ù. ´Ù½Ã ¼³Á¤ÇØÁÖ¼¼¿ä.");
+                MessageBox.Show("ì˜ëª»ëœ ë§í¬ í˜•ì‹ ì…ë‹ˆë‹¤. ë‹¤ì‹œ ì„¤ì •í•´ì£¼ì„¸ìš”.");
                 return;
             }
 
@@ -968,13 +943,12 @@ namespace GersangStation {
 
         private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
             MaterialComboBox comboBox = (MaterialComboBox)sender;
-            Logger.Log("CheckedChanged : " + comboBox.Name + "->" + comboBox.SelectedIndex);
 
             string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
             if (id == "") id = comboBox.Text;
             string switchTag;
             Trace.WriteLine(id);
-            if(id.Contains("¼±ÅÃ¾ÈÇÔ")) { switchTag = id; }
+            if (id.Contains("ì„ íƒì•ˆí•¨") || id.Contains("SNS_")) { switchTag = comboBox.Text; }
             else { switchTag = id + ";" + ConfigManager.getConfig(id); }
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
@@ -991,15 +965,10 @@ namespace GersangStation {
                 temp[2] = comboBox.SelectedIndex;
             }
 
-            StringBuilder sb = new StringBuilder();
-            foreach (var item in temp) {
-               sb.Append(item.ToString() + ';');
-            }
-            sb.Remove(sb.Length - 1, 1);
-            ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
+            ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, string.Join(';', temp));
 
             if (Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
-                Trace.WriteLine("ÇöÀç ·Î±×ÀÎÇÑ Å¬¶óÀÌ¾ğÆ®ÀÇ °èÁ¤À» º¯°æÇÏ¿´À¸¹Ç·Î, ·Î±×¾Æ¿ô ÇÕ´Ï´Ù.");
+                Trace.WriteLine("í˜„ì¬ ë¡œê·¸ì¸í•œ í´ë¼ì´ì–¸íŠ¸ì˜ ê³„ì •ì„ ë³€ê²½í•˜ì˜€ìœ¼ë¯€ë¡œ, ë¡œê·¸ì•„ì›ƒ í•©ë‹ˆë‹¤.");
                 webView_main.CoreWebView2.Navigate(url_logout);
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
                 materialSwitch_login_2.CheckState = CheckState.Unchecked;
@@ -1011,7 +980,6 @@ namespace GersangStation {
         }
 
         private void LoadAccountComboBox() {
-            Logger.Log("Log : " + "°èÁ¤ ÄŞº¸¹Ú½º ·Îµù");
             materialComboBox_account_1.Items.Clear();
             materialComboBox_account_2.Items.Clear();
             materialComboBox_account_3.Items.Clear();
@@ -1024,9 +992,9 @@ namespace GersangStation {
                 accountList = Array.Empty<string>();
             }
 
-            materialComboBox_account_1.Items.Add("¼±ÅÃ¾ÈÇÔ");
-            materialComboBox_account_2.Items.Add("¼±ÅÃ¾ÈÇÔ");
-            materialComboBox_account_3.Items.Add("¼±ÅÃ¾ÈÇÔ");
+            materialComboBox_account_1.Items.Add("ì„ íƒì•ˆí•¨");
+            materialComboBox_account_2.Items.Add("ì„ íƒì•ˆí•¨");
+            materialComboBox_account_3.Items.Add("ì„ íƒì•ˆí•¨");
 
             foreach (var item in accountList) {
                 string id = ConfigManager.getConfig(item + "_nickname");
@@ -1036,18 +1004,35 @@ namespace GersangStation {
                 materialComboBox_account_3.Items.Add(id);
             }
 
+            materialComboBox_account_1.Items.Add("SNS_ë„¤ì´ë²„");
+            materialComboBox_account_2.Items.Add("SNS_ë„¤ì´ë²„");
+            materialComboBox_account_3.Items.Add("SNS_ë„¤ì´ë²„");
+            materialComboBox_account_1.Items.Add("SNS_ì¹´ì¹´ì˜¤");
+            materialComboBox_account_2.Items.Add("SNS_ì¹´ì¹´ì˜¤");
+            materialComboBox_account_3.Items.Add("SNS_ì¹´ì¹´ì˜¤");
+            materialComboBox_account_1.Items.Add("SNS_êµ¬ê¸€");
+            materialComboBox_account_2.Items.Add("SNS_êµ¬ê¸€");
+            materialComboBox_account_3.Items.Add("SNS_êµ¬ê¸€");
+
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] index = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
-            materialComboBox_account_1.SelectedIndex = index[0];
-            materialComboBox_account_2.SelectedIndex = index[1];
-            materialComboBox_account_3.SelectedIndex = index[2];
+
+            try {
+                materialComboBox_account_1.SelectedIndex = index[0];
+                materialComboBox_account_2.SelectedIndex = index[1];
+                materialComboBox_account_3.SelectedIndex = index[2];
+            } catch (ArgumentOutOfRangeException) {
+                materialComboBox_account_1.SelectedIndex = 0;
+                materialComboBox_account_2.SelectedIndex = 0;
+                materialComboBox_account_3.SelectedIndex = 0;
+            }
+            
             materialComboBox_account_1.Refresh();
             materialComboBox_account_2.Refresh();
             materialComboBox_account_3.Refresh();
         }
 
         private void materialButton_debugging_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_debugging.Name);
 
             webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
 
@@ -1062,7 +1047,6 @@ namespace GersangStation {
         }
 
         private void LoadShortcut() {
-            Logger.Log("Log : " + "³ª¸¸ÀÇ ¹Ù·Î°¡±â ¼³Á¤ ·Îµù");
             string[] names = ConfigManager.getConfig("shortcut_name").Split(';');
             materialButton_shortcut_1.Text = names[0];
             materialButton_shortcut_2.Text = names[1];
@@ -1072,7 +1056,6 @@ namespace GersangStation {
 
         private void materialButton_naver_Click(object sender, EventArgs e) {
             MaterialButton searchButton = (MaterialButton)sender;
-            Logger.Log("Click : " + searchButton.Name);
             SearchClick(searchButton);
         }
 
@@ -1084,17 +1067,16 @@ namespace GersangStation {
             else { loginSwitch = materialSwitch_login_3; }
 
             isSearch = true;
-            if (true == loginSwitch.Checked) { webView_main.CoreWebView2.Navigate(url_search); } //³×ÀÌ¹ö °Ë»ö
+            if (true == loginSwitch.Checked) { webView_main.CoreWebView2.Navigate(url_search); } //ë„¤ì´ë²„ ê²€ìƒ‰
             else { SwitchClick(loginSwitch); }
         }
 
         private void radio_preset_CheckedChanged(object sender, EventArgs e) {
             MaterialRadioButton radio = (MaterialRadioButton)sender;
-            Logger.Log("CheckedChanged : " + radio.Name + "->" + radio.Checked);
             if (radio.Checked == false) { return; }
             string? value = radio.Tag.ToString();
             if (value == null) {
-                MessageBox.Show("RadioButtonÀÇ Tag°¡ NullÀÔ´Ï´Ù.");
+                MessageBox.Show("RadioButtonì˜ Tagê°€ Nullì…ë‹ˆë‹¤.");
                 return;
             }
 
@@ -1103,7 +1085,6 @@ namespace GersangStation {
         }
 
         private void LoadRadioButton() {
-            Logger.Log("Log : " + "¶óµğ¿À ¹öÆ° ·Îµù");
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             switch (current_preset) {
                 case 1 :
@@ -1119,13 +1100,12 @@ namespace GersangStation {
                     radio_preset_4.PerformClick();
                     break;
                 default:
-                    MessageBox.Show("LoadRadioButton¿¡¼­ ¿À·ù ¹ß»ı");
+                    MessageBox.Show("LoadRadioButtonì—ì„œ ì˜¤ë¥˜ ë°œìƒ");
                     break;
             }
         }
 
         private void Form1_Resize(object sender, EventArgs e) {
-            Logger.Log("Event : " + "Resize -> " + this.WindowState);
             Trace.WriteLine("Form Resize! : " + this.WindowState);
             if(this.WindowState == FormWindowState.Minimized) {
                 //this.WindowState = FormWindowState.Normal;
@@ -1133,14 +1113,14 @@ namespace GersangStation {
         }
 
         private async void Login(string id, string protected_pw) {
-            Logger.Log("Log : " + "·Î±×ÀÎ ½Ãµµ");
             try {
                 await webView_main.ExecuteScriptAsync("document.getElementById('GSuserID').value = '" + id + "'");
                 await webView_main.ExecuteScriptAsync("document.getElementById('GSuserPW').value = '" + EncryptionSupporter.Unprotect(protected_pw) + "'");
-            } catch (CryptographicException e) {
-                //»ç¿ëÀÚ°¡ ¾ÏÈ£È­µÈ ÆĞ½º¿öµå°¡ Æ÷ÇÔµÈ ¼³Á¤ÆÄÀÏÀ» Å¸ PC·Î º¹»ç ÈÄ »ç¿ë ½Ã ¹ß»ıÇÏ´Â ¿À·ù
+            }
+            catch (CryptographicException e) {
+                //ì‚¬ìš©ìê°€ ì•”í˜¸í™”ëœ íŒ¨ìŠ¤ì›Œë“œê°€ í¬í•¨ëœ ì„¤ì •íŒŒì¼ì„ íƒ€ PCë¡œ ë³µì‚¬ í›„ ì‚¬ìš© ì‹œ ë°œìƒí•˜ëŠ” ì˜¤ë¥˜
                 Trace.WriteLine(e.Message);
-                MessageBox.Show("°èÁ¤Á¤º¸¸¦ Å¸ PC·Î ¿Å±ä °ÍÀ¸·Î È®ÀÎµÇ¾ú½À´Ï´Ù.\n°èÁ¤ Á¤º¸ À¯Ãâ ¹æÁö¸¦ À§ÇØ ¸ğµç °èÁ¤ Á¤º¸¸¦ ÃÊ±âÈ­ ÇÕ´Ï´Ù.", "ÆĞ½º¿öµå º¹È£È­ ½ÇÆĞ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("ê³„ì •ì •ë³´ë¥¼ íƒ€ PCë¡œ ì˜®ê¸´ ê²ƒìœ¼ë¡œ í™•ì¸ë˜ì—ˆìŠµë‹ˆë‹¤.\nê³„ì • ì •ë³´ ìœ ì¶œ ë°©ì§€ë¥¼ ìœ„í•´ ëª¨ë“  ê³„ì • ì •ë³´ë¥¼ ì´ˆê¸°í™” í•©ë‹ˆë‹¤.", "íŒ¨ìŠ¤ì›Œë“œ ë³µí˜¸í™” ì‹¤íŒ¨", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 currentClient = Client.None;
                 currentState = State.None;
                 ClearAccount();
@@ -1152,7 +1132,6 @@ namespace GersangStation {
         }
 
         private void ClearAccount() {
-            Logger.Log("Log : " + "°èÁ¤ ÃÊ±âÈ­ ½Ãµµ");
             string temp = ConfigManager.getConfig("account_list");
             string[] account_list = temp.Remove(temp.Length - 1, 1).Split(';');
             foreach (var item in account_list) {
@@ -1170,7 +1149,6 @@ namespace GersangStation {
 
         private void materialButton_setting_Click(object sender, EventArgs e) {
             CustomButton button = (CustomButton)sender;
-            Logger.Log("Click : " + button.Name);
             if (button.Equals(materialButton_setting_account)) {
                 OpenAccountSettingDialog();
             } else if (button.Equals(materialButton_setting_client)) {
@@ -1254,7 +1232,6 @@ namespace GersangStation {
 
         private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
             MaterialCheckbox checkbox = (MaterialCheckbox)sender;
-            Logger.Log("CheckedChanged : " + checkbox.Name + "->" + checkbox.Checked);
             ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
         }
 
@@ -1274,53 +1251,44 @@ namespace GersangStation {
         }
 
         private void materialButton_kakao_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_kakao.Name);
             Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
         }
 
         private void materialButton_patchNote_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_patchNote.Name);
             Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
         }
 
         private void materialButton_blog_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_blog.Name);
             Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
         }
 
         private void materialButton_gitHub_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + materialButton_gitHub.Name);
             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
         }
 
         private void button_tray_Click(object sender, EventArgs e) {
-            Logger.Log("Click : " + button_tray.Name);
             notifyIcon1.Visible = true;
-            notifyIcon1.BalloonTipTitle = "¾Ë¸²";
-            notifyIcon1.BalloonTipText = "ÇÁ·Î±×·¥ÀÌ Æ®·¹ÀÌ·Î ÀÌµ¿µÇ¾ú½À´Ï´Ù.";
+            notifyIcon1.BalloonTipTitle = "ì•Œë¦¼";
+            notifyIcon1.BalloonTipText = "í”„ë¡œê·¸ë¨ì´ íŠ¸ë ˆì´ë¡œ ì´ë™ë˜ì—ˆìŠµë‹ˆë‹¤.";
             notifyIcon1.ShowBalloonTip(5000);
             this.Hide();
         }
 
         private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
-            Logger.Log("DoubleClick : " + "notifyIcon1");
             notifyIcon1.Visible = false;
             this.Show();
         }
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-            Logger.Log("Click : " + linkLabel1.Name);
             Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
         }
 
         private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {
             ToolStripItem item = e.ClickedItem;
             if (item.Equals(toolStripMenuItem_open)) {
-                Logger.Log("ItemClicked : " + "(contextMenuStrip_tray) " + "toolStripMenuItem_open");
                 notifyIcon1.Visible = false;
                 this.Show();
             } else if (item.Equals(toolStripMenuItem_exit)) {
-                Logger.Log("ItemClicked : " + "(contextMenuStrip_tray) " + "toolStripMenuItem_exit");
                 System.Windows.Forms.Application.Exit();
             }
         }
@@ -1328,7 +1296,6 @@ namespace GersangStation {
         private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e) {
             ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
             ToolStripItem item = e.ClickedItem;
-            Logger.Log("ItemClicked : " + "(" + menuItem.Name + ") " + item.Name);
 
             if (menuItem.Equals(toolStripMenuItem_client_1)) {
                 if (item.Equals(toolStripMenuItem_search_1)) { SearchClick(materialButton_search_1); } 

@@ -36,7 +36,6 @@ namespace GersangStation {
             InitializeComponent();
 
             if (true == isTest) {
-                Logger.Log("Log : (" + this.Name + ") " + "테스트서버 패치 시작 전");
                 //테섭
                 path_main = ConfigManager.getConfig("client_path_test_1");
                 name_client_2 = ConfigManager.getConfig("client_path_test_2");
@@ -49,7 +48,6 @@ namespace GersangStation {
                 server = Server.Test;
             }
             else {
-                Logger.Log("Log : (" + this.Name + ") " + "본서버 패치 시작 전");
                 //본섭
                 path_main = ConfigManager.getConfig("client_path_1");
                 name_client_2 = ConfigManager.getConfig("client_path_2");
@@ -62,8 +60,8 @@ namespace GersangStation {
                 server = Server.Main;
             }
 
-            version_current = Form_Patcher.GetCurrentVersion(this, path_main);
-            version_latest = Form_Patcher.GetLatestVersion(this, url_vsn);
+            version_current = VersionChecker.GetCurrentVersion(this, path_main);
+            version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
             if (version_current == "" || version_latest == "") {
                 this.Close();
                 return;
@@ -83,22 +81,18 @@ namespace GersangStation {
         }
 
         private void materialButton_close_Click(object sender, EventArgs e) {
-            Logger.Log("Click : (" + this.Name + ") " + materialButton_close.Name);
             this.DialogResult = DialogResult.OK;
         }
 
         private void materialButton_startPatch_Click(object sender, EventArgs e) {
             DirectoryInfo pathInfo = new DirectoryInfo(path_main + "\\char");
             if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-                Logger.Log("Log : (" + "Form_Patcher_v2" + ") " + "본클라 경로가 다클라 생성기로 생성된 경로");
                 MessageBox.Show("잘못된 본클라 경로입니다. 다시 지정해주세요.\n원인 : 원본 폴더가 아닌 생성기로 생성된 폴더입니다.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            Logger.Log("Click : (" + this.Name + ") " + materialButton_startPatch.Name);
             int equal = 1;
             if (version_current == version_latest) {
-                Logger.Log("Log : (" + this.Name + ") " + "현재 버전과 최신 버전이 같아 패치 여부를 묻는 메시지 출력");
                 DialogResult dr = MessageBox.Show(this, "현재 버전과 최신 버전이 같습니다.\n그래도 패치 하시겠습니까?", "버전 같음", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 if (dr == DialogResult.No) {
                     this.DialogResult = DialogResult.OK;
@@ -112,11 +106,9 @@ namespace GersangStation {
             materialButton_startPatch.Enabled = false;
             materialButton_close.Enabled = false;
 
-            Logger.Log("Log : (" + this.Name + ") " + "패치 시작");
             Trace.WriteLine("패치 시작!");
 
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            Logger.Log("Log : (" + this.Name + ") " + "패치에 필요한 디렉토리 미리 생성");
 
             DirectoryInfo directory_patch = new DirectoryInfo(Application.StartupPath + @"\patch");
             if (!directory_patch.Exists) { directory_patch.Create(); }
@@ -145,7 +137,6 @@ namespace GersangStation {
             //다클라 패치 적용
             if (materialCheckbox_apply.Checked) {
                 label_status.Text = "다클라 패치 적용 중...";
-                Logger.Log("Log : (" + this.Name + ") " + "다클라 패치 적용 옵션이 체크되어있어 다클라 패치 적용 시작 (다클생성과 동일)");
                 if (bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path_main, name_client_2, name_client_3); }
                 else { ClientCreator.CreateClient_Default(this, path_main, name_client_2, name_client_3); }
             }
@@ -154,12 +145,10 @@ namespace GersangStation {
             if (materialCheckbox_delete.Checked) {
                 label_status.Text = "패치 후 파일 삭제 중...";
                 try {
-                    Logger.Log("Log : (" + this.Name + ") " + "남은 패치 파일 삭제 시도");
                     directory_file.Delete(true);
                     Trace.WriteLine("패치 파일 폴더 삭제 완료");
                 }
                 catch (Exception ex) {
-                    Logger.Log("Exception : (" + this.Name + ") " + "남은 패치 파일 삭제 도중 예외가 발생 -> " + ex.Message);
                     Trace.WriteLine("패치 파일 폴더 삭제 실패\n" + ex.Message);
                 }
             }
@@ -174,8 +163,6 @@ namespace GersangStation {
 
         public Dictionary<string, string> GetPatchFileList(int equal, DirectoryInfo directory_info, DirectoryInfo directory_file) {
             List<string> list_infoFile = new List<string>();
-
-            Logger.Log("Log : (" + this.Name + ") " + "현재 버전부터 최신 버전까지 필요한 패치정보파일 다운로드");
 
             using (var webClient = new WebClient()) {
                 for (int i = Int16.Parse(version_current) + equal; i <= Int16.Parse(version_latest); i++) {
@@ -280,7 +267,6 @@ namespace GersangStation {
 
                 if (list_retry.Count > 0) {
                     Trace.WriteLine("10번의 재다운로드 시도 결과 모든 파일을 재다운로드 하는데 실패하였습니다.");
-                    Logger.Log("10번의 재다운로드 시도 결과 모든 파일을 재다운로드 하는데 실패하였습니다.");
                     foreach (var item in list_retry) {
                         Trace.WriteLine("다운로드 실패한 파일 주소 : " + item.Key);
                     }
@@ -327,7 +313,7 @@ namespace GersangStation {
                 string file_name = item.Value.Substring(item.Value.LastIndexOf('\\') + 1);
 
                 //내부 폴더 생성
-                DirectoryInfo fileInnerDirectory = new DirectoryInfo(new FileInfo(item.Value).DirectoryName);
+                DirectoryInfo fileInnerDirectory = new(path: new FileInfo(item.Value).DirectoryName);
                 if (!fileInnerDirectory.Exists) { fileInnerDirectory.Create(); }
 
                 Trace.WriteLine($"[재다운로드 시작] {file_name}");

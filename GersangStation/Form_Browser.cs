@@ -42,7 +42,6 @@ namespace GersangStation {
                 webView.Size = new Size(webView.Width, this.ClientSize.Height - (addressBar.Height + addressBar.Location.Y));
                 
             } catch (NullReferenceException) {
-                Logger.Log("Form_Browser_Resize -> NullReferenceException");
             }
 
             goButton.Left = this.ClientSize.Width - goButton.Width;
