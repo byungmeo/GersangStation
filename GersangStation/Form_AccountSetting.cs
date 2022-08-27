@@ -143,6 +143,24 @@ namespace GersangStation {
                     ConfigManager.setConfig("account_list", ConfigManager.getConfig("account_list") + textBox_id.Text + ";");
 
                     LoadListBox();
+
+                    //SNS 로그인을 선택한 프리셋의 index를 1씩 증가 (계정이 추가되어서 뒤로 밀리니까)
+                    //0번은 선택 없음, count - 2, 3, 4은 SNS 로그인 자리 (이미 하나가 추가되었으니까 -2 부터)
+                    int count = materialListBox1.Count;
+                    int[] preset1 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_1").Split(';'), int.Parse);
+                    int[] preset2 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_2").Split(';'), int.Parse);
+                    int[] preset3 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_3").Split(';'), int.Parse);
+                    int[] preset4 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_4").Split(';'), int.Parse);
+                    int[][] preset_list = { preset1, preset2, preset3, preset4 };
+                    foreach (int[] preset in preset_list) {
+                        for(int i = 0; i < preset.Length; i++) {
+                            if (preset[i] >= count - 4) preset[i]++;
+                        }
+                    }
+                    ConfigManager.setConfig("current_comboBox_index_preset_1", String.Join(';', preset1));
+                    ConfigManager.setConfig("current_comboBox_index_preset_2", String.Join(';', preset2));
+                    ConfigManager.setConfig("current_comboBox_index_preset_3", String.Join(';', preset3));
+                    ConfigManager.setConfig("current_comboBox_index_preset_4", String.Join(';', preset4));
                 }
             } else {
                 string original_id = materialListBox1.SelectedItem.Text;

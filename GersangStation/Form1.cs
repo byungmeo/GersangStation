@@ -891,8 +891,25 @@ namespace GersangStation {
                 return;
             }
 
+            if (materialSwitch.Tag.ToString().Contains("SNS_")) {
+                SNS_Login(materialSwitch.Tag.ToString());
+                return;
+            }
+
             string[] account = materialSwitch.Tag.ToString().Split(';');
             Login(account[0], account[1]);
+        }
+
+        private async void SNS_Login(string platform) {
+            if (platform == "SNS_네이버") await webView_main.ExecuteScriptAsync("document.getElementById('btn_naver').click()");
+            else if (platform == "SNS_카카오") await webView_main.ExecuteScriptAsync("document.getElementById('btn_kakao').click()");
+            else if (platform == "SNS_구글") await webView_main.ExecuteScriptAsync("document.getElementById('btn_google').click()");
+            else {
+                MessageBox.Show("SNS 로그인에 실패하였습니다. 관리자에게 문의해주세요.", "SNS 로그인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+           
+            currentState = State.LoggedIn;
         }
 
         private void materialButton_shortcut_Click(object sender, EventArgs e) {
@@ -931,7 +948,7 @@ namespace GersangStation {
             if (id == "") id = comboBox.Text;
             string switchTag;
             Trace.WriteLine(id);
-            if(id.Contains("선택안함")) { switchTag = id; }
+            if (id.Contains("선택안함") || id.Contains("SNS_")) { switchTag = comboBox.Text; }
             else { switchTag = id + ";" + ConfigManager.getConfig(id); }
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
@@ -948,12 +965,7 @@ namespace GersangStation {
                 temp[2] = comboBox.SelectedIndex;
             }
 
-            StringBuilder sb = new StringBuilder();
-            foreach (var item in temp) {
-               sb.Append(item.ToString() + ';');
-            }
-            sb.Remove(sb.Length - 1, 1);
-            ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
+            ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, string.Join(';', temp));
 
             if (Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
                 Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
@@ -991,6 +1003,16 @@ namespace GersangStation {
                 materialComboBox_account_2.Items.Add(id);
                 materialComboBox_account_3.Items.Add(id);
             }
+
+            materialComboBox_account_1.Items.Add("SNS_네이버");
+            materialComboBox_account_2.Items.Add("SNS_네이버");
+            materialComboBox_account_3.Items.Add("SNS_네이버");
+            materialComboBox_account_1.Items.Add("SNS_카카오");
+            materialComboBox_account_2.Items.Add("SNS_카카오");
+            materialComboBox_account_3.Items.Add("SNS_카카오");
+            materialComboBox_account_1.Items.Add("SNS_구글");
+            materialComboBox_account_2.Items.Add("SNS_구글");
+            materialComboBox_account_3.Items.Add("SNS_구글");
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] index = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
