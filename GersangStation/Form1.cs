@@ -1016,9 +1016,17 @@ namespace GersangStation {
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] index = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
-            materialComboBox_account_1.SelectedIndex = index[0];
-            materialComboBox_account_2.SelectedIndex = index[1];
-            materialComboBox_account_3.SelectedIndex = index[2];
+
+            try {
+                materialComboBox_account_1.SelectedIndex = index[0];
+                materialComboBox_account_2.SelectedIndex = index[1];
+                materialComboBox_account_3.SelectedIndex = index[2];
+            } catch (ArgumentOutOfRangeException) {
+                materialComboBox_account_1.SelectedIndex = 0;
+                materialComboBox_account_2.SelectedIndex = 0;
+                materialComboBox_account_3.SelectedIndex = 0;
+            }
+            
             materialComboBox_account_1.Refresh();
             materialComboBox_account_2.Refresh();
             materialComboBox_account_3.Refresh();
