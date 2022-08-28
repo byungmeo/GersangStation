@@ -1308,5 +1308,24 @@ namespace GersangStation {
                 else if (item.Equals(toolStripMenuItem_start_3)) { StartClick(materialButton_start_3); }
             }
         }
+
+        private void materialButton_license_Click(object sender, EventArgs e) {
+            Form backgroundForm = InitBackgroundForm(this);
+
+            Form_License dialog_license = new Form_License() {
+                Owner = this
+            };
+
+            try {
+                backgroundForm.Show();
+                dialog_license.ShowDialog();
+            }
+            catch (Exception ex) {
+                Trace.WriteLine(ex.StackTrace);
+            }
+            finally {
+                backgroundForm.Dispose();
+            }
+        }
     } //Form1
 } //namespace

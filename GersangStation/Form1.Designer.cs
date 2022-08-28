@@ -60,6 +60,7 @@
             this.tabPage_help = new System.Windows.Forms.TabPage();
             this.materialButton_kakao = new GersangStation.CustomButton();
             this.tabPage_info = new System.Windows.Forms.TabPage();
+            this.materialButton_license = new MaterialSkin.Controls.MaterialButton();
             this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.materialButton_patchNote = new MaterialSkin.Controls.MaterialButton();
@@ -777,6 +778,7 @@
             // 
             // tabPage_info
             // 
+            this.tabPage_info.Controls.Add(this.materialButton_license);
             this.tabPage_info.Controls.Add(this.linkLabel1);
             this.tabPage_info.Controls.Add(this.pictureBox1);
             this.tabPage_info.Controls.Add(this.materialButton_patchNote);
@@ -794,6 +796,27 @@
             this.tabPage_info.Text = "프로그램 정보";
             this.tabPage_info.UseVisualStyleBackColor = true;
             // 
+            // materialButton_license
+            // 
+            this.materialButton_license.AutoSize = false;
+            this.materialButton_license.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.materialButton_license.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Dense;
+            this.materialButton_license.Depth = 0;
+            this.materialButton_license.HighEmphasis = true;
+            this.materialButton_license.Icon = null;
+            this.materialButton_license.Location = new System.Drawing.Point(211, 111);
+            this.materialButton_license.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
+            this.materialButton_license.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialButton_license.Name = "materialButton_license";
+            this.materialButton_license.NoAccentTextColor = System.Drawing.Color.Empty;
+            this.materialButton_license.Size = new System.Drawing.Size(58, 32);
+            this.materialButton_license.TabIndex = 8;
+            this.materialButton_license.Text = "라이선스";
+            this.materialButton_license.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            this.materialButton_license.UseAccentColor = false;
+            this.materialButton_license.UseVisualStyleBackColor = true;
+            this.materialButton_license.Click += new System.EventHandler(this.materialButton_license_Click);
+            // 
             // linkLabel1
             // 
             this.linkLabel1.AutoSize = true;
@@ -807,7 +830,7 @@
             // 
             // pictureBox1
             // 
-            this.pictureBox1.Image = global::GersangStation.Properties.Resources.iconNoBack;
+            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
             this.pictureBox1.Location = new System.Drawing.Point(52, 24);
             this.pictureBox1.Name = "pictureBox1";
             this.pictureBox1.Size = new System.Drawing.Size(48, 48);
@@ -823,7 +846,7 @@
             this.materialButton_patchNote.Depth = 0;
             this.materialButton_patchNote.HighEmphasis = true;
             this.materialButton_patchNote.Icon = null;
-            this.materialButton_patchNote.Location = new System.Drawing.Point(211, 111);
+            this.materialButton_patchNote.Location = new System.Drawing.Point(211, 76);
             this.materialButton_patchNote.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
             this.materialButton_patchNote.MouseState = MaterialSkin.MouseState.HOVER;
             this.materialButton_patchNote.Name = "materialButton_patchNote";
@@ -880,7 +903,7 @@
             // 
             // label1
             // 
-            this.label1.Font = new System.Drawing.Font("Noto Sans KR", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.label1.Location = new System.Drawing.Point(99, 31);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(195, 35);
@@ -890,20 +913,20 @@
             // label_version_latest
             // 
             this.label_version_latest.AutoSize = true;
-            this.label_version_latest.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label_version_latest.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.label_version_latest.Location = new System.Drawing.Point(74, 116);
             this.label_version_latest.Name = "label_version_latest";
-            this.label_version_latest.Size = new System.Drawing.Size(130, 22);
+            this.label_version_latest.Size = new System.Drawing.Size(125, 18);
             this.label_version_latest.TabIndex = 1;
             this.label_version_latest.Text = "최신 버전 : 00000";
             // 
             // label_version_current
             // 
             this.label_version_current.AutoSize = true;
-            this.label_version_current.Font = new System.Drawing.Font("Noto Sans KR Medium", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label_version_current.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.label_version_current.Location = new System.Drawing.Point(74, 83);
             this.label_version_current.Name = "label_version_current";
-            this.label_version_current.Size = new System.Drawing.Size(130, 22);
+            this.label_version_current.Size = new System.Drawing.Size(125, 18);
             this.label_version_current.TabIndex = 0;
             this.label_version_current.Text = "현재 버전 : 00000";
             // 
@@ -956,19 +979,19 @@
             this.toolStripSeparator2,
             this.toolStripMenuItem_exit});
             this.contextMenuStrip_tray.Name = "contextMenuStrip_tray";
-            this.contextMenuStrip_tray.Size = new System.Drawing.Size(181, 148);
+            this.contextMenuStrip_tray.Size = new System.Drawing.Size(106, 126);
             this.contextMenuStrip_tray.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip_tray_ItemClicked);
             // 
             // toolStripMenuItem_open
             // 
             this.toolStripMenuItem_open.Name = "toolStripMenuItem_open";
-            this.toolStripMenuItem_open.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_open.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_open.Text = "열기";
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(102, 6);
             // 
             // toolStripMenuItem_client_1
             // 
@@ -976,20 +999,20 @@
             this.toolStripMenuItem_search_1,
             this.toolStripMenuItem_start_1});
             this.toolStripMenuItem_client_1.Name = "toolStripMenuItem_client_1";
-            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_client_1.Text = "1클라";
             this.toolStripMenuItem_client_1.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
             // toolStripMenuItem_search_1
             // 
             this.toolStripMenuItem_search_1.Name = "toolStripMenuItem_search_1";
-            this.toolStripMenuItem_search_1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_search_1.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_search_1.Text = "검색보상수령";
             // 
             // toolStripMenuItem_start_1
             // 
             this.toolStripMenuItem_start_1.Name = "toolStripMenuItem_start_1";
-            this.toolStripMenuItem_start_1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_start_1.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_start_1.Text = "게임시작";
             // 
             // toolStripMenuItem_client_2
@@ -998,20 +1021,20 @@
             this.toolStripMenuItem_search_2,
             this.toolStripMenuItem_start_2});
             this.toolStripMenuItem_client_2.Name = "toolStripMenuItem_client_2";
-            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_client_2.Text = "2클라";
             this.toolStripMenuItem_client_2.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
             // toolStripMenuItem_search_2
             // 
             this.toolStripMenuItem_search_2.Name = "toolStripMenuItem_search_2";
-            this.toolStripMenuItem_search_2.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_search_2.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_search_2.Text = "검색보상수령";
             // 
             // toolStripMenuItem_start_2
             // 
             this.toolStripMenuItem_start_2.Name = "toolStripMenuItem_start_2";
-            this.toolStripMenuItem_start_2.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_start_2.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_start_2.Text = "게임시작";
             // 
             // toolStripMenuItem_client_3
@@ -1020,31 +1043,31 @@
             this.toolStripMenuItem_search_3,
             this.toolStripMenuItem_start_3});
             this.toolStripMenuItem_client_3.Name = "toolStripMenuItem_client_3";
-            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_client_3.Text = "3클라";
             this.toolStripMenuItem_client_3.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
             // toolStripMenuItem_search_3
             // 
             this.toolStripMenuItem_search_3.Name = "toolStripMenuItem_search_3";
-            this.toolStripMenuItem_search_3.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_search_3.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_search_3.Text = "검색보상수령";
             // 
             // toolStripMenuItem_start_3
             // 
             this.toolStripMenuItem_start_3.Name = "toolStripMenuItem_start_3";
-            this.toolStripMenuItem_start_3.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_start_3.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_start_3.Text = "게임시작";
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(102, 6);
             // 
             // toolStripMenuItem_exit
             // 
             this.toolStripMenuItem_exit.Name = "toolStripMenuItem_exit";
-            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_exit.Text = "종료";
             // 
             // Form1
@@ -1143,5 +1166,6 @@
         private ToolStripMenuItem toolStripMenuItem_client_3;
         private ToolStripMenuItem toolStripMenuItem_search_3;
         private ToolStripMenuItem toolStripMenuItem_start_3;
+        private MaterialSkin.Controls.MaterialButton materialButton_license;
     }
 }
