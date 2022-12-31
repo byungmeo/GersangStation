@@ -77,43 +77,44 @@ namespace GersangStation {
                 Dock = DockStyle.Fill,
                 Source = new Uri("https://www.gersang.co.kr/main/index.gs")
             };
+            webView_main.CoreWebView2InitializationCompleted += webView_main_CoreWebView2InitializationCompleted;
+            await webView_main.EnsureCoreWebView2Async(null);
+        }
 
-            try {
-                await InitializeAsync();
+        // EnsureCoreWebView2Async의 결과값이 null이 아니라면 CoreWebView2 초기화가 완료되기 직전 이 이벤트가 발생합니다.
+        private void webView_main_CoreWebView2InitializationCompleted(object? sender, CoreWebView2InitializationCompletedEventArgs e) {
+            if(e.IsSuccess) {
                 //webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested; //Edge 보안 업데이트로 인해 NewWindow 로직 제거
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert 등의 메시지창이 뜨지않고 ScriptDialogOpening 이벤트를 통해 제어할 수 있도록 합니다.
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
-            } catch (WebView2RuntimeNotFoundException ex) {
-                Trace.WriteLine(ex.StackTrace);
-                DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                if (dr == DialogResult.Yes) {
-                    Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
-                }
-                System.Windows.Forms.Application.Exit();
-                return;
-            } catch (DllNotFoundException) {
-                DialogResult dr = MessageBox.Show("실행 파일의 위치가 잘못되었습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 실행 파일 위치", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                if (dr == DialogResult.OK) {
-                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
+
+                webView_main.NavigationStarting += webView_main_NavigationStarting;
+                webView_main.NavigationCompleted += webView_main_NavigationCompleted;
+                webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
+
+                LoadComponent();
+            } else {
+                Trace.WriteLine(e.InitializationException.StackTrace);
+                if (e.InitializationException is DllNotFoundException) {
+                    DialogResult dr = MessageBox.Show("실행 파일의 위치가 잘못되었습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 실행 파일 위치", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    if (dr == DialogResult.OK) {
+                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
+                    }
+                } else if(e.InitializationException is WebView2RuntimeNotFoundException) {
+                    DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                    if (dr == DialogResult.Yes) {
+                        Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
+                    }
+                } else {
+                    DialogResult dr = MessageBox.Show("WebView2 초기화 중 오류 발생하였습니다. 문의해주세요.\n" + e.InitializationException.Message, "WebView2 초기화 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    if (dr == DialogResult.OK) {
+                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/3") { UseShellExecute = true });
+                    }
                 }
                 System.Windows.Forms.Application.Exit();
                 return;
             }
-
-            webView_main.NavigationStarting += webView_main_NavigationStarting;
-            webView_main.NavigationCompleted += webView_main_NavigationCompleted;
-
-            webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
-
-            LoadComponent();
         }
-
-        private async Task InitializeAsync() {
-            Trace.WriteLine("InitializeAsync");
-            await webView_main.EnsureCoreWebView2Async(null);
-            Trace.WriteLine("WebView2 Runtime version: " + webView_main.CoreWebView2.Environment.BrowserVersionString);
-        }
-
 
         private void LoadComponent() {
             ConfigManager.Validation();
