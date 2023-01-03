@@ -225,6 +225,7 @@
             this.materialButton_search_3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.materialButton_search_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             this.materialButton_search_3.Depth = 0;
+            this.materialButton_search_3.Enabled = false;
             this.materialButton_search_3.HighEmphasis = true;
             this.materialButton_search_3.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_search_3.Icon")));
             this.materialButton_search_3.Location = new System.Drawing.Point(242, 130);
@@ -234,9 +235,11 @@
             this.materialButton_search_3.NoAccentTextColor = System.Drawing.Color.Empty;
             this.materialButton_search_3.Size = new System.Drawing.Size(39, 35);
             this.materialButton_search_3.TabIndex = 36;
+            this.materialButton_search_3.TabStop = false;
             this.materialButton_search_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             this.materialButton_search_3.UseAccentColor = true;
             this.materialButton_search_3.UseVisualStyleBackColor = true;
+            this.materialButton_search_3.Visible = false;
             this.materialButton_search_3.Click += new System.EventHandler(this.materialButton_naver_Click);
             // 
             // materialButton_start_2
@@ -265,6 +268,7 @@
             this.materialButton_search_2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.materialButton_search_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             this.materialButton_search_2.Depth = 0;
+            this.materialButton_search_2.Enabled = false;
             this.materialButton_search_2.HighEmphasis = true;
             this.materialButton_search_2.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_search_2.Icon")));
             this.materialButton_search_2.Location = new System.Drawing.Point(242, 89);
@@ -274,9 +278,11 @@
             this.materialButton_search_2.NoAccentTextColor = System.Drawing.Color.Empty;
             this.materialButton_search_2.Size = new System.Drawing.Size(39, 35);
             this.materialButton_search_2.TabIndex = 34;
+            this.materialButton_search_2.TabStop = false;
             this.materialButton_search_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             this.materialButton_search_2.UseAccentColor = true;
             this.materialButton_search_2.UseVisualStyleBackColor = true;
+            this.materialButton_search_2.Visible = false;
             this.materialButton_search_2.Click += new System.EventHandler(this.materialButton_naver_Click);
             // 
             // materialButton_shortcut_1
@@ -430,6 +436,7 @@
             this.materialButton_search_1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.materialButton_search_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             this.materialButton_search_1.Depth = 0;
+            this.materialButton_search_1.Enabled = false;
             this.materialButton_search_1.HighEmphasis = true;
             this.materialButton_search_1.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_search_1.Icon")));
             this.materialButton_search_1.Location = new System.Drawing.Point(242, 48);
@@ -439,9 +446,11 @@
             this.materialButton_search_1.NoAccentTextColor = System.Drawing.Color.Empty;
             this.materialButton_search_1.Size = new System.Drawing.Size(39, 35);
             this.materialButton_search_1.TabIndex = 24;
+            this.materialButton_search_1.TabStop = false;
             this.materialButton_search_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             this.materialButton_search_1.UseAccentColor = true;
             this.materialButton_search_1.UseVisualStyleBackColor = true;
+            this.materialButton_search_1.Visible = false;
             this.materialButton_search_1.Click += new System.EventHandler(this.materialButton_naver_Click);
             // 
             // materialSwitch_login_3
