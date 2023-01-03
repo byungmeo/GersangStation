@@ -6,6 +6,8 @@ using System.Text;
 
 namespace GersangStation {
     public partial class Form_Patcher_v2 : MaterialForm {
+        private const int NUM_RETRY = 15; // 모든 파일 다운로드 실패 시 다운로드 재시도 최대 횟수
+
         private const string url_main = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
         private const string url_test = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/";
         private const string url_main_info = url_main + @"Client_info_File/"; // + "00000"
@@ -127,7 +129,8 @@ namespace GersangStation {
             Trace.WriteLine("패치 정보 파일 병합 완료"); //////////////////////////////////////////////////////////////////////////////////////--
 
             label_status.Text = "패치 파일을 다운로드 중... (오래 걸릴 수 있음)";
-            DownloadAll(list_patchFile);
+            bool isSuccess = DownloadAll(list_patchFile);
+            if(!isSuccess) return; // 다운로드 실패 시 패치 적용하지 않음.
             Trace.WriteLine("패치 파일 다운로드 완료"); //////////////////////////////////////////////////////////////////////////////////////--
 
             label_status.Text = "압축 해제 및 적용 중... (오래 걸릴 수 있음)";
@@ -239,12 +242,14 @@ namespace GersangStation {
             }
         }
 
-        public void DownloadAll(Dictionary<string, string> list) {
+        public bool DownloadAll(Dictionary<string, string> list) {
+            // 리스트의 모든 파일을 다운로드
             Parallel.ForEach(
                 list,
                 new ParallelOptions { MaxDegreeOfParallelism = 10 },
                 DownloadFile);
 
+            // 아직도 모든 파일을 다운로드 하지 못한 경우
             if (list_retry.Count > 0) {
                 foreach (var item in list_retry) {
                     Trace.WriteLine("다운로드 실패한 파일 주소 : " + item.Key);
@@ -252,7 +257,8 @@ namespace GersangStation {
 
                 Trace.WriteLine("다운로드 실패한 파일을 재다운로드 합니다.");
 
-                for (int i = 0; i < 10; i++) {
+                // NUM_RETRY 만큼 다운로드 재시도
+                for (int i = 0; i < NUM_RETRY; i++) {
                     if (list_retry.Count == 0) {
                         break;
                     }
@@ -265,11 +271,15 @@ namespace GersangStation {
                     RetryDownloadFile);
                 }
 
+                // 그럼에도 실패
                 if (list_retry.Count > 0) {
-                    Trace.WriteLine("10번의 재다운로드 시도 결과 모든 파일을 재다운로드 하는데 실패하였습니다.");
+                    Trace.WriteLine($"{NUM_RETRY}번의 재다운로드 시도 결과 모든 파일을 재다운로드 하는데 실패하였습니다.");
                     foreach (var item in list_retry) {
                         Trace.WriteLine("다운로드 실패한 파일 주소 : " + item.Key);
                     }
+                    MessageBox.Show(this, $"{NUM_RETRY}번의 패치 재시도에도 불구하고\n모든 파일을 다운로드하는데 실패하였습니다.\n인터넷 환경을 확인해주시고 다시 패치를 진행해주세요.", "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    list_retry.Clear();
+                    return false;
                 }
                 else {
                     Trace.WriteLine("모든 파일을 성공적으로 다운로드 하였습니다.");
@@ -281,6 +291,7 @@ namespace GersangStation {
 
             Trace.WriteLine("다운로드 종료");
             list_retry.Clear();
+            return true;
         }
 
         public void DownloadFile(KeyValuePair<string, string> item) {
