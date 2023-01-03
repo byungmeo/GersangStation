@@ -37,6 +37,9 @@ namespace GersangStation {
         public Form_Patcher_v2(bool isTest) {
             InitializeComponent();
 
+            // .NET에서 지원하는 인코딩 공급자를 가져와서 등록 (없으면 euc-kr을 못불러와서 패치 파일 목록 받아올 때 한글이 깨짐)
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             if (true == isTest) {
                 //테섭
                 path_main = ConfigManager.getConfig("client_path_test_1");
@@ -209,10 +212,11 @@ namespace GersangStation {
                 Dictionary<string, string> list_patchFile = new Dictionary<string, string>(); //key값으로 다운로드주소, value값으로 경로및파일명 저장
 
                 //몇번의 패치가 존재하든, 한꺼번에 패치하기위해 여러 패치정보파일에서 중복없이 파일 리스트를 뽑아옵니다.
-                using (var wr = new StreamWriter(directory_info + @"\" + server + "_" + version_current + "-" + version_latest + ".txt")) { //디버깅용으로 새로운 정보 파일을 생성합니다.
+                Stream FS = new FileStream(directory_info + @"\" + server + "_" + version_current + "-" + version_latest + ".txt", FileMode.Create, FileAccess.Write);
+                using (var wr = new StreamWriter(FS, Encoding.GetEncoding("euc-kr"))) { //디버깅용으로 새로운 정보 파일을 생성합니다.
                     wr.WriteLine("파일명\t다운로드주소\t경로"); //디버깅용
                     foreach (string item in list_infoFile) {
-                        string[] lines = File.ReadAllLines(directory_info + @"\" + server + "_" + item + ".txt", Encoding.Default); //패치정보파일에서 모든 텍스트를 읽어옵니다.
+                        string[] lines = File.ReadAllLines(directory_info + @"\" + server + "_" + item + ".txt", Encoding.GetEncoding("euc-kr")); //패치정보파일에서 모든 텍스트를 읽어옵니다.
 
                         //패치정보파일의 첫 4줄은 쓸모없으므로 생략하고, 5번째 줄부터 읽습니다.
                         for (int i = 4; i < lines.Length; i++) {
