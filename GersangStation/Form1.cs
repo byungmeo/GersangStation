@@ -364,8 +364,17 @@ namespace GersangStation {
             string? url = ((WebView2)sender).Source.ToString();
             Trace.WriteLine("NavigationCompleted : " + url);
 
+            // 비밀번호 변경 안내 페이지라면, "다음에 변경하기" 클릭
             if (url.Contains("pw_reset.gs")) {
                 doPwReset();
+                return;
+            }
+
+            // 휴대폰 본인인증 페이지라면, 본인인증 안내창 띄우기
+            if (url.Contains("loginCertUp.gs")) {
+                this.BeginInvoke(() => {
+                    MessageBox.Show("휴대폰 본인 인증이 필요합니다.\n크롬 또는 엣지 등의 웹브라우저를 통해\n거상 로그인 후 본인인증을 완료해주세요.");
+                });
                 return;
             }
 
