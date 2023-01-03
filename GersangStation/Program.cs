@@ -15,8 +15,11 @@
 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                Application.SetHighDpiMode(HighDpiMode.DpiUnawareGdiScaled); // DpiUnaware와 비슷하지만 GDI/GDI+ 기반 콘텐츠의 품질을 향상시킵니다.
-                //Application.SetHighDpiMode(HighDpiMode.DpiUnaware); // 애플리케이션 창은 DPI 변경에 맞게 조정되지 않으며 항상 100% 배율을 가정합니다.
+                
+                Application.SetHighDpiMode(HighDpiMode.DpiUnaware); // 애플리케이션 창은 DPI 변경에 맞게 조정되지 않으며 항상 100% 배율을 가정합니다.
+
+                // Dpi가 높아지면 메인화면의 1번설정버튼을 누를 수 없음 (밑에도 마찬가지, 높아질수록 뭔가가 가리는듯)
+                //Application.SetHighDpiMode(HighDpiMode.DpiUnawareGdiScaled); // DpiUnaware와 비슷하지만 GDI/GDI+ 기반 콘텐츠의 품질을 향상시킵니다.
 
                 // MaterialSkin.2 컴포넌트들은 Dpi가 변경되면 원래 크기를 유지하지만, 직접 추가한 버튼 등은 아래 모드를 사용 시 혼자서 크기가 커져버림
                 //Application.SetHighDpiMode(HighDpiMode.SystemAware); // 창은 기본 모니터의 DPI를 한 번 쿼리하고 모든 모니터의 애플리케이션에 이를 사용합니다.
