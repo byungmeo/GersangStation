@@ -90,9 +90,6 @@ namespace GersangStation {
             Trace.WriteLine("드라이브 유효성 검사 완료");
 
             string originalOnlinePath = originalPath + "\\Online";
-            string secondPath = originalPath + "\\..\\" + name2;
-            string thirdPath = originalPath + "\\..\\" + name3;
-
             DirectoryInfo pathInfo = new DirectoryInfo(originalPath + "\\char");
             if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
                 owner.BeginInvoke(() => {
@@ -101,96 +98,96 @@ namespace GersangStation {
                 return false;
             }
 
-            DirectoryInfo pathInfo2 = new DirectoryInfo(secondPath + "\\char");
-            DirectoryInfo pathInfo3 = new DirectoryInfo(thirdPath + "\\char");
-            if (pathInfo2.Exists && pathInfo3.Exists) {
-                if (false == pathInfo2.Attributes.HasFlag(FileAttributes.ReparsePoint) || false == pathInfo3.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-                    owner.BeginInvoke(() => {
-                        MessageBox.Show(owner, "복사-붙여넣기로 생성한 다클라 폴더에 패치를 적용할 수 없습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "다클라 패치 적용 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
-                    });
-                    return false;
+            // 복사-붙여넣기로 생성한 다클라인지 체크
+            bool flag = true;
+            Action<string, string> check = (name, path) => {
+                DirectoryInfo pathInfo = new DirectoryInfo(path + "\\char");
+                if (pathInfo.Exists) {
+                    if (false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
+                        owner.BeginInvoke(() => {
+                            MessageBox.Show(owner, "복사-붙여넣기를 통해 다클 생성 시\n다클라 생성 기능 사용이 불가능합니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "다클라 생성 기능 사용 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
+                        });
+                        flag = false;
+                    }
                 }
-            }
+            };
 
-            //거상 폴더 생성
-            Directory.CreateDirectory(secondPath);
-            Directory.CreateDirectory(thirdPath);
-
-            //거상 폴더 내 파일 복사
-            foreach (string eachFilePath in Directory.GetFiles(originalPath)) {
-                string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
-                string extension = Path.GetExtension(eachFilePath); // '.' 포함
-                if (extension == ".tmp" || extension == ".bmp" || extension == ".dmp") continue;
-                Trace.WriteLine("COPY : " + eachFilePath + " -> " + secondPath + fileName);
-                File.Copy(eachFilePath, secondPath + fileName, true);
-                Trace.WriteLine("COPY : " + eachFilePath + " -> " + thirdPath + fileName);
-                File.Copy(eachFilePath, thirdPath + fileName, true);
-            }
-
-            //거상 폴더 내 폴더 심볼릭링크 생성 (XIGNCODE, Online 제외)
-            foreach (string eachDirPath in Directory.GetDirectories(originalPath)) {
-                string? dirName = new DirectoryInfo(eachDirPath).Name;
-                if (dirName == "XIGNCODE" || dirName == "Online") continue;
-                string secondLinkPath = secondPath + '\\' + dirName;
-                string thirdLinkPath = thirdPath + '\\' + dirName;
-                Trace.WriteLine("SYMLINK_DIR" + secondLinkPath + ", " + eachDirPath);
-                if (Directory.Exists(secondLinkPath)) { Directory.Delete(secondLinkPath); }
-                Directory.CreateSymbolicLink(secondLinkPath, eachDirPath);
-                Trace.WriteLine("SYMLINK_DIR" + thirdLinkPath + ", " + eachDirPath);
-                if (Directory.Exists(thirdLinkPath)) { Directory.Delete(thirdLinkPath); }
-                Directory.CreateSymbolicLink(thirdLinkPath, eachDirPath);
-            }
-
-            //XIGNCODE 폴더 복사
-            Trace.WriteLine("COPY_DIR : " + originalPath + "\\XIGNCODE" + " -> " + secondPath + "\\XIGNCODE");
-            DirectoryCopy(originalPath + "\\XIGNCODE", secondPath + "\\XIGNCODE", true);
-            Trace.WriteLine("COPY_DIR : " + originalPath + "\\XIGNCODE" + " -> " + thirdPath + "\\XIGNCODE");
-            DirectoryCopy(originalPath + "\\XIGNCODE", thirdPath + "\\XIGNCODE", true);
-
-            //Online 폴더 생성
-            string secondOnlinePath = secondPath + "\\Online";
-            string thirdOnlinePath = thirdPath + "\\Online";
-            if (true == Directory.Exists(secondOnlinePath)) {
-                if (true == File.GetAttributes(secondOnlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(secondOnlinePath); };
-            }
-            if (true == Directory.Exists(thirdOnlinePath)) {
-                if (true == File.GetAttributes(thirdOnlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(thirdOnlinePath); };
-            }
-            Directory.CreateDirectory(secondOnlinePath);
-            Directory.CreateDirectory(thirdOnlinePath);
-
-            //Online 폴더 내 파일 심볼릭링크 생성 (KeySetting.dat , PetSetting.dat은 없을 경우에만 복사)
-            foreach (string eachFilePath in Directory.GetFiles(originalOnlinePath)) {
-                string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
-                if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg") {
-                    if (File.Exists(secondOnlinePath + fileName)) continue;
-                    Trace.WriteLine("COPY : " + eachFilePath + " -> " + secondOnlinePath + fileName);
-                    File.Copy(eachFilePath, secondOnlinePath + fileName, false);
-                    if (File.Exists(thirdOnlinePath + fileName)) continue;
-                    Trace.WriteLine("COPY : " + eachFilePath + " -> " + thirdOnlinePath + fileName);
-                    File.Copy(eachFilePath, thirdOnlinePath + fileName, false);
-                    continue;
+            // 거상 폴더 내 파일 복사
+            Action<string> copy = (path) => {
+                foreach (string eachFilePath in Directory.GetFiles(originalPath)) {
+                    string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
+                    string extension = Path.GetExtension(eachFilePath); // '.' 포함
+                    if (extension == ".tmp" || extension == ".bmp" || extension == ".dmp") continue;
+                    Trace.WriteLine("COPY : " + eachFilePath + " -> " + path + fileName);
+                    File.Copy(eachFilePath, path + fileName, true);
                 }
-                Trace.WriteLine("SYMLINK_FILE : " + eachFilePath + " -> " + secondOnlinePath + fileName);
-                if (File.Exists(secondOnlinePath + fileName)) { File.Delete(secondOnlinePath + fileName); }
-                File.CreateSymbolicLink(secondOnlinePath + fileName, eachFilePath);
-                Trace.WriteLine("SYMLINK_FILE : " + eachFilePath + " -> " + thirdOnlinePath + fileName);
-                if (File.Exists(thirdOnlinePath + fileName)) { File.Delete(thirdOnlinePath + fileName); }
-                File.CreateSymbolicLink(thirdOnlinePath + fileName, eachFilePath);
+            };
+
+            // 거상 폴더 내 폴더 심볼릭링크 생성 (XIGNCODE, Online는 별도 복사 또는 생성)
+            Action<string> symbolic = (path) => {
+                foreach (string eachDirPath in Directory.GetDirectories(originalPath)) {
+                    string? dirName = new DirectoryInfo(eachDirPath).Name;
+                    if (dirName == "XIGNCODE" || dirName == "Online") continue;
+                    string linkPath = path + '\\' + dirName;
+                    Trace.WriteLine("SYMLINK_DIR" + linkPath + ", " + eachDirPath);
+                    if (Directory.Exists(linkPath)) { Directory.Delete(linkPath); }
+                    Directory.CreateSymbolicLink(linkPath, eachDirPath);
+                }
+
+                // XIGNCODE 폴더 복사
+                Trace.WriteLine("COPY_DIR : " + originalPath + "\\XIGNCODE" + " -> " + path + "\\XIGNCODE");
+                DirectoryCopy(originalPath + "\\XIGNCODE", path + "\\XIGNCODE", true);
+
+                // Online 폴더 생성
+                string onlinePath = path + "\\Online";
+                if (true == Directory.Exists(onlinePath)) {
+                    if (true == File.GetAttributes(onlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(onlinePath); };
+                }
+                Directory.CreateDirectory(onlinePath);
+
+                // Online 폴더 내 파일 심볼릭링크 생성 (KeySetting.dat , PetSetting.dat은 없을 경우에만 복사)
+                foreach (string eachFilePath in Directory.GetFiles(originalOnlinePath)) {
+                    string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
+                    if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg") {
+                        if (File.Exists(onlinePath + fileName)) continue;
+                        Trace.WriteLine("COPY : " + eachFilePath + " -> " + onlinePath + fileName);
+                        File.Copy(eachFilePath, onlinePath + fileName, false);
+                        continue;
+                    }
+                    Trace.WriteLine("SYMLINK_FILE : " + eachFilePath + " -> " + onlinePath + fileName);
+                    if (File.Exists(onlinePath + fileName)) { File.Delete(onlinePath + fileName); }
+                    File.CreateSymbolicLink(onlinePath + fileName, eachFilePath);
+                }
+
+                //Online 폴더 내 폴더 심볼릭링크 생성
+                foreach (string eachDirPath in Directory.GetDirectories(originalOnlinePath)) {
+                    string? dirName = new DirectoryInfo(eachDirPath).Name;
+                    string linkPath = onlinePath + '\\' + dirName;
+                    Trace.WriteLine("SYMLINK_DIR : " + eachDirPath + " -> " + linkPath);
+                    if (Directory.Exists(linkPath)) { Directory.Delete(linkPath, true); }
+                    Directory.CreateSymbolicLink(linkPath, eachDirPath);
+                }
+            };
+
+            // 2클라 생성
+            if (name2 != "") {
+                string secondPath = originalPath + "\\..\\" + name2;
+                check(name2, secondPath);
+                if (!flag) return false;
+                Directory.CreateDirectory(secondPath); // 거상 폴더 생성
+                copy(secondPath); // 거상 폴더 내 파일 복사
+                symbolic(secondPath);
             }
 
-            //Online 폴더 내 폴더 심볼릭링크 생성
-            foreach (string eachDirPath in Directory.GetDirectories(originalOnlinePath)) {
-                string? dirName = new DirectoryInfo(eachDirPath).Name;
-                string secondLinkPath = secondOnlinePath + '\\' + dirName;
-                string thirdLinkPath = thirdOnlinePath + '\\' + dirName;
-                Trace.WriteLine("SYMLINK_DIR : " + eachDirPath + " -> " + secondLinkPath);
-                if (Directory.Exists(secondLinkPath)) { Directory.Delete(secondLinkPath, true); }
-                Directory.CreateSymbolicLink(secondLinkPath, eachDirPath);
-                Trace.WriteLine("SYMLINK_DIR : " + eachDirPath + " -> " + thirdLinkPath);
-                if (Directory.Exists(thirdLinkPath)) { Directory.Delete(thirdLinkPath, true); }
-                Directory.CreateSymbolicLink(thirdLinkPath, eachDirPath);
+            // 3클라 생성
+            if (name3 != "") {
+                string thirdPath = originalPath + "\\..\\" + name3;
+                check(name3, thirdPath);
+                if (!flag) return false;
+                Directory.CreateDirectory(thirdPath); // 거상 폴더 생성
+                copy(thirdPath); // 거상 폴더 내 파일 복사
+                symbolic(thirdPath);
             }
 
             Trace.WriteLine("다클라 생성 끝");
@@ -198,7 +195,7 @@ namespace GersangStation {
         }
 
         //private로 바꿀 것
-        public static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs) {
+        private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs) {
             // Get the subdirectories for the specified directory.
             DirectoryInfo dir = new DirectoryInfo(sourceDirName);
 

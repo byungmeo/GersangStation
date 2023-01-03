@@ -74,7 +74,7 @@ namespace GersangStation {
             textBox_currentVersion.Text = version_current;
             textBox_latestVersion.Text = version_latest;
 
-            if(name_client_2 == "" && name_client_3 == "") {
+            if (name_client_2 == "" && name_client_3 == "") {
                 materialCheckbox_apply.Checked = false;
                 materialCheckbox_apply.Enabled = false;
                 toolTip1.Active = true;
@@ -91,6 +91,29 @@ namespace GersangStation {
             if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
                 MessageBox.Show("잘못된 본클라 경로입니다. 다시 지정해주세요.\n원인 : 원본 폴더가 아닌 생성기로 생성된 폴더입니다.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
+            }
+
+            bool flag = true;
+            Action<DirectoryInfo> check = (pathInfo) => {
+                if (false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
+                    DialogResult dr = MessageBox.Show("복사-붙여넣기를 통해 다클 생성 시\n거상 스테이션으로 패치가 불가능합니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 다클라 생성 방식", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    if (dr == DialogResult.OK) {
+                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
+                    }
+                    flag = false;
+                }
+            };
+
+            if (name_client_2 != "") {
+                pathInfo = new DirectoryInfo(ConfigManager.getConfig((server == Server.Main) ? "client_path_2" : "client_path_test_2") + "\\char");
+                check(pathInfo);
+                if (!flag) return;
+            }
+
+            if (name_client_3 != "") {
+                pathInfo = new DirectoryInfo(ConfigManager.getConfig((server == Server.Main) ? "client_path_3" : "client_path_test_3") + "\\char");
+                check(pathInfo);
+                if (!flag) return;
             }
 
             int equal = 1;
