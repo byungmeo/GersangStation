@@ -991,19 +991,19 @@
             this.toolStripSeparator2,
             this.toolStripMenuItem_exit});
             this.contextMenuStrip_tray.Name = "contextMenuStrip_tray";
-            this.contextMenuStrip_tray.Size = new System.Drawing.Size(106, 126);
+            this.contextMenuStrip_tray.Size = new System.Drawing.Size(181, 148);
             this.contextMenuStrip_tray.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip_tray_ItemClicked);
             // 
             // toolStripMenuItem_open
             // 
             this.toolStripMenuItem_open.Name = "toolStripMenuItem_open";
-            this.toolStripMenuItem_open.Size = new System.Drawing.Size(105, 22);
+            this.toolStripMenuItem_open.Size = new System.Drawing.Size(180, 22);
             this.toolStripMenuItem_open.Text = "열기";
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(102, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
             // 
             // toolStripMenuItem_client_1
             // 
@@ -1011,15 +1011,17 @@
             this.toolStripMenuItem_search_1,
             this.toolStripMenuItem_start_1});
             this.toolStripMenuItem_client_1.Name = "toolStripMenuItem_client_1";
-            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(105, 22);
+            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(180, 22);
             this.toolStripMenuItem_client_1.Text = "1클라";
             this.toolStripMenuItem_client_1.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
             // toolStripMenuItem_search_1
             // 
+            this.toolStripMenuItem_search_1.Enabled = false;
             this.toolStripMenuItem_search_1.Name = "toolStripMenuItem_search_1";
             this.toolStripMenuItem_search_1.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_search_1.Text = "검색보상수령";
+            this.toolStripMenuItem_search_1.Visible = false;
             // 
             // toolStripMenuItem_start_1
             // 
@@ -1033,15 +1035,17 @@
             this.toolStripMenuItem_search_2,
             this.toolStripMenuItem_start_2});
             this.toolStripMenuItem_client_2.Name = "toolStripMenuItem_client_2";
-            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(105, 22);
+            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(180, 22);
             this.toolStripMenuItem_client_2.Text = "2클라";
             this.toolStripMenuItem_client_2.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
             // toolStripMenuItem_search_2
             // 
+            this.toolStripMenuItem_search_2.Enabled = false;
             this.toolStripMenuItem_search_2.Name = "toolStripMenuItem_search_2";
             this.toolStripMenuItem_search_2.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_search_2.Text = "검색보상수령";
+            this.toolStripMenuItem_search_2.Visible = false;
             // 
             // toolStripMenuItem_start_2
             // 
@@ -1055,15 +1059,17 @@
             this.toolStripMenuItem_search_3,
             this.toolStripMenuItem_start_3});
             this.toolStripMenuItem_client_3.Name = "toolStripMenuItem_client_3";
-            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(105, 22);
+            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(180, 22);
             this.toolStripMenuItem_client_3.Text = "3클라";
             this.toolStripMenuItem_client_3.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
             // toolStripMenuItem_search_3
             // 
+            this.toolStripMenuItem_search_3.Enabled = false;
             this.toolStripMenuItem_search_3.Name = "toolStripMenuItem_search_3";
             this.toolStripMenuItem_search_3.Size = new System.Drawing.Size(146, 22);
             this.toolStripMenuItem_search_3.Text = "검색보상수령";
+            this.toolStripMenuItem_search_3.Visible = false;
             // 
             // toolStripMenuItem_start_3
             // 
@@ -1074,12 +1080,12 @@
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(102, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
             // 
             // toolStripMenuItem_exit
             // 
             this.toolStripMenuItem_exit.Name = "toolStripMenuItem_exit";
-            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(105, 22);
+            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(180, 22);
             this.toolStripMenuItem_exit.Text = "종료";
             // 
             // Form1
