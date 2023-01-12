@@ -36,7 +36,8 @@ namespace GersangStation {
                 MinimizeBox = false,
                 TopMost = true,
                 ShowInTaskbar = false,
-                Owner = this
+                Owner = this,
+                ImeMode = ImeMode.NoControl // 전각 반각 오류 방지
             };
 
             //id 입력 텍스트박스
@@ -44,6 +45,7 @@ namespace GersangStation {
                 Hint = "ID 입력",
                 Size = new Size(206, 48),
                 Location = new Point(17, 40),
+                ImeMode = ImeMode.NoControl // 전각 반각 오류 방지
             };
             dialog_addAccount.Controls.Add(textBox_id);
 
@@ -53,7 +55,8 @@ namespace GersangStation {
                 Size = new Size(206, 48),
                 Location = new Point(17, 100),
                 UseSystemPasswordChar = true,
-                PasswordChar = '●'
+                PasswordChar = '●',
+                ImeMode = ImeMode.NoControl // 전각 반각 오류 방지
             };
             dialog_addAccount.Controls.Add(textBox_pw);
 
@@ -62,7 +65,8 @@ namespace GersangStation {
                 Hint = "별명 입력 (선택사항)",
                 Size = new Size(162, 48),
                 Location = new Point(17, 160),
-                Enabled = false
+                Enabled = false,
+                ImeMode = ImeMode.NoControl // 전각 반각 오류 방지
             };
             dialog_addAccount.Controls.Add(textBox_nickname);
 
@@ -70,7 +74,8 @@ namespace GersangStation {
                 Text = "",
                 Checked = false,
                 Location = new Point(184, 166),
-                TabStop = false
+                TabStop = false,
+                ImeMode = ImeMode.NoControl // 전각 반각 오류 방지
             };
             checkBox_useNickname.CheckedChanged += (sender, e) => {
                 if (true == checkBox_useNickname.Checked) {
@@ -93,6 +98,7 @@ namespace GersangStation {
                 AutoSize = false,
                 Size = new Size(64, 36),
                 Location = new Point(88, 219),
+                ImeMode = ImeMode.NoControl // 전각 반각 오류 방지
             };
             
             dialog_addAccount.Controls.Add(button_confirm);

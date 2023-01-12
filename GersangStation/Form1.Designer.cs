@@ -69,6 +69,11 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label_version_latest = new System.Windows.Forms.Label();
             this.label_version_current = new System.Windows.Forms.Label();
+            this.tabPage_sponsor = new System.Windows.Forms.TabPage();
+            this.label4 = new System.Windows.Forms.Label();
+            this.materialButton_sponsor = new GersangStation.CustomButton();
+            this.label3 = new System.Windows.Forms.Label();
+            this.materialListBox_sponsor = new MaterialSkin.Controls.MaterialListBox();
             this.menuIconList = new System.Windows.Forms.ImageList(this.components);
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
@@ -95,6 +100,7 @@
             this.tabPage_help.SuspendLayout();
             this.tabPage_info.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.tabPage_sponsor.SuspendLayout();
             this.contextMenuStrip_tray.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -104,6 +110,7 @@
             this.materialTabControl1.Controls.Add(this.tabPage_settings);
             this.materialTabControl1.Controls.Add(this.tabPage_help);
             this.materialTabControl1.Controls.Add(this.tabPage_info);
+            this.materialTabControl1.Controls.Add(this.tabPage_sponsor);
             this.materialTabControl1.Depth = 0;
             this.materialTabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.materialTabControl1.ImageList = this.menuIconList;
@@ -150,7 +157,6 @@
             this.tabPage_home.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_home.Size = new System.Drawing.Size(394, 218);
             this.tabPage_home.TabIndex = 0;
-            this.tabPage_home.Text = "메인화면";
             // 
             // linkLabel_announcement
             // 
@@ -654,7 +660,6 @@
             this.tabPage_settings.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_settings.Size = new System.Drawing.Size(394, 218);
             this.tabPage_settings.TabIndex = 1;
-            this.tabPage_settings.Text = "환경설정";
             // 
             // materialButton_setting_advanced
             // 
@@ -761,7 +766,6 @@
             this.tabPage_help.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_help.Size = new System.Drawing.Size(394, 218);
             this.tabPage_help.TabIndex = 2;
-            this.tabPage_help.Text = "도움말";
             this.tabPage_help.UseVisualStyleBackColor = true;
             // 
             // materialButton_kakao
@@ -805,7 +809,6 @@
             this.tabPage_info.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_info.Size = new System.Drawing.Size(394, 218);
             this.tabPage_info.TabIndex = 4;
-            this.tabPage_info.Text = "프로그램 정보";
             this.tabPage_info.UseVisualStyleBackColor = true;
             // 
             // materialButton_license
@@ -942,6 +945,76 @@
             this.label_version_current.TabIndex = 0;
             this.label_version_current.Text = "현재 버전 : 00000";
             // 
+            // tabPage_sponsor
+            // 
+            this.tabPage_sponsor.Controls.Add(this.label4);
+            this.tabPage_sponsor.Controls.Add(this.materialButton_sponsor);
+            this.tabPage_sponsor.Controls.Add(this.label3);
+            this.tabPage_sponsor.Controls.Add(this.materialListBox_sponsor);
+            this.tabPage_sponsor.ImageKey = "outline_favorite_black_24dp.png";
+            this.tabPage_sponsor.Location = new System.Drawing.Point(4, 31);
+            this.tabPage_sponsor.Name = "tabPage_sponsor";
+            this.tabPage_sponsor.Size = new System.Drawing.Size(394, 218);
+            this.tabPage_sponsor.TabIndex = 5;
+            this.tabPage_sponsor.UseVisualStyleBackColor = true;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label4.ForeColor = System.Drawing.Color.Blue;
+            this.label4.Location = new System.Drawing.Point(47, 182);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(248, 18);
+            this.label4.TabIndex = 35;
+            this.label4.Text = "후원 목록은 실시간으로 업데이트 됩니다!";
+            // 
+            // materialButton_sponsor
+            // 
+            this.materialButton_sponsor.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_sponsor.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_sponsor.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_sponsor.BorderRadius = 5;
+            this.materialButton_sponsor.BorderSize = 0;
+            this.materialButton_sponsor.FlatAppearance.BorderSize = 0;
+            this.materialButton_sponsor.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_sponsor.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_sponsor.ForeColor = System.Drawing.Color.White;
+            this.materialButton_sponsor.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_sponsor.Location = new System.Drawing.Point(114, 208);
+            this.materialButton_sponsor.Name = "materialButton_sponsor";
+            this.materialButton_sponsor.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_sponsor.Size = new System.Drawing.Size(111, 36);
+            this.materialButton_sponsor.TabIndex = 34;
+            this.materialButton_sponsor.Text = "후원하러 가기";
+            this.materialButton_sponsor.TextColor = System.Drawing.Color.White;
+            this.materialButton_sponsor.UseVisualStyleBackColor = false;
+            this.materialButton_sponsor.Click += new System.EventHandler(this.materialButton_sponsor_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label3.Location = new System.Drawing.Point(11, 14);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(121, 18);
+            this.label3.TabIndex = 33;
+            this.label3.Text = "후원해주신 분들♥️";
+            // 
+            // materialListBox_sponsor
+            // 
+            this.materialListBox_sponsor.BackColor = System.Drawing.Color.White;
+            this.materialListBox_sponsor.BorderColor = System.Drawing.Color.LightGray;
+            this.materialListBox_sponsor.Depth = 0;
+            this.materialListBox_sponsor.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
+            this.materialListBox_sponsor.Location = new System.Drawing.Point(11, 41);
+            this.materialListBox_sponsor.MouseState = MaterialSkin.MouseState.HOVER;
+            this.materialListBox_sponsor.Name = "materialListBox_sponsor";
+            this.materialListBox_sponsor.SelectedIndex = -1;
+            this.materialListBox_sponsor.SelectedItem = null;
+            this.materialListBox_sponsor.Size = new System.Drawing.Size(322, 132);
+            this.materialListBox_sponsor.TabIndex = 32;
+            // 
             // menuIconList
             // 
             this.menuIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
@@ -991,19 +1064,19 @@
             this.toolStripSeparator2,
             this.toolStripMenuItem_exit});
             this.contextMenuStrip_tray.Name = "contextMenuStrip_tray";
-            this.contextMenuStrip_tray.Size = new System.Drawing.Size(181, 148);
+            this.contextMenuStrip_tray.Size = new System.Drawing.Size(106, 126);
             this.contextMenuStrip_tray.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip_tray_ItemClicked);
             // 
             // toolStripMenuItem_open
             // 
             this.toolStripMenuItem_open.Name = "toolStripMenuItem_open";
-            this.toolStripMenuItem_open.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_open.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_open.Text = "열기";
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(102, 6);
             // 
             // toolStripMenuItem_client_1
             // 
@@ -1011,7 +1084,7 @@
             this.toolStripMenuItem_search_1,
             this.toolStripMenuItem_start_1});
             this.toolStripMenuItem_client_1.Name = "toolStripMenuItem_client_1";
-            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_client_1.Text = "1클라";
             this.toolStripMenuItem_client_1.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
@@ -1035,7 +1108,7 @@
             this.toolStripMenuItem_search_2,
             this.toolStripMenuItem_start_2});
             this.toolStripMenuItem_client_2.Name = "toolStripMenuItem_client_2";
-            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_client_2.Text = "2클라";
             this.toolStripMenuItem_client_2.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
@@ -1059,7 +1132,7 @@
             this.toolStripMenuItem_search_3,
             this.toolStripMenuItem_start_3});
             this.toolStripMenuItem_client_3.Name = "toolStripMenuItem_client_3";
-            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_client_3.Text = "3클라";
             this.toolStripMenuItem_client_3.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
             // 
@@ -1080,12 +1153,12 @@
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(102, 6);
             // 
             // toolStripMenuItem_exit
             // 
             this.toolStripMenuItem_exit.Name = "toolStripMenuItem_exit";
-            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(105, 22);
             this.toolStripMenuItem_exit.Text = "종료";
             // 
             // Form1
@@ -1116,6 +1189,8 @@
             this.tabPage_info.ResumeLayout(false);
             this.tabPage_info.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            this.tabPage_sponsor.ResumeLayout(false);
+            this.tabPage_sponsor.PerformLayout();
             this.contextMenuStrip_tray.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -1185,5 +1260,10 @@
         private ToolStripMenuItem toolStripMenuItem_search_3;
         private ToolStripMenuItem toolStripMenuItem_start_3;
         private MaterialSkin.Controls.MaterialButton materialButton_license;
+        private TabPage tabPage_sponsor;
+        private MaterialSkin.Controls.MaterialListBox materialListBox_sponsor;
+        private Label label3;
+        private CustomButton materialButton_sponsor;
+        private Label label4;
     }
 }

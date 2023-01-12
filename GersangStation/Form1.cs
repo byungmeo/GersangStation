@@ -120,7 +120,7 @@ namespace GersangStation {
             }
         }
 
-        private void LoadComponent() {
+        private async void LoadComponent() {
             ConfigManager.Validation();
             LoadCheckBox();
             LoadRadioButton();
@@ -128,45 +128,64 @@ namespace GersangStation {
             LoadShortcut();
             SetToolTip();
             CheckAccount();
-            CheckProgramUpdate();
-            LoadAnnouncements();
-        }
 
-        private async void LoadAnnouncements() {
+            // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
             try {
                 GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
                 IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
                 Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
-                string content = r.Content;
-                string[] announcements = content.Substring(content.LastIndexOf("# 공지사항")).Split('\n');
-                if (announcements.Length <= 1) {
-                    linkLabel_announcement.Text = "공지사항이 없습니다";
-                } else {
-                    string latestAnnouncement = announcements[1];
-                    string title = latestAnnouncement.Split('{')[0];
-                    int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
-                    int length = latestAnnouncement.LastIndexOf('}') - startIndex;
-                    string pageNumber = latestAnnouncement.Substring(startIndex, length);
-                    string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
-                    linkLabel_announcement.Text = title;
-                    linkLabel_announcement.Click += (sender, e) => {
+
+                CheckProgramUpdate(releases);
+                LoadAnnouncements(r);
+                LoadSponsors(r);
+            } catch(Exception ex) {
+                linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
+                MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
+                MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
+                Trace.WriteLine(ex.Message);
+            }
+        }
+
+        private void LoadSponsors(Readme r) {
+            string content = r.Content;
+            string[] sponsors = content.Substring(content.LastIndexOf("<summary>후원해주신 분들</summary>")).Split("<br>");
+
+            // 첫 번째와 마지막은 태그라 무시
+            for(int i = 1; i < sponsors.Length - 1; i++) {
+                materialListBox_sponsor.AddItem(new MaterialListBoxItem(sponsors[i]));
+            }
+            materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
+        }
+
+        private void LoadAnnouncements(Readme r) {
+            string content = r.Content;
+            string[] announcements = content.Substring(content.LastIndexOf("# 공지사항")).Split('\n');
+            if (announcements.Length <= 1) {
+                linkLabel_announcement.Text = "공지사항이 없습니다";
+            } else {
+                string latestAnnouncement = announcements[1];
+                string title = latestAnnouncement.Split('{')[0];
+                int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
+                int length = latestAnnouncement.LastIndexOf('}') - startIndex;
+                string pageNumber = latestAnnouncement.Substring(startIndex, length);
+                string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
+                linkLabel_announcement.Text = title;
+                linkLabel_announcement.Click += (sender, e) => {
+                    Trace.Write(pageNumber + "번 공지사항 접속");
+                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                };
+
+                // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
+                string prevLink = ConfigManager.getConfig("prev_announcement");
+                if (prevLink == "" || prevLink != url) {
+                    ConfigManager.setConfig("prev_announcement", url);
+                    DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']')+1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                    if (dr == DialogResult.Yes) {
                         Trace.Write(pageNumber + "번 공지사항 접속");
                         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                    };
-
-                    // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
-                    string prevLink = ConfigManager.getConfig("prev_announcement");
-                    if (prevLink == "" || prevLink != url) {
-                        ConfigManager.setConfig("prev_announcement", url);
-                        DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']')+1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        if (dr == DialogResult.Yes) {
-                            Trace.Write(pageNumber + "번 공지사항 접속");
-                            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                        }
                     }
                 }
-            } catch (Exception) {
-                linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
             }
         }
 
@@ -210,49 +229,37 @@ namespace GersangStation {
             toolTip1.SetToolTip(materialButton_shortcut_4, shortcut_4);
         }
 
-        private async void CheckProgramUpdate() {
+        private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
             //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
             string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
             Trace.WriteLine(version_current);
 
-            string version_latest;
+            string version_latest = releases[0].TagName;
+            label_version_current.Text = label_version_current.Text.Replace("00000", version_current);
+            label_version_latest.Text = label_version_latest.Text.Replace("00000", version_latest);
 
-            try {
-                //깃허브에서 모든 릴리즈 정보를 받아옵니다.
-                GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
-                IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
-                version_latest = releases[0].TagName;
-                label_version_current.Text = label_version_current.Text.Replace("00000", version_current);
-                label_version_latest.Text = label_version_latest.Text.Replace("00000", version_latest);
+            //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
+            //Version latestGitHubVersion = new Version(releases[0].TagName);
+            Version latestGitHubVersion = new Version(version_latest);
+            Version localVersion = new Version(version_current);
+            Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
+            Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
 
-                //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
-                //Version latestGitHubVersion = new Version(releases[0].TagName);
-                Version latestGitHubVersion = new Version(version_latest);
-                Version localVersion = new Version(version_current);
-                Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
-                Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
+            //¹öÀü ºñ±³
+            int versionComparison = localVersion.CompareTo(latestGitHubVersion);
+            if (versionComparison < 0) {
+                Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
 
-                //¹öÀü ºñ±³
-                int versionComparison = localVersion.CompareTo(latestGitHubVersion);
-                if (versionComparison < 0) {
-                    Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
+                DialogResult dr = MessageBox.Show(releases[0].Body + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
+                    "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
 
-                    DialogResult dr = MessageBox.Show(releases[0].Body + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
-                        "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-
-                    if (dr == DialogResult.Yes) {
-                        Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
-                    }
-                } else if (versionComparison > 0) {
-                    Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
-                } else {
-                    Trace.WriteLine("현재 버전은 최신버전입니다!");
+                if (dr == DialogResult.Yes) {
+                    Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
                 }
-            } catch (Exception ex) {
-                MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
-                MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
-                Trace.WriteLine(ex.Message);
+            } else if (versionComparison > 0) {
+                Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
+            } else {
+                Trace.WriteLine("현재 버전은 최신버전입니다!");
             }
         }
 
@@ -658,7 +665,7 @@ namespace GersangStation {
                 Location = this.Location,
                 Size = this.Size,
                 ShowInTaskbar = false,
-                Owner = this
+                Owner = this,
             };
             backgroundForm.Show();
 
@@ -672,14 +679,15 @@ namespace GersangStation {
                 MinimizeBox = false,
                 TopMost = true,
                 ShowInTaskbar = false,
-                Owner = this
+                Owner = this,
             };
 
             MaterialTextBox2 textBox_otp = new MaterialTextBox2() {
                 MaxLength = 8,
                 Location = new Point(17, 82),
                 Size = new Size(111, 36),
-                UseTallSize = false
+                UseTallSize = false,
+                ImeMode = ImeMode.Disable // 전각으로 전환되지 않도록 비활성화
             };
             dialog_otp.Controls.Add(textBox_otp);
 
@@ -687,7 +695,7 @@ namespace GersangStation {
                 Text = "확인",
                 Location = new Point(135, 82),
                 AutoSize = false,
-                Size = new Size(50, 36)
+                Size = new Size(50, 36),
             };
             button_confirm.Click += (sender, e) => {
                 if(textBox_otp.Text.Length != 8) {
@@ -702,7 +710,7 @@ namespace GersangStation {
             };
 
             dialog_otp.Controls.Add(button_confirm);
-            dialog_otp.AcceptButton = button_confirm; //¿£ÅÍ ¹öÆ°À» ´©¸£¸é ÀÌ ¹öÆ°À» Å¬¸¯ÇÕ´Ï´Ù.
+            dialog_otp.AcceptButton = button_confirm;
 
             if (dialog_otp.ShowDialog() == DialogResult.OK) {
                 backgroundForm.Dispose();
@@ -1385,6 +1393,10 @@ namespace GersangStation {
             finally {
                 backgroundForm.Dispose();
             }
+        }
+
+        private void materialButton_sponsor_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/26") { UseShellExecute = true });
         }
     } //Form1
 } //namespace
