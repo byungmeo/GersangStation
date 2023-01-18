@@ -310,6 +310,7 @@ namespace GersangStation {
                     MessageBox.Show("아직 5초가 지나지 않았습니다. 5초 후에 다시 로그인을 시도해주세요.");
                     currentState = State.None;
                     currentClient = Client.None;
+                    webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
                 }
 
                 //otp 인증번호가 틀릴 시 다시 입력하도록 합니다.
@@ -344,6 +345,7 @@ namespace GersangStation {
                 else if (message.Contains("아이디 또는 비밀번호 오류")) {
                     currentState = State.None;
                     currentClient = Client.None;
+                    webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
                     Trace.WriteLine("로그인 실패 판정");
                     MessageBox.Show("로그인에 실패하였습니다. 5초후에 다시 로그인 해주세요.");
                 }
@@ -446,6 +448,12 @@ namespace GersangStation {
 
                 if(currentState == State.LoginOther) { doLoginOther(); } 
                 else if (currentState == State.LoggedIn) { doCheckLogin(); }
+                else {
+                    // 로그인 되어있지 않은 상태인데 스위치가 켜져있다면 다시 끈다
+                    if (materialSwitch_login_1.Checked) materialSwitch_login_1.Checked = false;
+                    if (materialSwitch_login_2.Checked) materialSwitch_login_2.Checked = false;
+                    if (materialSwitch_login_3.Checked) materialSwitch_login_3.Checked = false;
+                }
                 return;
             }
             // 검색 이벤트 종료
