@@ -1,8 +1,7 @@
-﻿using System.Configuration;
+﻿using IWshRuntimeLibrary;
+using System.Configuration;
 using System.Diagnostics;
-using System.Security.Cryptography;
 using System.Text;
-using System.Windows.Forms;
 
 namespace GersangStation {
     internal static class ConfigManager {
@@ -37,8 +36,30 @@ namespace GersangStation {
             keyValuePairs.Add("prev_announcement", "");
 
             if (false == ExistsConfig()) {
-                string msg = "이전 버전에서 입력한 계정정보를 불러오시겠습니까?\n자세한 방법은 예를 누르면 뜨는 홈페이지를 참고해주세요.";
-                DialogResult dr = MessageBox.Show(msg, "이전 설정 불러오기", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                string msg = "바탕화면에 바로가기를 생성하시겠습니까?";
+                DialogResult dr = MessageBox.Show(msg, "바로가기 생성", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if(dr == DialogResult.Yes) {
+                    try {
+                        string path = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+                        string shortcutFileName = path + "\\GersangStation.exe - 바로 가기.lnk";
+                        FileInfo shortcutFile = new FileInfo(shortcutFileName);
+                        // 이미 바탕화면에 바로가기가 있다면 삭제
+                        if (shortcutFile.Exists) System.IO.File.Delete(shortcutFile.FullName);
+                        // 바로가기 생성
+                        WshShell wsh = new WshShell();
+                        IWshShortcut Link = wsh.CreateShortcut(shortcutFile.FullName);
+                        // 원본 파일의 경로 설정
+                        Link.TargetPath = Application.ExecutablePath;
+                        Link.Save();
+                    } catch (Exception ex) {
+                        MessageBox.Show("바로가기 생성 도중 오류가 발생하였습니다.\n" + ex.Message, "오류 발생", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        CreateConfigFile(keyValuePairs);
+                        return;
+                    }
+                }
+
+                msg = "이전 버전에서 입력한 계정정보를 불러오시겠습니까?\n자세한 방법은 예를 누르면 뜨는 홈페이지를 참고해주세요.";
+                dr = MessageBox.Show(msg, "이전 설정 불러오기", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if(dr == DialogResult.Yes) {
                     Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/27") { UseShellExecute = true });
                     OpenFileDialog openFileDialog = new OpenFileDialog() {
@@ -48,7 +69,7 @@ namespace GersangStation {
                     if(dr == DialogResult.OK) {
                         //File경로와 File명을 모두 가지고 온다.
                         string fileFullPath = openFileDialog.FileName;
-                        File.Copy(fileFullPath, ".\\GersangStation.dll.config", true);
+                        System.IO.File.Copy(fileFullPath, Application.StartupPath + "\\GersangStation.dll.config", true);
                         return;
                     }
                 }
@@ -75,7 +96,7 @@ namespace GersangStation {
             sb.AppendLine("</appSettings>");
             sb.AppendLine("</configuration>");
 
-            File.WriteAllText(@".\GersangStation.dll.config",  sb.ToString());
+            System.IO.File.WriteAllText(Application.StartupPath + @"\GersangStation.dll.config",  sb.ToString());
         }
 
         private static void AddKey(StringBuilder sb, string key, string value) {
@@ -83,7 +104,7 @@ namespace GersangStation {
         }
 
         private static bool ExistsConfig() {
-            return File.Exists(@".\GersangStation.dll.config");
+            return System.IO.File.Exists(Application.StartupPath + @"\GersangStation.dll.config");
         }
 
         public static string getConfig(string key) {
