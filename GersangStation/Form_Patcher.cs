@@ -5,7 +5,7 @@ using System.Net;
 using System.Text;
 
 namespace GersangStation {
-    public partial class Form_Patcher_v2 : MaterialForm {
+    public partial class Form_Patcher : MaterialForm {
         private const int NUM_RETRY = 15; // 모든 파일 다운로드 실패 시 다운로드 재시도 최대 횟수
 
         private const string url_main = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
@@ -34,7 +34,7 @@ namespace GersangStation {
 
         Dictionary<string, string> list_retry = new Dictionary<string, string>();
 
-        public Form_Patcher_v2(bool isTest) {
+        public Form_Patcher(bool isTest) {
             InitializeComponent();
 
             // .NET에서 지원하는 인코딩 공급자를 가져와서 등록 (없으면 euc-kr을 못불러와서 패치 파일 목록 받아올 때 한글이 깨짐)
@@ -85,10 +85,6 @@ namespace GersangStation {
             }
         }
 
-        private void materialButton_close_Click(object sender, EventArgs e) {
-            this.DialogResult = DialogResult.OK;
-        }
-
         private void materialButton_startPatch_Click(object sender, EventArgs e) {
             DirectoryInfo pathInfo = new DirectoryInfo(path_main + "\\char");
             if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
@@ -132,7 +128,6 @@ namespace GersangStation {
             }
 
             materialButton_startPatch.Enabled = false;
-            materialButton_close.Enabled = false;
 
             Trace.WriteLine("패치 시작!");
 
@@ -184,11 +179,9 @@ namespace GersangStation {
 
             label_status.Text = "패치가 모두 완료되었습니다!";
             label_status.ForeColor = Color.SeaGreen;
-            materialButton_startPatch.Enabled = true;
-            materialButton_close.Enabled = true;
 
             MessageBox.Show(this, "패치가 모두 완료되었습니다.", "패치 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            this.Close();
+            this.DialogResult = DialogResult.OK;
         }
 
         public Dictionary<string, string> GetPatchFileList(int equal, DirectoryInfo directory_info, DirectoryInfo directory_file) {
