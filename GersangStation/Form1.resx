@@ -230,7 +230,17 @@
         d1/eR3bhO1aYjo5nvWv6UxjWzB/tL1EUn7e8oApaPrtrAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="materialButton_kakao.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+  <data name="materialButton_question_naver.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAARdJREFUSEvd
+        lT0KwlAQhKOXsIlewNJL6Ak8jl7D0ialrVfwFkIkFoJ4AIt1dncUwssPyYsgfjCQNztvR5sk+S9EZAVd
+        oL7o3SXXhWCYWyyOnOtCGBAeO8Pr9fc5DwKwUiiDrpQ+pxx/gGfwGMJ5KYCjLr/boIx6pRK3uxfor1WO
+        kJap9FnJGDPodS4o3JUpLfWmbklBy6DXraAKRBaelBstg15cAcYT6GRBkS1tg17/Aoxm0NlCIjtozJHh
+        dlzBwROyh0a0P/goruDhCZnTKsFZ/4I2eD3qHxg8BnD8wwVt8HpjQd3r+gmtGdPcml4Vja/rpg+OlVB1
+        y5s/OHXg0sau++L38g3Hw6ALfa8x7PI3uvhry/uRJC837NatVuyDnAAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="materialButton_question_kakao.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAARdJREFUSEvd
         lT0KwlAQhKOXsIlewNJL6Ak8jl7D0ialrVfwFkIkFoJ4AIt1dncUwssPyYsgfjCQNztvR5sk+S9EZAVd
@@ -559,7 +569,7 @@
         AAEAAAD/////AQAAAAAAAAAMAgAAAEZTeXN0ZW0uV2luZG93cy5Gb3JtcywgQ3VsdHVyZT1uZXV0cmFs
         LCBQdWJsaWNLZXlUb2tlbj1iNzdhNWM1NjE5MzRlMDg5BQEAAAAmU3lzdGVtLldpbmRvd3MuRm9ybXMu
         SW1hZ2VMaXN0U3RyZWFtZXIBAAAABERhdGEHAgIAAAAJAwAAAA8DAAAAfBMAAAJNU0Z0AUkBTAIBAQUB
-        AAFQARIBUAESARgBAAEYAQAE/wEhAQAI/wFCAU0BNgcAATYDAAEoAwABYAMAATADAAEBAQABIAYAAUj/
+        AAF4ARIBeAESARgBAAEYAQAE/wEhAQAI/wFCAU0BNgcAATYDAAEoAwABYAMAATADAAEBAQABIAYAAUj/
         AP8A/wA1AANJAYcDAAH/AwAB/wMAAf8DAAH/AwAB/wMAAf8DYAHjAxQBG/8AVQADNQFWAwAB/wMAAf8D
         AAH/AwAB/wMAAf8DAAH/AwAB/wMAAf8DAAH/AwAB/wNdAez/AE0AA1YBswMAAf8DAAH/A2AB6AMKAQ0U
         AAM+AWsDAAH/AwAB/wMAAf8DBwEJ/wBBAANOAZYDAAH/AwAB/wMnATokAANgAegDAAH/AwAB//8APQAD

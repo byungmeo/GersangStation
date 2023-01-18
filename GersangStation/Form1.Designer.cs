@@ -58,7 +58,10 @@
             this.materialButton_setting_client = new GersangStation.CustomButton();
             this.materialButton_setting_account = new GersangStation.CustomButton();
             this.tabPage_help = new System.Windows.Forms.TabPage();
-            this.materialButton_kakao = new GersangStation.CustomButton();
+            this.label6 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.materialButton_question_naver = new GersangStation.CustomButton();
+            this.materialButton_question_kakao = new GersangStation.CustomButton();
             this.tabPage_info = new System.Windows.Forms.TabPage();
             this.materialButton_license = new MaterialSkin.Controls.MaterialButton();
             this.linkLabel1 = new System.Windows.Forms.LinkLabel();
@@ -761,7 +764,10 @@
             // 
             // tabPage_help
             // 
-            this.tabPage_help.Controls.Add(this.materialButton_kakao);
+            this.tabPage_help.Controls.Add(this.label6);
+            this.tabPage_help.Controls.Add(this.label5);
+            this.tabPage_help.Controls.Add(this.materialButton_question_naver);
+            this.tabPage_help.Controls.Add(this.materialButton_question_kakao);
             this.tabPage_help.ImageKey = "outline_help_outline_black_24dp.png";
             this.tabPage_help.Location = new System.Drawing.Point(4, 31);
             this.tabPage_help.Name = "tabPage_help";
@@ -771,29 +777,76 @@
             this.tabPage_help.Text = "문의";
             this.tabPage_help.UseVisualStyleBackColor = true;
             // 
-            // materialButton_kakao
+            // label6
             // 
-            this.materialButton_kakao.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_kakao.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_kakao.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_kakao.BorderRadius = 5;
-            this.materialButton_kakao.BorderSize = 0;
-            this.materialButton_kakao.FlatAppearance.BorderSize = 0;
-            this.materialButton_kakao.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_kakao.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_kakao.ForeColor = System.Drawing.Color.White;
-            this.materialButton_kakao.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_kakao.Image")));
-            this.materialButton_kakao.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_kakao.Location = new System.Drawing.Point(74, 103);
-            this.materialButton_kakao.Name = "materialButton_kakao";
-            this.materialButton_kakao.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_kakao.Size = new System.Drawing.Size(192, 36);
-            this.materialButton_kakao.TabIndex = 30;
-            this.materialButton_kakao.Text = "카카오톡 오픈채팅 문의";
-            this.materialButton_kakao.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_kakao.TextColor = System.Drawing.Color.White;
-            this.materialButton_kakao.UseVisualStyleBackColor = false;
-            this.materialButton_kakao.Click += new System.EventHandler(this.materialButton_kakao_Click);
+            this.label6.AutoSize = true;
+            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label6.ForeColor = System.Drawing.Color.Blue;
+            this.label6.Location = new System.Drawing.Point(48, 163);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(246, 72);
+            this.label6.TabIndex = 35;
+            this.label6.Text = "준비물 :\r\n1. 오류 화면 스크린샷\r\n2. 오류가 발생하는 시점 (날짜 아닙니다)\r\n3. 윈도우 버전 (예시: 윈도우 10 64비트)";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label5.ForeColor = System.Drawing.Color.Red;
+            this.label5.Location = new System.Drawing.Point(15, 105);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(311, 36);
+            this.label5.TabIndex = 34;
+            this.label5.Text = "※ 여긴 거상 고객센터가 아닙니다!\r\n거상 스테이션은 게임 내에 영향을 끼치지 않습니다";
+            this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // materialButton_question_naver
+            // 
+            this.materialButton_question_naver.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_question_naver.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_question_naver.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_question_naver.BorderRadius = 5;
+            this.materialButton_question_naver.BorderSize = 0;
+            this.materialButton_question_naver.FlatAppearance.BorderSize = 0;
+            this.materialButton_question_naver.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_question_naver.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_question_naver.ForeColor = System.Drawing.Color.White;
+            this.materialButton_question_naver.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_question_naver.Image")));
+            this.materialButton_question_naver.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_question_naver.Location = new System.Drawing.Point(74, 58);
+            this.materialButton_question_naver.Name = "materialButton_question_naver";
+            this.materialButton_question_naver.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_question_naver.Size = new System.Drawing.Size(192, 36);
+            this.materialButton_question_naver.TabIndex = 31;
+            this.materialButton_question_naver.Text = "네이버 블로그댓글 문의";
+            this.materialButton_question_naver.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_question_naver.TextColor = System.Drawing.Color.White;
+            this.materialButton_question_naver.UseVisualStyleBackColor = false;
+            this.materialButton_question_naver.Click += new System.EventHandler(this.materialButton_question_naver_Click);
+            // 
+            // materialButton_question_kakao
+            // 
+            this.materialButton_question_kakao.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_question_kakao.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
+            this.materialButton_question_kakao.BorderColor = System.Drawing.Color.PaleVioletRed;
+            this.materialButton_question_kakao.BorderRadius = 5;
+            this.materialButton_question_kakao.BorderSize = 0;
+            this.materialButton_question_kakao.FlatAppearance.BorderSize = 0;
+            this.materialButton_question_kakao.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.materialButton_question_kakao.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.materialButton_question_kakao.ForeColor = System.Drawing.Color.White;
+            this.materialButton_question_kakao.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_question_kakao.Image")));
+            this.materialButton_question_kakao.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.materialButton_question_kakao.Location = new System.Drawing.Point(74, 16);
+            this.materialButton_question_kakao.Name = "materialButton_question_kakao";
+            this.materialButton_question_kakao.Padding = new System.Windows.Forms.Padding(5);
+            this.materialButton_question_kakao.Size = new System.Drawing.Size(192, 36);
+            this.materialButton_question_kakao.TabIndex = 30;
+            this.materialButton_question_kakao.Text = "카카오톡 오픈채팅 문의";
+            this.materialButton_question_kakao.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.materialButton_question_kakao.TextColor = System.Drawing.Color.White;
+            this.materialButton_question_kakao.UseVisualStyleBackColor = false;
+            this.materialButton_question_kakao.Click += new System.EventHandler(this.materialButton_kakao_Click);
             // 
             // tabPage_info
             // 
@@ -1191,6 +1244,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.tabPage_settings.ResumeLayout(false);
             this.tabPage_help.ResumeLayout(false);
+            this.tabPage_help.PerformLayout();
             this.tabPage_info.ResumeLayout(false);
             this.tabPage_info.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
@@ -1242,7 +1296,7 @@
         private CustomButton materialButton_setting_shortcut;
         private CustomButton materialButton_setting_advanced;
         private Label label2;
-        private CustomButton materialButton_kakao;
+        private CustomButton materialButton_question_kakao;
         private ToolTip toolTip1;
         private Button button_tray;
         private NotifyIcon notifyIcon1;
@@ -1270,5 +1324,8 @@
         private Label label3;
         private CustomButton materialButton_sponsor;
         private Label label4;
+        private CustomButton materialButton_question_naver;
+        private Label label6;
+        private Label label5;
     }
 }

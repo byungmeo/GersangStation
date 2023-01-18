@@ -1323,6 +1323,10 @@ namespace GersangStation {
             Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
         }
 
+        private void materialButton_question_naver_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
+        }
+
         private void materialButton_patchNote_Click(object sender, EventArgs e) {
             Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
         }
