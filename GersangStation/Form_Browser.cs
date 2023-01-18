@@ -51,11 +51,18 @@ namespace GersangStation {
         private void goButton_Click(object sender, EventArgs e) {
             if (webView != null && webView.CoreWebView2 != null) {
                 try {
+                    if (!addressBar.Text.Contains("https://www") && !addressBar.Text.Contains("http://www")) {
+                        addressBar.Text = "https://www." + addressBar.Text;
+                    }
                     webView.CoreWebView2.Navigate(addressBar.Text);
                 } catch (Exception ex) {
                     webView.CoreWebView2.ExecuteScriptAsync($"alert('{ex.Message}')");
                 }
             }
+        }
+
+        private void addressBar_KeyDown(object sender, KeyEventArgs e) {
+            if(e.KeyCode== Keys.Enter) { goButton.PerformClick(); }
         }
     }
 }

@@ -34,6 +34,7 @@
             this.addressBar.Name = "addressBar";
             this.addressBar.Size = new System.Drawing.Size(998, 23);
             this.addressBar.TabIndex = 0;
+            this.addressBar.KeyDown += new System.Windows.Forms.KeyEventHandler(this.addressBar_KeyDown);
             // 
             // goButton
             // 
