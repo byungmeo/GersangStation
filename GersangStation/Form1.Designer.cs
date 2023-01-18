@@ -157,6 +157,7 @@
             this.tabPage_home.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_home.Size = new System.Drawing.Size(394, 218);
             this.tabPage_home.TabIndex = 0;
+            this.tabPage_home.Text = "메인";
             // 
             // linkLabel_announcement
             // 
@@ -660,6 +661,7 @@
             this.tabPage_settings.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_settings.Size = new System.Drawing.Size(394, 218);
             this.tabPage_settings.TabIndex = 1;
+            this.tabPage_settings.Text = "설정";
             // 
             // materialButton_setting_advanced
             // 
@@ -766,6 +768,7 @@
             this.tabPage_help.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_help.Size = new System.Drawing.Size(394, 218);
             this.tabPage_help.TabIndex = 2;
+            this.tabPage_help.Text = "문의";
             this.tabPage_help.UseVisualStyleBackColor = true;
             // 
             // materialButton_kakao
@@ -809,6 +812,7 @@
             this.tabPage_info.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage_info.Size = new System.Drawing.Size(394, 218);
             this.tabPage_info.TabIndex = 4;
+            this.tabPage_info.Text = "정보";
             this.tabPage_info.UseVisualStyleBackColor = true;
             // 
             // materialButton_license
@@ -956,6 +960,7 @@
             this.tabPage_sponsor.Name = "tabPage_sponsor";
             this.tabPage_sponsor.Size = new System.Drawing.Size(394, 218);
             this.tabPage_sponsor.TabIndex = 5;
+            this.tabPage_sponsor.Text = "후원";
             this.tabPage_sponsor.UseVisualStyleBackColor = true;
             // 
             // label4
