@@ -192,11 +192,11 @@
             // 
             this.label4.AutoSize = true;
             this.label4.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.label4.Font = new System.Drawing.Font("Noto Sans KR", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label4.ForeColor = System.Drawing.Color.Red;
-            this.label4.Location = new System.Drawing.Point(45, 340);
+            this.label4.Location = new System.Drawing.Point(60, 340);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(365, 44);
+            this.label4.Size = new System.Drawing.Size(338, 36);
             this.label4.TabIndex = 39;
             this.label4.Text = "본클라는 반드시 원본 거상 폴더여야만 합니다!!\r\n다클라 생성기로 생성한 폴더는 본클라가 될 수 없습니다!";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -251,7 +251,7 @@
             this.materialCheckbox_autoUpdate.Checked = true;
             this.materialCheckbox_autoUpdate.CheckState = System.Windows.Forms.CheckState.Checked;
             this.materialCheckbox_autoUpdate.Depth = 0;
-            this.materialCheckbox_autoUpdate.Location = new System.Drawing.Point(57, 400);
+            this.materialCheckbox_autoUpdate.Location = new System.Drawing.Point(57, 387);
             this.materialCheckbox_autoUpdate.Margin = new System.Windows.Forms.Padding(0);
             this.materialCheckbox_autoUpdate.MouseLocation = new System.Drawing.Point(-1, -1);
             this.materialCheckbox_autoUpdate.MouseState = MaterialSkin.MouseState.HOVER;
@@ -266,16 +266,16 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Font = new System.Drawing.Font("Noto Sans", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label8.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.label8.Location = new System.Drawing.Point(15, 82);
             this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(122, 20);
+            this.label8.Size = new System.Drawing.Size(109, 18);
             this.label8.TabIndex = 55;
             this.label8.Text = "본서버 거상 경로";
             // 
             // label1
             // 
-            this.label1.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label1.Location = new System.Drawing.Point(15, 112);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(47, 18);
@@ -285,7 +285,7 @@
             // 
             // label2
             // 
-            this.label2.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label2.Location = new System.Drawing.Point(15, 141);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(47, 18);
@@ -295,7 +295,7 @@
             // 
             // label5
             // 
-            this.label5.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label5.Location = new System.Drawing.Point(15, 170);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(47, 18);
@@ -306,16 +306,16 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Font = new System.Drawing.Font("Noto Sans", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.label9.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.label9.Location = new System.Drawing.Point(15, 216);
             this.label9.Name = "label9";
-            this.label9.Size = new System.Drawing.Size(152, 20);
+            this.label9.Size = new System.Drawing.Size(135, 18);
             this.label9.TabIndex = 59;
             this.label9.Text = "테스트서버 거상 경로";
             // 
             // label7
             // 
-            this.label7.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label7.Location = new System.Drawing.Point(15, 246);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(47, 18);
@@ -325,7 +325,7 @@
             // 
             // label3
             // 
-            this.label3.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label3.Location = new System.Drawing.Point(15, 304);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(47, 18);
@@ -335,7 +335,7 @@
             // 
             // label6
             // 
-            this.label6.Font = new System.Drawing.Font("Noto Sans", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label6.Location = new System.Drawing.Point(15, 275);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(47, 18);
@@ -419,7 +419,7 @@
             this.materialButton_save.ForeColor = System.Drawing.Color.White;
             this.materialButton_save.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_save.Image")));
             this.materialButton_save.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_save.Location = new System.Drawing.Point(177, 452);
+            this.materialButton_save.Location = new System.Drawing.Point(177, 435);
             this.materialButton_save.Name = "materialButton_save";
             this.materialButton_save.Padding = new System.Windows.Forms.Padding(5);
             this.materialButton_save.Size = new System.Drawing.Size(102, 36);
@@ -455,7 +455,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(456, 505);
+            this.ClientSize = new System.Drawing.Size(456, 486);
             this.Controls.Add(this.materialButton_patch_test);
             this.Controls.Add(this.materialButton_save);
             this.Controls.Add(this.materialButton_patch);
