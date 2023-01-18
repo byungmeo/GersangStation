@@ -233,7 +233,7 @@ namespace GersangStation {
 
             Form backgroundForm = Form1.InitBackgroundForm(this);
             
-            Form_Patcher_v2 form_Patcher = new Form_Patcher_v2(isTest) {
+            Form_Patcher form_Patcher = new Form_Patcher(isTest) {
                 Owner = this
             };
 
