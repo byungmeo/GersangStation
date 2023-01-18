@@ -188,6 +188,7 @@ namespace GersangStation {
             materialButton_close.Enabled = true;
 
             MessageBox.Show(this, "패치가 모두 완료되었습니다.", "패치 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            this.Close();
         }
 
         public Dictionary<string, string> GetPatchFileList(int equal, DirectoryInfo directory_info, DirectoryInfo directory_file) {
