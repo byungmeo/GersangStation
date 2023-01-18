@@ -386,7 +386,9 @@ namespace GersangStation {
 
             // 비밀번호 변경 안내 페이지라면, "다음에 변경하기" 클릭
             if (url.Contains("pw_reset.gs")) {
-                doPwReset();
+                // https://www.gersang.co.kr/member/pw_reset.gs?returnUrl=www.gersang.co.kr/main/index.gs
+                string returnUrl = url.Substring(url.IndexOf("returnUrl=") + 10);
+                doPwReset(returnUrl);
                 return;
             }
 
@@ -652,8 +654,8 @@ namespace GersangStation {
             await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
         }
 
-        private async void doPwReset() {
-            await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href *= '" + "www.gersang.co.kr/main/index.gs?" + @"']"").click()");
+        private async void doPwReset(string returnUrl) {
+            await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href *= '" + returnUrl + @"']"").click()");
         }
 
         private string? showDialogOtp() {
