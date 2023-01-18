@@ -1,5 +1,8 @@
 ﻿using System.Configuration;
+using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
+using System.Windows.Forms;
 
 namespace GersangStation {
     internal static class ConfigManager {
@@ -33,7 +36,24 @@ namespace GersangStation {
             keyValuePairs.Add("use_bat_creator", "False");
             keyValuePairs.Add("prev_announcement", "");
 
-            if (false == ExistsConfig()) {  CreateConfigFile(keyValuePairs);  }
+            if (false == ExistsConfig()) {
+                string msg = "이전 버전에서 입력한 계정정보를 불러오시겠습니까?\n자세한 방법은 예를 누르면 뜨는 홈페이지를 참고해주세요.";
+                DialogResult dr = MessageBox.Show(msg, "이전 설정 불러오기", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if(dr == DialogResult.Yes) {
+                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/27") { UseShellExecute = true });
+                    OpenFileDialog openFileDialog = new OpenFileDialog() {
+                        Filter = "설정파일|*.config"
+                    };
+                    dr = openFileDialog.ShowDialog();
+                    if(dr == DialogResult.OK) {
+                        //File경로와 File명을 모두 가지고 온다.
+                        string fileFullPath = openFileDialog.FileName;
+                        File.Copy(fileFullPath, ".\\GersangStation.dll.config", true);
+                        return;
+                    }
+                }
+                CreateConfigFile(keyValuePairs);
+            }
             else { CheckKey(keyValuePairs); }
         }
 
