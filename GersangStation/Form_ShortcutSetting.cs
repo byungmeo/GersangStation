@@ -31,7 +31,6 @@ namespace GersangStation {
             ConfigManager.setConfig("shortcut_2", textBox_shortcutLink_2.Text);
             ConfigManager.setConfig("shortcut_3", textBox_shortcutLink_3.Text);
             ConfigManager.setConfig("shortcut_4", textBox_shortcutLink_4.Text);
-
             this.DialogResult = DialogResult.OK;
         }
     }

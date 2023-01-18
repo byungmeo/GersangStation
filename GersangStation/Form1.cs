@@ -1107,6 +1107,7 @@ namespace GersangStation {
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
                 webView_main.CoreWebView2.Navigate(url_main);
                 form.Controls.Clear();
+                LoadShortcut();
             };
 
             form.Show();
