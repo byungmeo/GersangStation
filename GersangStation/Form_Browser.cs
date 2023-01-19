@@ -135,9 +135,9 @@ namespace GersangStation {
             };
 
             button_slot1.Click += (sender, e) => save("shortcut_1", slot1_link);
-            button_slot2.Click += (sender, e) => save("shortcut_2", slot1_link);
-            button_slot3.Click += (sender, e) => save("shortcut_3", slot1_link);
-            button_slot4.Click += (sender, e) => save("shortcut_4", slot1_link);
+            button_slot2.Click += (sender, e) => save("shortcut_2", slot2_link);
+            button_slot3.Click += (sender, e) => save("shortcut_3", slot3_link);
+            button_slot4.Click += (sender, e) => save("shortcut_4", slot4_link);
 
             Label label_current1 = new Label() {
                 AutoSize = true,
