@@ -1,6 +1,7 @@
 ﻿using MaterialSkin.Controls;
 using Microsoft.Web.WebView2.WinForms;
 using System.Text;
+using System.Windows.Forms;
 
 namespace GersangStation {
     public partial class Form_Browser : Form {
@@ -68,14 +69,10 @@ namespace GersangStation {
 
         private void button_saveShortcut_Click(object sender, EventArgs e) {
             string[] titles = ConfigManager.getConfig("shortcut_name").Split(';');
-            string slot1_title = titles[0];
-            string slot2_title = titles[1];
-            string slot3_title = titles[2];
-            string slot4_title = titles[3];
-            string slot1_link = ConfigManager.getConfig("shortcut_1");
-            string slot2_link = ConfigManager.getConfig("shortcut_2");
-            string slot3_link = ConfigManager.getConfig("shortcut_3");
-            string slot4_link = ConfigManager.getConfig("shortcut_4");
+            string[] slot_title = new string[titles.Length];
+            string[] slot_link = new string[4];
+            for(int i = 0; i < titles.Length; i++) slot_title[i] = titles[i];
+            for(int i = 1; i <= 4; i++) { slot_link[i-1] = ConfigManager.getConfig("shortcut_" + i); }
 
             Form form_saveShortcut = new Form() {
                 TopMost = true,
@@ -95,83 +92,75 @@ namespace GersangStation {
                 MaxLength = 6,
                 Location = new Point(label_title.Location.X + 87, label_title.Location.Y)
             };
-            Button button_slot1 = new Button() {
+
+            Button[] button_slot = new Button[4];
+            button_slot[0] = new Button() {
                 Text = "1번슬롯에 저장",
                 AutoSize = true,
                 Location = new Point(label_title.Location.X, textBox_title.Location.Y + 40)
             };
-            Button button_slot2 = new Button() {
-                Text = "2번슬롯에 저장",
-                AutoSize = true,
-                Location = new Point(button_slot1.Location.X, button_slot1.Location.Y + 28)
-            };
-            Button button_slot3 = new Button() {
-                Text = "3번슬롯에 저장",
-                AutoSize = true,
-                Location = new Point(button_slot2.Location.X, button_slot2.Location.Y + 28)
-            };
-            Button button_slot4 = new Button() {
-                Text = "4번슬롯에 저장",
-                AutoSize = true,
-                Location = new Point(button_slot3.Location.X, button_slot3.Location.Y + 28)
-            };
+            for(int i = 1; i < 4; i++) {
+                button_slot[i] = new Button() {
+                    Text = (i+1) + "번슬롯에 저장",
+                    AutoSize = true,
+                    Location = new Point(button_slot[i-1].Location.X, button_slot[i-1].Location.Y + 28)
+                };
+            }
 
-            Action<string, string> save = (key, link) => {
+            Label[] label_current = new Label[4];
+            label_current[0] = new Label() {
+                AutoSize = true,
+                Location = new Point(button_slot[0].Location.X + 104, button_slot[0].Location.Y),
+                Text = (slot_link[0] == "") ? "지정하지않음" : "현재 : " + slot_title[0],
+                Tag = slot_title[0]
+            };
+            for(int i = 1; i < 4; i++) {
+                label_current[i] = new Label() {
+                    AutoSize = true,
+                    Location = new Point(button_slot[i].Location.X + 104, button_slot[i].Location.Y),
+                    Text = (slot_link[i] == "") ? "지정하지않음" : "현재 : " + slot_title[i],
+                    Tag = slot_title[i]
+                };
+            }
+
+            Action<string, Label> save = (key, label) => {
                 if (textBox_title.Text == "") {
                     MessageBox.Show("제목을 입력해주세요.");
-                }
-                else {
-                    slot1_title = textBox_title.Text;
-                    slot1_link = addressBar.Text;
+                } else {
+                    label.Tag = textBox_title.Text;
+                    string link = addressBar.Text;
                     ConfigManager.setConfig(key, link);
                     StringBuilder sb = new StringBuilder();
-                    sb.Append(slot1_title + ';');
-                    sb.Append(slot2_title + ';');
-                    sb.Append(slot3_title + ';');
-                    sb.Append(slot4_title);
+                    foreach (Label l in label_current) sb.Append(l.Tag.ToString() + ';');
+                    sb.Remove(sb.Length - 1, 1);
                     ConfigManager.setConfig("shortcut_name", sb.ToString());
                     this.Close();
                 }
             };
 
-            button_slot1.Click += (sender, e) => save("shortcut_1", slot1_link);
-            button_slot2.Click += (sender, e) => save("shortcut_2", slot2_link);
-            button_slot3.Click += (sender, e) => save("shortcut_3", slot3_link);
-            button_slot4.Click += (sender, e) => save("shortcut_4", slot4_link);
-
-            Label label_current1 = new Label() {
-                AutoSize = true,
-                Location = new Point(button_slot1.Location.X + 104, button_slot1.Location.Y),
-                Text = (slot1_link == "") ? "지정하지않음" : "현재 : " + slot1_title
+            button_slot[0].Click += (sender, e) => {
+                label_current[0].Tag = label_title.Text;
+                save("shortcut_1", label_current[0]);
             };
-            Label label_current2 = new Label() {
-                AutoSize = true,
-                Location = new Point(button_slot2.Location.X + 104, button_slot2.Location.Y),
-                Text = (slot2_link == "") ? "지정하지않음" : "현재 : " + slot2_title
+            button_slot[1].Click += (sender, e) => {
+                label_current[1].Tag = label_title.Text;
+                save("shortcut_2", label_current[1]);
             };
-            Label label_current3 = new Label() {
-                AutoSize = true,
-                Location = new Point(button_slot3.Location.X + 104, button_slot3.Location.Y),
-                Text = (slot3_link == "") ? "지정하지않음" : "현재 : " + slot3_title
+            button_slot[2].Click += (sender, e) => {
+                label_current[2].Tag = label_title.Text;
+                save("shortcut_3", label_current[2]);
             };
-            Label label_current4 = new Label() {
-                AutoSize = true,
-                Location = new Point(button_slot4.Location.X + 104, button_slot4.Location.Y),
-                Text = (slot4_link == "") ? "지정하지않음" : "현재 : " + slot4_title
+            button_slot[3].Click += (sender, e) => {
+                label_current[3].Tag = label_title.Text;
+                save("shortcut_4", label_current[3]);
             };
 
             form_saveShortcut.Controls.Add(label_link);
             form_saveShortcut.Controls.Add(label_title);
             form_saveShortcut.Controls.Add(textBox_title);
-            form_saveShortcut.Controls.Add(button_slot1);
-            form_saveShortcut.Controls.Add(button_slot2);
-            form_saveShortcut.Controls.Add(button_slot3);
-            form_saveShortcut.Controls.Add(button_slot4);
-            form_saveShortcut.Controls.Add(label_current1);
-            form_saveShortcut.Controls.Add(label_current2);
-            form_saveShortcut.Controls.Add(label_current3);
-            form_saveShortcut.Controls.Add(label_current4);
-            form_saveShortcut.Size = new Size(form_saveShortcut.Size.Width, button_slot4.Location.Y + 74);
+            foreach(Button button in button_slot) form_saveShortcut.Controls.Add(button);
+            foreach(Label label in label_current) form_saveShortcut.Controls.Add(label);
+            form_saveShortcut.Size = new Size(form_saveShortcut.Size.Width, button_slot[button_slot.Length-1].Location.Y + 74);
             form_saveShortcut.ShowDialog(this);
         }
     }
