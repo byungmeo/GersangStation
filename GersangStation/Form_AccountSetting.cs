@@ -117,12 +117,6 @@ namespace GersangStation {
                         return;
                     }
 
-                    if (textBox_pw.Text.Contains(' ')) {
-                        MessageBox.Show(dialog_addAccount, "패스워드에 공백이 포함되어 있습니다.\n다시 입력 해주세요.");
-                        textBox_pw.Text = "";
-                        return;
-                    }
-
                     if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
                         MessageBox.Show(dialog_addAccount, "이미 동일한 계정이 존재합니다.");
                         return;
