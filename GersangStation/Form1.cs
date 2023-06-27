@@ -164,27 +164,31 @@ namespace GersangStation {
             if (announcements.Length <= 1) {
                 linkLabel_announcement.Text = "공지사항이 없습니다";
             } else {
-                string latestAnnouncement = announcements[1];
-                string title = latestAnnouncement.Split('{')[0];
-                int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
-                int length = latestAnnouncement.LastIndexOf('}') - startIndex;
-                string pageNumber = latestAnnouncement.Substring(startIndex, length);
-                string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
-                linkLabel_announcement.Text = title;
-                linkLabel_announcement.Click += (sender, e) => {
-                    Trace.Write(pageNumber + "번 공지사항 접속");
-                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                };
-
-                // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
-                string prevLink = ConfigManager.getConfig("prev_announcement");
-                if (prevLink == "" || prevLink != url) {
-                    ConfigManager.setConfig("prev_announcement", url);
-                    DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']')+1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    if (dr == DialogResult.Yes) {
+                try {
+                    string latestAnnouncement = announcements[1];
+                    string title = latestAnnouncement.Split('{')[0];
+                    int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
+                    int length = latestAnnouncement.LastIndexOf('}') - startIndex;
+                    string pageNumber = latestAnnouncement.Substring(startIndex, length);
+                    string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
+                    linkLabel_announcement.Text = title;
+                    linkLabel_announcement.Click += (sender, e) => {
                         Trace.Write(pageNumber + "번 공지사항 접속");
                         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                    };
+
+                    // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
+                    string prevLink = ConfigManager.getConfig("prev_announcement");
+                    if(prevLink == "" || prevLink != url) {
+                        ConfigManager.setConfig("prev_announcement", url);
+                        DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']') + 1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                        if(dr == DialogResult.Yes) {
+                            Trace.Write(pageNumber + "번 공지사항 접속");
+                            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                        }
                     }
+                } catch {
+                    linkLabel_announcement.Text = "공지사항 로딩 실패";
                 }
             }
         }
