@@ -799,7 +799,7 @@ namespace GersangStation {
             if (false == ValidationPath(client_path, server)) return;
 
             string version_current = VersionChecker.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
-            string version_latest = VersionChecker.GetLatestVersion_Safe(this, url_vsn);
+            string version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
             if (version_current != version_latest) {
                 DialogResult dr = DialogResult.No;
                 bool update = false;
