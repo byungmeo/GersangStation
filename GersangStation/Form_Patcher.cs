@@ -86,6 +86,17 @@ namespace GersangStation {
         }
 
         private void materialButton_startPatch_Click(object sender, EventArgs e) {
+            // 현재 버전을 조작한 경우
+            if (version_current != textBox_currentVersion.Text) {
+                string text = textBox_currentVersion.Text;
+                // 비어있으면 안되며, 숫자 형식이어야 하고, 반드시 5자여야 한다
+                if (text == "" || false == int.TryParse(text, out int result) || text.Length != 5) {
+                   MessageBox.Show("현재 버전을 확인해주세요.\n버전은 5자리 숫자로 이루어져 있습니다.", "현재 버전 확인", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                   return;
+                }
+                version_current = textBox_currentVersion.Text;
+            }
+
             DirectoryInfo pathInfo = new DirectoryInfo(path_main + "\\char");
             if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
                 MessageBox.Show("잘못된 본클라 경로입니다. 다시 지정해주세요.\n원인 : 원본 폴더가 아닌 생성기로 생성된 폴더입니다.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);

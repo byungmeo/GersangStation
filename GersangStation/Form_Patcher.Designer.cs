@@ -1,7 +1,5 @@
-﻿namespace GersangStation
-{
-    partial class Form_Patcher
-    {
+﻿namespace GersangStation {
+    partial class Form_Patcher {
         /// <summary>
         /// Required designer variable.
         /// </summary>
@@ -11,10 +9,8 @@
         /// Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
+        protected override void Dispose(bool disposing) {
+            if(disposing && (components != null)) {
                 components.Dispose();
             }
             base.Dispose(disposing);
@@ -26,194 +22,191 @@
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
-        {
-            this.components = new System.ComponentModel.Container();
+        private void InitializeComponent() {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_Patcher));
-            this.materialCheckbox_delete = new MaterialSkin.Controls.MaterialCheckbox();
-            this.materialCheckbox_apply = new MaterialSkin.Controls.MaterialCheckbox();
-            this.materialCard1 = new MaterialSkin.Controls.MaterialCard();
-            this.label2 = new System.Windows.Forms.Label();
-            this.textBox_latestVersion = new System.Windows.Forms.TextBox();
-            this.textBox_currentVersion = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
-            this.materialButton_startPatch = new GersangStation.CustomButton();
-            this.label_status = new System.Windows.Forms.Label();
-            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.label_total = new System.Windows.Forms.Label();
-            this.materialCard1.SuspendLayout();
-            this.SuspendLayout();
+            materialCheckbox_delete = new MaterialSkin.Controls.MaterialCheckbox();
+            materialCheckbox_apply = new MaterialSkin.Controls.MaterialCheckbox();
+            materialCard1 = new MaterialSkin.Controls.MaterialCard();
+            label2 = new Label();
+            textBox_latestVersion = new TextBox();
+            textBox_currentVersion = new TextBox();
+            label1 = new Label();
+            materialButton_startPatch = new CustomButton();
+            label_status = new Label();
+            toolTip1 = new ToolTip(components);
+            label_total = new Label();
+            materialCard1.SuspendLayout();
+            SuspendLayout();
             // 
             // materialCheckbox_delete
             // 
-            this.materialCheckbox_delete.AutoSize = true;
-            this.materialCheckbox_delete.Checked = true;
-            this.materialCheckbox_delete.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.materialCheckbox_delete.Depth = 0;
-            this.materialCheckbox_delete.Location = new System.Drawing.Point(212, 125);
-            this.materialCheckbox_delete.Margin = new System.Windows.Forms.Padding(0);
-            this.materialCheckbox_delete.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialCheckbox_delete.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialCheckbox_delete.Name = "materialCheckbox_delete";
-            this.materialCheckbox_delete.ReadOnly = false;
-            this.materialCheckbox_delete.Ripple = true;
-            this.materialCheckbox_delete.Size = new System.Drawing.Size(131, 37);
-            this.materialCheckbox_delete.TabIndex = 41;
-            this.materialCheckbox_delete.Text = "패치 후 파일 삭제";
-            this.materialCheckbox_delete.UseVisualStyleBackColor = true;
+            materialCheckbox_delete.AutoSize = true;
+            materialCheckbox_delete.Checked = true;
+            materialCheckbox_delete.CheckState = CheckState.Checked;
+            materialCheckbox_delete.Depth = 0;
+            materialCheckbox_delete.Location = new Point(212, 125);
+            materialCheckbox_delete.Margin = new Padding(0);
+            materialCheckbox_delete.MouseLocation = new Point(-1, -1);
+            materialCheckbox_delete.MouseState = MaterialSkin.MouseState.HOVER;
+            materialCheckbox_delete.Name = "materialCheckbox_delete";
+            materialCheckbox_delete.ReadOnly = false;
+            materialCheckbox_delete.Ripple = true;
+            materialCheckbox_delete.Size = new Size(131, 37);
+            materialCheckbox_delete.TabIndex = 41;
+            materialCheckbox_delete.Text = "패치 후 파일 삭제";
+            materialCheckbox_delete.UseVisualStyleBackColor = true;
             // 
             // materialCheckbox_apply
             // 
-            this.materialCheckbox_apply.AutoSize = true;
-            this.materialCheckbox_apply.Checked = true;
-            this.materialCheckbox_apply.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.materialCheckbox_apply.Depth = 0;
-            this.materialCheckbox_apply.Location = new System.Drawing.Point(212, 83);
-            this.materialCheckbox_apply.Margin = new System.Windows.Forms.Padding(0);
-            this.materialCheckbox_apply.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialCheckbox_apply.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialCheckbox_apply.Name = "materialCheckbox_apply";
-            this.materialCheckbox_apply.ReadOnly = false;
-            this.materialCheckbox_apply.Ripple = true;
-            this.materialCheckbox_apply.Size = new System.Drawing.Size(127, 37);
-            this.materialCheckbox_apply.TabIndex = 40;
-            this.materialCheckbox_apply.Text = "다클라 패치 적용";
-            this.materialCheckbox_apply.UseVisualStyleBackColor = true;
+            materialCheckbox_apply.AutoSize = true;
+            materialCheckbox_apply.Checked = true;
+            materialCheckbox_apply.CheckState = CheckState.Checked;
+            materialCheckbox_apply.Depth = 0;
+            materialCheckbox_apply.Location = new Point(212, 83);
+            materialCheckbox_apply.Margin = new Padding(0);
+            materialCheckbox_apply.MouseLocation = new Point(-1, -1);
+            materialCheckbox_apply.MouseState = MaterialSkin.MouseState.HOVER;
+            materialCheckbox_apply.Name = "materialCheckbox_apply";
+            materialCheckbox_apply.ReadOnly = false;
+            materialCheckbox_apply.Ripple = true;
+            materialCheckbox_apply.Size = new Size(127, 37);
+            materialCheckbox_apply.TabIndex = 40;
+            materialCheckbox_apply.Text = "다클라 패치 적용";
+            materialCheckbox_apply.UseVisualStyleBackColor = true;
             // 
             // materialCard1
             // 
-            this.materialCard1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
-            this.materialCard1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.materialCard1.Controls.Add(this.label2);
-            this.materialCard1.Controls.Add(this.textBox_latestVersion);
-            this.materialCard1.Controls.Add(this.textBox_currentVersion);
-            this.materialCard1.Controls.Add(this.label1);
-            this.materialCard1.Depth = 0;
-            this.materialCard1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-            this.materialCard1.Location = new System.Drawing.Point(18, 81);
-            this.materialCard1.Margin = new System.Windows.Forms.Padding(14);
-            this.materialCard1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialCard1.Name = "materialCard1";
-            this.materialCard1.Padding = new System.Windows.Forms.Padding(14);
-            this.materialCard1.Size = new System.Drawing.Size(181, 83);
-            this.materialCard1.TabIndex = 43;
+            materialCard1.BackColor = Color.FromArgb(255, 255, 255);
+            materialCard1.BorderStyle = BorderStyle.FixedSingle;
+            materialCard1.Controls.Add(label2);
+            materialCard1.Controls.Add(textBox_latestVersion);
+            materialCard1.Controls.Add(textBox_currentVersion);
+            materialCard1.Controls.Add(label1);
+            materialCard1.Depth = 0;
+            materialCard1.ForeColor = Color.FromArgb(222, 0, 0, 0);
+            materialCard1.Location = new Point(18, 81);
+            materialCard1.Margin = new Padding(14);
+            materialCard1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialCard1.Name = "materialCard1";
+            materialCard1.Padding = new Padding(14);
+            materialCard1.Size = new Size(181, 83);
+            materialCard1.TabIndex = 43;
             // 
             // label2
             // 
-            this.label2.AutoSize = true;
-            this.label2.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label2.Location = new System.Drawing.Point(22, 48);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(60, 16);
-            this.label2.TabIndex = 37;
-            this.label2.Text = "최신 버전 :";
-            this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            label2.AutoSize = true;
+            label2.FlatStyle = FlatStyle.System;
+            label2.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point);
+            label2.Location = new Point(22, 48);
+            label2.Name = "label2";
+            label2.Size = new Size(60, 16);
+            label2.TabIndex = 37;
+            label2.Text = "최신 버전 :";
+            label2.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // textBox_latestVersion
             // 
-            this.textBox_latestVersion.Location = new System.Drawing.Point(88, 46);
-            this.textBox_latestVersion.Name = "textBox_latestVersion";
-            this.textBox_latestVersion.ReadOnly = true;
-            this.textBox_latestVersion.Size = new System.Drawing.Size(62, 23);
-            this.textBox_latestVersion.TabIndex = 36;
-            this.textBox_latestVersion.Text = "00000";
-            this.textBox_latestVersion.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            textBox_latestVersion.Location = new Point(88, 46);
+            textBox_latestVersion.Name = "textBox_latestVersion";
+            textBox_latestVersion.ReadOnly = true;
+            textBox_latestVersion.Size = new Size(62, 23);
+            textBox_latestVersion.TabIndex = 36;
+            textBox_latestVersion.Text = "00000";
+            textBox_latestVersion.TextAlign = HorizontalAlignment.Center;
             // 
             // textBox_currentVersion
             // 
-            this.textBox_currentVersion.Location = new System.Drawing.Point(88, 11);
-            this.textBox_currentVersion.Name = "textBox_currentVersion";
-            this.textBox_currentVersion.ReadOnly = true;
-            this.textBox_currentVersion.Size = new System.Drawing.Size(62, 23);
-            this.textBox_currentVersion.TabIndex = 34;
-            this.textBox_currentVersion.Text = "00000";
-            this.textBox_currentVersion.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            textBox_currentVersion.Location = new Point(88, 11);
+            textBox_currentVersion.Name = "textBox_currentVersion";
+            textBox_currentVersion.Size = new Size(62, 23);
+            textBox_currentVersion.TabIndex = 34;
+            textBox_currentVersion.Text = "00000";
+            textBox_currentVersion.TextAlign = HorizontalAlignment.Center;
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label1.Location = new System.Drawing.Point(22, 13);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(60, 16);
-            this.label1.TabIndex = 33;
-            this.label1.Text = "현재 버전 :";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            label1.AutoSize = true;
+            label1.FlatStyle = FlatStyle.System;
+            label1.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point);
+            label1.Location = new Point(22, 13);
+            label1.Name = "label1";
+            label1.Size = new Size(60, 16);
+            label1.TabIndex = 33;
+            label1.Text = "현재 버전 :";
+            label1.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // materialButton_startPatch
             // 
-            this.materialButton_startPatch.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_startPatch.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_startPatch.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_startPatch.BorderRadius = 5;
-            this.materialButton_startPatch.BorderSize = 0;
-            this.materialButton_startPatch.FlatAppearance.BorderSize = 0;
-            this.materialButton_startPatch.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_startPatch.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_startPatch.ForeColor = System.Drawing.Color.White;
-            this.materialButton_startPatch.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_startPatch.Image")));
-            this.materialButton_startPatch.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_startPatch.Location = new System.Drawing.Point(130, 247);
-            this.materialButton_startPatch.Name = "materialButton_startPatch";
-            this.materialButton_startPatch.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_startPatch.Size = new System.Drawing.Size(102, 36);
-            this.materialButton_startPatch.TabIndex = 69;
-            this.materialButton_startPatch.Text = "패치시작";
-            this.materialButton_startPatch.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_startPatch.TextColor = System.Drawing.Color.White;
-            this.materialButton_startPatch.UseVisualStyleBackColor = false;
-            this.materialButton_startPatch.Click += new System.EventHandler(this.materialButton_startPatch_Click);
+            materialButton_startPatch.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_startPatch.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_startPatch.BorderColor = Color.PaleVioletRed;
+            materialButton_startPatch.BorderRadius = 5;
+            materialButton_startPatch.BorderSize = 0;
+            materialButton_startPatch.FlatAppearance.BorderSize = 0;
+            materialButton_startPatch.FlatStyle = FlatStyle.Flat;
+            materialButton_startPatch.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_startPatch.ForeColor = Color.White;
+            materialButton_startPatch.Image = (Image)resources.GetObject("materialButton_startPatch.Image");
+            materialButton_startPatch.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_startPatch.Location = new Point(130, 247);
+            materialButton_startPatch.Name = "materialButton_startPatch";
+            materialButton_startPatch.Padding = new Padding(5);
+            materialButton_startPatch.Size = new Size(102, 36);
+            materialButton_startPatch.TabIndex = 69;
+            materialButton_startPatch.Text = "패치시작";
+            materialButton_startPatch.TextAlign = ContentAlignment.MiddleLeft;
+            materialButton_startPatch.TextColor = Color.White;
+            materialButton_startPatch.UseVisualStyleBackColor = false;
+            materialButton_startPatch.Click += materialButton_startPatch_Click;
             // 
             // label_status
             // 
-            this.label_status.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.label_status.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_status.ForeColor = System.Drawing.Color.Black;
-            this.label_status.Location = new System.Drawing.Point(6, 181);
-            this.label_status.Name = "label_status";
-            this.label_status.Size = new System.Drawing.Size(353, 18);
-            this.label_status.TabIndex = 72;
-            this.label_status.Text = "패치 시작 버튼을 누르면 패치가 시작됩니다.";
-            this.label_status.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            label_status.FlatStyle = FlatStyle.System;
+            label_status.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            label_status.ForeColor = Color.Black;
+            label_status.Location = new Point(6, 181);
+            label_status.Name = "label_status";
+            label_status.Size = new Size(353, 18);
+            label_status.TabIndex = 72;
+            label_status.Text = "패치 시작 버튼을 누르면 패치가 시작됩니다.";
+            label_status.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // label_total
             // 
-            this.label_total.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.label_total.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_total.ForeColor = System.Drawing.Color.Black;
-            this.label_total.Location = new System.Drawing.Point(6, 210);
-            this.label_total.Name = "label_total";
-            this.label_total.Size = new System.Drawing.Size(353, 18);
-            this.label_total.TabIndex = 73;
-            this.label_total.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            label_total.FlatStyle = FlatStyle.System;
+            label_total.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            label_total.ForeColor = Color.Black;
+            label_total.Location = new Point(6, 210);
+            label_total.Name = "label_total";
+            label_total.Size = new Size(353, 18);
+            label_total.TabIndex = 73;
+            label_total.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // Form_Patcher
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(365, 295);
-            this.Controls.Add(this.label_total);
-            this.Controls.Add(this.label_status);
-            this.Controls.Add(this.materialButton_startPatch);
-            this.Controls.Add(this.materialCard1);
-            this.Controls.Add(this.materialCheckbox_delete);
-            this.Controls.Add(this.materialCheckbox_apply);
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.Name = "Form_Patcher";
-            this.ShowInTaskbar = false;
-            this.Sizable = false;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "GersangPatcher";
-            this.TopMost = true;
-            this.Load += new System.EventHandler(this.Form_Patcher_v2_Load);
-            this.materialCard1.ResumeLayout(false);
-            this.materialCard1.PerformLayout();
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(365, 295);
+            Controls.Add(label_total);
+            Controls.Add(label_status);
+            Controls.Add(materialButton_startPatch);
+            Controls.Add(materialCard1);
+            Controls.Add(materialCheckbox_delete);
+            Controls.Add(materialCheckbox_apply);
+            MaximizeBox = false;
+            MinimizeBox = false;
+            Name = "Form_Patcher";
+            ShowInTaskbar = false;
+            Sizable = false;
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "GersangPatcher";
+            TopMost = true;
+            Load += Form_Patcher_v2_Load;
+            materialCard1.ResumeLayout(false);
+            materialCard1.PerformLayout();
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
