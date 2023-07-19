@@ -79,9 +79,9 @@ namespace GersangStation {
                     return false;
                 }
 
-                if (item.DriveFormat != "NTFS") {
+                if (item.DriveFormat == "FAT32") {
                     owner.BeginInvoke(() => {
-                        MessageBox.Show(owner, "다클라 생성(패치 적용)이 불가능한 경로입니다.\n원인 : 드라이브 포맷이 NTFS가 아닙니다.\n관리자에게 문의해주세요.", "다클라 생성(패치 적용) 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(owner, "다클라 생성(패치 적용)이 불가능한 경로입니다.\n원인 : 드라이브 파일 시스템이 FAT32 입니다.\n관리자에게 문의해주세요.", "다클라 생성(패치 적용) 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     });
                     return false;
                 }
