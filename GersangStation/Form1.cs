@@ -145,6 +145,9 @@ namespace GersangStation {
                 MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
                 Trace.WriteLine(ex.Message);
             }
+
+            if (bool.Parse(ConfigManager.getConfig("use_clip_mouse")))
+                ClipMouse.Run();
         }
 
         private void LoadSponsors(Readme r) {

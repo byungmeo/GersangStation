@@ -34,6 +34,7 @@ namespace GersangStation {
             keyValuePairs.Add("is_auto_update", "True");
             keyValuePairs.Add("use_bat_creator", "False");
             keyValuePairs.Add("prev_announcement", "");
+            keyValuePairs.Add("use_clip_mouse", "False");
 
             if (false == ExistsConfig()) {
                 string msg = "바탕화면에 바로가기를 생성하시겠습니까?";
