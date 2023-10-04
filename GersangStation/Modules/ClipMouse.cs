@@ -103,8 +103,8 @@ namespace GersangStation.Modules
             if (icon != null)
             {
                 icon.Visible = true;
-                icon.BalloonTipTitle = "알림";
-                icon.BalloonTipText = "향상된 마우스 가두기가 실행되었습니다.";
+                icon.BalloonTipTitle = "향상된 마우스 가두기 ON";
+                icon.BalloonTipText = "Alt 버튼을 누르면 일시적으로 빠져나올 수 있습니다.";
                 icon.ShowBalloonTip(3000);
             }
 
@@ -128,8 +128,8 @@ namespace GersangStation.Modules
             if (icon != null)
             {
                 icon.Visible = true;
-                icon.BalloonTipTitle = "알림";
-                icon.BalloonTipText = "향상된 마우스 가두기가 종료되었습니다.";
+                icon.BalloonTipTitle = "향상된 마우스 가두기 OFF";
+                icon.BalloonTipText = "F11 버튼을 눌러 다시 활성화 할 수 있습니다.";
                 icon.ShowBalloonTip(3000);
             }
 
