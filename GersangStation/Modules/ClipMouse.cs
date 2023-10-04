@@ -12,7 +12,7 @@ using System.Threading;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace GersangStation
+namespace GersangStation.Modules
 {
 
     public struct GUITHREADINFO
@@ -88,10 +88,11 @@ namespace GersangStation
         public static bool Run()
         {
             Trace.WriteLine("Try to run clipMouse");
-            if (isRunning()) {
+            if (isRunning())
+            {
                 Trace.WriteLine("Thread is already running");
                 return false; //thread is already running
-            } 
+            }
 
             tokenSource = new CancellationTokenSource();
             thread1 = new Thread(() => main_thread(tokenSource.Token));
@@ -99,7 +100,8 @@ namespace GersangStation
             thread1.Start();
             Trace.WriteLine("Thread Started");
 
-            if (icon != null) {
+            if (icon != null)
+            {
                 icon.Visible = true;
                 icon.BalloonTipTitle = "알림";
                 icon.BalloonTipText = "향상된 마우스 가두기가 실행되었습니다.";
@@ -112,10 +114,11 @@ namespace GersangStation
         public static bool Stop()
         {
             Trace.WriteLine("Try to stop clipMouse");
-            if (!isRunning()) {
+            if (!isRunning())
+            {
                 Trace.WriteLine("Thread is already stopped");
                 return false;
-            } 
+            }
 
             tokenSource.Cancel();
             thread1.Join();
@@ -133,7 +136,7 @@ namespace GersangStation
             return true;
         }
 
-        private static void main_thread(CancellationToken token) 
+        private static void main_thread(CancellationToken token)
         {
 
             Trace.WriteLine("ClipMouse main started");
@@ -141,8 +144,8 @@ namespace GersangStation
             int validateHandleCount = 0;
             int escapeCount = 0;
 
-            while (!token.IsCancellationRequested) 
-            {                
+            while (!token.IsCancellationRequested)
+            {
                 //Trace.WriteLine("ClipMouse main running");
 
                 validateHandleCount++;
@@ -154,8 +157,10 @@ namespace GersangStation
 
                 //Check current foreground
                 IntPtr foregroundWindow = GetForegroundWindow();
-                foreach (IntPtr windowHandle in windowHandles) {
-                    if (foregroundWindow == windowHandle) {
+                foreach (IntPtr windowHandle in windowHandles)
+                {
+                    if (foregroundWindow == windowHandle)
+                    {
                         currentWindowsHandle = foregroundWindow;
                     }
                 }
@@ -165,7 +170,8 @@ namespace GersangStation
                     validateHandleCount = 0;
                 }
 
-                if (currentWindowsHandle == IntPtr.Zero) { //Current foreground is not Gersang.
+                if (currentWindowsHandle == IntPtr.Zero)
+                { //Current foreground is not Gersang.
                     ClipCursor(IntPtr.Zero); //Clear clip cursor
                     Thread.Sleep(ClippingRefreshInterval); //Wait next thread interval
                     continue;
@@ -221,18 +227,20 @@ namespace GersangStation
                 {
                     escapeCount++;
                 }
-                else {
+                else
+                {
                     escapeCount = 0;
                 }
 
                 //Escape function
-                if (escapeCount > 2) {
+                if (escapeCount > 2)
+                {
                     escapeCount = 0;
                     ClipCursor(IntPtr.Zero);
                     selectedWindowHadFocus = false;
                     Thread.Sleep(1000);
                 }
-                else if ((windowArea_original.IsPointInRectangle(pt)))
+                else if (windowArea_original.IsPointInRectangle(pt))
                 {
                     if (ClipCursor(ref windowArea) == 0)
                     {
@@ -418,8 +426,8 @@ namespace GersangStation
 
         public struct POINT
         {
-            public Int32 x;
-            public Int32 y;
+            public int x;
+            public int y;
         }
 
     }

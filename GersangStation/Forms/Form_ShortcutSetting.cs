@@ -1,7 +1,9 @@
-﻿using MaterialSkin.Controls;
+﻿using GersangStation.Modules;
+using MaterialSkin.Controls;
 using System.Text;
 
-namespace GersangStation {
+namespace GersangStation
+{
     public partial class Form_ShortcutSetting : MaterialForm {
         public Form_ShortcutSetting() {
             InitializeComponent();

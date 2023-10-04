@@ -1,8 +1,10 @@
-﻿using MaterialSkin.Controls;
+﻿using GersangStation.Modules;
+using MaterialSkin.Controls;
 using System.Diagnostics;
 using System.Text;
 
-namespace GersangStation {
+namespace GersangStation
+{
     public partial class Form_AccountSetting : MaterialForm {
         public Form_AccountSetting() {
             InitializeComponent();

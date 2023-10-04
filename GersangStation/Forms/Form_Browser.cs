@@ -1,9 +1,11 @@
-﻿using MaterialSkin.Controls;
+﻿using GersangStation.Modules;
+using MaterialSkin.Controls;
 using Microsoft.Web.WebView2.WinForms;
 using System.Text;
 using System.Windows.Forms;
 
-namespace GersangStation {
+namespace GersangStation
+{
     public partial class Form_Browser : Form {
         WebView2 webView;
 

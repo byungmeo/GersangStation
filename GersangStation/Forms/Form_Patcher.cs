@@ -1,10 +1,12 @@
-﻿using MaterialSkin.Controls;
+﻿using GersangStation.Modules;
+using MaterialSkin.Controls;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
 
-namespace GersangStation {
+namespace GersangStation
+{
     public partial class Form_Patcher : MaterialForm {
         private const int NUM_RETRY = 15; // 모든 파일 다운로드 실패 시 다운로드 재시도 최대 횟수
 
