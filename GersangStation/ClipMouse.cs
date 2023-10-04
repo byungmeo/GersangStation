@@ -192,7 +192,7 @@ namespace GersangStation
                 }
 
                 //Make a gap for safety 
-                int borderGap = 2;
+                int borderGap = 2, escapeGap = 3;
                 windowArea.Left += windowBorderSize.Left;
                 windowArea.Top += windowBorderSize.Top;
                 windowArea.Bottom -= windowBorderSize.Bottom;
@@ -208,16 +208,16 @@ namespace GersangStation
                 windowArea.Bottom -= borderGap;
                 windowArea.Right -= borderGap;
 
-                escapeArea.Left = windowArea.Right - 5;
-                escapeArea.Top = windowArea.Bottom - 5;
-                escapeArea.Bottom = windowArea.Bottom;
-                escapeArea.Right = windowArea.Right;
+                escapeArea.Left = windowArea.Left + escapeGap;
+                escapeArea.Top = windowArea.Top + escapeGap;
+                escapeArea.Bottom = windowArea.Bottom - escapeGap;
+                escapeArea.Right = windowArea.Right - escapeGap;
 
                 //Trace.WriteLine(windowArea_original);
                 //Trace.WriteLine(escapeArea);
                 //Trace.WriteLine(escapeCount);
 
-                if (escapeArea.IsPointInRectangle(pt))
+                if (!escapeArea.IsPointInRectangle(pt) && Control.ModifierKeys == Keys.Alt)
                 {
                     escapeCount++;
                 }
@@ -226,7 +226,7 @@ namespace GersangStation
                 }
 
                 //Escape function
-                if (escapeCount > 5) {
+                if (escapeCount > 2) {
                     escapeCount = 0;
                     ClipCursor(IntPtr.Zero);
                     selectedWindowHadFocus = false;
@@ -267,11 +267,9 @@ namespace GersangStation
         {
             Process[] processList;
             List<IntPtr> windowHandles = new List<IntPtr>();
-            int indexCounter;
 
-            // Print out (almost) every window title and save their handle
-            processList = Process.GetProcesses();
-            indexCounter = 1;
+            // Get Gersang process only
+            processList = Process.GetProcessesByName("Gersang");
 
             if (windowHandles == null)
             {
@@ -284,19 +282,9 @@ namespace GersangStation
 
             foreach (Process process in processList)
             {
-                if (!string.IsNullOrEmpty(process.MainWindowTitle) && process.ProcessName == "Gersang")
+                if (!string.IsNullOrEmpty(process.MainWindowTitle))
                 {
-                    //if (outputWindowNames)
-                    //{
-                    //    string windowTitle = RemoveSpecialCharacters(process.MainWindowTitle);
-                    //    Console.WriteLine(
-                    //        "({0:d}) : {1:s}",
-                    //        indexCounter,
-                    //        windowTitle.Substring(0, Math.Min(windowTitle.Length, WindowTitleMaxLength)));
-                    //}
-
                     windowHandles.Add(process.MainWindowHandle);
-                    indexCounter++;
                 }
             }
 
