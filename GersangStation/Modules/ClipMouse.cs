@@ -162,6 +162,7 @@ namespace GersangStation.Modules
                     if (foregroundWindow == windowHandle)
                     {
                         currentWindowsHandle = foregroundWindow;
+                        break;
                     }
                 }
 
