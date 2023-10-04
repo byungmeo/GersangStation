@@ -47,7 +47,7 @@
             materialCheckbox_useBAT.Name = "materialCheckbox_useBAT";
             materialCheckbox_useBAT.ReadOnly = false;
             materialCheckbox_useBAT.Ripple = true;
-            materialCheckbox_useBAT.Size = new Size(326, 37);
+            materialCheckbox_useBAT.Size = new Size(346, 37);
             materialCheckbox_useBAT.TabIndex = 0;
             materialCheckbox_useBAT.TabStop = false;
             materialCheckbox_useBAT.Text = "다클라 생성 시 커맨드라인 방식 사용 (권장하지 않음)";
@@ -65,7 +65,7 @@
             materialCheckbox_mouseClip.Name = "materialCheckbox_mouseClip";
             materialCheckbox_mouseClip.ReadOnly = false;
             materialCheckbox_mouseClip.Ripple = true;
-            materialCheckbox_mouseClip.Size = new Size(151, 37);
+            materialCheckbox_mouseClip.Size = new Size(160, 37);
             materialCheckbox_mouseClip.TabIndex = 3;
             materialCheckbox_mouseClip.TabStop = false;
             materialCheckbox_mouseClip.Text = "향상된 마우스 가두기";
@@ -84,7 +84,7 @@
             // img_help
             // 
             img_help.Image = (Image)resources.GetObject("img_help.Image");
-            img_help.Location = new Point(193, 94);
+            img_help.Location = new Point(202, 94);
             img_help.Name = "img_help";
             img_help.Size = new Size(20, 20);
             img_help.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -116,7 +116,6 @@
         #endregion
 
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_useBAT;
-        private CustomButton materialButton_save;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_mouseClip;
         private ToolTip toolTip1;
         private PictureBox img_help;

@@ -18,31 +18,17 @@ namespace GersangStation
             materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
         }
 
-        private void materialButton_save_Click(object sender, EventArgs e) {
-            ConfigManager.setConfig("use_bat_creator", materialCheckbox_useBAT.Checked.ToString());
-
-            this.DialogResult = DialogResult.OK;
-        }
-
         private void materialCheckbox_useBAT_CheckedChanged(object sender, EventArgs e) {
             ConfigManager.setConfig("use_bat_creator", materialCheckbox_useBAT.Checked.ToString());
-        }
-
-        private void runMouseClipThread() {
-            ClipMouse.Run();
-        }
-
-        private void stopMouseClipThread() {
-            ClipMouse.Stop();
         }
 
         private void mouseClipCheckBox_CheckedChanged_1(object sender, EventArgs e) {
             ConfigManager.setConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
 
             if(materialCheckbox_mouseClip.Checked == true) {
-                runMouseClipThread();
+                ClipMouse.Run();
             } else {
-                stopMouseClipThread();
+                ClipMouse.Stop();
             }
         }
 
