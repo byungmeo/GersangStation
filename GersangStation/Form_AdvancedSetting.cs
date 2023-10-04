@@ -49,7 +49,13 @@ namespace GersangStation
             {
                 stopMouseClipThread();
             }
-
         }
+
+        public void updateClipCheckBox()
+        {
+            //It will raise duplicated update but it will be ignored
+            mouseClipCheckBox.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
+        }
+
     }
 }

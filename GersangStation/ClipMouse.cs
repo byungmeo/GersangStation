@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Linq;
+using System.Windows.Forms;
 
 namespace GersangStation
 {
@@ -31,10 +32,12 @@ namespace GersangStation
 
         private static CancellationTokenSource tokenSource = new CancellationTokenSource();
         private static Thread thread1 = new Thread(() => main_thread(tokenSource.Token));
+        public static NotifyIcon? icon = null;
 
         private const int WindowTitleMaxLength = 50; // Length window titles get truncated to
         private const int ValidateHandleThreshold = 10; // How often the user selected window handle gets validate
         private const int ClippingRefreshInterval = 100; // How often the clipped area is refreshed in milliseconds
+        private const int HotKeyId = 33333;
 
         #region EnumerationsAndFlags
         private enum GetWindowLongIndex : int
@@ -58,13 +61,34 @@ namespace GersangStation
         }
         #endregion
 
+        public static int GetHotKeyId()
+        {
+            return HotKeyId;
+        }
+
+        public static bool RegisterHotKey(IntPtr hWnd, Keys key)
+        {
+            //Register hotkey
+            return RegisterHotKey(hWnd, GetHotKeyId(), 0 /*Prevent duplicated alarm*/, (int)key);
+        }
+
+        public static bool UnregisterHotKey(IntPtr hWnd)
+        {
+            return UnregisterHotKey(hWnd, GetHotKeyId());
+        }
+
+        public static bool isRunning()
+        {
+            return thread1.IsAlive;
+        }
+
         //Run thread for mouse clip.
         //Output: True (SUCCEEDED)
         //        False (FAILED)
         public static bool Run()
         {
             Trace.WriteLine("Try to run clipMouse");
-            if (thread1.IsAlive == true) {
+            if (isRunning()) {
                 Trace.WriteLine("Thread is already running");
                 return false; //thread is already running
             } 
@@ -75,13 +99,20 @@ namespace GersangStation
             thread1.Start();
             Trace.WriteLine("Thread Started");
 
+            if (icon != null) {
+                icon.Visible = true;
+                icon.BalloonTipTitle = "알림";
+                icon.BalloonTipText = "향상된 마우스 가두기가 실행되었습니다.";
+                icon.ShowBalloonTip(3000);
+            }
+
             return true;
         }
 
         public static bool Stop()
         {
             Trace.WriteLine("Try to stop clipMouse");
-            if (thread1.IsAlive == false) {
+            if (!isRunning()) {
                 Trace.WriteLine("Thread is already stopped");
                 return false;
             } 
@@ -91,18 +122,28 @@ namespace GersangStation
             tokenSource.Dispose();
             Trace.WriteLine("Thread Stopped");
 
+            if (icon != null)
+            {
+                icon.Visible = true;
+                icon.BalloonTipTitle = "알림";
+                icon.BalloonTipText = "향상된 마우스 가두기가 종료되었습니다.";
+                icon.ShowBalloonTip(3000);
+            }
+
             return true;
         }
 
         private static void main_thread(CancellationToken token) 
         {
+
             Trace.WriteLine("ClipMouse main started");
             bool selectedWindowHadFocus = false;
             int validateHandleCount = 0;
+            int escapeCount = 0;
 
             while (!token.IsCancellationRequested) 
-            {
-                Trace.WriteLine("ClipMouse main running");
+            {                
+                //Trace.WriteLine("ClipMouse main running");
 
                 validateHandleCount++;
 
@@ -133,6 +174,7 @@ namespace GersangStation
                 Rectangle windowBorderSize = new Rectangle();
                 Rectangle windowArea = new Rectangle();
                 Rectangle windowArea_original = new Rectangle();
+                Rectangle escapeArea = new Rectangle();
 
                 // Determine border sizes for the selected window
                 windowBorderSize = GetWindowBorderSizes(currentWindowsHandle);
@@ -166,7 +208,31 @@ namespace GersangStation
                 windowArea.Bottom -= borderGap;
                 windowArea.Right -= borderGap;
 
-                if ((windowArea_original.IsPointInRectangle(pt)))
+                escapeArea.Left = windowArea.Right - 5;
+                escapeArea.Top = windowArea.Bottom - 5;
+                escapeArea.Bottom = windowArea.Bottom;
+                escapeArea.Right = windowArea.Right;
+
+                //Trace.WriteLine(windowArea_original);
+                //Trace.WriteLine(escapeArea);
+                //Trace.WriteLine(escapeCount);
+
+                if (escapeArea.IsPointInRectangle(pt))
+                {
+                    escapeCount++;
+                }
+                else {
+                    escapeCount = 0;
+                }
+
+                //Escape function
+                if (escapeCount > 5) {
+                    escapeCount = 0;
+                    ClipCursor(IntPtr.Zero);
+                    selectedWindowHadFocus = false;
+                    Thread.Sleep(1000);
+                }
+                else if ((windowArea_original.IsPointInRectangle(pt)))
                 {
                     if (ClipCursor(ref windowArea) == 0)
                     {
@@ -176,6 +242,7 @@ namespace GersangStation
                     }
 
                     selectedWindowHadFocus = true;
+
                 }
                 else if (selectedWindowHadFocus)
                 {
@@ -217,21 +284,16 @@ namespace GersangStation
 
             foreach (Process process in processList)
             {
-                //if (verboseOutput)
-                //{
-                //    Console.WriteLine($"{process.ProcessName}: {process.MainWindowHandle}|{process.MainWindowTitle}");
-                //}
-
                 if (!string.IsNullOrEmpty(process.MainWindowTitle) && process.ProcessName.Contains("Gersang"))
                 {
-                    if (outputWindowNames)
-                    {
-                        string windowTitle = RemoveSpecialCharacters(process.MainWindowTitle);
-                        Console.WriteLine(
-                            "({0:d}) : {1:s}",
-                            indexCounter,
-                            windowTitle.Substring(0, Math.Min(windowTitle.Length, WindowTitleMaxLength)));
-                    }
+                    //if (outputWindowNames)
+                    //{
+                    //    string windowTitle = RemoveSpecialCharacters(process.MainWindowTitle);
+                    //    Console.WriteLine(
+                    //        "({0:d}) : {1:s}",
+                    //        indexCounter,
+                    //        windowTitle.Substring(0, Math.Min(windowTitle.Length, WindowTitleMaxLength)));
+                    //}
 
                     windowHandles.Add(process.MainWindowHandle);
                     indexCounter++;
@@ -332,6 +394,12 @@ namespace GersangStation
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, EntryPoint = "GetCursorPos")]
         public static extern bool GetCursorPos(out POINT lpPoint);
+
+        // DLL libraries used to manage hotkeys
+        [DllImport("user32.dll")]
+        public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vlc);
+        [DllImport("user32.dll")]
+        public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         #endregion
 

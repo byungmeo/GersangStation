@@ -54,8 +54,8 @@
             // 
             mouseClipCheckBox.AutoSize = true;
             mouseClipCheckBox.Depth = 0;
-            mouseClipCheckBox.Location = new Point(74, 218);
-            mouseClipCheckBox.Margin = new Padding(10, 0, 0, 0);
+            mouseClipCheckBox.Location = new Point(74, 237);
+            mouseClipCheckBox.Margin = new Padding(0);
             mouseClipCheckBox.MouseLocation = new Point(-1, -1);
             mouseClipCheckBox.MouseState = MaterialSkin.MouseState.HOVER;
             mouseClipCheckBox.Name = "mouseClipCheckBox";
