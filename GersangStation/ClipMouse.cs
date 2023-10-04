@@ -284,7 +284,7 @@ namespace GersangStation
 
             foreach (Process process in processList)
             {
-                if (!string.IsNullOrEmpty(process.MainWindowTitle) && process.ProcessName.Contains("Gersang"))
+                if (!string.IsNullOrEmpty(process.MainWindowTitle) && process.ProcessName == "Gersang")
                 {
                     //if (outputWindowNames)
                     //{
