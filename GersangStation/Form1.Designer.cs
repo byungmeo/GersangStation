@@ -1,5 +1,7 @@
-﻿namespace GersangStation {
-    partial class Form1 {
+﻿namespace GersangStation
+{
+    partial class Form1
+    {
         /// <summary>
         ///  Required designer variable.
         /// </summary>
@@ -9,8 +11,10 @@
         ///  Clean up any resources being used.
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
-        protected override void Dispose(bool disposing) {
-            if (disposing && (components != null)) {
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
                 components.Dispose();
             }
             base.Dispose(disposing);
@@ -22,1237 +26,1265 @@
         ///  Required method for Designer support - do not modify
         ///  the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent() {
-            this.components = new System.ComponentModel.Container();
+        private void InitializeComponent()
+        {
+            components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            this.materialTabControl1 = new MaterialSkin.Controls.MaterialTabControl();
-            this.tabPage_home = new System.Windows.Forms.TabPage();
-            this.linkLabel_announcement = new System.Windows.Forms.LinkLabel();
-            this.pictureBox2 = new System.Windows.Forms.PictureBox();
-            this.label2 = new System.Windows.Forms.Label();
-            this.materialCheckbox_testServer = new MaterialSkin.Controls.MaterialCheckbox();
-            this.materialButton_start_3 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_search_3 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_start_2 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_search_2 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_shortcut_1 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_shortcut_2 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_debugging = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_shortcut_4 = new MaterialSkin.Controls.MaterialButton();
-            this.materialSwitch_login_1 = new MaterialSkin.Controls.MaterialSwitch();
-            this.materialButton_shortcut_3 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_start_1 = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_search_1 = new MaterialSkin.Controls.MaterialButton();
-            this.materialSwitch_login_3 = new MaterialSkin.Controls.MaterialSwitch();
-            this.materialComboBox_account_3 = new MaterialSkin.Controls.MaterialComboBox();
-            this.materialSwitch_login_2 = new MaterialSkin.Controls.MaterialSwitch();
-            this.materialComboBox_account_2 = new MaterialSkin.Controls.MaterialComboBox();
-            this.materialComboBox_account_1 = new MaterialSkin.Controls.MaterialComboBox();
-            this.radio_preset_4 = new MaterialSkin.Controls.MaterialRadioButton();
-            this.radio_preset_3 = new MaterialSkin.Controls.MaterialRadioButton();
-            this.radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
-            this.radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
-            this.tabPage_settings = new System.Windows.Forms.TabPage();
-            this.materialButton_setting_advanced = new GersangStation.CustomButton();
-            this.materialButton_setting_shortcut = new GersangStation.CustomButton();
-            this.materialButton_setting_client = new GersangStation.CustomButton();
-            this.materialButton_setting_account = new GersangStation.CustomButton();
-            this.tabPage_help = new System.Windows.Forms.TabPage();
-            this.label6 = new System.Windows.Forms.Label();
-            this.label5 = new System.Windows.Forms.Label();
-            this.materialButton_question_naver = new GersangStation.CustomButton();
-            this.materialButton_question_kakao = new GersangStation.CustomButton();
-            this.tabPage_info = new System.Windows.Forms.TabPage();
-            this.materialButton_license = new MaterialSkin.Controls.MaterialButton();
-            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
-            this.materialButton_patchNote = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_blog = new MaterialSkin.Controls.MaterialButton();
-            this.materialButton_gitHub = new MaterialSkin.Controls.MaterialButton();
-            this.label1 = new System.Windows.Forms.Label();
-            this.label_version_latest = new System.Windows.Forms.Label();
-            this.label_version_current = new System.Windows.Forms.Label();
-            this.tabPage_sponsor = new System.Windows.Forms.TabPage();
-            this.label4 = new System.Windows.Forms.Label();
-            this.materialButton_sponsor = new GersangStation.CustomButton();
-            this.label3 = new System.Windows.Forms.Label();
-            this.materialListBox_sponsor = new MaterialSkin.Controls.MaterialListBox();
-            this.menuIconList = new System.Windows.Forms.ImageList(this.components);
-            this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
-            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.button_tray = new System.Windows.Forms.Button();
-            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
-            this.contextMenuStrip_tray = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.toolStripMenuItem_open = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
-            this.toolStripMenuItem_client_1 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_search_1 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_start_1 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_client_2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_search_2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_start_2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_client_3 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_search_3 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem_start_3 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-            this.toolStripMenuItem_exit = new System.Windows.Forms.ToolStripMenuItem();
-            this.materialTabControl1.SuspendLayout();
-            this.tabPage_home.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
-            this.tabPage_settings.SuspendLayout();
-            this.tabPage_help.SuspendLayout();
-            this.tabPage_info.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
-            this.tabPage_sponsor.SuspendLayout();
-            this.contextMenuStrip_tray.SuspendLayout();
-            this.SuspendLayout();
+            materialTabControl1 = new MaterialSkin.Controls.MaterialTabControl();
+            tabPage_home = new TabPage();
+            linkLabel_announcement = new LinkLabel();
+            pictureBox2 = new PictureBox();
+            label2 = new Label();
+            materialCheckbox_testServer = new MaterialSkin.Controls.MaterialCheckbox();
+            materialButton_start_3 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_search_3 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_start_2 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_search_2 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_shortcut_1 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_shortcut_2 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_debugging = new MaterialSkin.Controls.MaterialButton();
+            materialButton_shortcut_4 = new MaterialSkin.Controls.MaterialButton();
+            materialSwitch_login_1 = new MaterialSkin.Controls.MaterialSwitch();
+            materialButton_shortcut_3 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_start_1 = new MaterialSkin.Controls.MaterialButton();
+            materialButton_search_1 = new MaterialSkin.Controls.MaterialButton();
+            materialSwitch_login_3 = new MaterialSkin.Controls.MaterialSwitch();
+            materialComboBox_account_3 = new MaterialSkin.Controls.MaterialComboBox();
+            materialSwitch_login_2 = new MaterialSkin.Controls.MaterialSwitch();
+            materialComboBox_account_2 = new MaterialSkin.Controls.MaterialComboBox();
+            materialComboBox_account_1 = new MaterialSkin.Controls.MaterialComboBox();
+            radio_preset_4 = new MaterialSkin.Controls.MaterialRadioButton();
+            radio_preset_3 = new MaterialSkin.Controls.MaterialRadioButton();
+            radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
+            radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
+            tabPage_settings = new TabPage();
+            materialButton_setting_advanced = new CustomButton();
+            materialButton_setting_shortcut = new CustomButton();
+            materialButton_setting_client = new CustomButton();
+            materialButton_setting_account = new CustomButton();
+            tabPage_help = new TabPage();
+            label6 = new Label();
+            label5 = new Label();
+            materialButton_question_naver = new CustomButton();
+            materialButton_question_kakao = new CustomButton();
+            tabPage_info = new TabPage();
+            materialButton_license = new MaterialSkin.Controls.MaterialButton();
+            linkLabel1 = new LinkLabel();
+            pictureBox1 = new PictureBox();
+            materialButton_patchNote = new MaterialSkin.Controls.MaterialButton();
+            materialButton_blog = new MaterialSkin.Controls.MaterialButton();
+            materialButton_gitHub = new MaterialSkin.Controls.MaterialButton();
+            label1 = new Label();
+            label_version_latest = new Label();
+            label_version_current = new Label();
+            tabPage_sponsor = new TabPage();
+            label4 = new Label();
+            materialButton_sponsor = new CustomButton();
+            label3 = new Label();
+            materialListBox_sponsor = new MaterialSkin.Controls.MaterialListBox();
+            menuIconList = new ImageList(components);
+            folderBrowserDialog = new FolderBrowserDialog();
+            toolTip1 = new ToolTip(components);
+            button_tray = new Button();
+            notifyIcon1 = new NotifyIcon(components);
+            contextMenuStrip_tray = new ContextMenuStrip(components);
+            toolStripMenuItem_open = new ToolStripMenuItem();
+            toolStripSeparator1 = new ToolStripSeparator();
+            toolStripMenuItem_client_1 = new ToolStripMenuItem();
+            toolStripMenuItem_search_1 = new ToolStripMenuItem();
+            toolStripMenuItem_start_1 = new ToolStripMenuItem();
+            toolStripMenuItem_client_2 = new ToolStripMenuItem();
+            toolStripMenuItem_search_2 = new ToolStripMenuItem();
+            toolStripMenuItem_start_2 = new ToolStripMenuItem();
+            toolStripMenuItem_client_3 = new ToolStripMenuItem();
+            toolStripMenuItem_search_3 = new ToolStripMenuItem();
+            toolStripMenuItem_start_3 = new ToolStripMenuItem();
+            toolStripSeparator2 = new ToolStripSeparator();
+            toolStripMenuItem_exit = new ToolStripMenuItem();
+            notifyIcon2 = new NotifyIcon(components);
+            materialTabControl1.SuspendLayout();
+            tabPage_home.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
+            tabPage_settings.SuspendLayout();
+            tabPage_help.SuspendLayout();
+            tabPage_info.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
+            tabPage_sponsor.SuspendLayout();
+            contextMenuStrip_tray.SuspendLayout();
+            SuspendLayout();
             // 
             // materialTabControl1
             // 
-            this.materialTabControl1.Controls.Add(this.tabPage_home);
-            this.materialTabControl1.Controls.Add(this.tabPage_settings);
-            this.materialTabControl1.Controls.Add(this.tabPage_help);
-            this.materialTabControl1.Controls.Add(this.tabPage_info);
-            this.materialTabControl1.Controls.Add(this.tabPage_sponsor);
-            this.materialTabControl1.Depth = 0;
-            this.materialTabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.materialTabControl1.ImageList = this.menuIconList;
-            this.materialTabControl1.Location = new System.Drawing.Point(3, 64);
-            this.materialTabControl1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialTabControl1.Multiline = true;
-            this.materialTabControl1.Name = "materialTabControl1";
-            this.materialTabControl1.SelectedIndex = 0;
-            this.materialTabControl1.Size = new System.Drawing.Size(402, 253);
-            this.materialTabControl1.TabIndex = 13;
+            materialTabControl1.Controls.Add(tabPage_home);
+            materialTabControl1.Controls.Add(tabPage_settings);
+            materialTabControl1.Controls.Add(tabPage_help);
+            materialTabControl1.Controls.Add(tabPage_info);
+            materialTabControl1.Controls.Add(tabPage_sponsor);
+            materialTabControl1.Depth = 0;
+            materialTabControl1.Dock = DockStyle.Fill;
+            materialTabControl1.ImageList = menuIconList;
+            materialTabControl1.Location = new Point(6, 128);
+            materialTabControl1.Margin = new Padding(6, 6, 6, 6);
+            materialTabControl1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialTabControl1.Multiline = true;
+            materialTabControl1.Name = "materialTabControl1";
+            materialTabControl1.SelectedIndex = 0;
+            materialTabControl1.Size = new Size(804, 506);
+            materialTabControl1.TabIndex = 13;
             // 
             // tabPage_home
             // 
-            this.tabPage_home.AutoScroll = true;
-            this.tabPage_home.BackColor = System.Drawing.Color.White;
-            this.tabPage_home.Controls.Add(this.linkLabel_announcement);
-            this.tabPage_home.Controls.Add(this.pictureBox2);
-            this.tabPage_home.Controls.Add(this.label2);
-            this.tabPage_home.Controls.Add(this.materialCheckbox_testServer);
-            this.tabPage_home.Controls.Add(this.materialButton_start_3);
-            this.tabPage_home.Controls.Add(this.materialButton_search_3);
-            this.tabPage_home.Controls.Add(this.materialButton_start_2);
-            this.tabPage_home.Controls.Add(this.materialButton_search_2);
-            this.tabPage_home.Controls.Add(this.materialButton_shortcut_1);
-            this.tabPage_home.Controls.Add(this.materialButton_shortcut_2);
-            this.tabPage_home.Controls.Add(this.materialButton_debugging);
-            this.tabPage_home.Controls.Add(this.materialButton_shortcut_4);
-            this.tabPage_home.Controls.Add(this.materialSwitch_login_1);
-            this.tabPage_home.Controls.Add(this.materialButton_shortcut_3);
-            this.tabPage_home.Controls.Add(this.materialButton_start_1);
-            this.tabPage_home.Controls.Add(this.materialButton_search_1);
-            this.tabPage_home.Controls.Add(this.materialSwitch_login_3);
-            this.tabPage_home.Controls.Add(this.materialComboBox_account_3);
-            this.tabPage_home.Controls.Add(this.materialSwitch_login_2);
-            this.tabPage_home.Controls.Add(this.materialComboBox_account_2);
-            this.tabPage_home.Controls.Add(this.materialComboBox_account_1);
-            this.tabPage_home.Controls.Add(this.radio_preset_4);
-            this.tabPage_home.Controls.Add(this.radio_preset_3);
-            this.tabPage_home.Controls.Add(this.radio_preset_2);
-            this.tabPage_home.Controls.Add(this.radio_preset_1);
-            this.tabPage_home.ImageKey = "outline_home_black_24dp.png";
-            this.tabPage_home.Location = new System.Drawing.Point(4, 31);
-            this.tabPage_home.Name = "tabPage_home";
-            this.tabPage_home.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_home.Size = new System.Drawing.Size(394, 218);
-            this.tabPage_home.TabIndex = 0;
-            this.tabPage_home.Text = "메인";
+            tabPage_home.AutoScroll = true;
+            tabPage_home.BackColor = Color.White;
+            tabPage_home.Controls.Add(linkLabel_announcement);
+            tabPage_home.Controls.Add(pictureBox2);
+            tabPage_home.Controls.Add(label2);
+            tabPage_home.Controls.Add(materialCheckbox_testServer);
+            tabPage_home.Controls.Add(materialButton_start_3);
+            tabPage_home.Controls.Add(materialButton_search_3);
+            tabPage_home.Controls.Add(materialButton_start_2);
+            tabPage_home.Controls.Add(materialButton_search_2);
+            tabPage_home.Controls.Add(materialButton_shortcut_1);
+            tabPage_home.Controls.Add(materialButton_shortcut_2);
+            tabPage_home.Controls.Add(materialButton_debugging);
+            tabPage_home.Controls.Add(materialButton_shortcut_4);
+            tabPage_home.Controls.Add(materialSwitch_login_1);
+            tabPage_home.Controls.Add(materialButton_shortcut_3);
+            tabPage_home.Controls.Add(materialButton_start_1);
+            tabPage_home.Controls.Add(materialButton_search_1);
+            tabPage_home.Controls.Add(materialSwitch_login_3);
+            tabPage_home.Controls.Add(materialComboBox_account_3);
+            tabPage_home.Controls.Add(materialSwitch_login_2);
+            tabPage_home.Controls.Add(materialComboBox_account_2);
+            tabPage_home.Controls.Add(materialComboBox_account_1);
+            tabPage_home.Controls.Add(radio_preset_4);
+            tabPage_home.Controls.Add(radio_preset_3);
+            tabPage_home.Controls.Add(radio_preset_2);
+            tabPage_home.Controls.Add(radio_preset_1);
+            tabPage_home.ImageKey = "outline_home_black_24dp.png";
+            tabPage_home.Location = new Point(8, 46);
+            tabPage_home.Margin = new Padding(6, 6, 6, 6);
+            tabPage_home.Name = "tabPage_home";
+            tabPage_home.Padding = new Padding(6, 6, 6, 6);
+            tabPage_home.Size = new Size(788, 452);
+            tabPage_home.TabIndex = 0;
+            tabPage_home.Text = "메인";
             // 
             // linkLabel_announcement
             // 
-            this.linkLabel_announcement.AutoSize = true;
-            this.linkLabel_announcement.Location = new System.Drawing.Point(46, 224);
-            this.linkLabel_announcement.Name = "linkLabel_announcement";
-            this.linkLabel_announcement.Size = new System.Drawing.Size(132, 15);
-            this.linkLabel_announcement.TabIndex = 40;
-            this.linkLabel_announcement.TabStop = true;
-            this.linkLabel_announcement.Text = "공지사항 불러오는 중...";
+            linkLabel_announcement.AutoSize = true;
+            linkLabel_announcement.Location = new Point(92, 448);
+            linkLabel_announcement.Margin = new Padding(6, 0, 6, 0);
+            linkLabel_announcement.Name = "linkLabel_announcement";
+            linkLabel_announcement.Size = new Size(261, 32);
+            linkLabel_announcement.TabIndex = 40;
+            linkLabel_announcement.TabStop = true;
+            linkLabel_announcement.Text = "공지사항 불러오는 중...";
             // 
             // pictureBox2
             // 
-            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
-            this.pictureBox2.Location = new System.Drawing.Point(18, 219);
-            this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(24, 24);
-            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
-            this.pictureBox2.TabIndex = 39;
-            this.pictureBox2.TabStop = false;
+            pictureBox2.Image = (Image)resources.GetObject("pictureBox2.Image");
+            pictureBox2.Location = new Point(36, 438);
+            pictureBox2.Margin = new Padding(6, 6, 6, 6);
+            pictureBox2.Name = "pictureBox2";
+            pictureBox2.Size = new Size(24, 24);
+            pictureBox2.SizeMode = PictureBoxSizeMode.AutoSize;
+            pictureBox2.TabIndex = 39;
+            pictureBox2.TabStop = false;
             // 
             // label2
             // 
-            this.label2.AutoSize = true;
-            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label2.Location = new System.Drawing.Point(238, 12);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(40, 24);
-            this.label2.TabIndex = 38;
-            this.label2.Text = "테섭";
+            label2.AutoSize = true;
+            label2.Font = new Font("Microsoft Sans Serif", 14.25F, FontStyle.Bold, GraphicsUnit.Point);
+            label2.Location = new Point(476, 24);
+            label2.Margin = new Padding(6, 0, 6, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(77, 44);
+            label2.TabIndex = 38;
+            label2.Text = "테섭";
             // 
             // materialCheckbox_testServer
             // 
-            this.materialCheckbox_testServer.AutoSize = true;
-            this.materialCheckbox_testServer.Depth = 0;
-            this.materialCheckbox_testServer.Location = new System.Drawing.Point(208, 6);
-            this.materialCheckbox_testServer.Margin = new System.Windows.Forms.Padding(0);
-            this.materialCheckbox_testServer.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialCheckbox_testServer.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialCheckbox_testServer.Name = "materialCheckbox_testServer";
-            this.materialCheckbox_testServer.ReadOnly = false;
-            this.materialCheckbox_testServer.Ripple = true;
-            this.materialCheckbox_testServer.Size = new System.Drawing.Size(35, 37);
-            this.materialCheckbox_testServer.TabIndex = 37;
-            this.materialCheckbox_testServer.TabStop = false;
-            this.materialCheckbox_testServer.UseVisualStyleBackColor = true;
-            this.materialCheckbox_testServer.CheckedChanged += new System.EventHandler(this.materialCheckbox_testServer_CheckedChanged);
+            materialCheckbox_testServer.AutoSize = true;
+            materialCheckbox_testServer.Depth = 0;
+            materialCheckbox_testServer.Location = new Point(416, 12);
+            materialCheckbox_testServer.Margin = new Padding(0);
+            materialCheckbox_testServer.MouseLocation = new Point(-1, -1);
+            materialCheckbox_testServer.MouseState = MaterialSkin.MouseState.HOVER;
+            materialCheckbox_testServer.Name = "materialCheckbox_testServer";
+            materialCheckbox_testServer.ReadOnly = false;
+            materialCheckbox_testServer.Ripple = true;
+            materialCheckbox_testServer.Size = new Size(35, 37);
+            materialCheckbox_testServer.TabIndex = 37;
+            materialCheckbox_testServer.TabStop = false;
+            materialCheckbox_testServer.UseVisualStyleBackColor = true;
+            materialCheckbox_testServer.CheckedChanged += materialCheckbox_testServer_CheckedChanged;
             // 
             // materialButton_start_3
             // 
-            this.materialButton_start_3.AutoSize = false;
-            this.materialButton_start_3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_start_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_start_3.Depth = 0;
-            this.materialButton_start_3.HighEmphasis = false;
-            this.materialButton_start_3.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_start_3.Icon")));
-            this.materialButton_start_3.Location = new System.Drawing.Point(242, 130);
-            this.materialButton_start_3.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_start_3.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_start_3.Name = "materialButton_start_3";
-            this.materialButton_start_3.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_start_3.Size = new System.Drawing.Size(84, 35);
-            this.materialButton_start_3.TabIndex = 35;
-            this.materialButton_start_3.Text = "3클실행";
-            this.materialButton_start_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_start_3.UseAccentColor = false;
-            this.materialButton_start_3.UseVisualStyleBackColor = true;
-            this.materialButton_start_3.Click += new System.EventHandler(this.materialButton_start_Click);
+            materialButton_start_3.AutoSize = false;
+            materialButton_start_3.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_start_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_start_3.Depth = 0;
+            materialButton_start_3.HighEmphasis = false;
+            materialButton_start_3.Icon = (Image)resources.GetObject("materialButton_start_3.Icon");
+            materialButton_start_3.Location = new Point(484, 260);
+            materialButton_start_3.Margin = new Padding(8, 12, 8, 12);
+            materialButton_start_3.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_start_3.Name = "materialButton_start_3";
+            materialButton_start_3.NoAccentTextColor = Color.Empty;
+            materialButton_start_3.Size = new Size(168, 70);
+            materialButton_start_3.TabIndex = 35;
+            materialButton_start_3.Text = "3클실행";
+            materialButton_start_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_start_3.UseAccentColor = false;
+            materialButton_start_3.UseVisualStyleBackColor = true;
+            materialButton_start_3.Click += materialButton_start_Click;
             // 
             // materialButton_search_3
             // 
-            this.materialButton_search_3.AutoSize = false;
-            this.materialButton_search_3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_search_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_search_3.Depth = 0;
-            this.materialButton_search_3.Enabled = false;
-            this.materialButton_search_3.HighEmphasis = true;
-            this.materialButton_search_3.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_search_3.Icon")));
-            this.materialButton_search_3.Location = new System.Drawing.Point(242, 130);
-            this.materialButton_search_3.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_search_3.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_search_3.Name = "materialButton_search_3";
-            this.materialButton_search_3.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_search_3.Size = new System.Drawing.Size(39, 35);
-            this.materialButton_search_3.TabIndex = 36;
-            this.materialButton_search_3.TabStop = false;
-            this.materialButton_search_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_search_3.UseAccentColor = true;
-            this.materialButton_search_3.UseVisualStyleBackColor = true;
-            this.materialButton_search_3.Visible = false;
-            this.materialButton_search_3.Click += new System.EventHandler(this.materialButton_naver_Click);
+            materialButton_search_3.AutoSize = false;
+            materialButton_search_3.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_search_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_search_3.Depth = 0;
+            materialButton_search_3.Enabled = false;
+            materialButton_search_3.HighEmphasis = true;
+            materialButton_search_3.Icon = (Image)resources.GetObject("materialButton_search_3.Icon");
+            materialButton_search_3.Location = new Point(484, 260);
+            materialButton_search_3.Margin = new Padding(8, 12, 8, 12);
+            materialButton_search_3.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_search_3.Name = "materialButton_search_3";
+            materialButton_search_3.NoAccentTextColor = Color.Empty;
+            materialButton_search_3.Size = new Size(78, 70);
+            materialButton_search_3.TabIndex = 36;
+            materialButton_search_3.TabStop = false;
+            materialButton_search_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_search_3.UseAccentColor = true;
+            materialButton_search_3.UseVisualStyleBackColor = true;
+            materialButton_search_3.Visible = false;
+            materialButton_search_3.Click += materialButton_naver_Click;
             // 
             // materialButton_start_2
             // 
-            this.materialButton_start_2.AutoSize = false;
-            this.materialButton_start_2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_start_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_start_2.Depth = 0;
-            this.materialButton_start_2.HighEmphasis = false;
-            this.materialButton_start_2.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_start_2.Icon")));
-            this.materialButton_start_2.Location = new System.Drawing.Point(242, 89);
-            this.materialButton_start_2.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_start_2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_start_2.Name = "materialButton_start_2";
-            this.materialButton_start_2.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_start_2.Size = new System.Drawing.Size(84, 35);
-            this.materialButton_start_2.TabIndex = 26;
-            this.materialButton_start_2.Text = "2클실행";
-            this.materialButton_start_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_start_2.UseAccentColor = false;
-            this.materialButton_start_2.UseVisualStyleBackColor = true;
-            this.materialButton_start_2.Click += new System.EventHandler(this.materialButton_start_Click);
+            materialButton_start_2.AutoSize = false;
+            materialButton_start_2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_start_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_start_2.Depth = 0;
+            materialButton_start_2.HighEmphasis = false;
+            materialButton_start_2.Icon = (Image)resources.GetObject("materialButton_start_2.Icon");
+            materialButton_start_2.Location = new Point(484, 178);
+            materialButton_start_2.Margin = new Padding(8, 12, 8, 12);
+            materialButton_start_2.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_start_2.Name = "materialButton_start_2";
+            materialButton_start_2.NoAccentTextColor = Color.Empty;
+            materialButton_start_2.Size = new Size(168, 70);
+            materialButton_start_2.TabIndex = 26;
+            materialButton_start_2.Text = "2클실행";
+            materialButton_start_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_start_2.UseAccentColor = false;
+            materialButton_start_2.UseVisualStyleBackColor = true;
+            materialButton_start_2.Click += materialButton_start_Click;
             // 
             // materialButton_search_2
             // 
-            this.materialButton_search_2.AutoSize = false;
-            this.materialButton_search_2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_search_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_search_2.Depth = 0;
-            this.materialButton_search_2.Enabled = false;
-            this.materialButton_search_2.HighEmphasis = true;
-            this.materialButton_search_2.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_search_2.Icon")));
-            this.materialButton_search_2.Location = new System.Drawing.Point(242, 89);
-            this.materialButton_search_2.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_search_2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_search_2.Name = "materialButton_search_2";
-            this.materialButton_search_2.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_search_2.Size = new System.Drawing.Size(39, 35);
-            this.materialButton_search_2.TabIndex = 34;
-            this.materialButton_search_2.TabStop = false;
-            this.materialButton_search_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_search_2.UseAccentColor = true;
-            this.materialButton_search_2.UseVisualStyleBackColor = true;
-            this.materialButton_search_2.Visible = false;
-            this.materialButton_search_2.Click += new System.EventHandler(this.materialButton_naver_Click);
+            materialButton_search_2.AutoSize = false;
+            materialButton_search_2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_search_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_search_2.Depth = 0;
+            materialButton_search_2.Enabled = false;
+            materialButton_search_2.HighEmphasis = true;
+            materialButton_search_2.Icon = (Image)resources.GetObject("materialButton_search_2.Icon");
+            materialButton_search_2.Location = new Point(484, 178);
+            materialButton_search_2.Margin = new Padding(8, 12, 8, 12);
+            materialButton_search_2.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_search_2.Name = "materialButton_search_2";
+            materialButton_search_2.NoAccentTextColor = Color.Empty;
+            materialButton_search_2.Size = new Size(78, 70);
+            materialButton_search_2.TabIndex = 34;
+            materialButton_search_2.TabStop = false;
+            materialButton_search_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_search_2.UseAccentColor = true;
+            materialButton_search_2.UseVisualStyleBackColor = true;
+            materialButton_search_2.Visible = false;
+            materialButton_search_2.Click += materialButton_naver_Click;
             // 
             // materialButton_shortcut_1
             // 
-            this.materialButton_shortcut_1.AutoSize = false;
-            this.materialButton_shortcut_1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_shortcut_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_shortcut_1.Depth = 0;
-            this.materialButton_shortcut_1.HighEmphasis = true;
-            this.materialButton_shortcut_1.Icon = null;
-            this.materialButton_shortcut_1.Location = new System.Drawing.Point(18, 174);
-            this.materialButton_shortcut_1.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_shortcut_1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_shortcut_1.Name = "materialButton_shortcut_1";
-            this.materialButton_shortcut_1.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_shortcut_1.Size = new System.Drawing.Size(73, 36);
-            this.materialButton_shortcut_1.TabIndex = 27;
-            this.materialButton_shortcut_1.TabStop = false;
-            this.materialButton_shortcut_1.Text = "홈페이지1";
-            this.materialButton_shortcut_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_shortcut_1.UseAccentColor = false;
-            this.materialButton_shortcut_1.UseVisualStyleBackColor = true;
-            this.materialButton_shortcut_1.Click += new System.EventHandler(this.materialButton_shortcut_Click);
+            materialButton_shortcut_1.AutoSize = false;
+            materialButton_shortcut_1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_shortcut_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_shortcut_1.Depth = 0;
+            materialButton_shortcut_1.HighEmphasis = true;
+            materialButton_shortcut_1.Icon = null;
+            materialButton_shortcut_1.Location = new Point(36, 348);
+            materialButton_shortcut_1.Margin = new Padding(8, 12, 8, 12);
+            materialButton_shortcut_1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_shortcut_1.Name = "materialButton_shortcut_1";
+            materialButton_shortcut_1.NoAccentTextColor = Color.Empty;
+            materialButton_shortcut_1.Size = new Size(146, 72);
+            materialButton_shortcut_1.TabIndex = 27;
+            materialButton_shortcut_1.TabStop = false;
+            materialButton_shortcut_1.Text = "홈페이지1";
+            materialButton_shortcut_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_shortcut_1.UseAccentColor = false;
+            materialButton_shortcut_1.UseVisualStyleBackColor = true;
+            materialButton_shortcut_1.Click += materialButton_shortcut_Click;
             // 
             // materialButton_shortcut_2
             // 
-            this.materialButton_shortcut_2.AutoSize = false;
-            this.materialButton_shortcut_2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_shortcut_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_shortcut_2.Depth = 0;
-            this.materialButton_shortcut_2.HighEmphasis = true;
-            this.materialButton_shortcut_2.Icon = null;
-            this.materialButton_shortcut_2.Location = new System.Drawing.Point(97, 174);
-            this.materialButton_shortcut_2.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_shortcut_2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_shortcut_2.Name = "materialButton_shortcut_2";
-            this.materialButton_shortcut_2.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_shortcut_2.Size = new System.Drawing.Size(73, 36);
-            this.materialButton_shortcut_2.TabIndex = 28;
-            this.materialButton_shortcut_2.TabStop = false;
-            this.materialButton_shortcut_2.Text = "홈페이지2";
-            this.materialButton_shortcut_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_shortcut_2.UseAccentColor = false;
-            this.materialButton_shortcut_2.UseVisualStyleBackColor = true;
-            this.materialButton_shortcut_2.Click += new System.EventHandler(this.materialButton_shortcut_Click);
+            materialButton_shortcut_2.AutoSize = false;
+            materialButton_shortcut_2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_shortcut_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_shortcut_2.Depth = 0;
+            materialButton_shortcut_2.HighEmphasis = true;
+            materialButton_shortcut_2.Icon = null;
+            materialButton_shortcut_2.Location = new Point(194, 348);
+            materialButton_shortcut_2.Margin = new Padding(8, 12, 8, 12);
+            materialButton_shortcut_2.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_shortcut_2.Name = "materialButton_shortcut_2";
+            materialButton_shortcut_2.NoAccentTextColor = Color.Empty;
+            materialButton_shortcut_2.Size = new Size(146, 72);
+            materialButton_shortcut_2.TabIndex = 28;
+            materialButton_shortcut_2.TabStop = false;
+            materialButton_shortcut_2.Text = "홈페이지2";
+            materialButton_shortcut_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_shortcut_2.UseAccentColor = false;
+            materialButton_shortcut_2.UseVisualStyleBackColor = true;
+            materialButton_shortcut_2.Click += materialButton_shortcut_Click;
             // 
             // materialButton_debugging
             // 
-            this.materialButton_debugging.AutoSize = false;
-            this.materialButton_debugging.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_debugging.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_debugging.Depth = 0;
-            this.materialButton_debugging.HighEmphasis = true;
-            this.materialButton_debugging.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_debugging.Icon")));
-            this.materialButton_debugging.Location = new System.Drawing.Point(287, 7);
-            this.materialButton_debugging.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_debugging.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_debugging.Name = "materialButton_debugging";
-            this.materialButton_debugging.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_debugging.Size = new System.Drawing.Size(39, 35);
-            this.materialButton_debugging.TabIndex = 32;
-            this.materialButton_debugging.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_debugging.UseAccentColor = false;
-            this.materialButton_debugging.UseVisualStyleBackColor = true;
-            this.materialButton_debugging.Click += new System.EventHandler(this.materialButton_debugging_Click);
+            materialButton_debugging.AutoSize = false;
+            materialButton_debugging.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_debugging.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_debugging.Depth = 0;
+            materialButton_debugging.HighEmphasis = true;
+            materialButton_debugging.Icon = (Image)resources.GetObject("materialButton_debugging.Icon");
+            materialButton_debugging.Location = new Point(574, 14);
+            materialButton_debugging.Margin = new Padding(8, 12, 8, 12);
+            materialButton_debugging.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_debugging.Name = "materialButton_debugging";
+            materialButton_debugging.NoAccentTextColor = Color.Empty;
+            materialButton_debugging.Size = new Size(78, 70);
+            materialButton_debugging.TabIndex = 32;
+            materialButton_debugging.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_debugging.UseAccentColor = false;
+            materialButton_debugging.UseVisualStyleBackColor = true;
+            materialButton_debugging.Click += materialButton_debugging_Click;
             // 
             // materialButton_shortcut_4
             // 
-            this.materialButton_shortcut_4.AutoSize = false;
-            this.materialButton_shortcut_4.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_shortcut_4.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_shortcut_4.Depth = 0;
-            this.materialButton_shortcut_4.HighEmphasis = true;
-            this.materialButton_shortcut_4.Icon = null;
-            this.materialButton_shortcut_4.Location = new System.Drawing.Point(255, 174);
-            this.materialButton_shortcut_4.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_shortcut_4.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_shortcut_4.Name = "materialButton_shortcut_4";
-            this.materialButton_shortcut_4.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_shortcut_4.Size = new System.Drawing.Size(73, 36);
-            this.materialButton_shortcut_4.TabIndex = 30;
-            this.materialButton_shortcut_4.TabStop = false;
-            this.materialButton_shortcut_4.Text = "홈페이지4";
-            this.materialButton_shortcut_4.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_shortcut_4.UseAccentColor = false;
-            this.materialButton_shortcut_4.UseVisualStyleBackColor = true;
-            this.materialButton_shortcut_4.Click += new System.EventHandler(this.materialButton_shortcut_Click);
+            materialButton_shortcut_4.AutoSize = false;
+            materialButton_shortcut_4.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_shortcut_4.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_shortcut_4.Depth = 0;
+            materialButton_shortcut_4.HighEmphasis = true;
+            materialButton_shortcut_4.Icon = null;
+            materialButton_shortcut_4.Location = new Point(510, 348);
+            materialButton_shortcut_4.Margin = new Padding(8, 12, 8, 12);
+            materialButton_shortcut_4.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_shortcut_4.Name = "materialButton_shortcut_4";
+            materialButton_shortcut_4.NoAccentTextColor = Color.Empty;
+            materialButton_shortcut_4.Size = new Size(146, 72);
+            materialButton_shortcut_4.TabIndex = 30;
+            materialButton_shortcut_4.TabStop = false;
+            materialButton_shortcut_4.Text = "홈페이지4";
+            materialButton_shortcut_4.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_shortcut_4.UseAccentColor = false;
+            materialButton_shortcut_4.UseVisualStyleBackColor = true;
+            materialButton_shortcut_4.Click += materialButton_shortcut_Click;
             // 
             // materialSwitch_login_1
             // 
-            this.materialSwitch_login_1.AutoCheck = false;
-            this.materialSwitch_login_1.AutoSize = true;
-            this.materialSwitch_login_1.Depth = 0;
-            this.materialSwitch_login_1.Location = new System.Drawing.Point(180, 47);
-            this.materialSwitch_login_1.Margin = new System.Windows.Forms.Padding(0);
-            this.materialSwitch_login_1.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialSwitch_login_1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialSwitch_login_1.Name = "materialSwitch_login_1";
-            this.materialSwitch_login_1.Ripple = true;
-            this.materialSwitch_login_1.Size = new System.Drawing.Size(58, 37);
-            this.materialSwitch_login_1.TabIndex = 0;
-            this.materialSwitch_login_1.Tag = "";
-            this.materialSwitch_login_1.UseVisualStyleBackColor = true;
-            this.materialSwitch_login_1.Click += new System.EventHandler(this.materialSwitch_login_Click);
+            materialSwitch_login_1.AutoCheck = false;
+            materialSwitch_login_1.AutoSize = true;
+            materialSwitch_login_1.Depth = 0;
+            materialSwitch_login_1.Location = new Point(360, 94);
+            materialSwitch_login_1.Margin = new Padding(0);
+            materialSwitch_login_1.MouseLocation = new Point(-1, -1);
+            materialSwitch_login_1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialSwitch_login_1.Name = "materialSwitch_login_1";
+            materialSwitch_login_1.Ripple = true;
+            materialSwitch_login_1.Size = new Size(58, 37);
+            materialSwitch_login_1.TabIndex = 0;
+            materialSwitch_login_1.Tag = "";
+            materialSwitch_login_1.UseVisualStyleBackColor = true;
+            materialSwitch_login_1.Click += materialSwitch_login_Click;
             // 
             // materialButton_shortcut_3
             // 
-            this.materialButton_shortcut_3.AutoSize = false;
-            this.materialButton_shortcut_3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_shortcut_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_shortcut_3.Depth = 0;
-            this.materialButton_shortcut_3.HighEmphasis = true;
-            this.materialButton_shortcut_3.Icon = null;
-            this.materialButton_shortcut_3.Location = new System.Drawing.Point(176, 174);
-            this.materialButton_shortcut_3.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_shortcut_3.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_shortcut_3.Name = "materialButton_shortcut_3";
-            this.materialButton_shortcut_3.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_shortcut_3.Size = new System.Drawing.Size(73, 36);
-            this.materialButton_shortcut_3.TabIndex = 29;
-            this.materialButton_shortcut_3.TabStop = false;
-            this.materialButton_shortcut_3.Text = "홈페이지3";
-            this.materialButton_shortcut_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_shortcut_3.UseAccentColor = false;
-            this.materialButton_shortcut_3.UseVisualStyleBackColor = true;
-            this.materialButton_shortcut_3.Click += new System.EventHandler(this.materialButton_shortcut_Click);
+            materialButton_shortcut_3.AutoSize = false;
+            materialButton_shortcut_3.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_shortcut_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_shortcut_3.Depth = 0;
+            materialButton_shortcut_3.HighEmphasis = true;
+            materialButton_shortcut_3.Icon = null;
+            materialButton_shortcut_3.Location = new Point(352, 348);
+            materialButton_shortcut_3.Margin = new Padding(8, 12, 8, 12);
+            materialButton_shortcut_3.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_shortcut_3.Name = "materialButton_shortcut_3";
+            materialButton_shortcut_3.NoAccentTextColor = Color.Empty;
+            materialButton_shortcut_3.Size = new Size(146, 72);
+            materialButton_shortcut_3.TabIndex = 29;
+            materialButton_shortcut_3.TabStop = false;
+            materialButton_shortcut_3.Text = "홈페이지3";
+            materialButton_shortcut_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_shortcut_3.UseAccentColor = false;
+            materialButton_shortcut_3.UseVisualStyleBackColor = true;
+            materialButton_shortcut_3.Click += materialButton_shortcut_Click;
             // 
             // materialButton_start_1
             // 
-            this.materialButton_start_1.AutoSize = false;
-            this.materialButton_start_1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_start_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_start_1.Depth = 0;
-            this.materialButton_start_1.HighEmphasis = false;
-            this.materialButton_start_1.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_start_1.Icon")));
-            this.materialButton_start_1.Location = new System.Drawing.Point(242, 48);
-            this.materialButton_start_1.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_start_1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_start_1.Name = "materialButton_start_1";
-            this.materialButton_start_1.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_start_1.Size = new System.Drawing.Size(84, 35);
-            this.materialButton_start_1.TabIndex = 24;
-            this.materialButton_start_1.Text = "본클실행";
-            this.materialButton_start_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_start_1.UseAccentColor = false;
-            this.materialButton_start_1.UseVisualStyleBackColor = true;
-            this.materialButton_start_1.Click += new System.EventHandler(this.materialButton_start_Click);
+            materialButton_start_1.AutoSize = false;
+            materialButton_start_1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_start_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_start_1.Depth = 0;
+            materialButton_start_1.HighEmphasis = false;
+            materialButton_start_1.Icon = (Image)resources.GetObject("materialButton_start_1.Icon");
+            materialButton_start_1.Location = new Point(484, 96);
+            materialButton_start_1.Margin = new Padding(8, 12, 8, 12);
+            materialButton_start_1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_start_1.Name = "materialButton_start_1";
+            materialButton_start_1.NoAccentTextColor = Color.Empty;
+            materialButton_start_1.Size = new Size(168, 70);
+            materialButton_start_1.TabIndex = 24;
+            materialButton_start_1.Text = "본클실행";
+            materialButton_start_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_start_1.UseAccentColor = false;
+            materialButton_start_1.UseVisualStyleBackColor = true;
+            materialButton_start_1.Click += materialButton_start_Click;
             // 
             // materialButton_search_1
             // 
-            this.materialButton_search_1.AutoSize = false;
-            this.materialButton_search_1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_search_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_search_1.Depth = 0;
-            this.materialButton_search_1.Enabled = false;
-            this.materialButton_search_1.HighEmphasis = true;
-            this.materialButton_search_1.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_search_1.Icon")));
-            this.materialButton_search_1.Location = new System.Drawing.Point(242, 48);
-            this.materialButton_search_1.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_search_1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_search_1.Name = "materialButton_search_1";
-            this.materialButton_search_1.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_search_1.Size = new System.Drawing.Size(39, 35);
-            this.materialButton_search_1.TabIndex = 24;
-            this.materialButton_search_1.TabStop = false;
-            this.materialButton_search_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_search_1.UseAccentColor = true;
-            this.materialButton_search_1.UseVisualStyleBackColor = true;
-            this.materialButton_search_1.Visible = false;
-            this.materialButton_search_1.Click += new System.EventHandler(this.materialButton_naver_Click);
+            materialButton_search_1.AutoSize = false;
+            materialButton_search_1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_search_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_search_1.Depth = 0;
+            materialButton_search_1.Enabled = false;
+            materialButton_search_1.HighEmphasis = true;
+            materialButton_search_1.Icon = (Image)resources.GetObject("materialButton_search_1.Icon");
+            materialButton_search_1.Location = new Point(484, 96);
+            materialButton_search_1.Margin = new Padding(8, 12, 8, 12);
+            materialButton_search_1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_search_1.Name = "materialButton_search_1";
+            materialButton_search_1.NoAccentTextColor = Color.Empty;
+            materialButton_search_1.Size = new Size(78, 70);
+            materialButton_search_1.TabIndex = 24;
+            materialButton_search_1.TabStop = false;
+            materialButton_search_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_search_1.UseAccentColor = true;
+            materialButton_search_1.UseVisualStyleBackColor = true;
+            materialButton_search_1.Visible = false;
+            materialButton_search_1.Click += materialButton_naver_Click;
             // 
             // materialSwitch_login_3
             // 
-            this.materialSwitch_login_3.AutoCheck = false;
-            this.materialSwitch_login_3.AutoSize = true;
-            this.materialSwitch_login_3.Depth = 0;
-            this.materialSwitch_login_3.Location = new System.Drawing.Point(180, 129);
-            this.materialSwitch_login_3.Margin = new System.Windows.Forms.Padding(0);
-            this.materialSwitch_login_3.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialSwitch_login_3.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialSwitch_login_3.Name = "materialSwitch_login_3";
-            this.materialSwitch_login_3.Ripple = true;
-            this.materialSwitch_login_3.Size = new System.Drawing.Size(58, 37);
-            this.materialSwitch_login_3.TabIndex = 2;
-            this.materialSwitch_login_3.TabStop = false;
-            this.materialSwitch_login_3.UseVisualStyleBackColor = true;
-            this.materialSwitch_login_3.Click += new System.EventHandler(this.materialSwitch_login_Click);
+            materialSwitch_login_3.AutoCheck = false;
+            materialSwitch_login_3.AutoSize = true;
+            materialSwitch_login_3.Depth = 0;
+            materialSwitch_login_3.Location = new Point(360, 258);
+            materialSwitch_login_3.Margin = new Padding(0);
+            materialSwitch_login_3.MouseLocation = new Point(-1, -1);
+            materialSwitch_login_3.MouseState = MaterialSkin.MouseState.HOVER;
+            materialSwitch_login_3.Name = "materialSwitch_login_3";
+            materialSwitch_login_3.Ripple = true;
+            materialSwitch_login_3.Size = new Size(58, 37);
+            materialSwitch_login_3.TabIndex = 2;
+            materialSwitch_login_3.TabStop = false;
+            materialSwitch_login_3.UseVisualStyleBackColor = true;
+            materialSwitch_login_3.Click += materialSwitch_login_Click;
             // 
             // materialComboBox_account_3
             // 
-            this.materialComboBox_account_3.AutoResize = false;
-            this.materialComboBox_account_3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
-            this.materialComboBox_account_3.Depth = 0;
-            this.materialComboBox_account_3.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
-            this.materialComboBox_account_3.DropDownHeight = 118;
-            this.materialComboBox_account_3.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.materialComboBox_account_3.DropDownWidth = 121;
-            this.materialComboBox_account_3.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
-            this.materialComboBox_account_3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-            this.materialComboBox_account_3.FormattingEnabled = true;
-            this.materialComboBox_account_3.Hint = "계정3";
-            this.materialComboBox_account_3.IntegralHeight = false;
-            this.materialComboBox_account_3.ItemHeight = 29;
-            this.materialComboBox_account_3.Location = new System.Drawing.Point(18, 130);
-            this.materialComboBox_account_3.MaxDropDownItems = 4;
-            this.materialComboBox_account_3.MouseState = MaterialSkin.MouseState.OUT;
-            this.materialComboBox_account_3.Name = "materialComboBox_account_3";
-            this.materialComboBox_account_3.Size = new System.Drawing.Size(157, 35);
-            this.materialComboBox_account_3.StartIndex = 0;
-            this.materialComboBox_account_3.TabIndex = 22;
-            this.materialComboBox_account_3.TabStop = false;
-            this.materialComboBox_account_3.UseTallSize = false;
-            this.materialComboBox_account_3.SelectedIndexChanged += new System.EventHandler(this.materialComboBox_account_SelectedIndexChanged);
+            materialComboBox_account_3.AutoResize = false;
+            materialComboBox_account_3.BackColor = Color.FromArgb(255, 255, 255);
+            materialComboBox_account_3.Depth = 0;
+            materialComboBox_account_3.DrawMode = DrawMode.OwnerDrawVariable;
+            materialComboBox_account_3.DropDownHeight = 118;
+            materialComboBox_account_3.DropDownStyle = ComboBoxStyle.DropDownList;
+            materialComboBox_account_3.DropDownWidth = 121;
+            materialComboBox_account_3.Font = new Font("Microsoft Sans Serif", 14F, FontStyle.Bold, GraphicsUnit.Pixel);
+            materialComboBox_account_3.ForeColor = Color.FromArgb(222, 0, 0, 0);
+            materialComboBox_account_3.FormattingEnabled = true;
+            materialComboBox_account_3.Hint = "계정3";
+            materialComboBox_account_3.IntegralHeight = false;
+            materialComboBox_account_3.ItemHeight = 29;
+            materialComboBox_account_3.Location = new Point(36, 260);
+            materialComboBox_account_3.Margin = new Padding(6, 6, 6, 6);
+            materialComboBox_account_3.MaxDropDownItems = 4;
+            materialComboBox_account_3.MouseState = MaterialSkin.MouseState.OUT;
+            materialComboBox_account_3.Name = "materialComboBox_account_3";
+            materialComboBox_account_3.Size = new Size(310, 35);
+            materialComboBox_account_3.StartIndex = 0;
+            materialComboBox_account_3.TabIndex = 22;
+            materialComboBox_account_3.TabStop = false;
+            materialComboBox_account_3.UseTallSize = false;
+            materialComboBox_account_3.SelectedIndexChanged += materialComboBox_account_SelectedIndexChanged;
             // 
             // materialSwitch_login_2
             // 
-            this.materialSwitch_login_2.AutoCheck = false;
-            this.materialSwitch_login_2.AutoSize = true;
-            this.materialSwitch_login_2.Depth = 0;
-            this.materialSwitch_login_2.Location = new System.Drawing.Point(180, 88);
-            this.materialSwitch_login_2.Margin = new System.Windows.Forms.Padding(0);
-            this.materialSwitch_login_2.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.materialSwitch_login_2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialSwitch_login_2.Name = "materialSwitch_login_2";
-            this.materialSwitch_login_2.Ripple = true;
-            this.materialSwitch_login_2.Size = new System.Drawing.Size(58, 37);
-            this.materialSwitch_login_2.TabIndex = 1;
-            this.materialSwitch_login_2.TabStop = false;
-            this.materialSwitch_login_2.UseVisualStyleBackColor = true;
-            this.materialSwitch_login_2.Click += new System.EventHandler(this.materialSwitch_login_Click);
+            materialSwitch_login_2.AutoCheck = false;
+            materialSwitch_login_2.AutoSize = true;
+            materialSwitch_login_2.Depth = 0;
+            materialSwitch_login_2.Location = new Point(360, 176);
+            materialSwitch_login_2.Margin = new Padding(0);
+            materialSwitch_login_2.MouseLocation = new Point(-1, -1);
+            materialSwitch_login_2.MouseState = MaterialSkin.MouseState.HOVER;
+            materialSwitch_login_2.Name = "materialSwitch_login_2";
+            materialSwitch_login_2.Ripple = true;
+            materialSwitch_login_2.Size = new Size(58, 37);
+            materialSwitch_login_2.TabIndex = 1;
+            materialSwitch_login_2.TabStop = false;
+            materialSwitch_login_2.UseVisualStyleBackColor = true;
+            materialSwitch_login_2.Click += materialSwitch_login_Click;
             // 
             // materialComboBox_account_2
             // 
-            this.materialComboBox_account_2.AutoResize = false;
-            this.materialComboBox_account_2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
-            this.materialComboBox_account_2.Depth = 0;
-            this.materialComboBox_account_2.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
-            this.materialComboBox_account_2.DropDownHeight = 118;
-            this.materialComboBox_account_2.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.materialComboBox_account_2.DropDownWidth = 121;
-            this.materialComboBox_account_2.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
-            this.materialComboBox_account_2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-            this.materialComboBox_account_2.FormattingEnabled = true;
-            this.materialComboBox_account_2.Hint = "계정2";
-            this.materialComboBox_account_2.IntegralHeight = false;
-            this.materialComboBox_account_2.ItemHeight = 29;
-            this.materialComboBox_account_2.Location = new System.Drawing.Point(18, 89);
-            this.materialComboBox_account_2.MaxDropDownItems = 4;
-            this.materialComboBox_account_2.MouseState = MaterialSkin.MouseState.OUT;
-            this.materialComboBox_account_2.Name = "materialComboBox_account_2";
-            this.materialComboBox_account_2.Size = new System.Drawing.Size(157, 35);
-            this.materialComboBox_account_2.StartIndex = 0;
-            this.materialComboBox_account_2.TabIndex = 20;
-            this.materialComboBox_account_2.TabStop = false;
-            this.materialComboBox_account_2.UseTallSize = false;
-            this.materialComboBox_account_2.SelectedIndexChanged += new System.EventHandler(this.materialComboBox_account_SelectedIndexChanged);
+            materialComboBox_account_2.AutoResize = false;
+            materialComboBox_account_2.BackColor = Color.FromArgb(255, 255, 255);
+            materialComboBox_account_2.Depth = 0;
+            materialComboBox_account_2.DrawMode = DrawMode.OwnerDrawVariable;
+            materialComboBox_account_2.DropDownHeight = 118;
+            materialComboBox_account_2.DropDownStyle = ComboBoxStyle.DropDownList;
+            materialComboBox_account_2.DropDownWidth = 121;
+            materialComboBox_account_2.Font = new Font("Microsoft Sans Serif", 14F, FontStyle.Bold, GraphicsUnit.Pixel);
+            materialComboBox_account_2.ForeColor = Color.FromArgb(222, 0, 0, 0);
+            materialComboBox_account_2.FormattingEnabled = true;
+            materialComboBox_account_2.Hint = "계정2";
+            materialComboBox_account_2.IntegralHeight = false;
+            materialComboBox_account_2.ItemHeight = 29;
+            materialComboBox_account_2.Location = new Point(36, 178);
+            materialComboBox_account_2.Margin = new Padding(6, 6, 6, 6);
+            materialComboBox_account_2.MaxDropDownItems = 4;
+            materialComboBox_account_2.MouseState = MaterialSkin.MouseState.OUT;
+            materialComboBox_account_2.Name = "materialComboBox_account_2";
+            materialComboBox_account_2.Size = new Size(310, 35);
+            materialComboBox_account_2.StartIndex = 0;
+            materialComboBox_account_2.TabIndex = 20;
+            materialComboBox_account_2.TabStop = false;
+            materialComboBox_account_2.UseTallSize = false;
+            materialComboBox_account_2.SelectedIndexChanged += materialComboBox_account_SelectedIndexChanged;
             // 
             // materialComboBox_account_1
             // 
-            this.materialComboBox_account_1.AutoResize = false;
-            this.materialComboBox_account_1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(255)))));
-            this.materialComboBox_account_1.Depth = 0;
-            this.materialComboBox_account_1.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawVariable;
-            this.materialComboBox_account_1.DropDownHeight = 118;
-            this.materialComboBox_account_1.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.materialComboBox_account_1.DropDownWidth = 121;
-            this.materialComboBox_account_1.Font = new System.Drawing.Font("Microsoft Sans Serif", 14F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
-            this.materialComboBox_account_1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(222)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(0)))));
-            this.materialComboBox_account_1.FormattingEnabled = true;
-            this.materialComboBox_account_1.Hint = "계정1";
-            this.materialComboBox_account_1.IntegralHeight = false;
-            this.materialComboBox_account_1.ItemHeight = 29;
-            this.materialComboBox_account_1.Location = new System.Drawing.Point(18, 48);
-            this.materialComboBox_account_1.MaxDropDownItems = 4;
-            this.materialComboBox_account_1.MouseState = MaterialSkin.MouseState.OUT;
-            this.materialComboBox_account_1.Name = "materialComboBox_account_1";
-            this.materialComboBox_account_1.Size = new System.Drawing.Size(157, 35);
-            this.materialComboBox_account_1.StartIndex = 0;
-            this.materialComboBox_account_1.TabIndex = 18;
-            this.materialComboBox_account_1.TabStop = false;
-            this.materialComboBox_account_1.UseTallSize = false;
-            this.materialComboBox_account_1.SelectedIndexChanged += new System.EventHandler(this.materialComboBox_account_SelectedIndexChanged);
+            materialComboBox_account_1.AutoResize = false;
+            materialComboBox_account_1.BackColor = Color.FromArgb(255, 255, 255);
+            materialComboBox_account_1.Depth = 0;
+            materialComboBox_account_1.DrawMode = DrawMode.OwnerDrawVariable;
+            materialComboBox_account_1.DropDownHeight = 118;
+            materialComboBox_account_1.DropDownStyle = ComboBoxStyle.DropDownList;
+            materialComboBox_account_1.DropDownWidth = 121;
+            materialComboBox_account_1.Font = new Font("Microsoft Sans Serif", 14F, FontStyle.Bold, GraphicsUnit.Pixel);
+            materialComboBox_account_1.ForeColor = Color.FromArgb(222, 0, 0, 0);
+            materialComboBox_account_1.FormattingEnabled = true;
+            materialComboBox_account_1.Hint = "계정1";
+            materialComboBox_account_1.IntegralHeight = false;
+            materialComboBox_account_1.ItemHeight = 29;
+            materialComboBox_account_1.Location = new Point(36, 96);
+            materialComboBox_account_1.Margin = new Padding(6, 6, 6, 6);
+            materialComboBox_account_1.MaxDropDownItems = 4;
+            materialComboBox_account_1.MouseState = MaterialSkin.MouseState.OUT;
+            materialComboBox_account_1.Name = "materialComboBox_account_1";
+            materialComboBox_account_1.Size = new Size(310, 35);
+            materialComboBox_account_1.StartIndex = 0;
+            materialComboBox_account_1.TabIndex = 18;
+            materialComboBox_account_1.TabStop = false;
+            materialComboBox_account_1.UseTallSize = false;
+            materialComboBox_account_1.SelectedIndexChanged += materialComboBox_account_SelectedIndexChanged;
             // 
             // radio_preset_4
             // 
-            this.radio_preset_4.AutoSize = true;
-            this.radio_preset_4.Depth = 0;
-            this.radio_preset_4.Location = new System.Drawing.Point(153, 6);
-            this.radio_preset_4.Margin = new System.Windows.Forms.Padding(0);
-            this.radio_preset_4.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.radio_preset_4.MouseState = MaterialSkin.MouseState.HOVER;
-            this.radio_preset_4.Name = "radio_preset_4";
-            this.radio_preset_4.Ripple = true;
-            this.radio_preset_4.Size = new System.Drawing.Size(44, 37);
-            this.radio_preset_4.TabIndex = 7;
-            this.radio_preset_4.TabStop = true;
-            this.radio_preset_4.Tag = "4";
-            this.radio_preset_4.Text = "4";
-            this.radio_preset_4.UseVisualStyleBackColor = true;
-            this.radio_preset_4.CheckedChanged += new System.EventHandler(this.radio_preset_CheckedChanged);
+            radio_preset_4.AutoSize = true;
+            radio_preset_4.Depth = 0;
+            radio_preset_4.Location = new Point(306, 12);
+            radio_preset_4.Margin = new Padding(0);
+            radio_preset_4.MouseLocation = new Point(-1, -1);
+            radio_preset_4.MouseState = MaterialSkin.MouseState.HOVER;
+            radio_preset_4.Name = "radio_preset_4";
+            radio_preset_4.Ripple = true;
+            radio_preset_4.Size = new Size(44, 37);
+            radio_preset_4.TabIndex = 7;
+            radio_preset_4.TabStop = true;
+            radio_preset_4.Tag = "4";
+            radio_preset_4.Text = "4";
+            radio_preset_4.UseVisualStyleBackColor = true;
+            radio_preset_4.CheckedChanged += radio_preset_CheckedChanged;
             // 
             // radio_preset_3
             // 
-            this.radio_preset_3.AutoSize = true;
-            this.radio_preset_3.Depth = 0;
-            this.radio_preset_3.Location = new System.Drawing.Point(107, 6);
-            this.radio_preset_3.Margin = new System.Windows.Forms.Padding(0);
-            this.radio_preset_3.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.radio_preset_3.MouseState = MaterialSkin.MouseState.HOVER;
-            this.radio_preset_3.Name = "radio_preset_3";
-            this.radio_preset_3.Ripple = true;
-            this.radio_preset_3.Size = new System.Drawing.Size(44, 37);
-            this.radio_preset_3.TabIndex = 6;
-            this.radio_preset_3.TabStop = true;
-            this.radio_preset_3.Tag = "3";
-            this.radio_preset_3.Text = "3";
-            this.radio_preset_3.UseVisualStyleBackColor = true;
-            this.radio_preset_3.CheckedChanged += new System.EventHandler(this.radio_preset_CheckedChanged);
+            radio_preset_3.AutoSize = true;
+            radio_preset_3.Depth = 0;
+            radio_preset_3.Location = new Point(214, 12);
+            radio_preset_3.Margin = new Padding(0);
+            radio_preset_3.MouseLocation = new Point(-1, -1);
+            radio_preset_3.MouseState = MaterialSkin.MouseState.HOVER;
+            radio_preset_3.Name = "radio_preset_3";
+            radio_preset_3.Ripple = true;
+            radio_preset_3.Size = new Size(44, 37);
+            radio_preset_3.TabIndex = 6;
+            radio_preset_3.TabStop = true;
+            radio_preset_3.Tag = "3";
+            radio_preset_3.Text = "3";
+            radio_preset_3.UseVisualStyleBackColor = true;
+            radio_preset_3.CheckedChanged += radio_preset_CheckedChanged;
             // 
             // radio_preset_2
             // 
-            this.radio_preset_2.AutoSize = true;
-            this.radio_preset_2.Depth = 0;
-            this.radio_preset_2.Location = new System.Drawing.Point(61, 6);
-            this.radio_preset_2.Margin = new System.Windows.Forms.Padding(0);
-            this.radio_preset_2.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.radio_preset_2.MouseState = MaterialSkin.MouseState.HOVER;
-            this.radio_preset_2.Name = "radio_preset_2";
-            this.radio_preset_2.Ripple = true;
-            this.radio_preset_2.Size = new System.Drawing.Size(44, 37);
-            this.radio_preset_2.TabIndex = 5;
-            this.radio_preset_2.TabStop = true;
-            this.radio_preset_2.Tag = "2";
-            this.radio_preset_2.Text = "2";
-            this.radio_preset_2.UseVisualStyleBackColor = true;
-            this.radio_preset_2.CheckedChanged += new System.EventHandler(this.radio_preset_CheckedChanged);
+            radio_preset_2.AutoSize = true;
+            radio_preset_2.Depth = 0;
+            radio_preset_2.Location = new Point(122, 12);
+            radio_preset_2.Margin = new Padding(0);
+            radio_preset_2.MouseLocation = new Point(-1, -1);
+            radio_preset_2.MouseState = MaterialSkin.MouseState.HOVER;
+            radio_preset_2.Name = "radio_preset_2";
+            radio_preset_2.Ripple = true;
+            radio_preset_2.Size = new Size(44, 37);
+            radio_preset_2.TabIndex = 5;
+            radio_preset_2.TabStop = true;
+            radio_preset_2.Tag = "2";
+            radio_preset_2.Text = "2";
+            radio_preset_2.UseVisualStyleBackColor = true;
+            radio_preset_2.CheckedChanged += radio_preset_CheckedChanged;
             // 
             // radio_preset_1
             // 
-            this.radio_preset_1.AutoSize = true;
-            this.radio_preset_1.Checked = true;
-            this.radio_preset_1.Depth = 0;
-            this.radio_preset_1.Location = new System.Drawing.Point(15, 6);
-            this.radio_preset_1.Margin = new System.Windows.Forms.Padding(0);
-            this.radio_preset_1.MouseLocation = new System.Drawing.Point(-1, -1);
-            this.radio_preset_1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.radio_preset_1.Name = "radio_preset_1";
-            this.radio_preset_1.Ripple = true;
-            this.radio_preset_1.Size = new System.Drawing.Size(44, 37);
-            this.radio_preset_1.TabIndex = 4;
-            this.radio_preset_1.TabStop = true;
-            this.radio_preset_1.Tag = "1";
-            this.radio_preset_1.Text = "1";
-            this.radio_preset_1.UseVisualStyleBackColor = true;
-            this.radio_preset_1.CheckedChanged += new System.EventHandler(this.radio_preset_CheckedChanged);
+            radio_preset_1.AutoSize = true;
+            radio_preset_1.Checked = true;
+            radio_preset_1.Depth = 0;
+            radio_preset_1.Location = new Point(30, 12);
+            radio_preset_1.Margin = new Padding(0);
+            radio_preset_1.MouseLocation = new Point(-1, -1);
+            radio_preset_1.MouseState = MaterialSkin.MouseState.HOVER;
+            radio_preset_1.Name = "radio_preset_1";
+            radio_preset_1.Ripple = true;
+            radio_preset_1.Size = new Size(44, 37);
+            radio_preset_1.TabIndex = 4;
+            radio_preset_1.TabStop = true;
+            radio_preset_1.Tag = "1";
+            radio_preset_1.Text = "1";
+            radio_preset_1.UseVisualStyleBackColor = true;
+            radio_preset_1.CheckedChanged += radio_preset_CheckedChanged;
             // 
             // tabPage_settings
             // 
-            this.tabPage_settings.AutoScroll = true;
-            this.tabPage_settings.Controls.Add(this.materialButton_setting_advanced);
-            this.tabPage_settings.Controls.Add(this.materialButton_setting_shortcut);
-            this.tabPage_settings.Controls.Add(this.materialButton_setting_client);
-            this.tabPage_settings.Controls.Add(this.materialButton_setting_account);
-            this.tabPage_settings.ImageKey = "outline_settings_black_24dp.png";
-            this.tabPage_settings.Location = new System.Drawing.Point(4, 31);
-            this.tabPage_settings.Name = "tabPage_settings";
-            this.tabPage_settings.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_settings.Size = new System.Drawing.Size(394, 218);
-            this.tabPage_settings.TabIndex = 1;
-            this.tabPage_settings.Text = "설정";
+            tabPage_settings.AutoScroll = true;
+            tabPage_settings.Controls.Add(materialButton_setting_advanced);
+            tabPage_settings.Controls.Add(materialButton_setting_shortcut);
+            tabPage_settings.Controls.Add(materialButton_setting_client);
+            tabPage_settings.Controls.Add(materialButton_setting_account);
+            tabPage_settings.ImageKey = "outline_settings_black_24dp.png";
+            tabPage_settings.Location = new Point(8, 84);
+            tabPage_settings.Margin = new Padding(6, 6, 6, 6);
+            tabPage_settings.Name = "tabPage_settings";
+            tabPage_settings.Padding = new Padding(6, 6, 6, 6);
+            tabPage_settings.Size = new Size(788, 414);
+            tabPage_settings.TabIndex = 1;
+            tabPage_settings.Text = "설정";
             // 
             // materialButton_setting_advanced
             // 
-            this.materialButton_setting_advanced.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_advanced.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_advanced.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_setting_advanced.BorderRadius = 5;
-            this.materialButton_setting_advanced.BorderSize = 0;
-            this.materialButton_setting_advanced.FlatAppearance.BorderSize = 0;
-            this.materialButton_setting_advanced.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_setting_advanced.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_setting_advanced.ForeColor = System.Drawing.Color.White;
-            this.materialButton_setting_advanced.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_advanced.Image")));
-            this.materialButton_setting_advanced.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_advanced.Location = new System.Drawing.Point(97, 173);
-            this.materialButton_setting_advanced.Name = "materialButton_setting_advanced";
-            this.materialButton_setting_advanced.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_setting_advanced.Size = new System.Drawing.Size(149, 36);
-            this.materialButton_setting_advanced.TabIndex = 31;
-            this.materialButton_setting_advanced.Text = "고급 설정";
-            this.materialButton_setting_advanced.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_setting_advanced.TextColor = System.Drawing.Color.White;
-            this.materialButton_setting_advanced.UseVisualStyleBackColor = false;
-            this.materialButton_setting_advanced.Click += new System.EventHandler(this.materialButton_setting_Click);
+            materialButton_setting_advanced.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_advanced.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_advanced.BorderColor = Color.PaleVioletRed;
+            materialButton_setting_advanced.BorderRadius = 5;
+            materialButton_setting_advanced.BorderSize = 0;
+            materialButton_setting_advanced.FlatAppearance.BorderSize = 0;
+            materialButton_setting_advanced.FlatStyle = FlatStyle.Flat;
+            materialButton_setting_advanced.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_setting_advanced.ForeColor = Color.White;
+            materialButton_setting_advanced.Image = (Image)resources.GetObject("materialButton_setting_advanced.Image");
+            materialButton_setting_advanced.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_setting_advanced.Location = new Point(194, 346);
+            materialButton_setting_advanced.Margin = new Padding(6, 6, 6, 6);
+            materialButton_setting_advanced.Name = "materialButton_setting_advanced";
+            materialButton_setting_advanced.Padding = new Padding(10, 10, 10, 10);
+            materialButton_setting_advanced.Size = new Size(298, 72);
+            materialButton_setting_advanced.TabIndex = 31;
+            materialButton_setting_advanced.Text = "고급 설정";
+            materialButton_setting_advanced.TextAlign = ContentAlignment.MiddleLeft;
+            materialButton_setting_advanced.TextColor = Color.White;
+            materialButton_setting_advanced.UseVisualStyleBackColor = false;
+            materialButton_setting_advanced.Click += materialButton_setting_Click;
             // 
             // materialButton_setting_shortcut
             // 
-            this.materialButton_setting_shortcut.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_shortcut.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_shortcut.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_setting_shortcut.BorderRadius = 5;
-            this.materialButton_setting_shortcut.BorderSize = 0;
-            this.materialButton_setting_shortcut.FlatAppearance.BorderSize = 0;
-            this.materialButton_setting_shortcut.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_setting_shortcut.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_setting_shortcut.ForeColor = System.Drawing.Color.White;
-            this.materialButton_setting_shortcut.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_shortcut.Image")));
-            this.materialButton_setting_shortcut.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_shortcut.Location = new System.Drawing.Point(97, 131);
-            this.materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
-            this.materialButton_setting_shortcut.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_setting_shortcut.Size = new System.Drawing.Size(149, 36);
-            this.materialButton_setting_shortcut.TabIndex = 30;
-            this.materialButton_setting_shortcut.Text = "나만의 바로가기";
-            this.materialButton_setting_shortcut.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_setting_shortcut.TextColor = System.Drawing.Color.White;
-            this.materialButton_setting_shortcut.UseVisualStyleBackColor = false;
-            this.materialButton_setting_shortcut.Click += new System.EventHandler(this.materialButton_setting_Click);
+            materialButton_setting_shortcut.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_shortcut.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_shortcut.BorderColor = Color.PaleVioletRed;
+            materialButton_setting_shortcut.BorderRadius = 5;
+            materialButton_setting_shortcut.BorderSize = 0;
+            materialButton_setting_shortcut.FlatAppearance.BorderSize = 0;
+            materialButton_setting_shortcut.FlatStyle = FlatStyle.Flat;
+            materialButton_setting_shortcut.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_setting_shortcut.ForeColor = Color.White;
+            materialButton_setting_shortcut.Image = (Image)resources.GetObject("materialButton_setting_shortcut.Image");
+            materialButton_setting_shortcut.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_setting_shortcut.Location = new Point(194, 262);
+            materialButton_setting_shortcut.Margin = new Padding(6, 6, 6, 6);
+            materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
+            materialButton_setting_shortcut.Padding = new Padding(10, 10, 10, 10);
+            materialButton_setting_shortcut.Size = new Size(298, 72);
+            materialButton_setting_shortcut.TabIndex = 30;
+            materialButton_setting_shortcut.Text = "나만의 바로가기";
+            materialButton_setting_shortcut.TextAlign = ContentAlignment.MiddleLeft;
+            materialButton_setting_shortcut.TextColor = Color.White;
+            materialButton_setting_shortcut.UseVisualStyleBackColor = false;
+            materialButton_setting_shortcut.Click += materialButton_setting_Click;
             // 
             // materialButton_setting_client
             // 
-            this.materialButton_setting_client.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_client.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_client.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_setting_client.BorderRadius = 5;
-            this.materialButton_setting_client.BorderSize = 0;
-            this.materialButton_setting_client.FlatAppearance.BorderSize = 0;
-            this.materialButton_setting_client.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_setting_client.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_setting_client.ForeColor = System.Drawing.Color.White;
-            this.materialButton_setting_client.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_client.Image")));
-            this.materialButton_setting_client.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_client.Location = new System.Drawing.Point(97, 89);
-            this.materialButton_setting_client.Name = "materialButton_setting_client";
-            this.materialButton_setting_client.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_setting_client.Size = new System.Drawing.Size(149, 36);
-            this.materialButton_setting_client.TabIndex = 29;
-            this.materialButton_setting_client.Text = "클라이언트 설정";
-            this.materialButton_setting_client.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_setting_client.TextColor = System.Drawing.Color.White;
-            this.materialButton_setting_client.UseVisualStyleBackColor = false;
-            this.materialButton_setting_client.Click += new System.EventHandler(this.materialButton_setting_Click);
+            materialButton_setting_client.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_client.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_client.BorderColor = Color.PaleVioletRed;
+            materialButton_setting_client.BorderRadius = 5;
+            materialButton_setting_client.BorderSize = 0;
+            materialButton_setting_client.FlatAppearance.BorderSize = 0;
+            materialButton_setting_client.FlatStyle = FlatStyle.Flat;
+            materialButton_setting_client.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_setting_client.ForeColor = Color.White;
+            materialButton_setting_client.Image = (Image)resources.GetObject("materialButton_setting_client.Image");
+            materialButton_setting_client.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_setting_client.Location = new Point(194, 178);
+            materialButton_setting_client.Margin = new Padding(6, 6, 6, 6);
+            materialButton_setting_client.Name = "materialButton_setting_client";
+            materialButton_setting_client.Padding = new Padding(10, 10, 10, 10);
+            materialButton_setting_client.Size = new Size(298, 72);
+            materialButton_setting_client.TabIndex = 29;
+            materialButton_setting_client.Text = "클라이언트 설정";
+            materialButton_setting_client.TextAlign = ContentAlignment.MiddleLeft;
+            materialButton_setting_client.TextColor = Color.White;
+            materialButton_setting_client.UseVisualStyleBackColor = false;
+            materialButton_setting_client.Click += materialButton_setting_Click;
             // 
             // materialButton_setting_account
             // 
-            this.materialButton_setting_account.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_account.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_setting_account.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_setting_account.BorderRadius = 5;
-            this.materialButton_setting_account.BorderSize = 0;
-            this.materialButton_setting_account.FlatAppearance.BorderSize = 0;
-            this.materialButton_setting_account.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_setting_account.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_setting_account.ForeColor = System.Drawing.Color.White;
-            this.materialButton_setting_account.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_setting_account.Image")));
-            this.materialButton_setting_account.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_setting_account.Location = new System.Drawing.Point(97, 47);
-            this.materialButton_setting_account.Name = "materialButton_setting_account";
-            this.materialButton_setting_account.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_setting_account.Size = new System.Drawing.Size(149, 36);
-            this.materialButton_setting_account.TabIndex = 28;
-            this.materialButton_setting_account.Text = "계정 설정";
-            this.materialButton_setting_account.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_setting_account.TextColor = System.Drawing.Color.White;
-            this.materialButton_setting_account.UseVisualStyleBackColor = false;
-            this.materialButton_setting_account.Click += new System.EventHandler(this.materialButton_setting_Click);
+            materialButton_setting_account.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_account.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_setting_account.BorderColor = Color.PaleVioletRed;
+            materialButton_setting_account.BorderRadius = 5;
+            materialButton_setting_account.BorderSize = 0;
+            materialButton_setting_account.FlatAppearance.BorderSize = 0;
+            materialButton_setting_account.FlatStyle = FlatStyle.Flat;
+            materialButton_setting_account.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_setting_account.ForeColor = Color.White;
+            materialButton_setting_account.Image = (Image)resources.GetObject("materialButton_setting_account.Image");
+            materialButton_setting_account.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_setting_account.Location = new Point(194, 94);
+            materialButton_setting_account.Margin = new Padding(6, 6, 6, 6);
+            materialButton_setting_account.Name = "materialButton_setting_account";
+            materialButton_setting_account.Padding = new Padding(10, 10, 10, 10);
+            materialButton_setting_account.Size = new Size(298, 72);
+            materialButton_setting_account.TabIndex = 28;
+            materialButton_setting_account.Text = "계정 설정";
+            materialButton_setting_account.TextAlign = ContentAlignment.MiddleLeft;
+            materialButton_setting_account.TextColor = Color.White;
+            materialButton_setting_account.UseVisualStyleBackColor = false;
+            materialButton_setting_account.Click += materialButton_setting_Click;
             // 
             // tabPage_help
             // 
-            this.tabPage_help.Controls.Add(this.label6);
-            this.tabPage_help.Controls.Add(this.label5);
-            this.tabPage_help.Controls.Add(this.materialButton_question_naver);
-            this.tabPage_help.Controls.Add(this.materialButton_question_kakao);
-            this.tabPage_help.ImageKey = "outline_help_outline_black_24dp.png";
-            this.tabPage_help.Location = new System.Drawing.Point(4, 31);
-            this.tabPage_help.Name = "tabPage_help";
-            this.tabPage_help.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_help.Size = new System.Drawing.Size(394, 218);
-            this.tabPage_help.TabIndex = 2;
-            this.tabPage_help.Text = "문의";
-            this.tabPage_help.UseVisualStyleBackColor = true;
+            tabPage_help.Controls.Add(label6);
+            tabPage_help.Controls.Add(label5);
+            tabPage_help.Controls.Add(materialButton_question_naver);
+            tabPage_help.Controls.Add(materialButton_question_kakao);
+            tabPage_help.ImageKey = "outline_help_outline_black_24dp.png";
+            tabPage_help.Location = new Point(8, 84);
+            tabPage_help.Margin = new Padding(6, 6, 6, 6);
+            tabPage_help.Name = "tabPage_help";
+            tabPage_help.Padding = new Padding(6, 6, 6, 6);
+            tabPage_help.Size = new Size(788, 414);
+            tabPage_help.TabIndex = 2;
+            tabPage_help.Text = "문의";
+            tabPage_help.UseVisualStyleBackColor = true;
             // 
             // label6
             // 
-            this.label6.AutoSize = true;
-            this.label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label6.ForeColor = System.Drawing.Color.Blue;
-            this.label6.Location = new System.Drawing.Point(48, 163);
-            this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(246, 72);
-            this.label6.TabIndex = 35;
-            this.label6.Text = "준비물 :\r\n1. 오류 화면 스크린샷\r\n2. 오류가 발생하는 시점 (날짜 아닙니다)\r\n3. 윈도우 버전 (예시: 윈도우 10 64비트)";
+            label6.AutoSize = true;
+            label6.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
+            label6.ForeColor = Color.Blue;
+            label6.Location = new Point(96, 326);
+            label6.Margin = new Padding(6, 0, 6, 0);
+            label6.Name = "label6";
+            label6.Size = new Size(484, 144);
+            label6.TabIndex = 35;
+            label6.Text = "준비물 :\r\n1. 오류 화면 스크린샷\r\n2. 오류가 발생하는 시점 (날짜 아닙니다)\r\n3. 윈도우 버전 (예시: 윈도우 10 64비트)";
             // 
             // label5
             // 
-            this.label5.AutoSize = true;
-            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label5.ForeColor = System.Drawing.Color.Red;
-            this.label5.Location = new System.Drawing.Point(15, 105);
-            this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(311, 36);
-            this.label5.TabIndex = 34;
-            this.label5.Text = "※ 여긴 거상 고객센터가 아닙니다!\r\n거상 스테이션은 게임 내에 영향을 끼치지 않습니다";
-            this.label5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            label5.AutoSize = true;
+            label5.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            label5.ForeColor = Color.Red;
+            label5.Location = new Point(30, 210);
+            label5.Margin = new Padding(6, 0, 6, 0);
+            label5.Name = "label5";
+            label5.Size = new Size(594, 72);
+            label5.TabIndex = 34;
+            label5.Text = "※ 여긴 거상 고객센터가 아닙니다!\r\n거상 스테이션은 게임 내에 영향을 끼치지 않습니다";
+            label5.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // materialButton_question_naver
             // 
-            this.materialButton_question_naver.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_question_naver.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_question_naver.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_question_naver.BorderRadius = 5;
-            this.materialButton_question_naver.BorderSize = 0;
-            this.materialButton_question_naver.FlatAppearance.BorderSize = 0;
-            this.materialButton_question_naver.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_question_naver.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_question_naver.ForeColor = System.Drawing.Color.White;
-            this.materialButton_question_naver.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_question_naver.Image")));
-            this.materialButton_question_naver.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_question_naver.Location = new System.Drawing.Point(74, 58);
-            this.materialButton_question_naver.Name = "materialButton_question_naver";
-            this.materialButton_question_naver.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_question_naver.Size = new System.Drawing.Size(192, 36);
-            this.materialButton_question_naver.TabIndex = 31;
-            this.materialButton_question_naver.Text = "네이버 블로그댓글 문의";
-            this.materialButton_question_naver.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_question_naver.TextColor = System.Drawing.Color.White;
-            this.materialButton_question_naver.UseVisualStyleBackColor = false;
-            this.materialButton_question_naver.Click += new System.EventHandler(this.materialButton_question_naver_Click);
+            materialButton_question_naver.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_question_naver.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_question_naver.BorderColor = Color.PaleVioletRed;
+            materialButton_question_naver.BorderRadius = 5;
+            materialButton_question_naver.BorderSize = 0;
+            materialButton_question_naver.FlatAppearance.BorderSize = 0;
+            materialButton_question_naver.FlatStyle = FlatStyle.Flat;
+            materialButton_question_naver.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_question_naver.ForeColor = Color.White;
+            materialButton_question_naver.Image = (Image)resources.GetObject("materialButton_question_naver.Image");
+            materialButton_question_naver.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_question_naver.Location = new Point(148, 116);
+            materialButton_question_naver.Margin = new Padding(6, 6, 6, 6);
+            materialButton_question_naver.Name = "materialButton_question_naver";
+            materialButton_question_naver.Padding = new Padding(10, 10, 10, 10);
+            materialButton_question_naver.Size = new Size(384, 72);
+            materialButton_question_naver.TabIndex = 31;
+            materialButton_question_naver.Text = "네이버 블로그댓글 문의";
+            materialButton_question_naver.TextAlign = ContentAlignment.MiddleLeft;
+            materialButton_question_naver.TextColor = Color.White;
+            materialButton_question_naver.UseVisualStyleBackColor = false;
+            materialButton_question_naver.Click += materialButton_question_naver_Click;
             // 
             // materialButton_question_kakao
             // 
-            this.materialButton_question_kakao.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_question_kakao.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_question_kakao.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_question_kakao.BorderRadius = 5;
-            this.materialButton_question_kakao.BorderSize = 0;
-            this.materialButton_question_kakao.FlatAppearance.BorderSize = 0;
-            this.materialButton_question_kakao.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_question_kakao.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_question_kakao.ForeColor = System.Drawing.Color.White;
-            this.materialButton_question_kakao.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_question_kakao.Image")));
-            this.materialButton_question_kakao.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_question_kakao.Location = new System.Drawing.Point(74, 16);
-            this.materialButton_question_kakao.Name = "materialButton_question_kakao";
-            this.materialButton_question_kakao.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_question_kakao.Size = new System.Drawing.Size(192, 36);
-            this.materialButton_question_kakao.TabIndex = 30;
-            this.materialButton_question_kakao.Text = "카카오톡 오픈채팅 문의";
-            this.materialButton_question_kakao.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_question_kakao.TextColor = System.Drawing.Color.White;
-            this.materialButton_question_kakao.UseVisualStyleBackColor = false;
-            this.materialButton_question_kakao.Click += new System.EventHandler(this.materialButton_kakao_Click);
+            materialButton_question_kakao.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_question_kakao.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_question_kakao.BorderColor = Color.PaleVioletRed;
+            materialButton_question_kakao.BorderRadius = 5;
+            materialButton_question_kakao.BorderSize = 0;
+            materialButton_question_kakao.FlatAppearance.BorderSize = 0;
+            materialButton_question_kakao.FlatStyle = FlatStyle.Flat;
+            materialButton_question_kakao.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_question_kakao.ForeColor = Color.White;
+            materialButton_question_kakao.Image = (Image)resources.GetObject("materialButton_question_kakao.Image");
+            materialButton_question_kakao.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_question_kakao.Location = new Point(148, 32);
+            materialButton_question_kakao.Margin = new Padding(6, 6, 6, 6);
+            materialButton_question_kakao.Name = "materialButton_question_kakao";
+            materialButton_question_kakao.Padding = new Padding(10, 10, 10, 10);
+            materialButton_question_kakao.Size = new Size(384, 72);
+            materialButton_question_kakao.TabIndex = 30;
+            materialButton_question_kakao.Text = "카카오톡 오픈채팅 문의";
+            materialButton_question_kakao.TextAlign = ContentAlignment.MiddleLeft;
+            materialButton_question_kakao.TextColor = Color.White;
+            materialButton_question_kakao.UseVisualStyleBackColor = false;
+            materialButton_question_kakao.Click += materialButton_kakao_Click;
             // 
             // tabPage_info
             // 
-            this.tabPage_info.Controls.Add(this.materialButton_license);
-            this.tabPage_info.Controls.Add(this.linkLabel1);
-            this.tabPage_info.Controls.Add(this.pictureBox1);
-            this.tabPage_info.Controls.Add(this.materialButton_patchNote);
-            this.tabPage_info.Controls.Add(this.materialButton_blog);
-            this.tabPage_info.Controls.Add(this.materialButton_gitHub);
-            this.tabPage_info.Controls.Add(this.label1);
-            this.tabPage_info.Controls.Add(this.label_version_latest);
-            this.tabPage_info.Controls.Add(this.label_version_current);
-            this.tabPage_info.ImageKey = "outline_info_black_24dp.png";
-            this.tabPage_info.Location = new System.Drawing.Point(4, 31);
-            this.tabPage_info.Name = "tabPage_info";
-            this.tabPage_info.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_info.Size = new System.Drawing.Size(394, 218);
-            this.tabPage_info.TabIndex = 4;
-            this.tabPage_info.Text = "정보";
-            this.tabPage_info.UseVisualStyleBackColor = true;
+            tabPage_info.Controls.Add(materialButton_license);
+            tabPage_info.Controls.Add(linkLabel1);
+            tabPage_info.Controls.Add(pictureBox1);
+            tabPage_info.Controls.Add(materialButton_patchNote);
+            tabPage_info.Controls.Add(materialButton_blog);
+            tabPage_info.Controls.Add(materialButton_gitHub);
+            tabPage_info.Controls.Add(label1);
+            tabPage_info.Controls.Add(label_version_latest);
+            tabPage_info.Controls.Add(label_version_current);
+            tabPage_info.ImageKey = "outline_info_black_24dp.png";
+            tabPage_info.Location = new Point(8, 84);
+            tabPage_info.Margin = new Padding(6, 6, 6, 6);
+            tabPage_info.Name = "tabPage_info";
+            tabPage_info.Padding = new Padding(6, 6, 6, 6);
+            tabPage_info.Size = new Size(788, 414);
+            tabPage_info.TabIndex = 4;
+            tabPage_info.Text = "정보";
+            tabPage_info.UseVisualStyleBackColor = true;
             // 
             // materialButton_license
             // 
-            this.materialButton_license.AutoSize = false;
-            this.materialButton_license.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_license.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Dense;
-            this.materialButton_license.Depth = 0;
-            this.materialButton_license.HighEmphasis = true;
-            this.materialButton_license.Icon = null;
-            this.materialButton_license.Location = new System.Drawing.Point(211, 111);
-            this.materialButton_license.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_license.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_license.Name = "materialButton_license";
-            this.materialButton_license.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_license.Size = new System.Drawing.Size(58, 32);
-            this.materialButton_license.TabIndex = 8;
-            this.materialButton_license.Text = "라이선스";
-            this.materialButton_license.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_license.UseAccentColor = false;
-            this.materialButton_license.UseVisualStyleBackColor = true;
-            this.materialButton_license.Click += new System.EventHandler(this.materialButton_license_Click);
+            materialButton_license.AutoSize = false;
+            materialButton_license.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_license.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Dense;
+            materialButton_license.Depth = 0;
+            materialButton_license.HighEmphasis = true;
+            materialButton_license.Icon = null;
+            materialButton_license.Location = new Point(422, 222);
+            materialButton_license.Margin = new Padding(8, 12, 8, 12);
+            materialButton_license.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_license.Name = "materialButton_license";
+            materialButton_license.NoAccentTextColor = Color.Empty;
+            materialButton_license.Size = new Size(116, 64);
+            materialButton_license.TabIndex = 8;
+            materialButton_license.Text = "라이선스";
+            materialButton_license.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_license.UseAccentColor = false;
+            materialButton_license.UseVisualStyleBackColor = true;
+            materialButton_license.Click += materialButton_license_Click;
             // 
             // linkLabel1
             // 
-            this.linkLabel1.AutoSize = true;
-            this.linkLabel1.Location = new System.Drawing.Point(73, 212);
-            this.linkLabel1.Name = "linkLabel1";
-            this.linkLabel1.Size = new System.Drawing.Size(200, 15);
-            this.linkLabel1.TabIndex = 7;
-            this.linkLabel1.TabStop = true;
-            this.linkLabel1.Text = "Created logo at LogoMakr.com/app";
-            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
+            linkLabel1.AutoSize = true;
+            linkLabel1.Location = new Point(146, 424);
+            linkLabel1.Margin = new Padding(6, 0, 6, 0);
+            linkLabel1.Name = "linkLabel1";
+            linkLabel1.Size = new Size(398, 32);
+            linkLabel1.TabIndex = 7;
+            linkLabel1.TabStop = true;
+            linkLabel1.Text = "Created logo at LogoMakr.com/app";
+            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
             // 
             // pictureBox1
             // 
-            this.pictureBox1.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox1.Image")));
-            this.pictureBox1.Location = new System.Drawing.Point(52, 24);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(48, 48);
-            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
-            this.pictureBox1.TabIndex = 6;
-            this.pictureBox1.TabStop = false;
+            pictureBox1.Image = (Image)resources.GetObject("pictureBox1.Image");
+            pictureBox1.Location = new Point(104, 48);
+            pictureBox1.Margin = new Padding(6, 6, 6, 6);
+            pictureBox1.Name = "pictureBox1";
+            pictureBox1.Size = new Size(96, 96);
+            pictureBox1.SizeMode = PictureBoxSizeMode.Zoom;
+            pictureBox1.TabIndex = 6;
+            pictureBox1.TabStop = false;
             // 
             // materialButton_patchNote
             // 
-            this.materialButton_patchNote.AutoSize = false;
-            this.materialButton_patchNote.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_patchNote.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Dense;
-            this.materialButton_patchNote.Depth = 0;
-            this.materialButton_patchNote.HighEmphasis = true;
-            this.materialButton_patchNote.Icon = null;
-            this.materialButton_patchNote.Location = new System.Drawing.Point(211, 76);
-            this.materialButton_patchNote.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_patchNote.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_patchNote.Name = "materialButton_patchNote";
-            this.materialButton_patchNote.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_patchNote.Size = new System.Drawing.Size(58, 32);
-            this.materialButton_patchNote.TabIndex = 5;
-            this.materialButton_patchNote.Text = "패치노트";
-            this.materialButton_patchNote.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_patchNote.UseAccentColor = false;
-            this.materialButton_patchNote.UseVisualStyleBackColor = true;
-            this.materialButton_patchNote.Click += new System.EventHandler(this.materialButton_patchNote_Click);
+            materialButton_patchNote.AutoSize = false;
+            materialButton_patchNote.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_patchNote.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Dense;
+            materialButton_patchNote.Depth = 0;
+            materialButton_patchNote.HighEmphasis = true;
+            materialButton_patchNote.Icon = null;
+            materialButton_patchNote.Location = new Point(422, 152);
+            materialButton_patchNote.Margin = new Padding(8, 12, 8, 12);
+            materialButton_patchNote.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_patchNote.Name = "materialButton_patchNote";
+            materialButton_patchNote.NoAccentTextColor = Color.Empty;
+            materialButton_patchNote.Size = new Size(116, 64);
+            materialButton_patchNote.TabIndex = 5;
+            materialButton_patchNote.Text = "패치노트";
+            materialButton_patchNote.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_patchNote.UseAccentColor = false;
+            materialButton_patchNote.UseVisualStyleBackColor = true;
+            materialButton_patchNote.Click += materialButton_patchNote_Click;
             // 
             // materialButton_blog
             // 
-            this.materialButton_blog.AutoSize = false;
-            this.materialButton_blog.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_blog.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_blog.Depth = 0;
-            this.materialButton_blog.HighEmphasis = true;
-            this.materialButton_blog.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_blog.Icon")));
-            this.materialButton_blog.Location = new System.Drawing.Point(74, 162);
-            this.materialButton_blog.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_blog.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_blog.Name = "materialButton_blog";
-            this.materialButton_blog.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_blog.Size = new System.Drawing.Size(93, 36);
-            this.materialButton_blog.TabIndex = 4;
-            this.materialButton_blog.Text = "blog";
-            this.materialButton_blog.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_blog.UseAccentColor = false;
-            this.materialButton_blog.UseVisualStyleBackColor = true;
-            this.materialButton_blog.Click += new System.EventHandler(this.materialButton_blog_Click);
+            materialButton_blog.AutoSize = false;
+            materialButton_blog.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_blog.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_blog.Depth = 0;
+            materialButton_blog.HighEmphasis = true;
+            materialButton_blog.Icon = (Image)resources.GetObject("materialButton_blog.Icon");
+            materialButton_blog.Location = new Point(148, 324);
+            materialButton_blog.Margin = new Padding(8, 12, 8, 12);
+            materialButton_blog.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_blog.Name = "materialButton_blog";
+            materialButton_blog.NoAccentTextColor = Color.Empty;
+            materialButton_blog.Size = new Size(186, 72);
+            materialButton_blog.TabIndex = 4;
+            materialButton_blog.Text = "blog";
+            materialButton_blog.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_blog.UseAccentColor = false;
+            materialButton_blog.UseVisualStyleBackColor = true;
+            materialButton_blog.Click += materialButton_blog_Click;
             // 
             // materialButton_gitHub
             // 
-            this.materialButton_gitHub.AutoSize = false;
-            this.materialButton_gitHub.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.materialButton_gitHub.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            this.materialButton_gitHub.Depth = 0;
-            this.materialButton_gitHub.HighEmphasis = true;
-            this.materialButton_gitHub.Icon = ((System.Drawing.Image)(resources.GetObject("materialButton_gitHub.Icon")));
-            this.materialButton_gitHub.Location = new System.Drawing.Point(176, 162);
-            this.materialButton_gitHub.Margin = new System.Windows.Forms.Padding(4, 6, 4, 6);
-            this.materialButton_gitHub.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialButton_gitHub.Name = "materialButton_gitHub";
-            this.materialButton_gitHub.NoAccentTextColor = System.Drawing.Color.Empty;
-            this.materialButton_gitHub.Size = new System.Drawing.Size(93, 36);
-            this.materialButton_gitHub.TabIndex = 3;
-            this.materialButton_gitHub.Text = "GitHub";
-            this.materialButton_gitHub.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            this.materialButton_gitHub.UseAccentColor = false;
-            this.materialButton_gitHub.UseVisualStyleBackColor = true;
-            this.materialButton_gitHub.Click += new System.EventHandler(this.materialButton_gitHub_Click);
+            materialButton_gitHub.AutoSize = false;
+            materialButton_gitHub.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_gitHub.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_gitHub.Depth = 0;
+            materialButton_gitHub.HighEmphasis = true;
+            materialButton_gitHub.Icon = (Image)resources.GetObject("materialButton_gitHub.Icon");
+            materialButton_gitHub.Location = new Point(352, 324);
+            materialButton_gitHub.Margin = new Padding(8, 12, 8, 12);
+            materialButton_gitHub.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_gitHub.Name = "materialButton_gitHub";
+            materialButton_gitHub.NoAccentTextColor = Color.Empty;
+            materialButton_gitHub.Size = new Size(186, 72);
+            materialButton_gitHub.TabIndex = 3;
+            materialButton_gitHub.Text = "GitHub";
+            materialButton_gitHub.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_gitHub.UseAccentColor = false;
+            materialButton_gitHub.UseVisualStyleBackColor = true;
+            materialButton_gitHub.Click += materialButton_gitHub_Click;
             // 
             // label1
             // 
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label1.Location = new System.Drawing.Point(99, 31);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(195, 35);
-            this.label1.TabIndex = 2;
-            this.label1.Text = "GersangStation";
+            label1.Font = new Font("Microsoft Sans Serif", 18F, FontStyle.Bold, GraphicsUnit.Point);
+            label1.Location = new Point(198, 62);
+            label1.Margin = new Padding(6, 0, 6, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(390, 70);
+            label1.TabIndex = 2;
+            label1.Text = "GersangStation";
             // 
             // label_version_latest
             // 
-            this.label_version_latest.AutoSize = true;
-            this.label_version_latest.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_version_latest.Location = new System.Drawing.Point(74, 116);
-            this.label_version_latest.Name = "label_version_latest";
-            this.label_version_latest.Size = new System.Drawing.Size(125, 18);
-            this.label_version_latest.TabIndex = 1;
-            this.label_version_latest.Text = "최신 버전 : 00000";
+            label_version_latest.AutoSize = true;
+            label_version_latest.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            label_version_latest.Location = new Point(148, 232);
+            label_version_latest.Margin = new Padding(6, 0, 6, 0);
+            label_version_latest.Name = "label_version_latest";
+            label_version_latest.Size = new Size(241, 36);
+            label_version_latest.TabIndex = 1;
+            label_version_latest.Text = "최신 버전 : 00000";
             // 
             // label_version_current
             // 
-            this.label_version_current.AutoSize = true;
-            this.label_version_current.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label_version_current.Location = new System.Drawing.Point(74, 83);
-            this.label_version_current.Name = "label_version_current";
-            this.label_version_current.Size = new System.Drawing.Size(125, 18);
-            this.label_version_current.TabIndex = 0;
-            this.label_version_current.Text = "현재 버전 : 00000";
+            label_version_current.AutoSize = true;
+            label_version_current.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            label_version_current.Location = new Point(148, 166);
+            label_version_current.Margin = new Padding(6, 0, 6, 0);
+            label_version_current.Name = "label_version_current";
+            label_version_current.Size = new Size(241, 36);
+            label_version_current.TabIndex = 0;
+            label_version_current.Text = "현재 버전 : 00000";
             // 
             // tabPage_sponsor
             // 
-            this.tabPage_sponsor.Controls.Add(this.label4);
-            this.tabPage_sponsor.Controls.Add(this.materialButton_sponsor);
-            this.tabPage_sponsor.Controls.Add(this.label3);
-            this.tabPage_sponsor.Controls.Add(this.materialListBox_sponsor);
-            this.tabPage_sponsor.ImageKey = "outline_favorite_black_24dp.png";
-            this.tabPage_sponsor.Location = new System.Drawing.Point(4, 31);
-            this.tabPage_sponsor.Name = "tabPage_sponsor";
-            this.tabPage_sponsor.Size = new System.Drawing.Size(394, 218);
-            this.tabPage_sponsor.TabIndex = 5;
-            this.tabPage_sponsor.Text = "후원";
-            this.tabPage_sponsor.UseVisualStyleBackColor = true;
+            tabPage_sponsor.Controls.Add(label4);
+            tabPage_sponsor.Controls.Add(materialButton_sponsor);
+            tabPage_sponsor.Controls.Add(label3);
+            tabPage_sponsor.Controls.Add(materialListBox_sponsor);
+            tabPage_sponsor.ImageKey = "outline_favorite_black_24dp.png";
+            tabPage_sponsor.Location = new Point(8, 84);
+            tabPage_sponsor.Margin = new Padding(6, 6, 6, 6);
+            tabPage_sponsor.Name = "tabPage_sponsor";
+            tabPage_sponsor.Size = new Size(788, 414);
+            tabPage_sponsor.TabIndex = 5;
+            tabPage_sponsor.Text = "후원";
+            tabPage_sponsor.UseVisualStyleBackColor = true;
             // 
             // label4
             // 
-            this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label4.ForeColor = System.Drawing.Color.Blue;
-            this.label4.Location = new System.Drawing.Point(47, 182);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(248, 18);
-            this.label4.TabIndex = 35;
-            this.label4.Text = "후원 목록은 실시간으로 업데이트 됩니다!";
+            label4.AutoSize = true;
+            label4.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
+            label4.ForeColor = Color.Blue;
+            label4.Location = new Point(94, 364);
+            label4.Margin = new Padding(6, 0, 6, 0);
+            label4.Name = "label4";
+            label4.Size = new Size(480, 36);
+            label4.TabIndex = 35;
+            label4.Text = "후원 목록은 실시간으로 업데이트 됩니다!";
             // 
             // materialButton_sponsor
             // 
-            this.materialButton_sponsor.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_sponsor.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_sponsor.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_sponsor.BorderRadius = 5;
-            this.materialButton_sponsor.BorderSize = 0;
-            this.materialButton_sponsor.FlatAppearance.BorderSize = 0;
-            this.materialButton_sponsor.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_sponsor.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_sponsor.ForeColor = System.Drawing.Color.White;
-            this.materialButton_sponsor.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_sponsor.Location = new System.Drawing.Point(114, 208);
-            this.materialButton_sponsor.Name = "materialButton_sponsor";
-            this.materialButton_sponsor.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_sponsor.Size = new System.Drawing.Size(111, 36);
-            this.materialButton_sponsor.TabIndex = 34;
-            this.materialButton_sponsor.Text = "후원하러 가기";
-            this.materialButton_sponsor.TextColor = System.Drawing.Color.White;
-            this.materialButton_sponsor.UseVisualStyleBackColor = false;
-            this.materialButton_sponsor.Click += new System.EventHandler(this.materialButton_sponsor_Click);
+            materialButton_sponsor.BackColor = Color.FromArgb(51, 71, 79);
+            materialButton_sponsor.BackgroundColor = Color.FromArgb(51, 71, 79);
+            materialButton_sponsor.BorderColor = Color.PaleVioletRed;
+            materialButton_sponsor.BorderRadius = 5;
+            materialButton_sponsor.BorderSize = 0;
+            materialButton_sponsor.FlatAppearance.BorderSize = 0;
+            materialButton_sponsor.FlatStyle = FlatStyle.Flat;
+            materialButton_sponsor.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
+            materialButton_sponsor.ForeColor = Color.White;
+            materialButton_sponsor.ImageAlign = ContentAlignment.MiddleRight;
+            materialButton_sponsor.Location = new Point(228, 416);
+            materialButton_sponsor.Margin = new Padding(6, 6, 6, 6);
+            materialButton_sponsor.Name = "materialButton_sponsor";
+            materialButton_sponsor.Padding = new Padding(10, 10, 10, 10);
+            materialButton_sponsor.Size = new Size(222, 72);
+            materialButton_sponsor.TabIndex = 34;
+            materialButton_sponsor.Text = "후원하러 가기";
+            materialButton_sponsor.TextColor = Color.White;
+            materialButton_sponsor.UseVisualStyleBackColor = false;
+            materialButton_sponsor.Click += materialButton_sponsor_Click;
             // 
             // label3
             // 
-            this.label3.AutoSize = true;
-            this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label3.Location = new System.Drawing.Point(11, 14);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(121, 18);
-            this.label3.TabIndex = 33;
-            this.label3.Text = "후원해주신 분들♥️";
+            label3.AutoSize = true;
+            label3.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
+            label3.Location = new Point(22, 28);
+            label3.Margin = new Padding(6, 0, 6, 0);
+            label3.Name = "label3";
+            label3.Size = new Size(234, 36);
+            label3.TabIndex = 33;
+            label3.Text = "후원해주신 분들♥️";
             // 
             // materialListBox_sponsor
             // 
-            this.materialListBox_sponsor.BackColor = System.Drawing.Color.White;
-            this.materialListBox_sponsor.BorderColor = System.Drawing.Color.LightGray;
-            this.materialListBox_sponsor.Depth = 0;
-            this.materialListBox_sponsor.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Pixel);
-            this.materialListBox_sponsor.Location = new System.Drawing.Point(11, 41);
-            this.materialListBox_sponsor.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialListBox_sponsor.Name = "materialListBox_sponsor";
-            this.materialListBox_sponsor.SelectedIndex = -1;
-            this.materialListBox_sponsor.SelectedItem = null;
-            this.materialListBox_sponsor.Size = new System.Drawing.Size(322, 132);
-            this.materialListBox_sponsor.TabIndex = 32;
+            materialListBox_sponsor.BackColor = Color.White;
+            materialListBox_sponsor.BorderColor = Color.LightGray;
+            materialListBox_sponsor.Depth = 0;
+            materialListBox_sponsor.Font = new Font("Microsoft Sans Serif", 16F, FontStyle.Regular, GraphicsUnit.Pixel);
+            materialListBox_sponsor.Location = new Point(22, 82);
+            materialListBox_sponsor.Margin = new Padding(6, 6, 6, 6);
+            materialListBox_sponsor.MouseState = MaterialSkin.MouseState.HOVER;
+            materialListBox_sponsor.Name = "materialListBox_sponsor";
+            materialListBox_sponsor.SelectedIndex = -1;
+            materialListBox_sponsor.SelectedItem = null;
+            materialListBox_sponsor.Size = new Size(644, 264);
+            materialListBox_sponsor.TabIndex = 32;
             // 
             // menuIconList
             // 
-            this.menuIconList.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
-            this.menuIconList.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("menuIconList.ImageStream")));
-            this.menuIconList.TransparentColor = System.Drawing.Color.Transparent;
-            this.menuIconList.Images.SetKeyName(0, "outline_home_black_24dp.png");
-            this.menuIconList.Images.SetKeyName(1, "outline_settings_black_24dp.png");
-            this.menuIconList.Images.SetKeyName(2, "outline_help_outline_black_24dp.png");
-            this.menuIconList.Images.SetKeyName(3, "outline_favorite_black_24dp.png");
-            this.menuIconList.Images.SetKeyName(4, "outline_info_black_24dp.png");
+            menuIconList.ColorDepth = ColorDepth.Depth32Bit;
+            menuIconList.ImageStream = (ImageListStreamer)resources.GetObject("menuIconList.ImageStream");
+            menuIconList.TransparentColor = Color.Transparent;
+            menuIconList.Images.SetKeyName(0, "outline_home_black_24dp.png");
+            menuIconList.Images.SetKeyName(1, "outline_settings_black_24dp.png");
+            menuIconList.Images.SetKeyName(2, "outline_help_outline_black_24dp.png");
+            menuIconList.Images.SetKeyName(3, "outline_favorite_black_24dp.png");
+            menuIconList.Images.SetKeyName(4, "outline_info_black_24dp.png");
             // 
             // folderBrowserDialog
             // 
-            this.folderBrowserDialog.Description = "클라이언트 경로 선택";
-            this.folderBrowserDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
-            this.folderBrowserDialog.UseDescriptionForTitle = true;
+            folderBrowserDialog.Description = "클라이언트 경로 선택";
+            folderBrowserDialog.RootFolder = Environment.SpecialFolder.MyComputer;
+            folderBrowserDialog.UseDescriptionForTitle = true;
             // 
             // button_tray
             // 
-            this.button_tray.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(38)))), ((int)(((byte)(50)))), ((int)(((byte)(56)))));
-            this.button_tray.FlatAppearance.BorderSize = 0;
-            this.button_tray.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.button_tray.Image = ((System.Drawing.Image)(resources.GetObject("button_tray.Image")));
-            this.button_tray.Location = new System.Drawing.Point(334, 0);
-            this.button_tray.Name = "button_tray";
-            this.button_tray.Size = new System.Drawing.Size(26, 24);
-            this.button_tray.TabIndex = 14;
-            this.button_tray.UseVisualStyleBackColor = false;
-            this.button_tray.Click += new System.EventHandler(this.button_tray_Click);
+            button_tray.BackColor = Color.FromArgb(38, 50, 56);
+            button_tray.FlatAppearance.BorderSize = 0;
+            button_tray.FlatStyle = FlatStyle.Flat;
+            button_tray.Image = (Image)resources.GetObject("button_tray.Image");
+            button_tray.Location = new Point(668, 0);
+            button_tray.Margin = new Padding(6, 6, 6, 6);
+            button_tray.Name = "button_tray";
+            button_tray.Size = new Size(52, 48);
+            button_tray.TabIndex = 14;
+            button_tray.UseVisualStyleBackColor = false;
+            button_tray.Click += button_tray_Click;
             // 
             // notifyIcon1
             // 
-            this.notifyIcon1.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
-            this.notifyIcon1.ContextMenuStrip = this.contextMenuStrip_tray;
-            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
-            this.notifyIcon1.Text = "거상 스테이션";
-            this.notifyIcon1.DoubleClick += new System.EventHandler(this.notifyIcon1_DoubleClick);
+            notifyIcon1.BalloonTipIcon = ToolTipIcon.Info;
+            notifyIcon1.ContextMenuStrip = contextMenuStrip_tray;
+            notifyIcon1.Icon = (Icon)resources.GetObject("notifyIcon1.Icon");
+            notifyIcon1.Text = "거상 스테이션";
+            notifyIcon1.DoubleClick += notifyIcon1_DoubleClick;
             // 
             // contextMenuStrip_tray
             // 
-            this.contextMenuStrip_tray.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripMenuItem_open,
-            this.toolStripSeparator1,
-            this.toolStripMenuItem_client_1,
-            this.toolStripMenuItem_client_2,
-            this.toolStripMenuItem_client_3,
-            this.toolStripSeparator2,
-            this.toolStripMenuItem_exit});
-            this.contextMenuStrip_tray.Name = "contextMenuStrip_tray";
-            this.contextMenuStrip_tray.Size = new System.Drawing.Size(106, 126);
-            this.contextMenuStrip_tray.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip_tray_ItemClicked);
+            contextMenuStrip_tray.ImageScalingSize = new Size(32, 32);
+            contextMenuStrip_tray.Items.AddRange(new ToolStripItem[] { toolStripMenuItem_open, toolStripSeparator1, toolStripMenuItem_client_1, toolStripMenuItem_client_2, toolStripMenuItem_client_3, toolStripSeparator2, toolStripMenuItem_exit });
+            contextMenuStrip_tray.Name = "contextMenuStrip_tray";
+            contextMenuStrip_tray.Size = new Size(150, 206);
+            contextMenuStrip_tray.ItemClicked += contextMenuStrip_tray_ItemClicked;
             // 
             // toolStripMenuItem_open
             // 
-            this.toolStripMenuItem_open.Name = "toolStripMenuItem_open";
-            this.toolStripMenuItem_open.Size = new System.Drawing.Size(105, 22);
-            this.toolStripMenuItem_open.Text = "열기";
+            toolStripMenuItem_open.Name = "toolStripMenuItem_open";
+            toolStripMenuItem_open.Size = new Size(149, 38);
+            toolStripMenuItem_open.Text = "열기";
             // 
             // toolStripSeparator1
             // 
-            this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(102, 6);
+            toolStripSeparator1.Name = "toolStripSeparator1";
+            toolStripSeparator1.Size = new Size(146, 6);
             // 
             // toolStripMenuItem_client_1
             // 
-            this.toolStripMenuItem_client_1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripMenuItem_search_1,
-            this.toolStripMenuItem_start_1});
-            this.toolStripMenuItem_client_1.Name = "toolStripMenuItem_client_1";
-            this.toolStripMenuItem_client_1.Size = new System.Drawing.Size(105, 22);
-            this.toolStripMenuItem_client_1.Text = "1클라";
-            this.toolStripMenuItem_client_1.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
+            toolStripMenuItem_client_1.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_search_1, toolStripMenuItem_start_1 });
+            toolStripMenuItem_client_1.Name = "toolStripMenuItem_client_1";
+            toolStripMenuItem_client_1.Size = new Size(149, 38);
+            toolStripMenuItem_client_1.Text = "1클라";
+            toolStripMenuItem_client_1.DropDownItemClicked += toolStripMenuItem_client_DropDownItemClicked;
             // 
             // toolStripMenuItem_search_1
             // 
-            this.toolStripMenuItem_search_1.Enabled = false;
-            this.toolStripMenuItem_search_1.Name = "toolStripMenuItem_search_1";
-            this.toolStripMenuItem_search_1.Size = new System.Drawing.Size(146, 22);
-            this.toolStripMenuItem_search_1.Text = "검색보상수령";
-            this.toolStripMenuItem_search_1.Visible = false;
+            toolStripMenuItem_search_1.Enabled = false;
+            toolStripMenuItem_search_1.Name = "toolStripMenuItem_search_1";
+            toolStripMenuItem_search_1.Size = new Size(291, 44);
+            toolStripMenuItem_search_1.Text = "검색보상수령";
+            toolStripMenuItem_search_1.Visible = false;
             // 
             // toolStripMenuItem_start_1
             // 
-            this.toolStripMenuItem_start_1.Name = "toolStripMenuItem_start_1";
-            this.toolStripMenuItem_start_1.Size = new System.Drawing.Size(146, 22);
-            this.toolStripMenuItem_start_1.Text = "게임시작";
+            toolStripMenuItem_start_1.Name = "toolStripMenuItem_start_1";
+            toolStripMenuItem_start_1.Size = new Size(291, 44);
+            toolStripMenuItem_start_1.Text = "게임시작";
             // 
             // toolStripMenuItem_client_2
             // 
-            this.toolStripMenuItem_client_2.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripMenuItem_search_2,
-            this.toolStripMenuItem_start_2});
-            this.toolStripMenuItem_client_2.Name = "toolStripMenuItem_client_2";
-            this.toolStripMenuItem_client_2.Size = new System.Drawing.Size(105, 22);
-            this.toolStripMenuItem_client_2.Text = "2클라";
-            this.toolStripMenuItem_client_2.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
+            toolStripMenuItem_client_2.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_search_2, toolStripMenuItem_start_2 });
+            toolStripMenuItem_client_2.Name = "toolStripMenuItem_client_2";
+            toolStripMenuItem_client_2.Size = new Size(149, 38);
+            toolStripMenuItem_client_2.Text = "2클라";
+            toolStripMenuItem_client_2.DropDownItemClicked += toolStripMenuItem_client_DropDownItemClicked;
             // 
             // toolStripMenuItem_search_2
             // 
-            this.toolStripMenuItem_search_2.Enabled = false;
-            this.toolStripMenuItem_search_2.Name = "toolStripMenuItem_search_2";
-            this.toolStripMenuItem_search_2.Size = new System.Drawing.Size(146, 22);
-            this.toolStripMenuItem_search_2.Text = "검색보상수령";
-            this.toolStripMenuItem_search_2.Visible = false;
+            toolStripMenuItem_search_2.Enabled = false;
+            toolStripMenuItem_search_2.Name = "toolStripMenuItem_search_2";
+            toolStripMenuItem_search_2.Size = new Size(291, 44);
+            toolStripMenuItem_search_2.Text = "검색보상수령";
+            toolStripMenuItem_search_2.Visible = false;
             // 
             // toolStripMenuItem_start_2
             // 
-            this.toolStripMenuItem_start_2.Name = "toolStripMenuItem_start_2";
-            this.toolStripMenuItem_start_2.Size = new System.Drawing.Size(146, 22);
-            this.toolStripMenuItem_start_2.Text = "게임시작";
+            toolStripMenuItem_start_2.Name = "toolStripMenuItem_start_2";
+            toolStripMenuItem_start_2.Size = new Size(291, 44);
+            toolStripMenuItem_start_2.Text = "게임시작";
             // 
             // toolStripMenuItem_client_3
             // 
-            this.toolStripMenuItem_client_3.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripMenuItem_search_3,
-            this.toolStripMenuItem_start_3});
-            this.toolStripMenuItem_client_3.Name = "toolStripMenuItem_client_3";
-            this.toolStripMenuItem_client_3.Size = new System.Drawing.Size(105, 22);
-            this.toolStripMenuItem_client_3.Text = "3클라";
-            this.toolStripMenuItem_client_3.DropDownItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.toolStripMenuItem_client_DropDownItemClicked);
+            toolStripMenuItem_client_3.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_search_3, toolStripMenuItem_start_3 });
+            toolStripMenuItem_client_3.Name = "toolStripMenuItem_client_3";
+            toolStripMenuItem_client_3.Size = new Size(149, 38);
+            toolStripMenuItem_client_3.Text = "3클라";
+            toolStripMenuItem_client_3.DropDownItemClicked += toolStripMenuItem_client_DropDownItemClicked;
             // 
             // toolStripMenuItem_search_3
             // 
-            this.toolStripMenuItem_search_3.Enabled = false;
-            this.toolStripMenuItem_search_3.Name = "toolStripMenuItem_search_3";
-            this.toolStripMenuItem_search_3.Size = new System.Drawing.Size(146, 22);
-            this.toolStripMenuItem_search_3.Text = "검색보상수령";
-            this.toolStripMenuItem_search_3.Visible = false;
+            toolStripMenuItem_search_3.Enabled = false;
+            toolStripMenuItem_search_3.Name = "toolStripMenuItem_search_3";
+            toolStripMenuItem_search_3.Size = new Size(291, 44);
+            toolStripMenuItem_search_3.Text = "검색보상수령";
+            toolStripMenuItem_search_3.Visible = false;
             // 
             // toolStripMenuItem_start_3
             // 
-            this.toolStripMenuItem_start_3.Name = "toolStripMenuItem_start_3";
-            this.toolStripMenuItem_start_3.Size = new System.Drawing.Size(146, 22);
-            this.toolStripMenuItem_start_3.Text = "게임시작";
+            toolStripMenuItem_start_3.Name = "toolStripMenuItem_start_3";
+            toolStripMenuItem_start_3.Size = new Size(291, 44);
+            toolStripMenuItem_start_3.Text = "게임시작";
             // 
             // toolStripSeparator2
             // 
-            this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(102, 6);
+            toolStripSeparator2.Name = "toolStripSeparator2";
+            toolStripSeparator2.Size = new Size(146, 6);
             // 
             // toolStripMenuItem_exit
             // 
-            this.toolStripMenuItem_exit.Name = "toolStripMenuItem_exit";
-            this.toolStripMenuItem_exit.Size = new System.Drawing.Size(105, 22);
-            this.toolStripMenuItem_exit.Text = "종료";
+            toolStripMenuItem_exit.Name = "toolStripMenuItem_exit";
+            toolStripMenuItem_exit.Size = new Size(149, 38);
+            toolStripMenuItem_exit.Text = "종료";
+            // 
+            // notifyIcon2
+            // 
+            notifyIcon2.BalloonTipIcon = ToolTipIcon.Info;
+            notifyIcon2.ContextMenuStrip = contextMenuStrip_tray;
+            notifyIcon2.Icon = (Icon)resources.GetObject("notifyIcon2.Icon");
+            notifyIcon2.Text = "거상 스테이션";
             // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.AutoScroll = true;
-            this.ClientSize = new System.Drawing.Size(408, 320);
-            this.Controls.Add(this.button_tray);
-            this.Controls.Add(this.materialTabControl1);
-            this.DrawerShowIconsWhenHidden = true;
-            this.DrawerTabControl = this.materialTabControl1;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MaximizeBox = false;
-            this.Name = "Form1";
-            this.Sizable = false;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Tag = "408, 295";
-            this.Text = "GersangStation";
-            this.Load += new System.EventHandler(this.Form1_Load);
-            this.Resize += new System.EventHandler(this.Form1_Resize);
-            this.materialTabControl1.ResumeLayout(false);
-            this.tabPage_home.ResumeLayout(false);
-            this.tabPage_home.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
-            this.tabPage_settings.ResumeLayout(false);
-            this.tabPage_help.ResumeLayout(false);
-            this.tabPage_help.PerformLayout();
-            this.tabPage_info.ResumeLayout(false);
-            this.tabPage_info.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
-            this.tabPage_sponsor.ResumeLayout(false);
-            this.tabPage_sponsor.PerformLayout();
-            this.contextMenuStrip_tray.ResumeLayout(false);
-            this.ResumeLayout(false);
-
+            AutoScaleDimensions = new SizeF(192F, 192F);
+            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScroll = true;
+            ClientSize = new Size(816, 640);
+            Controls.Add(button_tray);
+            Controls.Add(materialTabControl1);
+            DrawerShowIconsWhenHidden = true;
+            DrawerTabControl = materialTabControl1;
+            Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(6, 6, 6, 6);
+            MaximizeBox = false;
+            Name = "Form1";
+            Padding = new Padding(6, 128, 6, 6);
+            Sizable = false;
+            StartPosition = FormStartPosition.CenterScreen;
+            Tag = "408, 295";
+            Text = "GersangStation";
+            Load += Form1_Load;
+            Resize += Form1_Resize;
+            materialTabControl1.ResumeLayout(false);
+            tabPage_home.ResumeLayout(false);
+            tabPage_home.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
+            tabPage_settings.ResumeLayout(false);
+            tabPage_help.ResumeLayout(false);
+            tabPage_help.PerformLayout();
+            tabPage_info.ResumeLayout(false);
+            tabPage_info.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBox1).EndInit();
+            tabPage_sponsor.ResumeLayout(false);
+            tabPage_sponsor.PerformLayout();
+            contextMenuStrip_tray.ResumeLayout(false);
+            ResumeLayout(false);
         }
 
         #endregion
@@ -1327,5 +1359,6 @@
         private CustomButton materialButton_question_naver;
         private Label label6;
         private Label label5;
+        private NotifyIcon notifyIcon2;
     }
 }

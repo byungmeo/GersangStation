@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "GersangStation": {
+      "commandName": "Project",
+      "jsWebView2Debugging": false
+    }
+  }
+}
