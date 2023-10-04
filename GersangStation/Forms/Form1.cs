@@ -11,8 +11,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using File = System.IO.File;
 
-namespace GersangStation
-{
+namespace GersangStation {
     public partial class Form1 : MaterialForm
     {
         private const int WM_ACTIVATEAPP = 0x001C;
@@ -109,10 +108,11 @@ namespace GersangStation
             {
                 Visible = true,
                 Dock = DockStyle.Fill,
-                Source = new Uri("https://www.gersang.co.kr/main/index.gs")
             };
             webView_main.CoreWebView2InitializationCompleted += webView_main_CoreWebView2InitializationCompleted;
-            await webView_main.EnsureCoreWebView2Async(null);
+            var path = Path.Combine(Path.GetTempPath(), $"{Environment.UserName}");
+            var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
+            await webView_main.EnsureCoreWebView2Async(env);
         }
 
         // EnsureCoreWebView2Async의 결과값이 null이 아니라면 CoreWebView2 초기화가 완료되기 직전 이 이벤트가 발생합니다.
@@ -126,7 +126,7 @@ namespace GersangStation
 
                 webView_main.NavigationStarting += webView_main_NavigationStarting;
                 webView_main.NavigationCompleted += webView_main_NavigationCompleted;
-                webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
+                webView_main.CoreWebView2.Navigate(url_main);
 
                 LoadComponent();
             }
