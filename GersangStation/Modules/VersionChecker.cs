@@ -2,21 +2,26 @@
 using System.IO.Compression;
 using System.Net;
 
-namespace GersangStation {
-    internal class VersionChecker {
+namespace GersangStation.Modules
+{
+    internal class VersionChecker
+    {
         // private static bool isDownloadedVsn = false; //vsn파일 다운로드 남용을 차단
 
-        public static string GetCurrentVersion(Form owner, string path_main) {
+        public static string GetCurrentVersion(Form owner, string path_main)
+        {
             //Logger.Log("Log : (" + "*static*_Form_ClientSetting" + ") " + "현재 거상 본클라 버전 확인 시도");
             string version;
-            try {
+            try
+            {
                 FileStream fs = File.OpenRead(path_main + @"\Online\vsn.dat");
                 BinaryReader br = new BinaryReader(fs);
                 version = (-(br.ReadInt32() + 1)).ToString();
                 fs.Close();
                 br.Close();
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 MessageBox.Show(owner, "현재 거상 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
                     , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "";
@@ -25,13 +30,16 @@ namespace GersangStation {
             return version;
         }
 
-        public static string GetLatestVersion(Form owner, string url_vsn) {
+        public static string GetLatestVersion(Form owner, string url_vsn)
+        {
             //Logger.Log("Log : (" + "*static*_Form_ClientSetting" + ") " + "현재 거상 최신 버전 확인 시도");
-            try {
+            try
+            {
                 Trace.WriteLine("vsn파일을 다운로드 합니다.");
                 return CheckServerVsn(url_vsn);
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 MessageBox.Show(owner, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
                     , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return "";
@@ -65,12 +73,14 @@ namespace GersangStation {
         }
         */
 
-        private static string CheckServerVsn(string url_vsn) {
+        private static string CheckServerVsn(string url_vsn)
+        {
             string version;
             DirectoryInfo binDirectory = new DirectoryInfo(Application.StartupPath + @"\bin");
 
             //현재 거상 최신 버전을 확인합니다
-            using (WebClient client = new()) {
+            using (WebClient client = new())
+            {
                 ServicePointManager.Expect100Continue = true;
                 ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
 
@@ -80,9 +90,12 @@ namespace GersangStation {
                 client.Headers.Add("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0)");
 
                 if (!binDirectory.Exists) { binDirectory.Create(); }
-                else {
-                    foreach (FileInfo file in binDirectory.GetFiles()) {
-                        if (file.Name.Equals("vsn.dat")) {
+                else
+                {
+                    foreach (FileInfo file in binDirectory.GetFiles())
+                    {
+                        if (file.Name.Equals("vsn.dat"))
+                        {
                             file.Delete();
                         }
                     }

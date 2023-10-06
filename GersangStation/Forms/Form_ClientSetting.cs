@@ -1,8 +1,10 @@
-﻿using MaterialSkin.Controls;
+﻿using GersangStation.Modules;
+using MaterialSkin.Controls;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace GersangStation {
+namespace GersangStation
+{
     public partial class Form_ClientSetting : MaterialForm {
         public Form_ClientSetting() {
             InitializeComponent();

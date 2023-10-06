@@ -1,4 +1,7 @@
-﻿namespace GersangStation {
+﻿using GersangStation.Modules;
+
+namespace GersangStation
+{
     internal static class Program {
         /// <summary>
         ///  The main entry point for the application.
