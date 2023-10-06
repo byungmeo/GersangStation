@@ -1,11 +1,8 @@
 ﻿using GersangStation.Modules;
-using MaterialSkin.Controls;
 using Microsoft.Web.WebView2.WinForms;
 using System.Text;
-using System.Windows.Forms;
 
-namespace GersangStation
-{
+namespace GersangStation {
     public partial class Form_Browser : Form {
         WebView2 webView;
 
@@ -21,9 +18,7 @@ namespace GersangStation
 
             InitializeAsync();
         }
-        async void InitializeAsync() {       
-            await webView.EnsureCoreWebView2Async(null);
-
+        async void InitializeAsync() {
             webView.WebMessageReceived += WebView_WebMessageReceived;
 
             string id = await webView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync("window.chrome.webview.postMessage(window.document.URL);");
@@ -31,6 +26,7 @@ namespace GersangStation
 
             this.FormClosing += (sender, e) => {
                 webView.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(id);
+                webView.WebMessageReceived -= WebView_WebMessageReceived;
                 //webView.CoreWebView2.RemoveScriptToExecuteOnDocumentCreated(id2);
             };
         }
@@ -42,14 +38,11 @@ namespace GersangStation
         }
 
         private void Form_Browser_Resize(object sender, EventArgs e) {
-            try {
-                webView.Size = new Size(webView.Width, this.ClientSize.Height - (addressBar.Height + addressBar.Location.Y));
-                
-            } catch (NullReferenceException) {
-            }
-
-            goButton.Left = this.ClientSize.Width - goButton.Width;
-            addressBar.Width = goButton.Left - addressBar.Left;
+            webView.Size = new Size(webView.Width, this.ClientSize.Height - (addressBar.Height + addressBar.Location.Y));
+            int diff = (ClientSize.Width - button_saveShortcut.Width - 6) - button_saveShortcut.Left;
+            button_saveShortcut.Left = ClientSize.Width - button_saveShortcut.Width - 6;
+            goButton.Left += diff;
+            addressBar.Width += diff;
         }
 
         private void goButton_Click(object sender, EventArgs e) {
