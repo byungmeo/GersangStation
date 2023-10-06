@@ -23,193 +23,159 @@
         /// the contents of this method with the code editor.
         /// </summary>
         private void InitializeComponent() {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_AccountSetting));
-            this.materialListBox1 = new MaterialSkin.Controls.MaterialListBox();
-            this.materialButton_close = new GersangStation.CustomButton();
-            this.label8 = new System.Windows.Forms.Label();
-            this.materialButton_addAccount = new GersangStation.CustomButton();
-            this.materialButton_removeAccount = new GersangStation.CustomButton();
-            this.materialButton_changeAccount = new GersangStation.CustomButton();
-            this.label4 = new System.Windows.Forms.Label();
-            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
-            this.SuspendLayout();
+            materialListBox1 = new MaterialSkin.Controls.MaterialListBox();
+            linkLabel1 = new LinkLabel();
+            materialLabel1 = new MaterialSkin.Controls.MaterialLabel();
+            materialLabel2 = new MaterialSkin.Controls.MaterialLabel();
+            materialButton_addAccount = new MaterialSkin.Controls.MaterialButton();
+            materialButton_removeAccount = new MaterialSkin.Controls.MaterialButton();
+            materialButton_changeAccount = new MaterialSkin.Controls.MaterialButton();
+            SuspendLayout();
             // 
             // materialListBox1
             // 
-            this.materialListBox1.BackColor = System.Drawing.Color.White;
-            this.materialListBox1.BorderColor = System.Drawing.Color.LightGray;
-            this.materialListBox1.Depth = 0;
-            this.materialListBox1.Font = new System.Drawing.Font("Microsoft Sans Serif", 16F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.materialListBox1.Location = new System.Drawing.Point(17, 101);
-            this.materialListBox1.MouseState = MaterialSkin.MouseState.HOVER;
-            this.materialListBox1.Name = "materialListBox1";
-            this.materialListBox1.SelectedIndex = -1;
-            this.materialListBox1.SelectedItem = null;
-            this.materialListBox1.Size = new System.Drawing.Size(248, 160);
-            this.materialListBox1.TabIndex = 44;
-            this.materialListBox1.TabStop = false;
-            // 
-            // materialButton_close
-            // 
-            this.materialButton_close.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.materialButton_close.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_close.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_close.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_close.BorderRadius = 5;
-            this.materialButton_close.BorderSize = 0;
-            this.materialButton_close.FlatAppearance.BorderSize = 0;
-            this.materialButton_close.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_close.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_close.ForeColor = System.Drawing.Color.White;
-            this.materialButton_close.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_close.Image")));
-            this.materialButton_close.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.materialButton_close.Location = new System.Drawing.Point(128, 398);
-            this.materialButton_close.Name = "materialButton_close";
-            this.materialButton_close.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_close.Size = new System.Drawing.Size(79, 36);
-            this.materialButton_close.TabIndex = 101;
-            this.materialButton_close.Text = "닫기";
-            this.materialButton_close.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_close.TextColor = System.Drawing.Color.White;
-            this.materialButton_close.UseVisualStyleBackColor = false;
-            this.materialButton_close.Click += new System.EventHandler(this.materialButton_close_Click);
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.Font = new System.Drawing.Font("Noto Sans", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.label8.Location = new System.Drawing.Point(17, 78);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(73, 20);
-            this.label8.TabIndex = 102;
-            this.label8.Text = "계정 목록";
-            // 
-            // materialButton_addAccount
-            // 
-            this.materialButton_addAccount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.materialButton_addAccount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_addAccount.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_addAccount.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_addAccount.BorderRadius = 5;
-            this.materialButton_addAccount.BorderSize = 0;
-            this.materialButton_addAccount.FlatAppearance.BorderSize = 0;
-            this.materialButton_addAccount.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_addAccount.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_addAccount.ForeColor = System.Drawing.Color.White;
-            this.materialButton_addAccount.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_addAccount.Image")));
-            this.materialButton_addAccount.Location = new System.Drawing.Point(278, 101);
-            this.materialButton_addAccount.Name = "materialButton_addAccount";
-            this.materialButton_addAccount.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_addAccount.Size = new System.Drawing.Size(42, 36);
-            this.materialButton_addAccount.TabIndex = 103;
-            this.materialButton_addAccount.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_addAccount.TextColor = System.Drawing.Color.White;
-            this.materialButton_addAccount.UseVisualStyleBackColor = false;
-            this.materialButton_addAccount.Click += new System.EventHandler(this.materialButton_addAccount_Click);
-            // 
-            // materialButton_removeAccount
-            // 
-            this.materialButton_removeAccount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.materialButton_removeAccount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_removeAccount.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_removeAccount.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_removeAccount.BorderRadius = 5;
-            this.materialButton_removeAccount.BorderSize = 0;
-            this.materialButton_removeAccount.FlatAppearance.BorderSize = 0;
-            this.materialButton_removeAccount.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_removeAccount.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_removeAccount.ForeColor = System.Drawing.Color.White;
-            this.materialButton_removeAccount.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_removeAccount.Image")));
-            this.materialButton_removeAccount.Location = new System.Drawing.Point(278, 143);
-            this.materialButton_removeAccount.Name = "materialButton_removeAccount";
-            this.materialButton_removeAccount.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_removeAccount.Size = new System.Drawing.Size(42, 36);
-            this.materialButton_removeAccount.TabIndex = 104;
-            this.materialButton_removeAccount.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_removeAccount.TextColor = System.Drawing.Color.White;
-            this.materialButton_removeAccount.UseVisualStyleBackColor = false;
-            this.materialButton_removeAccount.Click += new System.EventHandler(this.materialButton_removeAccount_Click);
-            // 
-            // materialButton_changeAccount
-            // 
-            this.materialButton_changeAccount.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.materialButton_changeAccount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_changeAccount.BackgroundColor = System.Drawing.Color.FromArgb(((int)(((byte)(51)))), ((int)(((byte)(71)))), ((int)(((byte)(79)))));
-            this.materialButton_changeAccount.BorderColor = System.Drawing.Color.PaleVioletRed;
-            this.materialButton_changeAccount.BorderRadius = 5;
-            this.materialButton_changeAccount.BorderSize = 0;
-            this.materialButton_changeAccount.FlatAppearance.BorderSize = 0;
-            this.materialButton_changeAccount.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.materialButton_changeAccount.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.materialButton_changeAccount.ForeColor = System.Drawing.Color.White;
-            this.materialButton_changeAccount.Image = ((System.Drawing.Image)(resources.GetObject("materialButton_changeAccount.Image")));
-            this.materialButton_changeAccount.Location = new System.Drawing.Point(278, 185);
-            this.materialButton_changeAccount.Name = "materialButton_changeAccount";
-            this.materialButton_changeAccount.Padding = new System.Windows.Forms.Padding(5);
-            this.materialButton_changeAccount.Size = new System.Drawing.Size(42, 36);
-            this.materialButton_changeAccount.TabIndex = 105;
-            this.materialButton_changeAccount.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.materialButton_changeAccount.TextColor = System.Drawing.Color.White;
-            this.materialButton_changeAccount.UseVisualStyleBackColor = false;
-            this.materialButton_changeAccount.Click += new System.EventHandler(this.materialButton_addAccount_Click);
-            // 
-            // label4
-            // 
-            this.label4.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.label4.Font = new System.Drawing.Font("Noto Sans KR", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.label4.ForeColor = System.Drawing.Color.Red;
-            this.label4.Location = new System.Drawing.Point(44, 279);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(246, 68);
-            this.label4.TabIndex = 106;
-            this.label4.Text = "패스워드는 암호화되어 저장됩니다.\r\n신뢰할 수 없는 장소(PC방 등)에서는\r\n사용을 자제해주세요. (삭제필수)";
-            this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            materialListBox1.BackColor = Color.White;
+            materialListBox1.BorderColor = Color.LightGray;
+            materialListBox1.Depth = 0;
+            materialListBox1.Font = new Font("Microsoft Sans Serif", 16F, FontStyle.Regular, GraphicsUnit.Point);
+            materialListBox1.Location = new Point(17, 101);
+            materialListBox1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialListBox1.Name = "materialListBox1";
+            materialListBox1.SelectedIndex = -1;
+            materialListBox1.SelectedItem = null;
+            materialListBox1.Size = new Size(248, 160);
+            materialListBox1.TabIndex = 44;
+            materialListBox1.TabStop = false;
             // 
             // linkLabel1
             // 
-            this.linkLabel1.Location = new System.Drawing.Point(61, 364);
-            this.linkLabel1.Name = "linkLabel1";
-            this.linkLabel1.Size = new System.Drawing.Size(213, 23);
-            this.linkLabel1.TabIndex = 107;
-            this.linkLabel1.TabStop = true;
-            this.linkLabel1.Text = "[Notice] 계정정보와 해킹에 대한 안내";
-            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
+            linkLabel1.Location = new Point(59, 344);
+            linkLabel1.Name = "linkLabel1";
+            linkLabel1.Size = new Size(213, 23);
+            linkLabel1.TabIndex = 107;
+            linkLabel1.TabStop = true;
+            linkLabel1.Text = "[Notice] 계정정보와 해킹에 대한 안내";
+            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
+            // 
+            // materialLabel1
+            // 
+            materialLabel1.AutoSize = true;
+            materialLabel1.Depth = 0;
+            materialLabel1.Font = new Font("Noto Sans KR Medium", 20F, FontStyle.Bold, GraphicsUnit.Pixel);
+            materialLabel1.FontType = MaterialSkin.MaterialSkinManager.fontType.H6;
+            materialLabel1.Location = new Point(17, 73);
+            materialLabel1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialLabel1.Name = "materialLabel1";
+            materialLabel1.Size = new Size(66, 25);
+            materialLabel1.TabIndex = 108;
+            materialLabel1.Text = "계정 목록";
+            // 
+            // materialLabel2
+            // 
+            materialLabel2.Depth = 0;
+            materialLabel2.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
+            materialLabel2.HighEmphasis = true;
+            materialLabel2.Location = new Point(53, 273);
+            materialLabel2.MouseState = MaterialSkin.MouseState.HOVER;
+            materialLabel2.Name = "materialLabel2";
+            materialLabel2.Size = new Size(228, 61);
+            materialLabel2.TabIndex = 109;
+            materialLabel2.Text = "패스워드는 암호화되어 저장됩니다.\r\nPC방 등 공공장소에서는 사용 후 \r\n꼭 삭제해주세요. (필수)";
+            materialLabel2.TextAlign = ContentAlignment.MiddleCenter;
+            materialLabel2.UseAccent = true;
+            // 
+            // materialButton_addAccount
+            // 
+            materialButton_addAccount.AutoSize = false;
+            materialButton_addAccount.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_addAccount.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_addAccount.Depth = 0;
+            materialButton_addAccount.HighEmphasis = true;
+            materialButton_addAccount.Icon = Properties.Resources.person_add;
+            materialButton_addAccount.Location = new Point(281, 101);
+            materialButton_addAccount.Margin = new Padding(4, 6, 4, 6);
+            materialButton_addAccount.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_addAccount.Name = "materialButton_addAccount";
+            materialButton_addAccount.NoAccentTextColor = Color.Empty;
+            materialButton_addAccount.Size = new Size(36, 36);
+            materialButton_addAccount.TabIndex = 110;
+            materialButton_addAccount.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_addAccount.UseAccentColor = false;
+            materialButton_addAccount.UseVisualStyleBackColor = true;
+            materialButton_addAccount.Click += materialButton_addAccount_Click;
+            // 
+            // materialButton_removeAccount
+            // 
+            materialButton_removeAccount.AutoSize = false;
+            materialButton_removeAccount.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_removeAccount.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_removeAccount.Depth = 0;
+            materialButton_removeAccount.HighEmphasis = true;
+            materialButton_removeAccount.Icon = Properties.Resources.person_cancel;
+            materialButton_removeAccount.Location = new Point(281, 149);
+            materialButton_removeAccount.Margin = new Padding(4, 6, 4, 6);
+            materialButton_removeAccount.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_removeAccount.Name = "materialButton_removeAccount";
+            materialButton_removeAccount.NoAccentTextColor = Color.Empty;
+            materialButton_removeAccount.Size = new Size(36, 36);
+            materialButton_removeAccount.TabIndex = 111;
+            materialButton_removeAccount.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_removeAccount.UseAccentColor = false;
+            materialButton_removeAccount.UseVisualStyleBackColor = true;
+            materialButton_removeAccount.Click += materialButton_removeAccount_Click;
+            // 
+            // materialButton_changeAccount
+            // 
+            materialButton_changeAccount.AutoSize = false;
+            materialButton_changeAccount.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_changeAccount.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_changeAccount.Depth = 0;
+            materialButton_changeAccount.HighEmphasis = true;
+            materialButton_changeAccount.Icon = Properties.Resources.edit;
+            materialButton_changeAccount.Location = new Point(281, 197);
+            materialButton_changeAccount.Margin = new Padding(4, 6, 4, 6);
+            materialButton_changeAccount.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_changeAccount.Name = "materialButton_changeAccount";
+            materialButton_changeAccount.NoAccentTextColor = Color.Empty;
+            materialButton_changeAccount.Size = new Size(36, 36);
+            materialButton_changeAccount.TabIndex = 112;
+            materialButton_changeAccount.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_changeAccount.UseAccentColor = false;
+            materialButton_changeAccount.UseVisualStyleBackColor = true;
+            materialButton_changeAccount.Click += materialButton_addAccount_Click;
             // 
             // Form_AccountSetting
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(334, 454);
-            this.Controls.Add(this.linkLabel1);
-            this.Controls.Add(this.label4);
-            this.Controls.Add(this.materialButton_changeAccount);
-            this.Controls.Add(this.materialButton_removeAccount);
-            this.Controls.Add(this.materialButton_addAccount);
-            this.Controls.Add(this.label8);
-            this.Controls.Add(this.materialButton_close);
-            this.Controls.Add(this.materialListBox1);
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.Name = "Form_AccountSetting";
-            this.ShowInTaskbar = false;
-            this.Sizable = false;
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "계정 설정";
-            this.TopMost = true;
-            this.Load += new System.EventHandler(this.Form_AccountSetting_Load);
-            this.ResumeLayout(false);
-            this.PerformLayout();
-
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(334, 379);
+            Controls.Add(materialButton_changeAccount);
+            Controls.Add(materialButton_removeAccount);
+            Controls.Add(materialButton_addAccount);
+            Controls.Add(materialLabel2);
+            Controls.Add(materialLabel1);
+            Controls.Add(linkLabel1);
+            Controls.Add(materialListBox1);
+            MaximizeBox = false;
+            MinimizeBox = false;
+            Name = "Form_AccountSetting";
+            ShowInTaskbar = false;
+            Sizable = false;
+            StartPosition = FormStartPosition.CenterParent;
+            Text = "계정 추가 및 삭제";
+            TopMost = true;
+            Load += Form_AccountSetting_Load;
+            ResumeLayout(false);
+            PerformLayout();
         }
 
         #endregion
         private MaterialSkin.Controls.MaterialListBox materialListBox1;
-        private CustomButton materialButton_close;
-        private Label label8;
-        private CustomButton materialButton_addAccount;
-        private CustomButton materialButton_removeAccount;
-        private CustomButton materialButton_changeAccount;
-        private Label label4;
         private LinkLabel linkLabel1;
+        private MaterialSkin.Controls.MaterialLabel materialLabel1;
+        private MaterialSkin.Controls.MaterialLabel materialLabel2;
+        private MaterialSkin.Controls.MaterialButton materialButton_removeAccount;
+        private MaterialSkin.Controls.MaterialButton materialButton_changeAccount;
+        private MaterialSkin.Controls.MaterialButton materialButton_addAccount;
     }
 }

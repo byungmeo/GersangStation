@@ -95,7 +95,7 @@ namespace GersangStation
             dialog_addAccount.Controls.Add(checkBox_useNickname);
 
             //계정 추가 버튼
-            CustomButton button_confirm = new CustomButton() {
+            MaterialButton button_confirm = new MaterialButton() {
                 Text = "추가",
                 AutoSize = false,
                 Size = new Size(64, 36),
