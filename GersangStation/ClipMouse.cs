@@ -171,32 +171,17 @@ namespace GersangStation
                     continue;
                 }
 
-                Rectangle windowBorderSize = new Rectangle();
                 Rectangle windowArea = new Rectangle();
                 Rectangle windowArea_original = new Rectangle();
                 Rectangle escapeArea = new Rectangle();
-
-                // Determine border sizes for the selected window
-                windowBorderSize = GetWindowBorderSizes(currentWindowsHandle);
 
                 //Get current cursor pointer
                 POINT pt;
                 GetCursorPos(out pt);
 
-                //Get windows rectangle by handle
-                if (GetWindowRect(currentWindowsHandle, ref windowArea) == 0)
-                {
-                    throw new Win32Exception(
-                        Marshal.GetLastWin32Error(),
-                        string.Format("Get window rectangle win32 error. selectedWindowHandle {0:d}", currentWindowsHandle));
-                }
-
                 //Make a gap for safety 
                 int borderGap = 2, escapeGap = 3;
-                windowArea.Left += windowBorderSize.Left;
-                windowArea.Top += windowBorderSize.Top;
-                windowArea.Bottom -= windowBorderSize.Bottom;
-                windowArea.Right -= windowBorderSize.Right;
+                windowArea = GetGameArea(currentWindowsHandle);
 
                 windowArea_original.Left = windowArea.Left;
                 windowArea_original.Top = windowArea.Top;
@@ -291,74 +276,35 @@ namespace GersangStation
             return windowHandles;
         }
 
-        /// <summary>
-        /// Removes all escape and other non standard characters from the string so it can be safely printed to the console.
-        /// </summary>
-        /// <param name="str">The string to be sanitized.</param>
-        /// <returns>Return the sanitized string.</returns>
-        public static string RemoveSpecialCharacters(string str)
+        public static Rectangle GetGameArea(IntPtr window) 
         {
-            return Regex.Replace(str, "[^a-zA-Z0-9_. -]+", string.Empty, RegexOptions.Compiled);
+            Rectangle ClientRect = new Rectangle();
+            Rectangle WindowRect = new Rectangle();
+
+            GetWindowRect(window, ref WindowRect);
+            GetClientRect(window, ref ClientRect);
+
+            //Trace.WriteLine("WindowRect: " + WindowRect);
+            //Trace.WriteLine("ClientRect: " + ClientRect);
+
+            if (ClientRect.Bottom - ClientRect.Top == WindowRect.Bottom - WindowRect.Top) //No title, No border
+                return WindowRect;
+            else
+            {
+                int borderWidth = ((WindowRect.Right - WindowRect.Left) - (ClientRect.Right - ClientRect.Left)) / 2;
+
+                Rectangle GameRect = new Rectangle();
+                GameRect.Left = ((WindowRect.Left + WindowRect.Right)/2) - ((ClientRect.Right - ClientRect.Left)/2);
+                GameRect.Right = GameRect.Left + (ClientRect.Right - ClientRect.Left);
+                GameRect.Bottom = WindowRect.Bottom - borderWidth;
+                GameRect.Top = GameRect.Bottom - (ClientRect.Bottom - ClientRect.Top);
+                //Trace.WriteLine("GameRect: " + GameRect);
+
+                return GameRect;
+            }
         }
-
-        /// <summary>
-        /// Gets the size in pixel of a window's border.
-        /// </summary>
-        /// <param name="window">The handle of the window.</param>
-        /// <returns>Returns the border size in pixel.</returns>
-        public static Rectangle GetWindowBorderSizes(IntPtr window)
-        {
-            Rectangle windowBorderSizes = new Rectangle();
-
-            WindowStyles styles = GetWindowLong(window, GetWindowLongIndex.GWL_STYLE);
-
-            // Window has title-bar
-            if (styles.HasFlag(WindowStyles.WS_CAPTION))
-            {
-                windowBorderSizes.Top += GetSystemMetrics(SystemMetric.SM_CYCAPTION);
-            }
-
-            // Window has re-sizable borders
-            if (styles.HasFlag(WindowStyles.WS_THICKFRAME))
-            {
-                windowBorderSizes.Left += GetSystemMetrics(SystemMetric.SM_CXSIZEFRAME);
-                windowBorderSizes.Right += GetSystemMetrics(SystemMetric.SM_CXSIZEFRAME);
-                windowBorderSizes.Top += GetSystemMetrics(SystemMetric.SM_CYSIZEFRAME);
-                windowBorderSizes.Bottom += GetSystemMetrics(SystemMetric.SM_CYSIZEFRAME);
-            }
-            else if (styles.HasFlag(WindowStyles.WS_BORDER) || styles.HasFlag(WindowStyles.WS_CAPTION))
-            {
-                // Window has normal borders
-                windowBorderSizes.Left += GetSystemMetrics(SystemMetric.SM_CXFIXEDFRAME);
-                windowBorderSizes.Right += GetSystemMetrics(SystemMetric.SM_CXFIXEDFRAME);
-                windowBorderSizes.Top += GetSystemMetrics(SystemMetric.SM_CYFIXEDFRAME);
-                windowBorderSizes.Bottom += GetSystemMetrics(SystemMetric.SM_CYFIXEDFRAME);
-            }
-
-            return windowBorderSizes;
-        }
-
-        /// <summary>
-        /// Used to retrieve the title text of a window.
-        /// </summary>
-        /// <param name="hwnd">The handle of the window.</param>
-        /// <param name="maxStringLength">The maximum length of the title string returned. Longer titles are truncated.</param>
-        /// <returns>Return the title text of the window.</returns>
-        //private static string GetWindowText(IntPtr hwnd, int maxStringLength)
-        //{
-        //    StringBuilder stringBuilder = new StringBuilder(maxStringLength);
-        //    if (UnmanagedGetWindowText(hwnd, stringBuilder, maxStringLength) == 0)
-        //    {
-        //        return null;
-        //    }
-
-        //    return stringBuilder.ToString();
-        //}
 
         #region DLLImports
-        [DllImport("user32.dll", CharSet = CharSet.Auto, EntryPoint = "GetWindowText")]
-        private static extern int UnmanagedGetWindowText(IntPtr hwnd, StringBuilder lpString, int maxCount);
-
         [DllImport("user32.dll", CharSet = CharSet.Auto, EntryPoint = "GetForegroundWindow")]
         private static extern IntPtr GetForegroundWindow();
 
@@ -388,6 +334,9 @@ namespace GersangStation
         public static extern bool RegisterHotKey(IntPtr hWnd, int id, int fsModifiers, int vlc);
         [DllImport("user32.dll")]
         public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, EntryPoint = "GetWindowPlacement")]
+        private static extern bool GetWindowPlacement(IntPtr hWnd, out WINDOWPLACEMENT windowPlacement);
 
         #endregion
 
@@ -422,5 +371,40 @@ namespace GersangStation
             public Int32 y;
         }
 
+        public enum ShowWindowCommand : int
+        {
+            SW_HIDE = 0,
+            SW_SHOWNORMAL = 1,
+            SW_SHOWMINIMIZED = 2,
+            SW_MAXIMIZE = 3,
+            SW_SHOWMAXIMIZED = 3,
+            SW_SHOWNOACTIVATE = 4,
+            SW_SHOW = 5,
+            SW_MINIMIZE = 6,
+            SW_SHOWMINNOACTIVE = 7,
+            SW_SHOWNA = 8,
+            SW_RESTORE = 9
+        }
+
+        public struct WINDOWPLACEMENT
+        {
+            public int Length;
+            public int Flag;
+            public ShowWindowCommand ShowWindowCommand;
+            public POINT MinimumPosition;
+            public POINT MaximumPosition;
+            public Rectangle NormalRectangle;
+            public static WINDOWPLACEMENT Default
+            {
+                get
+                {
+                    WINDOWPLACEMENT windowPlacement = new WINDOWPLACEMENT();
+
+                    windowPlacement.Length = Marshal.SizeOf(windowPlacement);
+
+                    return windowPlacement;
+                }
+            }
+        }
     }
 }
