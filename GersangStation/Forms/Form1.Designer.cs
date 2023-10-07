@@ -74,6 +74,8 @@
             materialButton_question_naver = new MaterialSkin.Controls.MaterialButton();
             materialButton_question_kakao = new MaterialSkin.Controls.MaterialButton();
             tabPage_sponsor = new TabPage();
+            materialLabel3 = new MaterialSkin.Controls.MaterialLabel();
+            materialLabel2 = new MaterialSkin.Controls.MaterialLabel();
             materialButton_sponsor = new MaterialSkin.Controls.MaterialButton();
             materialListBox_sponsor = new MaterialSkin.Controls.MaterialListBox();
             menuIconList = new ImageList(components);
@@ -96,8 +98,6 @@
             toolStripSeparator2 = new ToolStripSeparator();
             toolStripMenuItem_exit = new ToolStripMenuItem();
             notifyIcon2 = new NotifyIcon(components);
-            materialLabel2 = new MaterialSkin.Controls.MaterialLabel();
-            materialLabel3 = new MaterialSkin.Controls.MaterialLabel();
             materialTabControl1.SuspendLayout();
             tabPage_home.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
@@ -801,6 +801,7 @@
             materialButton_blog.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             materialButton_blog.UseAccentColor = false;
             materialButton_blog.UseVisualStyleBackColor = true;
+            materialButton_blog.Click += materialButton_blog_Click;
             // 
             // materialButton_gitHub
             // 
@@ -821,6 +822,7 @@
             materialButton_gitHub.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             materialButton_gitHub.UseAccentColor = false;
             materialButton_gitHub.UseVisualStyleBackColor = true;
+            materialButton_gitHub.Click += materialButton_gitHub_Click;
             // 
             // materialButton_license
             // 
@@ -964,6 +966,30 @@
             tabPage_sponsor.Size = new Size(398, 218);
             tabPage_sponsor.TabIndex = 5;
             tabPage_sponsor.Text = "후원";
+            // 
+            // materialLabel3
+            // 
+            materialLabel3.AutoSize = true;
+            materialLabel3.Depth = 0;
+            materialLabel3.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
+            materialLabel3.Location = new Point(41, 182);
+            materialLabel3.MouseState = MaterialSkin.MouseState.HOVER;
+            materialLabel3.Name = "materialLabel3";
+            materialLabel3.Size = new Size(264, 18);
+            materialLabel3.TabIndex = 39;
+            materialLabel3.Text = "후원 목록은 확인되는대로 업데이트 중입니다";
+            // 
+            // materialLabel2
+            // 
+            materialLabel2.AutoSize = true;
+            materialLabel2.Depth = 0;
+            materialLabel2.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
+            materialLabel2.Location = new Point(11, 17);
+            materialLabel2.MouseState = MaterialSkin.MouseState.HOVER;
+            materialLabel2.Name = "materialLabel2";
+            materialLabel2.Size = new Size(111, 18);
+            materialLabel2.TabIndex = 38;
+            materialLabel2.Text = "★ 후원해주신 분들";
             // 
             // materialButton_sponsor
             // 
@@ -1139,30 +1165,6 @@
             notifyIcon2.ContextMenuStrip = contextMenuStrip_tray;
             notifyIcon2.Icon = (Icon)resources.GetObject("notifyIcon2.Icon");
             notifyIcon2.Text = "거상 스테이션";
-            // 
-            // materialLabel2
-            // 
-            materialLabel2.AutoSize = true;
-            materialLabel2.Depth = 0;
-            materialLabel2.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
-            materialLabel2.Location = new Point(11, 17);
-            materialLabel2.MouseState = MaterialSkin.MouseState.HOVER;
-            materialLabel2.Name = "materialLabel2";
-            materialLabel2.Size = new Size(111, 18);
-            materialLabel2.TabIndex = 38;
-            materialLabel2.Text = "★ 후원해주신 분들";
-            // 
-            // materialLabel3
-            // 
-            materialLabel3.AutoSize = true;
-            materialLabel3.Depth = 0;
-            materialLabel3.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
-            materialLabel3.Location = new Point(41, 182);
-            materialLabel3.MouseState = MaterialSkin.MouseState.HOVER;
-            materialLabel3.Name = "materialLabel3";
-            materialLabel3.Size = new Size(264, 18);
-            materialLabel3.TabIndex = 39;
-            materialLabel3.Text = "후원 목록은 확인되는대로 업데이트 중입니다";
             // 
             // Form1
             // 
