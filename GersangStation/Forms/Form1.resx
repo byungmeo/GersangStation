@@ -203,21 +203,6 @@
         W0iTDwiaQspw5iAIAslwWighZTgtEEyGkyRJkiRJkiQVmc3+Ad19/QFZFfkaAAAAAElFTkSuQmCC
 </value>
   </data>
-  <data name="materialButton_debugging.Icon" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAABGdBTUEAALGPC/xhBQAAAhJJREFUaEPt
-        mL1qFFEYQBctxGBs7KwCsRJSp4igBAzkCUR8A/MGFiGF1tYSW19AGxEStA2CpdpoYyGoCNHGQs05sAMf
-        X+7suMnGcOEeODDMfH+bzNz5GTUajUajMQMu4jo+wOf4Gj/ir7Fuu89jxhhrzqlyDm/jS/yDf6fUHHOt
-        Ya3/xgW8j1+wNNhRtJY1rX2i3MFPWBpiFlrbHjPnEr7AUtPOPXyIt/AqLuDZsW67z2PGGFuq0Wkve86E
-        JfyApUafcQsXcVrMMdcapdr2tPexuIk/MBf/jvdwDjOruI3v0Vx1230ey1jDWtbMfcx1hiOxjD8xF93B
-        y5i5gruY47PGGJuxprVzvDM4y1R4vn7FXGwTz2DmGn7DHN+nseZkrG2PHO8szvRPnMd3GAu4Zm9gCf+a
-        0wzfaU7pPyH2yvcWZ3K2QVwlYqLexT5Kp80zvIGu6+q2+3KcuX3YM8c720Su42+MSY+xDy/KGKtekH14
-        LMeXLuwOe8dYZ3PGXvL6/AYn3eYfYYx/ikMYE3Os0Ye9nSHGO2ORNYyBnoMrOIm3GHM8VYYwJuZYYxLO
-        kK8HZz3EK4xBT3CIfYw58ziEMTHHGkM4S8xx1kNU/wOqP4Wk6otYql9GpeobmVT/KCFVP8x1VP043VH1
-        C01H1a+UHVW/1Eeq/awScV2v9sNWxNt8lZ8WS1T5cbfRaDQajcbxGI0OAECcOlOdOMSeAAAAAElFTkSu
-        QmCC
-</value>
-  </data>
   <data name="materialButton_start_1.Icon" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAYAAABV7bNHAAAABGdBTUEAALGPC/xhBQAAA6NJREFUeF7t
@@ -640,7 +625,7 @@
         AAEAAAD/////AQAAAAAAAAAMAgAAAEZTeXN0ZW0uV2luZG93cy5Gb3JtcywgQ3VsdHVyZT1uZXV0cmFs
         LCBQdWJsaWNLZXlUb2tlbj1iNzdhNWM1NjE5MzRlMDg5BQEAAAAmU3lzdGVtLldpbmRvd3MuRm9ybXMu
         SW1hZ2VMaXN0U3RyZWFtZXIBAAAABERhdGEHAgIAAAAJAwAAAA8DAAAAfBMAAAJNU0Z0AUkBTAIBAQUB
-        AAGYARMBmAETARgBAAEYAQAE/wEhAQAI/wFCAU0BNgcAATYDAAEoAwABYAMAATADAAEBAQABIAYAAUj/
+        AAGgARMBoAETARgBAAEYAQAE/wEhAQAI/wFCAU0BNgcAATYDAAEoAwABYAMAATADAAEBAQABIAYAAUj/
         AP8A/wA1AANJAYcDAAH/AwAB/wMAAf8DAAH/AwAB/wMAAf8DYAHjAxQBG/8AVQADNQFWAwAB/wMAAf8D
         AAH/AwAB/wMAAf8DAAH/AwAB/wMAAf8DAAH/AwAB/wNdAez/AE0AA1YBswMAAf8DAAH/A2AB6AMKAQ0U
         AAM+AWsDAAH/AwAB/wMAAf8DBwEJ/wBBAANOAZYDAAH/AwAB/wMnATokAANgAegDAAH/AwAB//8APQAD

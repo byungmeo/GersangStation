@@ -348,7 +348,7 @@
             materialButton_debugging.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             materialButton_debugging.Depth = 0;
             materialButton_debugging.HighEmphasis = true;
-            materialButton_debugging.Icon = (Image)resources.GetObject("materialButton_debugging.Icon");
+            materialButton_debugging.Icon = Properties.Resources.preview;
             materialButton_debugging.Location = new Point(293, 7);
             materialButton_debugging.Margin = new Padding(4, 6, 4, 6);
             materialButton_debugging.MouseState = MaterialSkin.MouseState.HOVER;
