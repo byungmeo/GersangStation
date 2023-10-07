@@ -35,7 +35,6 @@ namespace GersangStation.Modules
             keyValuePairs.Add("directory_name_client_test_2", "GerTest2");
             keyValuePairs.Add("directory_name_client_test_3", "GerTest3");
             keyValuePairs.Add("is_auto_update", "True");
-            keyValuePairs.Add("use_bat_creator", "False");
             keyValuePairs.Add("prev_announcement", "");
             keyValuePairs.Add("use_clip_mouse", "False");
 

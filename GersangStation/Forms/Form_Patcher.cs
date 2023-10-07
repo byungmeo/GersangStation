@@ -174,8 +174,7 @@ namespace GersangStation
             //다클라 패치 적용
             if (materialCheckbox_apply.Checked) {
                 label_status.Text = "다클라 패치 적용 중...";
-                if (bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path_main, name_client_2, name_client_3); }
-                else { ClientCreator.CreateClient_Default(this, path_main, name_client_2, name_client_3); }
+                ClientCreator.CreateClient(this, path_main, name_client_2, name_client_3);
             }
 
             //패치 후 파일 삭제
