@@ -49,10 +49,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="ClientCreatorCommand.txt" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
 

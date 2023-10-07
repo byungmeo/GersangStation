@@ -1,19 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Linq;
-using System.Windows.Forms;
 
-namespace GersangStation.Modules
-{
+namespace GersangStation.Modules {
 
     public struct GUITHREADINFO
     {
@@ -111,7 +100,7 @@ namespace GersangStation.Modules
             return true;
         }
 
-        public static bool Stop()
+        public static bool Stop(bool isFormClosed)
         {
             Trace.WriteLine("Try to stop clipMouse");
             if (!isRunning())
@@ -125,7 +114,7 @@ namespace GersangStation.Modules
             tokenSource.Dispose();
             Trace.WriteLine("Thread Stopped");
 
-            if (icon != null)
+            if (icon != null && !isFormClosed)
             {
                 icon.Visible = true;
                 icon.BalloonTipTitle = "향상된 마우스 가두기 OFF";

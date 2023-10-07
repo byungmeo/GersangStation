@@ -35,7 +35,7 @@ namespace GersangStation
                 MessageBox.Show("중복 실행은 불가능 합니다.", "중복 실행", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
 
-            ClipMouse.Stop();
+            ClipMouse.Stop(true);
         }
     }
 }

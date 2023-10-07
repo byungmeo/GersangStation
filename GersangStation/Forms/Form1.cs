@@ -20,14 +20,15 @@ namespace GersangStation {
             if(m.Msg == WM_HOTKEY) {
                 if(m.WParam == (IntPtr)ClipMouse.GetHotKeyId()) {
                     if(ClipMouse.isRunning()) {
-                        ClipMouse.Stop();
+                        ClipMouse.Stop(false);
                         ConfigManager.setConfig("use_clip_mouse", false.ToString());
                     } else {
                         ClipMouse.Run();
                         ConfigManager.setConfig("use_clip_mouse", true.ToString());
                     }
-                    if(dialog_advancedSetting != null)
-                        dialog_advancedSetting.updateClipCheckBox();
+
+                    if(materialCheckbox_mouseClip != null)
+                        materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
                 }
             }
 
@@ -166,8 +167,7 @@ namespace GersangStation {
             //ClipMouse implementation
             ClipMouse.icon = notifyIcon2;
             ClipMouse.RegisterHotKey(this.Handle, Keys.F11);
-            if(bool.Parse(ConfigManager.getConfig("use_clip_mouse")))
-                ClipMouse.Run();
+            materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
         }
 
         private void LoadSponsors(Readme r) {
@@ -254,6 +254,11 @@ namespace GersangStation {
             toolTip1.SetToolTip(materialButton_shortcut_2, shortcut_2);
             toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
             toolTip1.SetToolTip(materialButton_shortcut_4, shortcut_4);
+
+            toolTip1.SetToolTip(img_help,
+                "창모드 환경에서 마우스 가두기를 하였음에도 마우스 커서가 밖으로 삐져나오는 현상을 개선합니다." +
+                "\n\n※ 게임 내 마우스 가두기 기능을 OFF 하시고 사용하셔야 합니다." +
+                "\n\nF11: 마우스 가두기 ON, OFF\nAlt: 일시적으로 OFF");
         }
 
         private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
@@ -973,7 +978,7 @@ namespace GersangStation {
             }
 
             if(materialSwitch.Tag.ToString().Contains("SNS_")) {
-                SNS_Login(materialSwitch.Tag.ToString());
+                SNS_Login(materialSwitch.Tag.ToString()!);
                 return;
             }
 
@@ -1239,26 +1244,6 @@ namespace GersangStation {
                 OpenClientSettingDialog();
             } else if(button.Equals(materialButton_setting_shortcut)) {
                 OpenShortcuttSettingDialog();
-            } else if(button.Equals(materialButton_setting_advanced)) {
-                OpenAdvancedSettingDialog();
-            }
-        }
-
-        Form_AdvancedSetting? dialog_advancedSetting = null;
-        private void OpenAdvancedSettingDialog() {
-            Form backgroundForm = InitBackgroundForm(this);
-
-            dialog_advancedSetting = new Form_AdvancedSetting() {
-                Owner = this
-            };
-
-            try {
-                backgroundForm.Show();
-                dialog_advancedSetting.ShowDialog();
-            } catch(Exception ex) {
-                Trace.WriteLine(ex.StackTrace);
-            } finally {
-                backgroundForm.Dispose();
             }
         }
 
@@ -1417,6 +1402,16 @@ namespace GersangStation {
 
         private void materialButton_question_naver_Click(object sender, EventArgs e) {
             Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
+        }
+
+        private void materialCheckbox_mouseClip_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
+
+            if(materialCheckbox_mouseClip.Checked == true) {
+                ClipMouse.Run();
+            } else {
+                ClipMouse.Stop(false);
+            }
         }
     } //Form1
 } //namespace
