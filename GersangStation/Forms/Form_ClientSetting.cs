@@ -3,9 +3,10 @@ using MaterialSkin.Controls;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace GersangStation
-{
+namespace GersangStation {
     public partial class Form_ClientSetting : MaterialForm {
+        bool isChanged = false;
+
         public Form_ClientSetting() {
             InitializeComponent();
         }
@@ -25,22 +26,22 @@ namespace GersangStation
         private void materialButton_findPath_Click(object sender, EventArgs e) {
             MaterialButton button = (MaterialButton)sender;
             folderBrowserDialog.ShowDialog();
-            if (folderBrowserDialog.SelectedPath.Length == 0) { return; }
-            
-            if (button.Equals(materialButton_findPath_1)) { textBox_path_1.Text = folderBrowserDialog.SelectedPath; } 
-            else if (button.Equals(materialButton_findPath_2)) { textBox_path_2.Text = folderBrowserDialog.SelectedPath; } 
-            else if (button.Equals(materialButton_findPath_3)) { textBox_path_3.Text = folderBrowserDialog.SelectedPath; } 
-            else if (button.Equals(materialButton_findPath_test_1)) { textBox_path_test_1.Text = folderBrowserDialog.SelectedPath; } 
-            else if (button.Equals(materialButton_findPath_test_2)) { textBox_path_test_2.Text = folderBrowserDialog.SelectedPath; } 
-            else if (button.Equals (materialButton_findPath_test_3)) { textBox_path_test_3.Text = folderBrowserDialog.SelectedPath; }
+            if(folderBrowserDialog.SelectedPath.Length == 0) { return; }
+
+            Action<TextBox> selectDir = (textBox) => {
+                textBox.Text = folderBrowserDialog.SelectedPath;
+                isChanged = true;
+            };
+
+            if(button.Equals(materialButton_findPath_1)) { selectDir(textBox_path_1); } else if(button.Equals(materialButton_findPath_2)) { selectDir(textBox_path_2); } else if(button.Equals(materialButton_findPath_3)) { selectDir(textBox_path_3); } else if(button.Equals(materialButton_findPath_test_1)) { selectDir(textBox_path_test_1); } else if(button.Equals(materialButton_findPath_test_2)) { selectDir(textBox_path_test_2); } else if(button.Equals(materialButton_findPath_test_3)) { selectDir(textBox_path_test_3); }
         }
+
         private void materialButton_save_Click(object sender, EventArgs e) {
-            SavePath();
-            ConfigManager.setConfig("is_auto_update", materialCheckbox_autoUpdate.Checked.ToString());
+            Save();
             this.DialogResult = DialogResult.OK;
         }
 
-        private void SavePath() {
+        private void Save() {
             ConfigManager.setConfig("client_path_1", textBox_path_1.Text);
             ConfigManager.setConfig("client_path_2", textBox_path_2.Text);
             ConfigManager.setConfig("client_path_3", textBox_path_3.Text);
@@ -48,10 +49,14 @@ namespace GersangStation
             ConfigManager.setConfig("client_path_test_1", textBox_path_test_1.Text);
             ConfigManager.setConfig("client_path_test_2", textBox_path_test_2.Text);
             ConfigManager.setConfig("client_path_test_3", textBox_path_test_3.Text);
+
+            ConfigManager.setConfig("is_auto_update", materialCheckbox_autoUpdate.Checked.ToString());
+
+            isChanged = false;
         }
 
         private void materialButton_createClient_Click(object sender, EventArgs e) {
-            CustomButton button = (CustomButton)sender;
+            MaterialButton button = (MaterialButton)sender;
 
             string mainClientPathConfigKey = "";
             string nameConfigKey = "";
@@ -61,7 +66,7 @@ namespace GersangStation
             TextBox obj_path_2;
             TextBox obj_path_3;
 
-            if (button.Equals(materialButton_createClient)) {
+            if(button.Equals(materialButton_createClient)) {
                 mainClientPathConfigKey = "client_path_1";
                 nameConfigKey = "directory_name_client_";
                 recommendName = "권장 폴더명 : Gersang2, Gersang3";
@@ -79,15 +84,15 @@ namespace GersangStation
 
             path = ConfigManager.getConfig(mainClientPathConfigKey);
 
-            if (path != mainClientPath) {
+            if(path != mainClientPath) {
                 DialogResult dr = MessageBox.Show("현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if (dr == DialogResult.OK) {
-                    SavePath();
+                if(dr == DialogResult.OK) {
+                    Save();
                     path = ConfigManager.getConfig(mainClientPathConfigKey);
                 }
             }
 
-            if (path == "") {
+            if(path == "") {
                 MessageBox.Show("본클라 경로가 설정되지 않았습니다.", "생성 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -152,7 +157,7 @@ namespace GersangStation
             dialog_name.Controls.Add(checkBox_apply);
 
             //생성 버튼
-            CustomButton button_ok = new CustomButton() {
+            MaterialButton button_ok = new MaterialButton() {
                 Text = "생성",
                 AutoSize = false,
                 Size = new Size(64, 36),
@@ -160,18 +165,18 @@ namespace GersangStation
             };
             button_ok.Click += (sender, e) => {
                 Regex regex = new Regex("^([a-zA-Z0-9][^*/><?\"|:]*)$");
-                if (!regex.IsMatch(textBox_second.Text) || !regex.IsMatch(textBox_third.Text)) {
+                if(!regex.IsMatch(textBox_second.Text) || !regex.IsMatch(textBox_third.Text)) {
                     MessageBox.Show(this, "폴더 이름으로 사용할 수 없는 문자가 포함되어 있습니다.\n다시 입력해주세요.", "잘못된 폴더명", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
-                    
+
                 secondName = textBox_second.Text;
                 thirdName = textBox_third.Text;
 
                 ConfigManager.setConfig(nameConfigKey + '2', secondName);
                 ConfigManager.setConfig(nameConfigKey + '3', thirdName);
 
-                if (checkBox_apply.Checked) {
+                if(checkBox_apply.Checked) {
                     obj_path_2.Text = mainClientPath + "\\..\\" + secondName;
                     obj_path_3.Text = mainClientPath + "\\..\\" + thirdName;
 
@@ -185,7 +190,7 @@ namespace GersangStation
             dialog_name.Controls.Add(button_ok);
             dialog_name.AcceptButton = button_ok; //엔터 버튼을 누르면 이 버튼을 클릭합니다.
 
-            if (dialog_name.ShowDialog() != DialogResult.OK) {
+            if(dialog_name.ShowDialog() != DialogResult.OK) {
                 backgroundForm.Dispose();
                 return;
             } else {
@@ -193,11 +198,10 @@ namespace GersangStation
             }
 
             try {
-                if (bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path, secondName, thirdName); }
-                else {  if (false == ClientCreator.CreateClient_Default(this, path, secondName, thirdName)) { return; } }
+                if(bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path, secondName, thirdName); } else { if(false == ClientCreator.CreateClient_Default(this, path, secondName, thirdName)) { return; } }
                 MessageBox.Show(this, "다클라 생성을 완료하였습니다.\n다클라 폴더의 이름은 " + secondName + ", " + thirdName + " 입니다.", "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                SavePath();
-            } catch (Exception ex) {
+                Save();
+            } catch(Exception ex) {
                 Trace.WriteLine(ex.Message);
                 MessageBox.Show(this, "다클라 생성중 오류가 발생한 것 같습니다. 문의해주세요.\n" + ex.StackTrace, "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
@@ -209,10 +213,10 @@ namespace GersangStation
             string mainClientPathConfigKey;
             string mainClientPath;
 
-            if (isTest) {
+            if(isTest) {
                 mainClientPathConfigKey = "client_path_test_1";
                 mainClientPath = textBox_path_test_1.Text;
-                
+
             } else {
                 mainClientPathConfigKey = "client_path_1";
                 mainClientPath = textBox_path_1.Text;
@@ -220,21 +224,21 @@ namespace GersangStation
 
             string path = ConfigManager.getConfig(mainClientPathConfigKey);
 
-            if (path != mainClientPath) {
+            if(path != mainClientPath) {
                 DialogResult dr = MessageBox.Show(this, "현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if (dr == DialogResult.OK) {
-                    SavePath();
+                if(dr == DialogResult.OK) {
+                    Save();
                     path = ConfigManager.getConfig(mainClientPathConfigKey);
                 }
             }
 
-            if (path == "") {
+            if(path == "") {
                 MessageBox.Show(this, "본클라 경로가 설정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             Form backgroundForm = Form1.InitBackgroundForm(this);
-            
+
             Form_Patcher form_Patcher = new Form_Patcher(isTest) {
                 Owner = this
             };
@@ -242,11 +246,22 @@ namespace GersangStation
             try {
                 backgroundForm.Show();
                 form_Patcher.ShowDialog();
-            } catch (Exception ex) {
+            } catch(Exception ex) {
                 Trace.WriteLine(ex.StackTrace);
             } finally {
                 backgroundForm.Dispose();
             }
+        }
+
+        private void Form_ClientSetting_FormClosing(object sender, FormClosingEventArgs e) {
+            if(isChanged) {
+                DialogResult dr = MessageBox.Show(this, "변경 사항을 저장 하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if(dr == DialogResult.OK) Save();
+            }
+        }
+
+        private void materialCheckbox_autoUpdate_CheckedChanged(object sender, EventArgs e) {
+            isChanged = true;
         }
     }
 }
