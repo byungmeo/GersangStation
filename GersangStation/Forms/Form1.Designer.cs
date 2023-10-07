@@ -960,7 +960,7 @@
             tabPage_sponsor.Controls.Add(materialLabel2);
             tabPage_sponsor.Controls.Add(materialButton_sponsor);
             tabPage_sponsor.Controls.Add(materialListBox_sponsor);
-            tabPage_sponsor.ImageKey = "outline_favorite_black_24dp.png";
+            tabPage_sponsor.ImageKey = "donate.png";
             tabPage_sponsor.Location = new Point(4, 31);
             tabPage_sponsor.Name = "tabPage_sponsor";
             tabPage_sponsor.Size = new Size(398, 218);
@@ -1033,7 +1033,7 @@
             menuIconList.Images.SetKeyName(0, "outline_home_black_24dp.png");
             menuIconList.Images.SetKeyName(1, "outline_settings_black_24dp.png");
             menuIconList.Images.SetKeyName(2, "outline_help_outline_black_24dp.png");
-            menuIconList.Images.SetKeyName(3, "outline_favorite_black_24dp.png");
+            menuIconList.Images.SetKeyName(3, "donate.png");
             menuIconList.Images.SetKeyName(4, "outline_info_black_24dp.png");
             // 
             // folderBrowserDialog
