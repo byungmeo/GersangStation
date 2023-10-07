@@ -165,7 +165,7 @@
             materialButton_startPatch.Depth = 0;
             materialButton_startPatch.HighEmphasis = true;
             materialButton_startPatch.Icon = Properties.Resources.download;
-            materialButton_startPatch.Location = new Point(128, 248);
+            materialButton_startPatch.Location = new Point(129, 248);
             materialButton_startPatch.Margin = new Padding(4, 6, 4, 6);
             materialButton_startPatch.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_startPatch.Name = "materialButton_startPatch";

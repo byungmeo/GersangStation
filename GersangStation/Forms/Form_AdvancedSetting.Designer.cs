@@ -29,30 +29,11 @@
         private void InitializeComponent() {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_AdvancedSetting));
-            materialCheckbox_useBAT = new MaterialSkin.Controls.MaterialCheckbox();
             materialCheckbox_mouseClip = new MaterialSkin.Controls.MaterialCheckbox();
             toolTip1 = new ToolTip(components);
             img_help = new PictureBox();
             ((System.ComponentModel.ISupportInitialize)img_help).BeginInit();
             SuspendLayout();
-            // 
-            // materialCheckbox_useBAT
-            // 
-            materialCheckbox_useBAT.AutoSize = true;
-            materialCheckbox_useBAT.Depth = 0;
-            materialCheckbox_useBAT.Location = new Point(37, 125);
-            materialCheckbox_useBAT.Margin = new Padding(0);
-            materialCheckbox_useBAT.MouseLocation = new Point(-1, -1);
-            materialCheckbox_useBAT.MouseState = MaterialSkin.MouseState.HOVER;
-            materialCheckbox_useBAT.Name = "materialCheckbox_useBAT";
-            materialCheckbox_useBAT.ReadOnly = false;
-            materialCheckbox_useBAT.Ripple = true;
-            materialCheckbox_useBAT.Size = new Size(346, 37);
-            materialCheckbox_useBAT.TabIndex = 0;
-            materialCheckbox_useBAT.TabStop = false;
-            materialCheckbox_useBAT.Text = "다클라 생성 시 커맨드라인 방식 사용 (권장하지 않음)";
-            materialCheckbox_useBAT.UseVisualStyleBackColor = true;
-            materialCheckbox_useBAT.CheckedChanged += materialCheckbox_useBAT_CheckedChanged;
             // 
             // materialCheckbox_mouseClip
             // 
@@ -95,10 +76,9 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(399, 195);
+            ClientSize = new Size(276, 141);
             Controls.Add(img_help);
             Controls.Add(materialCheckbox_mouseClip);
-            Controls.Add(materialCheckbox_useBAT);
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "Form_AdvancedSetting";
@@ -114,8 +94,6 @@
         }
 
         #endregion
-
-        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_useBAT;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_mouseClip;
         private ToolTip toolTip1;
         private PictureBox img_help;

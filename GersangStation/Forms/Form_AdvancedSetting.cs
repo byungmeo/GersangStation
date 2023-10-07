@@ -14,12 +14,7 @@ namespace GersangStation
         }
 
         private void Form_AdvancedSetting_Load(object sender, EventArgs e) {
-            materialCheckbox_useBAT.Checked = bool.Parse(ConfigManager.getConfig("use_bat_creator"));
             materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
-        }
-
-        private void materialCheckbox_useBAT_CheckedChanged(object sender, EventArgs e) {
-            ConfigManager.setConfig("use_bat_creator", materialCheckbox_useBAT.Checked.ToString());
         }
 
         private void mouseClipCheckBox_CheckedChanged_1(object sender, EventArgs e) {
