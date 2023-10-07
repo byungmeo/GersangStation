@@ -718,7 +718,7 @@
             materialButton_setting_shortcut.Depth = 0;
             materialButton_setting_shortcut.HighEmphasis = true;
             materialButton_setting_shortcut.Icon = (Image)resources.GetObject("materialButton_setting_shortcut.Icon");
-            materialButton_setting_shortcut.Location = new Point(98, 135);
+            materialButton_setting_shortcut.Location = new Point(98, 152);
             materialButton_setting_shortcut.Margin = new Padding(4, 6, 4, 6);
             materialButton_setting_shortcut.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
@@ -739,7 +739,7 @@
             materialButton_setting_client.Depth = 0;
             materialButton_setting_client.HighEmphasis = true;
             materialButton_setting_client.Icon = (Image)resources.GetObject("materialButton_setting_client.Icon");
-            materialButton_setting_client.Location = new Point(98, 87);
+            materialButton_setting_client.Location = new Point(98, 104);
             materialButton_setting_client.Margin = new Padding(4, 6, 4, 6);
             materialButton_setting_client.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_setting_client.Name = "materialButton_setting_client";
@@ -759,7 +759,7 @@
             materialButton_setting_account.Depth = 0;
             materialButton_setting_account.HighEmphasis = true;
             materialButton_setting_account.Icon = (Image)resources.GetObject("materialButton_setting_account.Icon");
-            materialButton_setting_account.Location = new Point(98, 39);
+            materialButton_setting_account.Location = new Point(98, 56);
             materialButton_setting_account.Margin = new Padding(4, 6, 4, 6);
             materialButton_setting_account.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_setting_account.Name = "materialButton_setting_account";
