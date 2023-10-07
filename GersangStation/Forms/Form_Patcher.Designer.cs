@@ -24,7 +24,6 @@
         /// </summary>
         private void InitializeComponent() {
             components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form_Patcher));
             materialCheckbox_delete = new MaterialSkin.Controls.MaterialCheckbox();
             materialCheckbox_apply = new MaterialSkin.Controls.MaterialCheckbox();
             materialCard1 = new MaterialSkin.Controls.MaterialCard();
@@ -32,10 +31,10 @@
             textBox_latestVersion = new TextBox();
             textBox_currentVersion = new TextBox();
             label1 = new Label();
-            materialButton_startPatch = new CustomButton();
             label_status = new Label();
             toolTip1 = new ToolTip(components);
             label_total = new Label();
+            materialButton_startPatch = new MaterialSkin.Controls.MaterialButton();
             materialCard1.SuspendLayout();
             SuspendLayout();
             // 
@@ -52,7 +51,7 @@
             materialCheckbox_delete.Name = "materialCheckbox_delete";
             materialCheckbox_delete.ReadOnly = false;
             materialCheckbox_delete.Ripple = true;
-            materialCheckbox_delete.Size = new Size(131, 37);
+            materialCheckbox_delete.Size = new Size(138, 37);
             materialCheckbox_delete.TabIndex = 41;
             materialCheckbox_delete.Text = "패치 후 파일 삭제";
             materialCheckbox_delete.UseVisualStyleBackColor = true;
@@ -70,7 +69,7 @@
             materialCheckbox_apply.Name = "materialCheckbox_apply";
             materialCheckbox_apply.ReadOnly = false;
             materialCheckbox_apply.Ripple = true;
-            materialCheckbox_apply.Size = new Size(127, 37);
+            materialCheckbox_apply.Size = new Size(134, 37);
             materialCheckbox_apply.TabIndex = 40;
             materialCheckbox_apply.Text = "다클라 패치 적용";
             materialCheckbox_apply.UseVisualStyleBackColor = true;
@@ -136,30 +135,6 @@
             label1.Text = "현재 버전 :";
             label1.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // materialButton_startPatch
-            // 
-            materialButton_startPatch.BackColor = Color.FromArgb(51, 71, 79);
-            materialButton_startPatch.BackgroundColor = Color.FromArgb(51, 71, 79);
-            materialButton_startPatch.BorderColor = Color.PaleVioletRed;
-            materialButton_startPatch.BorderRadius = 5;
-            materialButton_startPatch.BorderSize = 0;
-            materialButton_startPatch.FlatAppearance.BorderSize = 0;
-            materialButton_startPatch.FlatStyle = FlatStyle.Flat;
-            materialButton_startPatch.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
-            materialButton_startPatch.ForeColor = Color.White;
-            materialButton_startPatch.Image = (Image)resources.GetObject("materialButton_startPatch.Image");
-            materialButton_startPatch.ImageAlign = ContentAlignment.MiddleRight;
-            materialButton_startPatch.Location = new Point(130, 247);
-            materialButton_startPatch.Name = "materialButton_startPatch";
-            materialButton_startPatch.Padding = new Padding(5);
-            materialButton_startPatch.Size = new Size(102, 36);
-            materialButton_startPatch.TabIndex = 69;
-            materialButton_startPatch.Text = "패치시작";
-            materialButton_startPatch.TextAlign = ContentAlignment.MiddleLeft;
-            materialButton_startPatch.TextColor = Color.White;
-            materialButton_startPatch.UseVisualStyleBackColor = false;
-            materialButton_startPatch.Click += materialButton_startPatch_Click;
-            // 
             // label_status
             // 
             label_status.FlatStyle = FlatStyle.System;
@@ -183,14 +158,34 @@
             label_total.TabIndex = 73;
             label_total.TextAlign = ContentAlignment.MiddleCenter;
             // 
+            // materialButton_startPatch
+            // 
+            materialButton_startPatch.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_startPatch.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_startPatch.Depth = 0;
+            materialButton_startPatch.HighEmphasis = true;
+            materialButton_startPatch.Icon = Properties.Resources.download;
+            materialButton_startPatch.Location = new Point(128, 248);
+            materialButton_startPatch.Margin = new Padding(4, 6, 4, 6);
+            materialButton_startPatch.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_startPatch.Name = "materialButton_startPatch";
+            materialButton_startPatch.NoAccentTextColor = Color.Empty;
+            materialButton_startPatch.Size = new Size(103, 36);
+            materialButton_startPatch.TabIndex = 74;
+            materialButton_startPatch.Text = "패치시작";
+            materialButton_startPatch.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_startPatch.UseAccentColor = false;
+            materialButton_startPatch.UseVisualStyleBackColor = true;
+            materialButton_startPatch.Click += materialButton_startPatch_Click;
+            // 
             // Form_Patcher
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(365, 295);
+            Controls.Add(materialButton_startPatch);
             Controls.Add(label_total);
             Controls.Add(label_status);
-            Controls.Add(materialButton_startPatch);
             Controls.Add(materialCard1);
             Controls.Add(materialCheckbox_delete);
             Controls.Add(materialCheckbox_apply);
@@ -218,9 +213,9 @@
         private TextBox textBox_latestVersion;
         private TextBox textBox_currentVersion;
         private Label label1;
-        private CustomButton materialButton_startPatch;
         private Label label_status;
         private ToolTip toolTip1;
         private Label label_total;
+        private MaterialSkin.Controls.MaterialButton materialButton_startPatch;
     }
 }
