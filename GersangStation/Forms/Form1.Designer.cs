@@ -98,6 +98,7 @@
             toolStripSeparator2 = new ToolStripSeparator();
             toolStripMenuItem_exit = new ToolStripMenuItem();
             notifyIcon2 = new NotifyIcon(components);
+            tabPage_extension = new TabPage();
             materialTabControl1.SuspendLayout();
             tabPage_home.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
@@ -111,6 +112,7 @@
             // materialTabControl1
             // 
             materialTabControl1.Controls.Add(tabPage_home);
+            materialTabControl1.Controls.Add(tabPage_extension);
             materialTabControl1.Controls.Add(tabPage_settings);
             materialTabControl1.Controls.Add(tabPage_help);
             materialTabControl1.Controls.Add(tabPage_sponsor);
@@ -1031,10 +1033,10 @@
             menuIconList.ImageStream = (ImageListStreamer)resources.GetObject("menuIconList.ImageStream");
             menuIconList.TransparentColor = Color.Transparent;
             menuIconList.Images.SetKeyName(0, "outline_home_black_24dp.png");
-            menuIconList.Images.SetKeyName(1, "outline_settings_black_24dp.png");
-            menuIconList.Images.SetKeyName(2, "outline_help_outline_black_24dp.png");
-            menuIconList.Images.SetKeyName(3, "donate.png");
-            menuIconList.Images.SetKeyName(4, "outline_info_black_24dp.png");
+            menuIconList.Images.SetKeyName(1, "extension.png");
+            menuIconList.Images.SetKeyName(2, "outline_settings_black_24dp.png");
+            menuIconList.Images.SetKeyName(3, "outline_help_outline_black_24dp.png");
+            menuIconList.Images.SetKeyName(4, "donate.png");
             // 
             // folderBrowserDialog
             // 
@@ -1166,6 +1168,16 @@
             notifyIcon2.Icon = (Icon)resources.GetObject("notifyIcon2.Icon");
             notifyIcon2.Text = "거상 스테이션";
             // 
+            // tabPage_extension
+            // 
+            tabPage_extension.BackColor = Color.White;
+            tabPage_extension.ImageKey = "extension.png";
+            tabPage_extension.Location = new Point(4, 31);
+            tabPage_extension.Name = "tabPage_extension";
+            tabPage_extension.Size = new Size(398, 218);
+            tabPage_extension.TabIndex = 6;
+            tabPage_extension.Text = "추가기능";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(96F, 96F);
@@ -1270,5 +1282,6 @@
         private MaterialSkin.Controls.MaterialButton materialButton_sponsor;
         private MaterialSkin.Controls.MaterialLabel materialLabel3;
         private MaterialSkin.Controls.MaterialLabel materialLabel2;
+        private TabPage tabPage_extension;
     }
 }
