@@ -10,7 +10,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntegrityCheckTester", "IntegrityCheckTester\IntegrityCheckTester.csproj", "{C2E63A57-55A8-4E57-B5BD-4196B7217DD5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GersangStationTest", "IntegrityCheckTester\GersangStationTest.csproj", "{C2E63A57-55A8-4E57-B5BD-4196B7217DD5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{0FE8471D-8DC0-4901-BC36-71BF54E172CB} = {0FE8471D-8DC0-4901-BC36-71BF54E172CB}
 	EndProjectSection

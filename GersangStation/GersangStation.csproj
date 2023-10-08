@@ -50,6 +50,15 @@
 
   <ItemGroup>
     <EmbeddedResource Include="ClientCreatorCommand.txt" />
+	  <None Update="Resources\7zip\7za.exe">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Resources\7zip\License.txt">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Resources\IntegrityCheckExcludes.txt">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
   </ItemGroup>
 
   <ItemGroup>
