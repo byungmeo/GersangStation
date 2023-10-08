@@ -56,8 +56,10 @@
             radio_preset_3 = new MaterialSkin.Controls.MaterialRadioButton();
             radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
             radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
+            tabPage_extension = new TabPage();
+            img_help = new PictureBox();
+            materialCheckbox_mouseClip = new MaterialSkin.Controls.MaterialCheckbox();
             tabPage_settings = new TabPage();
-            materialButton_setting_advanced = new MaterialSkin.Controls.MaterialButton();
             materialButton_setting_shortcut = new MaterialSkin.Controls.MaterialButton();
             materialButton_setting_client = new MaterialSkin.Controls.MaterialButton();
             materialButton_setting_account = new MaterialSkin.Controls.MaterialButton();
@@ -101,6 +103,8 @@
             materialTabControl1.SuspendLayout();
             tabPage_home.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
+            tabPage_extension.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)img_help).BeginInit();
             tabPage_settings.SuspendLayout();
             tabPage_help.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox3).BeginInit();
@@ -111,6 +115,7 @@
             // materialTabControl1
             // 
             materialTabControl1.Controls.Add(tabPage_home);
+            materialTabControl1.Controls.Add(tabPage_extension);
             materialTabControl1.Controls.Add(tabPage_settings);
             materialTabControl1.Controls.Add(tabPage_help);
             materialTabControl1.Controls.Add(tabPage_sponsor);
@@ -651,11 +656,49 @@
             radio_preset_1.UseVisualStyleBackColor = true;
             radio_preset_1.CheckedChanged += radio_preset_CheckedChanged;
             // 
+            // tabPage_extension
+            // 
+            tabPage_extension.BackColor = Color.White;
+            tabPage_extension.Controls.Add(img_help);
+            tabPage_extension.Controls.Add(materialCheckbox_mouseClip);
+            tabPage_extension.ImageKey = "extension.png";
+            tabPage_extension.Location = new Point(4, 31);
+            tabPage_extension.Name = "tabPage_extension";
+            tabPage_extension.Size = new Size(398, 218);
+            tabPage_extension.TabIndex = 6;
+            tabPage_extension.Text = "추가기능";
+            // 
+            // img_help
+            // 
+            img_help.Image = (Image)resources.GetObject("img_help.Image");
+            img_help.Location = new Point(244, 112);
+            img_help.Name = "img_help";
+            img_help.Size = new Size(20, 20);
+            img_help.SizeMode = PictureBoxSizeMode.StretchImage;
+            img_help.TabIndex = 6;
+            img_help.TabStop = false;
+            // 
+            // materialCheckbox_mouseClip
+            // 
+            materialCheckbox_mouseClip.AutoSize = true;
+            materialCheckbox_mouseClip.Depth = 0;
+            materialCheckbox_mouseClip.Location = new Point(79, 103);
+            materialCheckbox_mouseClip.Margin = new Padding(0);
+            materialCheckbox_mouseClip.MouseLocation = new Point(-1, -1);
+            materialCheckbox_mouseClip.MouseState = MaterialSkin.MouseState.HOVER;
+            materialCheckbox_mouseClip.Name = "materialCheckbox_mouseClip";
+            materialCheckbox_mouseClip.ReadOnly = false;
+            materialCheckbox_mouseClip.Ripple = true;
+            materialCheckbox_mouseClip.Size = new Size(160, 37);
+            materialCheckbox_mouseClip.TabIndex = 0;
+            materialCheckbox_mouseClip.Text = "향상된 마우스 가두기";
+            materialCheckbox_mouseClip.UseVisualStyleBackColor = true;
+            materialCheckbox_mouseClip.CheckedChanged += materialCheckbox_mouseClip_CheckedChanged;
+            // 
             // tabPage_settings
             // 
             tabPage_settings.AutoScroll = true;
             tabPage_settings.BackColor = Color.White;
-            tabPage_settings.Controls.Add(materialButton_setting_advanced);
             tabPage_settings.Controls.Add(materialButton_setting_shortcut);
             tabPage_settings.Controls.Add(materialButton_setting_client);
             tabPage_settings.Controls.Add(materialButton_setting_account);
@@ -667,27 +710,6 @@
             tabPage_settings.TabIndex = 1;
             tabPage_settings.Text = "설정";
             // 
-            // materialButton_setting_advanced
-            // 
-            materialButton_setting_advanced.AutoSize = false;
-            materialButton_setting_advanced.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton_setting_advanced.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton_setting_advanced.Depth = 0;
-            materialButton_setting_advanced.HighEmphasis = true;
-            materialButton_setting_advanced.Icon = (Image)resources.GetObject("materialButton_setting_advanced.Icon");
-            materialButton_setting_advanced.Location = new Point(98, 180);
-            materialButton_setting_advanced.Margin = new Padding(4, 6, 4, 6);
-            materialButton_setting_advanced.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton_setting_advanced.Name = "materialButton_setting_advanced";
-            materialButton_setting_advanced.NoAccentTextColor = Color.Empty;
-            materialButton_setting_advanced.Size = new Size(155, 36);
-            materialButton_setting_advanced.TabIndex = 35;
-            materialButton_setting_advanced.Text = "고급 설정";
-            materialButton_setting_advanced.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton_setting_advanced.UseAccentColor = false;
-            materialButton_setting_advanced.UseVisualStyleBackColor = true;
-            materialButton_setting_advanced.Click += materialButton_setting_Click;
-            // 
             // materialButton_setting_shortcut
             // 
             materialButton_setting_shortcut.AutoSize = false;
@@ -696,7 +718,7 @@
             materialButton_setting_shortcut.Depth = 0;
             materialButton_setting_shortcut.HighEmphasis = true;
             materialButton_setting_shortcut.Icon = (Image)resources.GetObject("materialButton_setting_shortcut.Icon");
-            materialButton_setting_shortcut.Location = new Point(98, 135);
+            materialButton_setting_shortcut.Location = new Point(98, 152);
             materialButton_setting_shortcut.Margin = new Padding(4, 6, 4, 6);
             materialButton_setting_shortcut.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_setting_shortcut.Name = "materialButton_setting_shortcut";
@@ -717,7 +739,7 @@
             materialButton_setting_client.Depth = 0;
             materialButton_setting_client.HighEmphasis = true;
             materialButton_setting_client.Icon = (Image)resources.GetObject("materialButton_setting_client.Icon");
-            materialButton_setting_client.Location = new Point(98, 87);
+            materialButton_setting_client.Location = new Point(98, 104);
             materialButton_setting_client.Margin = new Padding(4, 6, 4, 6);
             materialButton_setting_client.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_setting_client.Name = "materialButton_setting_client";
@@ -737,7 +759,7 @@
             materialButton_setting_account.Depth = 0;
             materialButton_setting_account.HighEmphasis = true;
             materialButton_setting_account.Icon = (Image)resources.GetObject("materialButton_setting_account.Icon");
-            materialButton_setting_account.Location = new Point(98, 39);
+            materialButton_setting_account.Location = new Point(98, 56);
             materialButton_setting_account.Margin = new Padding(4, 6, 4, 6);
             materialButton_setting_account.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_setting_account.Name = "materialButton_setting_account";
@@ -960,7 +982,7 @@
             tabPage_sponsor.Controls.Add(materialLabel2);
             tabPage_sponsor.Controls.Add(materialButton_sponsor);
             tabPage_sponsor.Controls.Add(materialListBox_sponsor);
-            tabPage_sponsor.ImageKey = "outline_favorite_black_24dp.png";
+            tabPage_sponsor.ImageKey = "donate.png";
             tabPage_sponsor.Location = new Point(4, 31);
             tabPage_sponsor.Name = "tabPage_sponsor";
             tabPage_sponsor.Size = new Size(398, 218);
@@ -1031,16 +1053,25 @@
             menuIconList.ImageStream = (ImageListStreamer)resources.GetObject("menuIconList.ImageStream");
             menuIconList.TransparentColor = Color.Transparent;
             menuIconList.Images.SetKeyName(0, "outline_home_black_24dp.png");
-            menuIconList.Images.SetKeyName(1, "outline_settings_black_24dp.png");
-            menuIconList.Images.SetKeyName(2, "outline_help_outline_black_24dp.png");
-            menuIconList.Images.SetKeyName(3, "outline_favorite_black_24dp.png");
-            menuIconList.Images.SetKeyName(4, "outline_info_black_24dp.png");
+            menuIconList.Images.SetKeyName(1, "extension.png");
+            menuIconList.Images.SetKeyName(2, "outline_settings_black_24dp.png");
+            menuIconList.Images.SetKeyName(3, "outline_help_outline_black_24dp.png");
+            menuIconList.Images.SetKeyName(4, "donate.png");
             // 
             // folderBrowserDialog
             // 
             folderBrowserDialog.Description = "클라이언트 경로 선택";
             folderBrowserDialog.RootFolder = Environment.SpecialFolder.MyComputer;
             folderBrowserDialog.UseDescriptionForTitle = true;
+            // 
+            // toolTip1
+            // 
+            toolTip1.AutoPopDelay = 10000;
+            toolTip1.InitialDelay = 300;
+            toolTip1.IsBalloon = true;
+            toolTip1.ReshowDelay = 100;
+            toolTip1.ToolTipIcon = ToolTipIcon.Info;
+            toolTip1.ToolTipTitle = "정보";
             // 
             // button_tray
             // 
@@ -1189,6 +1220,9 @@
             tabPage_home.ResumeLayout(false);
             tabPage_home.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
+            tabPage_extension.ResumeLayout(false);
+            tabPage_extension.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)img_help).EndInit();
             tabPage_settings.ResumeLayout(false);
             tabPage_settings.PerformLayout();
             tabPage_help.ResumeLayout(false);
@@ -1265,10 +1299,12 @@
         private MaterialSkin.Controls.MaterialLabel label_version_current;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_client;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_account;
-        private MaterialSkin.Controls.MaterialButton materialButton_setting_advanced;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_shortcut;
         private MaterialSkin.Controls.MaterialButton materialButton_sponsor;
         private MaterialSkin.Controls.MaterialLabel materialLabel3;
         private MaterialSkin.Controls.MaterialLabel materialLabel2;
+        private TabPage tabPage_extension;
+        private PictureBox img_help;
+        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_mouseClip;
     }
 }

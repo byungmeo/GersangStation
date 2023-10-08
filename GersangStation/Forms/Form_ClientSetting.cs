@@ -198,7 +198,7 @@ namespace GersangStation {
             }
 
             try {
-                if(bool.Parse(ConfigManager.getConfig("use_bat_creator"))) { ClientCreator.CreateClient_BAT(path, secondName, thirdName); } else { if(false == ClientCreator.CreateClient_Default(this, path, secondName, thirdName)) { return; } }
+                if(false == ClientCreator.CreateClient(this, path, secondName, thirdName)) return;
                 MessageBox.Show(this, "다클라 생성을 완료하였습니다.\n다클라 폴더의 이름은 " + secondName + ", " + thirdName + " 입니다.", "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 Save();
             } catch(Exception ex) {
