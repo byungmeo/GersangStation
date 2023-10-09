@@ -44,8 +44,8 @@
             ClientPathTextBox.Depth = 0;
             ClientPathTextBox.Enabled = false;
             ClientPathTextBox.Font = new Font("Microsoft Sans Serif", 16F, FontStyle.Regular, GraphicsUnit.Pixel);
-            ClientPathTextBox.HelperText = "예시 : C:\\AKInteractive\\Gersang";
             ClientPathTextBox.HideSelection = true;
+            ClientPathTextBox.Hint = "예시 : C:\\AKInteractive\\Gersang";
             ClientPathTextBox.LeadingIcon = null;
             ClientPathTextBox.Location = new Point(8, 193);
             ClientPathTextBox.MaxLength = 32767;
@@ -73,7 +73,7 @@
             materialButton1.Depth = 0;
             materialButton1.HighEmphasis = true;
             materialButton1.Icon = null;
-            materialButton1.Location = new Point(550, 205);
+            materialButton1.Location = new Point(572, 205);
             materialButton1.Margin = new Padding(4, 6, 4, 6);
             materialButton1.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton1.Name = "materialButton1";
@@ -93,7 +93,7 @@
             materialButton2.Depth = 0;
             materialButton2.HighEmphasis = true;
             materialButton2.Icon = null;
-            materialButton2.Location = new Point(622, 205);
+            materialButton2.Location = new Point(702, 205);
             materialButton2.Margin = new Padding(4, 6, 4, 6);
             materialButton2.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton2.Name = "materialButton2";

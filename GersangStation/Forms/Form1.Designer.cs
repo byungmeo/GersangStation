@@ -58,6 +58,7 @@
             radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
             radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
             tabPage_extension = new TabPage();
+            materialButton1 = new MaterialSkin.Controls.MaterialButton();
             img_help = new PictureBox();
             materialCheckbox_mouseClip = new MaterialSkin.Controls.MaterialCheckbox();
             tabPage_settings = new TabPage();
@@ -101,7 +102,6 @@
             toolStripSeparator2 = new ToolStripSeparator();
             toolStripMenuItem_exit = new ToolStripMenuItem();
             notifyIcon2 = new NotifyIcon(components);
-            materialButton1 = new MaterialSkin.Controls.MaterialButton();
             materialTabControl1.SuspendLayout();
             tabPage_home.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
@@ -125,7 +125,7 @@
             materialTabControl1.Dock = DockStyle.Fill;
             materialTabControl1.ImageList = menuIconList;
             materialTabControl1.Location = new Point(6, 128);
-            materialTabControl1.Margin = new Padding(6, 6, 6, 6);
+            materialTabControl1.Margin = new Padding(6);
             materialTabControl1.MouseState = MaterialSkin.MouseState.HOVER;
             materialTabControl1.Multiline = true;
             materialTabControl1.Name = "materialTabControl1";
@@ -164,9 +164,9 @@
             tabPage_home.Controls.Add(radio_preset_1);
             tabPage_home.ImageKey = "outline_home_black_24dp.png";
             tabPage_home.Location = new Point(8, 46);
-            tabPage_home.Margin = new Padding(6, 6, 6, 6);
+            tabPage_home.Margin = new Padding(6);
             tabPage_home.Name = "tabPage_home";
-            tabPage_home.Padding = new Padding(6, 6, 6, 6);
+            tabPage_home.Padding = new Padding(6);
             tabPage_home.Size = new Size(796, 452);
             tabPage_home.TabIndex = 0;
             tabPage_home.Text = "메인";
@@ -186,7 +186,7 @@
             // 
             pictureBox2.Image = (Image)resources.GetObject("pictureBox2.Image");
             pictureBox2.Location = new Point(36, 438);
-            pictureBox2.Margin = new Padding(6, 6, 6, 6);
+            pictureBox2.Margin = new Padding(6);
             pictureBox2.Name = "pictureBox2";
             pictureBox2.Size = new Size(24, 24);
             pictureBox2.SizeMode = PictureBoxSizeMode.AutoSize;
@@ -511,7 +511,7 @@
             materialComboBox_account_3.IntegralHeight = false;
             materialComboBox_account_3.ItemHeight = 29;
             materialComboBox_account_3.Location = new Point(36, 260);
-            materialComboBox_account_3.Margin = new Padding(6, 6, 6, 6);
+            materialComboBox_account_3.Margin = new Padding(6);
             materialComboBox_account_3.MaxDropDownItems = 4;
             materialComboBox_account_3.MouseState = MaterialSkin.MouseState.OUT;
             materialComboBox_account_3.Name = "materialComboBox_account_3";
@@ -555,7 +555,7 @@
             materialComboBox_account_2.IntegralHeight = false;
             materialComboBox_account_2.ItemHeight = 29;
             materialComboBox_account_2.Location = new Point(36, 178);
-            materialComboBox_account_2.Margin = new Padding(6, 6, 6, 6);
+            materialComboBox_account_2.Margin = new Padding(6);
             materialComboBox_account_2.MaxDropDownItems = 4;
             materialComboBox_account_2.MouseState = MaterialSkin.MouseState.OUT;
             materialComboBox_account_2.Name = "materialComboBox_account_2";
@@ -582,7 +582,7 @@
             materialComboBox_account_1.IntegralHeight = false;
             materialComboBox_account_1.ItemHeight = 29;
             materialComboBox_account_1.Location = new Point(36, 96);
-            materialComboBox_account_1.Margin = new Padding(6, 6, 6, 6);
+            materialComboBox_account_1.Margin = new Padding(6);
             materialComboBox_account_1.MaxDropDownItems = 4;
             materialComboBox_account_1.MouseState = MaterialSkin.MouseState.OUT;
             materialComboBox_account_1.Name = "materialComboBox_account_1";
@@ -674,17 +674,37 @@
             tabPage_extension.Controls.Add(materialCheckbox_mouseClip);
             tabPage_extension.ImageKey = "extension.png";
             tabPage_extension.Location = new Point(8, 46);
-            tabPage_extension.Margin = new Padding(6, 6, 6, 6);
+            tabPage_extension.Margin = new Padding(6);
             tabPage_extension.Name = "tabPage_extension";
             tabPage_extension.Size = new Size(796, 452);
             tabPage_extension.TabIndex = 6;
             tabPage_extension.Text = "추가기능";
             // 
+            // materialButton1
+            // 
+            materialButton1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton1.Depth = 0;
+            materialButton1.HighEmphasis = true;
+            materialButton1.Icon = null;
+            materialButton1.Location = new Point(158, 290);
+            materialButton1.Margin = new Padding(4, 6, 4, 6);
+            materialButton1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton1.Name = "materialButton1";
+            materialButton1.NoAccentTextColor = Color.Empty;
+            materialButton1.Size = new Size(213, 36);
+            materialButton1.TabIndex = 7;
+            materialButton1.Text = "클라이언트 유효성 검사 (Beta)";
+            materialButton1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton1.UseAccentColor = false;
+            materialButton1.UseVisualStyleBackColor = true;
+            materialButton1.Click += materialButton1_Click;
+            // 
             // img_help
             // 
             img_help.Image = (Image)resources.GetObject("img_help.Image");
             img_help.Location = new Point(488, 224);
-            img_help.Margin = new Padding(6, 6, 6, 6);
+            img_help.Margin = new Padding(6);
             img_help.Name = "img_help";
             img_help.Size = new Size(40, 40);
             img_help.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -717,9 +737,9 @@
             tabPage_settings.Controls.Add(materialButton_setting_account);
             tabPage_settings.ImageKey = "outline_settings_black_24dp.png";
             tabPage_settings.Location = new Point(8, 46);
-            tabPage_settings.Margin = new Padding(6, 6, 6, 6);
+            tabPage_settings.Margin = new Padding(6);
             tabPage_settings.Name = "tabPage_settings";
-            tabPage_settings.Padding = new Padding(6, 6, 6, 6);
+            tabPage_settings.Padding = new Padding(6);
             tabPage_settings.Size = new Size(796, 452);
             tabPage_settings.TabIndex = 1;
             tabPage_settings.Text = "설정";
@@ -801,11 +821,11 @@
             tabPage_help.Controls.Add(materialButton_question_naver);
             tabPage_help.Controls.Add(materialButton_question_kakao);
             tabPage_help.ImageKey = "outline_help_outline_black_24dp.png";
-            tabPage_help.Location = new Point(8, 84);
-            tabPage_help.Margin = new Padding(6, 6, 6, 6);
+            tabPage_help.Location = new Point(8, 46);
+            tabPage_help.Margin = new Padding(6);
             tabPage_help.Name = "tabPage_help";
-            tabPage_help.Padding = new Padding(6, 6, 6, 6);
-            tabPage_help.Size = new Size(796, 414);
+            tabPage_help.Padding = new Padding(6);
+            tabPage_help.Size = new Size(796, 452);
             tabPage_help.TabIndex = 2;
             tabPage_help.Text = "정보및문의";
             // 
@@ -948,7 +968,7 @@
             // 
             pictureBox3.Image = (Image)resources.GetObject("pictureBox3.Image");
             pictureBox3.Location = new Point(60, 28);
-            pictureBox3.Margin = new Padding(6, 6, 6, 6);
+            pictureBox3.Margin = new Padding(6);
             pictureBox3.Name = "pictureBox3";
             pictureBox3.Size = new Size(96, 96);
             pictureBox3.SizeMode = PictureBoxSizeMode.Zoom;
@@ -1003,10 +1023,10 @@
             tabPage_sponsor.Controls.Add(materialButton_sponsor);
             tabPage_sponsor.Controls.Add(materialListBox_sponsor);
             tabPage_sponsor.ImageKey = "donate.png";
-            tabPage_sponsor.Location = new Point(8, 84);
-            tabPage_sponsor.Margin = new Padding(6, 6, 6, 6);
+            tabPage_sponsor.Location = new Point(8, 46);
+            tabPage_sponsor.Margin = new Padding(6);
             tabPage_sponsor.Name = "tabPage_sponsor";
-            tabPage_sponsor.Size = new Size(796, 414);
+            tabPage_sponsor.Size = new Size(796, 452);
             tabPage_sponsor.TabIndex = 5;
             tabPage_sponsor.Text = "후원";
             // 
@@ -1063,7 +1083,7 @@
             materialListBox_sponsor.Depth = 0;
             materialListBox_sponsor.Font = new Font("Microsoft Sans Serif", 16F, FontStyle.Regular, GraphicsUnit.Pixel);
             materialListBox_sponsor.Location = new Point(22, 82);
-            materialListBox_sponsor.Margin = new Padding(6, 6, 6, 6);
+            materialListBox_sponsor.Margin = new Padding(6);
             materialListBox_sponsor.MouseState = MaterialSkin.MouseState.HOVER;
             materialListBox_sponsor.Name = "materialListBox_sponsor";
             materialListBox_sponsor.SelectedIndex = -1;
@@ -1104,7 +1124,7 @@
             button_tray.FlatStyle = FlatStyle.Flat;
             button_tray.Image = (Image)resources.GetObject("button_tray.Image");
             button_tray.Location = new Point(668, 0);
-            button_tray.Margin = new Padding(6, 6, 6, 6);
+            button_tray.Margin = new Padding(6);
             button_tray.Name = "button_tray";
             button_tray.Size = new Size(52, 48);
             button_tray.TabIndex = 14;
@@ -1222,26 +1242,6 @@
             notifyIcon2.Icon = (Icon)resources.GetObject("notifyIcon2.Icon");
             notifyIcon2.Text = "거상 스테이션";
             // 
-            // materialButton1
-            // 
-            materialButton1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton1.Depth = 0;
-            materialButton1.HighEmphasis = true;
-            materialButton1.Icon = null;
-            materialButton1.Location = new Point(158, 290);
-            materialButton1.Margin = new Padding(4, 6, 4, 6);
-            materialButton1.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton1.Name = "materialButton1";
-            materialButton1.NoAccentTextColor = Color.Empty;
-            materialButton1.Size = new Size(163, 36);
-            materialButton1.TabIndex = 7;
-            materialButton1.Text = "클라이언트 유효성 검사";
-            materialButton1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton1.UseAccentColor = false;
-            materialButton1.UseVisualStyleBackColor = true;
-            materialButton1.Click += materialButton1_Click;
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(192F, 192F);
@@ -1253,7 +1253,7 @@
             DrawerShowIconsWhenHidden = true;
             DrawerTabControl = materialTabControl1;
             Icon = (Icon)resources.GetObject("$this.Icon");
-            Margin = new Padding(6, 6, 6, 6);
+            Margin = new Padding(6);
             MaximizeBox = false;
             Name = "Form1";
             Padding = new Padding(6, 128, 6, 6);
