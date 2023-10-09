@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualBasic.Logging;
+﻿using Microsoft.VisualBasic.Devices;
+using Microsoft.VisualBasic.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -450,7 +451,7 @@ namespace GersangStation.Modules
         public Dictionary<string, string>? GetFullClientFileListFromLocal(string localClientPath)
         {
             string SevenZipPath = Directory.GetCurrentDirectory() + _SevenZipPath;
-            string args = $"h \"{localClientPath}\" -bd";
+            string args = $"h \"{localClientPath}\" -bsp2";
             string[] pathSplit = localClientPath.Split(@"\", StringSplitOptions.RemoveEmptyEntries);
 
             ProcessStartInfo psi = new ProcessStartInfo();
@@ -466,6 +467,70 @@ namespace GersangStation.Modules
             }
             string FullClientListProcessOutput = FullClientListCheckProcess.StandardOutput.ReadToEnd();
             return ParsingSevenZipHashValueCheckOutput(FullClientListProcessOutput, pathSplit[pathSplit.Length-1]);
+        }
+
+
+        public void Run(out string reportFileName) {
+            var localFiles = this.GetFullClientFileListFromLocal(_ClientPath);
+            Trace.WriteLine($"In local, {localFiles.Count} files detected.");
+
+            int versionInfo = 0;
+            var webFiles = this.GetFullClientFileListFromWeb(out versionInfo);
+            Trace.WriteLine($"In web, {webFiles.Count} files detected.");
+
+            Dictionary<string, bool> excludedFiles = new Dictionary<string, bool>();
+            string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + @"\Resources\IntegrityCheckExcludes.txt");
+            foreach (var line in lines)
+            {
+                excludedFiles.Add(line, true);
+            }
+
+
+            string report = "";
+
+            //Local to Web check
+            report += ("== Check report ==") + System.Environment.NewLine;
+            foreach (var file in localFiles)
+            {
+                string? crc = null;
+                if (excludedFiles.ContainsKey(file.Key)) continue;
+                if (webFiles.TryGetValue(file.Key, out crc))
+                {
+                    if (Convert.ToInt32(crc, 16) != Convert.ToInt32(file.Value, 16))
+                    {
+                        report += ($"ERROR: File {file.Key} not match = web({crc}) local({file.Value})") + System.Environment.NewLine;
+                    }
+                    excludedFiles.Add(file.Key, false);
+                }
+                else
+                {
+                    report += ($"WARNING: File {file.Key} is not exist in web full client") + System.Environment.NewLine;
+                }
+            }
+
+            //Web to Local
+            foreach (var file in webFiles)
+            {
+                string? crc = null;
+                if (excludedFiles.ContainsKey(file.Key)) continue;
+                if (localFiles.TryGetValue(file.Key, out crc))
+                {
+                    if (Convert.ToInt32(crc, 16) != Convert.ToInt32(file.Value, 16))
+                    {
+                        report += ($"ERROR: File {file.Key} not match = web({file.Value}) local({crc})") + System.Environment.NewLine;
+                        excludedFiles.Add(file.Key, false);
+                    }
+                }
+                else
+                {
+                    report += ($"ERROR: File {file.Key} is not exist in local client") + System.Environment.NewLine;
+                    excludedFiles.Add(file.Key, false);
+                }
+            }
+            string date = "" + DateTime.Now;
+            date = date.Replace(":", "");
+            reportFileName = Directory.GetCurrentDirectory() + @"\IntegrityReport_" + date + ".txt";
+            File.WriteAllText(reportFileName, report);
         }
     }
 }

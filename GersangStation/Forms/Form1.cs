@@ -11,38 +11,49 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using File = System.IO.File;
 
-namespace GersangStation {
-    public partial class Form1 : MaterialForm {
+namespace GersangStation
+{
+    public partial class Form1 : MaterialForm
+    {
         private const int WM_ACTIVATEAPP = 0x001C;
         private const int WM_HOTKEY = 0x0312;
 
-        protected override void WndProc(ref Message m) {
-            if(m.Msg == WM_HOTKEY) {
-                if(m.WParam == (IntPtr)ClipMouse.GetHotKeyId()) {
-                    if(ClipMouse.isRunning()) {
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_HOTKEY)
+            {
+                if (m.WParam == (IntPtr)ClipMouse.GetHotKeyId())
+                {
+                    if (ClipMouse.isRunning())
+                    {
                         ClipMouse.Stop(false);
                         ConfigManager.setConfig("use_clip_mouse", false.ToString());
-                    } else {
+                    }
+                    else
+                    {
                         ClipMouse.Run();
                         ConfigManager.setConfig("use_clip_mouse", true.ToString());
                     }
 
-                    if(materialCheckbox_mouseClip != null)
+                    if (materialCheckbox_mouseClip != null)
                         materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
                 }
             }
 
             base.WndProc(ref m);
-            if(WindowState == FormWindowState.Minimized && m.Msg == WM_ACTIVATEAPP && m.WParam == IntPtr.Zero) {
+            if (WindowState == FormWindowState.Minimized && m.Msg == WM_ACTIVATEAPP && m.WParam == IntPtr.Zero)
+            {
                 BringToFront();
             }
         }
 
-        public enum State {
+        public enum State
+        {
             LoggedIn, LoginOther, None
         }
 
-        public enum Client {
+        public enum Client
+        {
             None = 0,
             Client1 = 1,
             Client2 = 2,
@@ -76,7 +87,8 @@ namespace GersangStation {
 
         WebView2? webView_main = null;
 
-        public Form1() {
+        public Form1()
+        {
             InitializeComponent();
 
             // Initialize MaterialSkinManager
@@ -92,8 +104,10 @@ namespace GersangStation {
             materialSkinManager.ColorScheme = new ColorScheme(Primary.BlueGrey800, Primary.BlueGrey900, Primary.BlueGrey500, Accent.LightBlue200, TextShade.WHITE);
         }
 
-        private async void Form1_Load(object sender, EventArgs e) {
-            webView_main = new WebView2() {
+        private async void Form1_Load(object sender, EventArgs e)
+        {
+            webView_main = new WebView2()
+            {
                 Visible = true,
                 Dock = DockStyle.Fill,
             };
@@ -104,8 +118,10 @@ namespace GersangStation {
         }
 
         // EnsureCoreWebView2Async의 결과값이 null이 아니라면 CoreWebView2 초기화가 완료되기 직전 이 이벤트가 발생합니다.
-        private void webView_main_CoreWebView2InitializationCompleted(object? sender, CoreWebView2InitializationCompletedEventArgs e) {
-            if(e.IsSuccess) {
+        private void webView_main_CoreWebView2InitializationCompleted(object? sender, CoreWebView2InitializationCompletedEventArgs e)
+        {
+            if (e.IsSuccess)
+            {
                 //webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested; //Edge 보안 업데이트로 인해 NewWindow 로직 제거
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert 등의 메시지창이 뜨지않고 ScriptDialogOpening 이벤트를 통해 제어할 수 있도록 합니다.
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
@@ -115,21 +131,31 @@ namespace GersangStation {
                 webView_main.CoreWebView2.Navigate(url_main);
 
                 LoadComponent();
-            } else {
+            }
+            else
+            {
                 Trace.WriteLine(e.InitializationException.StackTrace);
-                if(e.InitializationException is DllNotFoundException) {
+                if (e.InitializationException is DllNotFoundException)
+                {
                     DialogResult dr = MessageBox.Show("실행 파일의 위치가 잘못되었습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 실행 파일 위치", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    if(dr == DialogResult.OK) {
+                    if (dr == DialogResult.OK)
+                    {
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
                     }
-                } else if(e.InitializationException is WebView2RuntimeNotFoundException) {
+                }
+                else if (e.InitializationException is WebView2RuntimeNotFoundException)
+                {
                     DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    if(dr == DialogResult.Yes) {
+                    if (dr == DialogResult.Yes)
+                    {
                         Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
                     }
-                } else {
+                }
+                else
+                {
                     DialogResult dr = MessageBox.Show("WebView2 초기화 중 오류 발생하였습니다. 문의해주세요.\n" + e.InitializationException.Message, "WebView2 초기화 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    if(dr == DialogResult.OK) {
+                    if (dr == DialogResult.OK)
+                    {
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/3") { UseShellExecute = true });
                     }
                 }
@@ -138,7 +164,8 @@ namespace GersangStation {
             }
         }
 
-        private async void LoadComponent() {
+        private async void LoadComponent()
+        {
             ConfigManager.Validation();
             LoadCheckBox();
             LoadRadioButton();
@@ -148,7 +175,8 @@ namespace GersangStation {
             CheckAccount();
 
             // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
-            try {
+            try
+            {
                 GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
                 IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
                 Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
@@ -156,7 +184,9 @@ namespace GersangStation {
                 CheckProgramUpdate(releases);
                 LoadAnnouncements(r);
                 LoadSponsors(r);
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
                 MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
@@ -170,24 +200,31 @@ namespace GersangStation {
             materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
         }
 
-        private void LoadSponsors(Readme r) {
+        private void LoadSponsors(Readme r)
+        {
             string content = r.Content;
             string[] sponsors = content.Substring(content.LastIndexOf("<summary>후원해주신 분들</summary>")).Split("<br>");
 
             // 첫 번째와 마지막은 태그라 무시
-            for(int i = 1; i < sponsors.Length - 1; i++) {
+            for (int i = 1; i < sponsors.Length - 1; i++)
+            {
                 materialListBox_sponsor.AddItem(new MaterialListBoxItem(sponsors[i]));
             }
             materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
         }
 
-        private void LoadAnnouncements(Readme r) {
+        private void LoadAnnouncements(Readme r)
+        {
             string content = r.Content;
             string[] announcements = content.Substring(content.LastIndexOf("# 공지사항")).Split('\n');
-            if(announcements.Length <= 1) {
+            if (announcements.Length <= 1)
+            {
                 linkLabel_announcement.Text = "공지사항이 없습니다";
-            } else {
-                try {
+            }
+            else
+            {
+                try
+                {
                     string latestAnnouncement = announcements[1];
                     string title = latestAnnouncement.Split('{')[0];
                     int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
@@ -195,28 +232,34 @@ namespace GersangStation {
                     string pageNumber = latestAnnouncement.Substring(startIndex, length);
                     string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
                     linkLabel_announcement.Text = title;
-                    linkLabel_announcement.Click += (sender, e) => {
+                    linkLabel_announcement.Click += (sender, e) =>
+                    {
                         Trace.Write(pageNumber + "번 공지사항 접속");
                         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                     };
 
                     // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
                     string prevLink = ConfigManager.getConfig("prev_announcement");
-                    if(prevLink == "" || prevLink != url) {
+                    if (prevLink == "" || prevLink != url)
+                    {
                         ConfigManager.setConfig("prev_announcement", url);
                         DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']') + 1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        if(dr == DialogResult.Yes) {
+                        if (dr == DialogResult.Yes)
+                        {
                             Trace.Write(pageNumber + "번 공지사항 접속");
                             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                         }
                     }
-                } catch {
+                }
+                catch
+                {
                     linkLabel_announcement.Text = "공지사항 로딩 실패";
                 }
             }
         }
 
-        private void SetToolTip() {
+        private void SetToolTip()
+        {
             toolTip1.Active = true;
             /**
              * <-- 메인화면 -->
@@ -243,13 +286,13 @@ namespace GersangStation {
             toolTip1.SetToolTip(materialButton_start_2, "2클라 게임 실행");
             toolTip1.SetToolTip(materialButton_start_3, "3클라 게임 실행");
             string shortcut_1 = ConfigManager.getConfig("shortcut_1");
-            if(shortcut_1 == "") shortcut_1 = "링크가 설정되지 않았습니다.";
+            if (shortcut_1 == "") shortcut_1 = "링크가 설정되지 않았습니다.";
             string shortcut_2 = ConfigManager.getConfig("shortcut_2");
-            if(shortcut_2 == "") shortcut_2 = "링크가 설정되지 않았습니다.";
+            if (shortcut_2 == "") shortcut_2 = "링크가 설정되지 않았습니다.";
             string shortcut_3 = ConfigManager.getConfig("shortcut_3");
-            if(shortcut_3 == "") shortcut_3 = "링크가 설정되지 않았습니다.";
+            if (shortcut_3 == "") shortcut_3 = "링크가 설정되지 않았습니다.";
             string shortcut_4 = ConfigManager.getConfig("shortcut_4");
-            if(shortcut_4 == "") shortcut_4 = "링크가 설정되지 않았습니다.";
+            if (shortcut_4 == "") shortcut_4 = "링크가 설정되지 않았습니다.";
             toolTip1.SetToolTip(materialButton_shortcut_1, shortcut_1);
             toolTip1.SetToolTip(materialButton_shortcut_2, shortcut_2);
             toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
@@ -261,7 +304,8 @@ namespace GersangStation {
                 "\n\nF11: 마우스 가두기 ON, OFF\nAlt: 일시적으로 OFF");
         }
 
-        private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
+        private void CheckProgramUpdate(IReadOnlyList<Release> releases)
+        {
             //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
             string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
             Trace.WriteLine(version_current);
@@ -279,32 +323,42 @@ namespace GersangStation {
 
             //¹öÀü ºñ±³
             int versionComparison = localVersion.CompareTo(latestGitHubVersion);
-            if(versionComparison < 0) {
+            if (versionComparison < 0)
+            {
                 Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
 
                 DialogResult dr = MessageBox.Show(releases[0].Body + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
                     "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
 
-                if(dr == DialogResult.Yes) {
+                if (dr == DialogResult.Yes)
+                {
                     Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
                 }
-            } else if(versionComparison > 0) {
+            }
+            else if (versionComparison > 0)
+            {
                 Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
-            } else {
+            }
+            else
+            {
                 Trace.WriteLine("현재 버전은 최신버전입니다!");
             }
         }
 
-        private void CheckAccount() {
-            if(materialComboBox_account_1.Items.Count <= 1) {
+        private void CheckAccount()
+        {
+            if (materialComboBox_account_1.Items.Count <= 1)
+            {
                 DialogResult dr = MessageBox.Show("현재 저장된 계정이 하나도 없습니다.\n계정 설정 화면으로 이동하시겠습니까?", "계정 없음", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if(dr == DialogResult.OK) {
+                if (dr == DialogResult.OK)
+                {
                     OpenAccountSettingDialog();
                 }
             }
         }
 
-        private void LoadCheckBox() {
+        private void LoadCheckBox()
+        {
             this.materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
         }
 
@@ -315,29 +369,35 @@ namespace GersangStation {
         }
         */
 
-        private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
+        private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e)
+        {
             string message = e.Message;
             Trace.WriteLine(message);
             Trace.WriteLine("대화창 종류 : " + e.Kind);
 
-            if(e.Kind == CoreWebView2ScriptDialogKind.Confirm) {
+            if (e.Kind == CoreWebView2ScriptDialogKind.Confirm)
+            {
                 Trace.WriteLine("선택지가 있는 대화상자 판정");
                 DialogResult dr = DialogResult.None;
-                var task = Task.Run(() => {
+                var task = Task.Run(() =>
+                {
                     dr = MessageBox.Show(message, "선택", MessageBoxButtons.YesNo, MessageBoxIcon.Information,
                         MessageBoxDefaultButton.Button1, MessageBoxOptions.DefaultDesktopOnly);
                 });
                 await task;
-                if(dr == DialogResult.Yes) {
+                if (dr == DialogResult.Yes)
+                {
                     e.Accept();
                 }
 
                 return;
             }
 
-            this.BeginInvoke(async () => {
+            this.BeginInvoke(async () =>
+            {
                 //message가 정확히 "5초 후에 재로그인 가능합니다." 일 경우, 사용자가 로그인 실패 후 5초 이내에 로그인을 시도한 경우입니다.
-                if(message.Equals("5초 후에 재로그인 가능합니다.")) {
+                if (message.Equals("5초 후에 재로그인 가능합니다."))
+                {
                     Trace.WriteLine("로그인 실패 후 5초 안에 로그인 시도 판정");
                     MessageBox.Show("아직 5초가 지나지 않았습니다. 5초 후에 다시 로그인을 시도해주세요.");
                     currentState = State.None;
@@ -346,15 +406,19 @@ namespace GersangStation {
                 }
 
                 //otp 인증번호가 틀릴 시 다시 입력하도록 합니다.
-                else if(message.Contains("인증번호가 다릅니다")) {
+                else if (message.Contains("인증번호가 다릅니다"))
+                {
                     Trace.WriteLine("잘못된 OTP 코드 입력 판정");
                     MessageBox.Show("잘못된 OTP 코드를 입력하였습니다. 다시 입력해주세요.");
                     string? otpCode = showDialogOtp();
 
                     Trace.WriteLine("otpCode : " + otpCode);
-                    if(otpCode == null) {
+                    if (otpCode == null)
+                    {
                         MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
-                    } else {
+                    }
+                    else
+                    {
                         await webView_main.ExecuteScriptAsync("document.getElementById('GSotpNo').value = '" + otpCode + "'");
                         await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
                     }
@@ -373,26 +437,31 @@ namespace GersangStation {
                 */
 
                 //아이디 또는 비밀번호가 틀린 경우입니다.
-                else if(message.Contains("아이디 또는 비밀번호 오류")) {
+                else if (message.Contains("아이디 또는 비밀번호 오류"))
+                {
                     currentState = State.None;
                     currentClient = Client.None;
                     webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
                     Trace.WriteLine("로그인 실패 판정");
                     MessageBox.Show("로그인에 실패하였습니다. 5초후에 다시 로그인 해주세요.");
-                } else {
+                }
+                else
+                {
                     Trace.WriteLine("예외로 처리되지 않은 메시지 판정");
                     MessageBox.Show(message);
                 }
             });
         }
-        private void webView_main_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
+        private void webView_main_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+        {
             Trace.WriteLine("NavigationStarting : " + e.Uri.ToString());
             Trace.WriteLine("NavigationStarting Previous URL : " + webView_main.Source);
             //previousUrl = webView_main.CoreWebView2.Source; // 검색 이벤트 종료
             deactivateWebSideFunction();
         }
 
-        private void webView_main_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e) {
+        private void webView_main_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+        {
             /*
                 1. 스위치로 로그인 하는 경우
                 2. 스위치로 로그아웃 하는 경우
@@ -401,22 +470,26 @@ namespace GersangStation {
                 5. (로그인 된 상태에서) 실행버튼으로 실행
             */
 
-            if(sender == null) {
+            if (sender == null)
+            {
                 this.BeginInvoke(() => { MessageBox.Show("NavigationFailed : sender is NULL"); });
                 return;
             }
 
-            if(!e.IsSuccess) {
+            if (!e.IsSuccess)
+            {
                 deactivateWebSideFunction(); //WebView2 활용 기능 비활성화 처리
                 this.BeginInvoke(() => { handleWebError(e.WebErrorStatus); });
                 return;
-            } else { if(isWebFunctionDeactivated) { activateWebSideFunction(); } } //WebView2 활용 기능이 비활성화 상태인 경우 활성화 처리
+            }
+            else { if (isWebFunctionDeactivated) { activateWebSideFunction(); } } //WebView2 활용 기능이 비활성화 상태인 경우 활성화 처리
 
             string? url = ((WebView2)sender).Source.ToString();
             Trace.WriteLine("NavigationCompleted : " + url);
 
             // 비밀번호 변경 안내 페이지라면, "다음에 변경하기" 클릭
-            if(url.Contains("pw_reset.gs")) {
+            if (url.Contains("pw_reset.gs"))
+            {
                 // https://www.gersang.co.kr/member/pw_reset.gs?returnUrl=www.gersang.co.kr/main/index.gs
                 string returnUrl = url.Substring(url.IndexOf("returnUrl=") + 10);
                 doPwReset(returnUrl);
@@ -424,21 +497,27 @@ namespace GersangStation {
             }
 
             // 휴대폰 본인인증 페이지라면, 본인인증 안내창 띄우기
-            if(url.Contains("loginCertUp.gs")) {
-                this.BeginInvoke(() => {
+            if (url.Contains("loginCertUp.gs"))
+            {
+                this.BeginInvoke(() =>
+                {
                     MessageBox.Show("휴대폰 본인 인증이 필요합니다.\n크롬 또는 엣지 등의 웹브라우저를 통해\n거상 로그인 후 본인인증을 완료해주세요.");
                 });
                 return;
             }
 
-            if(url.Contains("otp.gs")) {
-                this.BeginInvoke(() => {
+            if (url.Contains("otp.gs"))
+            {
+                this.BeginInvoke(() =>
+                {
                     string? otpCode = showDialogOtp();
 
-                    if(otpCode == null) {
+                    if (otpCode == null)
+                    {
                         MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
                         //isSearch = false; // 검색 이벤트 종료
-                    } else { doOtpInput(otpCode); }
+                    }
+                    else { doOtpInput(otpCode); }
                 });
                 return;
             }
@@ -457,7 +536,8 @@ namespace GersangStation {
             }
             */
 
-            if(url.Contains("main/index.gs")) {
+            if (url.Contains("main/index.gs"))
+            {
                 // 검색 이벤트 종료
                 /*
                 if(isSearch) {
@@ -474,11 +554,14 @@ namespace GersangStation {
                 }
                 */
 
-                if(currentState == State.LoginOther) { doLoginOther(); } else if(currentState == State.LoggedIn) { doCheckLogin(); } else {
+                if (currentState == State.LoginOther) { doLoginOther(); }
+                else if (currentState == State.LoggedIn) { doCheckLogin(); }
+                else
+                {
                     // 로그인 되어있지 않은 상태인데 스위치가 켜져있다면 다시 끈다
-                    if(materialSwitch_login_1.Checked) materialSwitch_login_1.Checked = false;
-                    if(materialSwitch_login_2.Checked) materialSwitch_login_2.Checked = false;
-                    if(materialSwitch_login_3.Checked) materialSwitch_login_3.Checked = false;
+                    if (materialSwitch_login_1.Checked) materialSwitch_login_1.Checked = false;
+                    if (materialSwitch_login_2.Checked) materialSwitch_login_2.Checked = false;
+                    if (materialSwitch_login_3.Checked) materialSwitch_login_3.Checked = false;
                 }
                 return;
             }
@@ -536,7 +619,8 @@ namespace GersangStation {
         }
         */
 
-        private void deactivateWebSideFunction() {
+        private void deactivateWebSideFunction()
+        {
             //materialSwitch_login_1.Enabled = false;
             //materialSwitch_login_2.Enabled = false;
             //materialSwitch_login_3.Enabled = false;
@@ -558,7 +642,8 @@ namespace GersangStation {
             isWebFunctionDeactivated = true;
         }
 
-        private void activateWebSideFunction() {
+        private void activateWebSideFunction()
+        {
             //materialSwitch_login_1.Enabled = true;
             //materialSwitch_login_2.Enabled = true;
             //materialSwitch_login_3.Enabled = true;
@@ -580,8 +665,10 @@ namespace GersangStation {
             isWebFunctionDeactivated = false;
         }
 
-        private void activateWebSideFunction_invoke() {
-            DelegateActivateWebSideFunction d = () => {
+        private void activateWebSideFunction_invoke()
+        {
+            DelegateActivateWebSideFunction d = () =>
+            {
                 activateWebSideFunction();
             };
             this.Invoke(d);
@@ -589,34 +676,42 @@ namespace GersangStation {
 
         private delegate void DelegateActivateWebSideFunction();
 
-        private void handleWebError(CoreWebView2WebErrorStatus webErrorStatus) {
+        private void handleWebError(CoreWebView2WebErrorStatus webErrorStatus)
+        {
             Trace.WriteLine("NavigationFailed - WebErrorStatus : " + webErrorStatus);
             Trace.WriteLine("NavigationFailed - DocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
 
             //작업이 취소되었음을 나타냅니다. (MS DOC)
-            if(webErrorStatus == CoreWebView2WebErrorStatus.OperationCanceled) { return; }
+            if (webErrorStatus == CoreWebView2WebErrorStatus.OperationCanceled) { return; }
 
             //연결이 중지되었음을 나타냅니다. (MS DOC)
-            if(webErrorStatus == CoreWebView2WebErrorStatus.ConnectionAborted) { return; }
+            if (webErrorStatus == CoreWebView2WebErrorStatus.ConnectionAborted) { return; }
 
-            this.BeginInvoke(() => {
+            this.BeginInvoke(() =>
+            {
                 //알 수 없는 오류가 발생했음을 나타냅니다. (MS DOC)
-                if(webErrorStatus == CoreWebView2WebErrorStatus.Unknown) {
+                if (webErrorStatus == CoreWebView2WebErrorStatus.Unknown)
+                {
                     string title = webView_main.CoreWebView2.DocumentTitle;
-                    if(title != null) {
-                        if(title.Contains("점검")) {
+                    if (title != null)
+                    {
+                        if (title.Contains("점검"))
+                        {
                             MessageBox.Show("현재 거상 홈페이지가 점검 중입니다.\n점검이 끝난 후에 주요 기능 이용이 가능합니다.");
                             return;
                         }
                         MessageBox.Show("알 수 없는 오류로 인해 거상 홈페이지 접속에 실패하였습니다.\nDocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
-                    } else {
+                    }
+                    else
+                    {
                         MessageBox.Show("알 수 없는 오류로 인해 거상 홈페이지 접속에 실패하였습니다.\nDocumentTitle : NULL");
                     }
                     return;
                 }
 
                 //인터넷 연결이 끊어졌음을 나타냅니다. (MS DOC)
-                if(webErrorStatus == CoreWebView2WebErrorStatus.Disconnected) {
+                if (webErrorStatus == CoreWebView2WebErrorStatus.Disconnected)
+                {
                     MessageBox.Show("거상 홈페이지 접속에 실패하였습니다.\n인터넷 연결을 확인 해주세요.");
                     return;
                 }
@@ -626,11 +721,14 @@ namespace GersangStation {
             });
         }
 
-        private async void doCheckLogin() {
+        private async void doCheckLogin()
+        {
             var logout_btn = await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href = '" + "/member/logoutProc.gs" + @"']"")");
-            if(logout_btn != null) {
+            if (logout_btn != null)
+            {
                 Trace.WriteLine("체크하였더니 로그인이 되어있음.");
-                switch(currentClient) {
+                switch (currentClient)
+                {
                     case Client.Client1:
                         materialSwitch_login_1.CheckState = CheckState.Checked;
                         break;
@@ -643,7 +741,9 @@ namespace GersangStation {
                     default:
                         break;
                 }
-            } else {
+            }
+            else
+            {
                 Trace.WriteLine("체크하였더니 로그인이 안되어있는 상태.");
                 currentState = State.None;
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
@@ -652,17 +752,19 @@ namespace GersangStation {
             }
 
             //if (true == isSearch) { webView_main.CoreWebView2.Navigate(url_search); } // 검색 이벤트 종료
-            if(true == isGameStartLogin) { GameStart(); }
+            if (true == isGameStartLogin) { GameStart(); }
         }
 
-        private async void doLoginOther() {
+        private async void doLoginOther()
+        {
             var button_login = await webView_main.ExecuteScriptAsync("document.getElementById('btn_Login')");
             var textBox_id = await webView_main.ExecuteScriptAsync("document.getElementById('GSuserID')");
             var textBox_pw = await webView_main.ExecuteScriptAsync("document.getElementById('GSuserPW')");
 
             string? tag = null;
             string[] account;
-            switch(currentClient) {
+            switch (currentClient)
+            {
                 case Client.Client1:
                     tag = materialSwitch_login_1.Tag.ToString();
                     break;
@@ -676,22 +778,26 @@ namespace GersangStation {
                     break;
             }
 
-            if(tag != null) { account = tag.Split(';'); } else { return; }
+            if (tag != null) { account = tag.Split(';'); } else { return; }
 
-            if(button_login != null && textBox_id != null && textBox_pw != null) { Login(account[0], account[1]); }
+            if (button_login != null && textBox_id != null && textBox_pw != null) { Login(account[0], account[1]); }
         }
 
-        private async void doOtpInput(string otpCode) {
+        private async void doOtpInput(string otpCode)
+        {
             await webView_main.ExecuteScriptAsync("document.getElementById('GSotpNo').value = '" + otpCode + "'");
             await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
         }
 
-        private async void doPwReset(string returnUrl) {
+        private async void doPwReset(string returnUrl)
+        {
             await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href *= '" + returnUrl + @"']"").click()");
         }
 
-        private string? showDialogOtp() {
-            Form backgroundForm = new Form() {
+        private string? showDialogOtp()
+        {
+            Form backgroundForm = new Form()
+            {
                 StartPosition = FormStartPosition.Manual,
                 FormBorderStyle = FormBorderStyle.None,
                 Opacity = .50d,
@@ -703,7 +809,8 @@ namespace GersangStation {
             };
             backgroundForm.Show();
 
-            MaterialForm dialog_otp = new MaterialForm() {
+            MaterialForm dialog_otp = new MaterialForm()
+            {
                 FormStyle = FormStyles.ActionBar_40,
                 Sizable = false,
                 StartPosition = FormStartPosition.CenterParent,
@@ -716,7 +823,8 @@ namespace GersangStation {
                 Owner = this,
             };
 
-            MaterialTextBox2 textBox_otp = new MaterialTextBox2() {
+            MaterialTextBox2 textBox_otp = new MaterialTextBox2()
+            {
                 MaxLength = 8,
                 Location = new Point(17, 82),
                 Size = new Size(111, 36),
@@ -725,18 +833,22 @@ namespace GersangStation {
             };
             dialog_otp.Controls.Add(textBox_otp);
 
-            MaterialButton button_confirm = new MaterialButton() {
+            MaterialButton button_confirm = new MaterialButton()
+            {
                 Text = "확인",
                 Location = new Point(135, 82),
                 AutoSize = false,
                 Size = new Size(50, 36),
             };
-            button_confirm.Click += (sender, e) => {
-                if(textBox_otp.Text.Length != 8) {
+            button_confirm.Click += (sender, e) =>
+            {
+                if (textBox_otp.Text.Length != 8)
+                {
                     return;
                 }
 
-                if(!Regex.IsMatch(textBox_otp.Text, @"^[0-9]+$")) {
+                if (!Regex.IsMatch(textBox_otp.Text, @"^[0-9]+$"))
+                {
                     return;
                 }
 
@@ -746,44 +858,55 @@ namespace GersangStation {
             dialog_otp.Controls.Add(button_confirm);
             dialog_otp.AcceptButton = button_confirm;
 
-            if(dialog_otp.ShowDialog() == DialogResult.OK) {
+            if (dialog_otp.ShowDialog() == DialogResult.OK)
+            {
                 backgroundForm.Dispose();
                 return textBox_otp.Text;
-            } else {
+            }
+            else
+            {
                 backgroundForm.Dispose();
                 return null;
             }
         }
 
-        private void materialButton_start_Click(object sender, EventArgs e) {
+        private void materialButton_start_Click(object sender, EventArgs e)
+        {
             MaterialButton startButton = (MaterialButton)sender;
             StartClick(startButton);
         }
 
-        private void StartClick(MaterialButton startButton) {
+        private void StartClick(MaterialButton startButton)
+        {
             MaterialSwitch? loginSwitch;
 
-            if(startButton.Equals(materialButton_start_1)) { loginSwitch = materialSwitch_login_1; } else if(startButton.Equals(materialButton_start_2)) { loginSwitch = materialSwitch_login_2; } else { loginSwitch = materialSwitch_login_3; }
+            if (startButton.Equals(materialButton_start_1)) { loginSwitch = materialSwitch_login_1; } else if (startButton.Equals(materialButton_start_2)) { loginSwitch = materialSwitch_login_2; } else { loginSwitch = materialSwitch_login_3; }
 
-            if(true == loginSwitch.Checked) { GameStart(); } else {
+            if (true == loginSwitch.Checked) { GameStart(); }
+            else
+            {
                 isGameStartLogin = true;
                 SwitchClick(loginSwitch);
             }
         }
 
-        private async void GameStart() {
+        private async void GameStart()
+        {
             isGameStartLogin = false;
 
             string configKey;
             string regKey;
             string server;
             string url_vsn;
-            if(materialCheckbox_testServer.Checked) {
+            if (materialCheckbox_testServer.Checked)
+            {
                 configKey = "client_path_test_";
                 regKey = "TestPath";
                 server = "test";
                 url_vsn = url_test_vsn;
-            } else {
+            }
+            else
+            {
                 configKey = "client_path_";
                 regKey = "InstallPath";
                 server = "main";
@@ -791,7 +914,8 @@ namespace GersangStation {
             }
 
             string client_path;
-            switch(currentClient) {
+            switch (currentClient)
+            {
                 case Client.Client1:
                     client_path = ConfigManager.getConfig(configKey + '1');
                     break;
@@ -806,41 +930,54 @@ namespace GersangStation {
                     break;
             }
 
-            if(client_path == "") {
+            if (client_path == "")
+            {
                 DialogResult dr = MessageBox.Show(this, "클라이언트 경로가 지정되어 있지 않습니다.\n설정 창으로 이동하시겠습니까?", "경로 미지정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if(dr == DialogResult.OK) { OpenClientSettingDialog(); }
+                if (dr == DialogResult.OK) { OpenClientSettingDialog(); }
                 return;
             }
 
-            if(false == ValidationPath(client_path, server)) return;
+            if (false == ValidationPath(client_path, server)) return;
 
             string version_current = VersionChecker.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
             string version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
-            if(version_current != version_latest) {
+            if (version_current != version_latest)
+            {
                 DialogResult dr = DialogResult.No;
                 bool update = false;
-                if(!bool.Parse(ConfigManager.getConfig("is_auto_update"))) {
+                if (!bool.Parse(ConfigManager.getConfig("is_auto_update")))
+                {
                     dr = MessageBox.Show(this, "거상 업데이트가 가능합니다! (" + version_current + "->" + version_latest + ")\n프로그램 기능을 사용하여 업데이트 하시겠습니까?\n거상 스테이션은 공식 패치 프로그램보다\n더 빠르게 업데이트 가능합니다.",
                         "거상 패치", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                } else {
+                }
+                else
+                {
                     update = true;
                 }
 
-                if(dr == DialogResult.Yes || update == true) {
-                    this.BeginInvoke(() => {
+                if (dr == DialogResult.Yes || update == true)
+                {
+                    this.BeginInvoke(() =>
+                    {
                         Form backgroundForm = InitBackgroundForm(this);
 
                         bool isTest = (server == "test") ? true : false;
-                        Form_Patcher form_Patcher = new Form_Patcher(isTest) {
+                        Form_Patcher form_Patcher = new Form_Patcher(isTest)
+                        {
                             Owner = this
                         };
 
-                        try {
+                        try
+                        {
                             backgroundForm.Show();
                             form_Patcher.ShowDialog();
-                        } catch(Exception ex) {
+                        }
+                        catch (Exception ex)
+                        {
                             Trace.WriteLine(ex.StackTrace);
-                        } finally {
+                        }
+                        finally
+                        {
                             backgroundForm.Dispose();
                         }
                     });
@@ -849,23 +986,30 @@ namespace GersangStation {
                 Trace.WriteLine("일반 패치를 선택하였습니다.");
             }
 
-            try {
+            try
+            {
                 //해당 클라이언트의 경로를 레지스트리에 등록시킵니다.
                 RegistryKey? registryKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\JOYON\Gersang\Korean", RegistryKeyPermissionCheck.ReadWriteSubTree);
-                if(registryKey != null) {
+                if (registryKey != null)
+                {
                     registryKey.SetValue(regKey, client_path);
                     registryKey.Close();
                 }
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(ex.Message);
                 Trace.WriteLine(ex.StackTrace);
             }
 
             string? value = null;
-            try {
+            try
+            {
                 //Gersang Game Starter 경로가 저장되어있는 레지스트리 경로에 접근하여 경로를 얻습니다.
                 value = Registry.ClassesRoot.OpenSubKey("Gersang").OpenSubKey("shell").OpenSubKey("open").OpenSubKey("command").GetValue("").ToString();
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(ex.Message);
                 Trace.WriteLine(ex.StackTrace);
                 value = null;
@@ -873,23 +1017,30 @@ namespace GersangStation {
 
             string starterPath; //거상 스타터의 경로를 저장
             //GameStarter 경로를 찾을 수 없는 경우, Starter 다운로드 안내창을 띄웁니다.
-            if(value == null) {
+            if (value == null)
+            {
                 OpenGersangStarterInstallDialog();
                 return;
-            } else {
+            }
+            else
+            {
                 starterPath = value.Replace(@"""", String.Empty);
             }
 
             //레지스트리에 저장된 GameStarter의 경로에 실제로 Starter가 설치되어 있지 않은 경우, 다운로드 안내창을 띄웁니다.
-            if(!File.Exists(starterPath)) {
+            if (!File.Exists(starterPath))
+            {
                 OpenGersangStarterInstallDialog();
                 return;
-            } else {
+            }
+            else
+            {
                 await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //소켓을 엽니다.
                 Process starter = new Process();
                 starter.StartInfo.FileName = value.ToString();
                 starter.EnableRaisingEvents = true;
-                starter.Exited += (sender, e) => {
+                starter.Exited += (sender, e) =>
+                {
                     Trace.WriteLine("게임 스타터가 종료됨.");
                     activateWebSideFunction_invoke();
                 };
@@ -898,21 +1049,26 @@ namespace GersangStation {
             }
         }
 
-        private bool ValidationPath(string client_path, string server) {
+        private bool ValidationPath(string client_path, string server)
+        {
             string iniName;
-            if(server == "main") { iniName = "GerSangKR.ini"; } else { iniName = "GerSangKRTest.ini"; }
+            if (server == "main") { iniName = "GerSangKR.ini"; } else { iniName = "GerSangKRTest.ini"; }
 
-            if(!File.Exists(client_path + "\\" + "Gersang.exe")) {
-                this.BeginInvoke(() => {
+            if (!File.Exists(client_path + "\\" + "Gersang.exe"))
+            {
+                this.BeginInvoke(() =>
+                {
                     MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : Gersang.exe 파일이 없습니다.", "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 });
                 return false;
             }
 
-            if(!File.Exists(client_path + "\\" + iniName)) {
+            if (!File.Exists(client_path + "\\" + iniName))
+            {
                 string message;
-                if(server == "main") { message = "본섭 경로가 아닙니다."; } else { message = "테섭 경로가 아닙니다."; }
-                this.BeginInvoke(() => {
+                if (server == "main") { message = "본섭 경로가 아닙니다."; } else { message = "테섭 경로가 아닙니다."; }
+                this.BeginInvoke(() =>
+                {
                     MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : " + message, "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                 });
                 return false;
@@ -921,26 +1077,36 @@ namespace GersangStation {
             return true;
         }
 
-        private void OpenGersangStarterInstallDialog() {
-            if(MessageBox.Show("GersangGameStarter가 설치되어 있지 않습니다.\n다운로드 받으시겠습니까? (거상 공식 다운로드 링크입니다)", "게임 실행 실패", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes) {
-                try {
+        private void OpenGersangStarterInstallDialog()
+        {
+            if (MessageBox.Show("GersangGameStarter가 설치되어 있지 않습니다.\n다운로드 받으시겠습니까? (거상 공식 다운로드 링크입니다)", "게임 실행 실패", MessageBoxButtons.YesNo, MessageBoxIcon.Error) == DialogResult.Yes)
+            {
+                try
+                {
                     Process.Start(new ProcessStartInfo(url_installStarter) { UseShellExecute = true });
-                } catch(Exception ex2) {
+                }
+                catch (Exception ex2)
+                {
                     Trace.WriteLine(ex2.Message);
                     Trace.WriteLine(ex2.StackTrace);
                 }
-            } else {
+            }
+            else
+            {
                 MessageBox.Show("거상 홈페이지 -> 자료실 -> 클라이언트 -> GersangGameStarter 수동 설치\n위 경로에서 거상 실행기를 다운로드 받으셔야 게임 실행이 가능합니다.", "게임 실행 실패", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
-        private void materialSwitch_login_Click(object sender, EventArgs e) {
+        private void materialSwitch_login_Click(object sender, EventArgs e)
+        {
             MaterialSwitch @switch = (MaterialSwitch)sender;
             SwitchClick(@switch);
         }
 
-        private void SwitchClick(MaterialSwitch sender) {
-            if(isWebFunctionDeactivated) {
+        private void SwitchClick(MaterialSwitch sender)
+        {
+            if (isWebFunctionDeactivated)
+            {
                 Trace.WriteLine("웹 로딩 중 스위치 작동이 불가능 합니다.");
                 return;
             }
@@ -950,7 +1116,8 @@ namespace GersangStation {
             currentClient = (Client)Byte.Parse(name.Substring(name.Length - 1));
 
             //로그아웃
-            if(materialSwitch.Checked) {
+            if (materialSwitch.Checked)
+            {
                 Trace.WriteLine("로그아웃 합니다.");
                 webView_main.CoreWebView2.Navigate(url_logout);
                 materialSwitch.CheckState = CheckState.Unchecked;
@@ -959,7 +1126,8 @@ namespace GersangStation {
                 return;
             }
 
-            if(this.currentState == State.LoggedIn) {
+            if (this.currentState == State.LoggedIn)
+            {
                 Trace.WriteLine("다른 계정에 로그인 하기 위해 로그아웃 합니다.");
 
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
@@ -972,12 +1140,14 @@ namespace GersangStation {
                 return;
             }
 
-            if(materialSwitch.Tag == null || materialSwitch.Tag.ToString().Length == 0 || materialSwitch.Tag.ToString().Contains("선택안함")) {
+            if (materialSwitch.Tag == null || materialSwitch.Tag.ToString().Length == 0 || materialSwitch.Tag.ToString().Contains("선택안함"))
+            {
                 MessageBox.Show("로그인 할 계정이 선택되지 않았습니다.");
                 return;
             }
 
-            if(materialSwitch.Tag.ToString().Contains("SNS_")) {
+            if (materialSwitch.Tag.ToString().Contains("SNS_"))
+            {
                 SNS_Login(materialSwitch.Tag.ToString()!);
                 return;
             }
@@ -986,11 +1156,13 @@ namespace GersangStation {
             Login(account[0], account[1]);
         }
 
-        private async void SNS_Login(string platform) {
-            if(platform == "SNS_네이버") await webView_main.ExecuteScriptAsync("document.getElementById('btn_naver').click()");
-            else if(platform == "SNS_카카오") await webView_main.ExecuteScriptAsync("document.getElementById('btn_kakao').click()");
-            else if(platform == "SNS_구글") await webView_main.ExecuteScriptAsync("document.getElementById('btn_google').click()");
-            else {
+        private async void SNS_Login(string platform)
+        {
+            if (platform == "SNS_네이버") await webView_main.ExecuteScriptAsync("document.getElementById('btn_naver').click()");
+            else if (platform == "SNS_카카오") await webView_main.ExecuteScriptAsync("document.getElementById('btn_kakao').click()");
+            else if (platform == "SNS_구글") await webView_main.ExecuteScriptAsync("document.getElementById('btn_google').click()");
+            else
+            {
                 MessageBox.Show("SNS 로그인에 실패하였습니다. 관리자에게 문의해주세요.", "SNS 로그인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -998,17 +1170,20 @@ namespace GersangStation {
             currentState = State.LoggedIn;
         }
 
-        private void materialButton_shortcut_Click(object sender, EventArgs e) {
+        private void materialButton_shortcut_Click(object sender, EventArgs e)
+        {
             MaterialButton button = (MaterialButton)sender;
             string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
 
-            if(url == null || url.Equals("")) {
+            if (url == null || url.Equals(""))
+            {
                 DialogResult dr = MessageBox.Show("나만의 바로가기 링크가 설정되어 있지 않습니다.\n설정화면으로 이동하시겠습니까?", "바로가기 미설정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if(dr == DialogResult.OK) { OpenShortcuttSettingDialog(); }
+                if (dr == DialogResult.OK) { OpenShortcuttSettingDialog(); }
                 return;
             }
 
-            if(!Uri.IsWellFormedUriString(url, UriKind.Absolute)) {
+            if (!Uri.IsWellFormedUriString(url, UriKind.Absolute))
+            {
                 MessageBox.Show("잘못된 링크 형식 입니다. 다시 설정해주세요.");
                 return;
             }
@@ -1016,10 +1191,12 @@ namespace GersangStation {
             webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
 
             Form_Browser form = new Form_Browser(webView_main);
-            form.Load += (sender, e) => {
+            form.Load += (sender, e) =>
+            {
                 webView_main.CoreWebView2.Navigate(ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1)));
             };
-            form.FormClosed += (sender, e) => {
+            form.FormClosed += (sender, e) =>
+            {
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
                 webView_main.CoreWebView2.Navigate(url_main);
                 form.Controls.Clear();
@@ -1028,32 +1205,39 @@ namespace GersangStation {
             form.Show();
         }
 
-        private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
+        private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e)
+        {
             MaterialComboBox comboBox = (MaterialComboBox)sender;
 
             string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
-            if(id == "") id = comboBox.Text;
+            if (id == "") id = comboBox.Text;
             string switchTag;
             Trace.WriteLine(id);
-            if(id.Contains("선택안함") || id.Contains("SNS_")) { switchTag = comboBox.Text; } else { switchTag = id + ";" + ConfigManager.getConfig(id); }
+            if (id.Contains("선택안함") || id.Contains("SNS_")) { switchTag = comboBox.Text; } else { switchTag = id + ";" + ConfigManager.getConfig(id); }
 
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
 
-            if(comboBox.Equals(materialComboBox_account_1)) {
+            if (comboBox.Equals(materialComboBox_account_1))
+            {
                 materialSwitch_login_1.Tag = switchTag;
                 temp[0] = comboBox.SelectedIndex;
-            } else if(comboBox.Equals(materialComboBox_account_2)) {
+            }
+            else if (comboBox.Equals(materialComboBox_account_2))
+            {
                 materialSwitch_login_2.Tag = switchTag;
                 temp[1] = comboBox.SelectedIndex;
-            } else {
+            }
+            else
+            {
                 materialSwitch_login_3.Tag = switchTag;
                 temp[2] = comboBox.SelectedIndex;
             }
 
             ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, string.Join(';', temp));
 
-            if(Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
+            if (Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn)
+            {
                 Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
                 webView_main.CoreWebView2.Navigate(url_logout);
                 materialSwitch_login_1.CheckState = CheckState.Unchecked;
@@ -1065,16 +1249,20 @@ namespace GersangStation {
             }
         }
 
-        private void LoadAccountComboBox() {
+        private void LoadAccountComboBox()
+        {
             materialComboBox_account_1.Items.Clear();
             materialComboBox_account_2.Items.Clear();
             materialComboBox_account_3.Items.Clear();
 
             string temp = ConfigManager.getConfig("account_list");
             string[] accountList;
-            if(temp.Length != 0) {
+            if (temp.Length != 0)
+            {
                 accountList = temp.Remove(temp.Length - 1, 1).Split(';');
-            } else {
+            }
+            else
+            {
                 accountList = Array.Empty<string>();
             }
 
@@ -1082,9 +1270,10 @@ namespace GersangStation {
             materialComboBox_account_2.Items.Add("선택안함");
             materialComboBox_account_3.Items.Add("선택안함");
 
-            foreach(var item in accountList) {
+            foreach (var item in accountList)
+            {
                 string id = ConfigManager.getConfig(item + "_nickname");
-                if(id == "") id = item;
+                if (id == "") id = item;
                 materialComboBox_account_1.Items.Add(id);
                 materialComboBox_account_2.Items.Add(id);
                 materialComboBox_account_3.Items.Add(id);
@@ -1103,11 +1292,14 @@ namespace GersangStation {
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
             int[] index = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
 
-            try {
+            try
+            {
                 materialComboBox_account_1.SelectedIndex = index[0];
                 materialComboBox_account_2.SelectedIndex = index[1];
                 materialComboBox_account_3.SelectedIndex = index[2];
-            } catch(ArgumentOutOfRangeException) {
+            }
+            catch (ArgumentOutOfRangeException)
+            {
                 materialComboBox_account_1.SelectedIndex = 0;
                 materialComboBox_account_2.SelectedIndex = 0;
                 materialComboBox_account_3.SelectedIndex = 0;
@@ -1118,12 +1310,14 @@ namespace GersangStation {
             materialComboBox_account_3.Refresh();
         }
 
-        private void materialButton_debugging_Click(object sender, EventArgs e) {
+        private void materialButton_debugging_Click(object sender, EventArgs e)
+        {
 
             webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
 
             Form_Browser form = new Form_Browser(webView_main);
-            form.FormClosed += (sender, e) => {
+            form.FormClosed += (sender, e) =>
+            {
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
                 webView_main.CoreWebView2.Navigate(url_main);
                 form.Controls.Clear();
@@ -1133,7 +1327,8 @@ namespace GersangStation {
             form.Show();
         }
 
-        private void LoadShortcut() {
+        private void LoadShortcut()
+        {
             string[] names = ConfigManager.getConfig("shortcut_name").Split(';');
             materialButton_shortcut_1.Text = names[0];
             materialButton_shortcut_2.Text = names[1];
@@ -1141,12 +1336,14 @@ namespace GersangStation {
             materialButton_shortcut_4.Text = names[3];
         }
 
-        private void materialButton_naver_Click(object sender, EventArgs e) {
+        private void materialButton_naver_Click(object sender, EventArgs e)
+        {
             MaterialButton searchButton = (MaterialButton)sender;
             SearchClick(searchButton);
         }
 
-        private void SearchClick(MaterialButton searchButton) {
+        private void SearchClick(MaterialButton searchButton)
+        {
             // 검색 보상 이벤트가 더 이상 진행되지 않아 주석처리
             /*
             MaterialSwitch loginSwitch;
@@ -1161,11 +1358,13 @@ namespace GersangStation {
             */
         }
 
-        private void radio_preset_CheckedChanged(object sender, EventArgs e) {
+        private void radio_preset_CheckedChanged(object sender, EventArgs e)
+        {
             MaterialRadioButton radio = (MaterialRadioButton)sender;
-            if(radio.Checked == false) { return; }
+            if (radio.Checked == false) { return; }
             string? value = radio.Tag.ToString();
-            if(value == null) {
+            if (value == null)
+            {
                 MessageBox.Show("RadioButton의 Tag가 Null입니다.");
                 return;
             }
@@ -1174,9 +1373,11 @@ namespace GersangStation {
             LoadAccountComboBox();
         }
 
-        private void LoadRadioButton() {
+        private void LoadRadioButton()
+        {
             byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-            switch(current_preset) {
+            switch (current_preset)
+            {
                 case 1:
                     radio_preset_1.PerformClick();
                     break;
@@ -1195,18 +1396,24 @@ namespace GersangStation {
             }
         }
 
-        private void Form1_Resize(object sender, EventArgs e) {
+        private void Form1_Resize(object sender, EventArgs e)
+        {
             Trace.WriteLine("Form Resize! : " + this.WindowState);
-            if(this.WindowState == FormWindowState.Minimized) {
+            if (this.WindowState == FormWindowState.Minimized)
+            {
                 //this.WindowState = FormWindowState.Normal;
             }
         }
 
-        private async void Login(string id, string protected_pw) {
-            try {
+        private async void Login(string id, string protected_pw)
+        {
+            try
+            {
                 await webView_main.ExecuteScriptAsync("document.getElementById('GSuserID').value = '" + id + "'");
                 await webView_main.ExecuteScriptAsync("document.getElementById('GSuserPW').value = '" + EncryptionSupporter.Unprotect(protected_pw) + "'");
-            } catch(CryptographicException e) {
+            }
+            catch (CryptographicException e)
+            {
                 //사용자가 암호화된 패스워드가 포함된 설정파일을 타 PC로 복사 후 사용 시 발생하는 오류
                 Trace.WriteLine(e.Message);
                 MessageBox.Show("계정정보를 타 PC로 옮긴 것으로 확인되었습니다.\n계정 정보 유출 방지를 위해 모든 계정 정보를 초기화 합니다.", "패스워드 복호화 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -1220,10 +1427,12 @@ namespace GersangStation {
             currentState = State.LoggedIn;
         }
 
-        private void ClearAccount() {
+        private void ClearAccount()
+        {
             string temp = ConfigManager.getConfig("account_list");
             string[] account_list = temp.Remove(temp.Length - 1, 1).Split(';');
-            foreach(var item in account_list) {
+            foreach (var item in account_list)
+            {
                 ConfigManager.removeConfig(item);
                 ConfigManager.removeConfig(item + "_nickname");
             }
@@ -1236,77 +1445,131 @@ namespace GersangStation {
             LoadAccountComboBox();
         }
 
-        private void materialButton_setting_Click(object sender, EventArgs e) {
+        private void materialButton_setting_Click(object sender, EventArgs e)
+        {
             MaterialButton button = (MaterialButton)sender;
-            if(button.Equals(materialButton_setting_account)) {
+            if (button.Equals(materialButton_setting_account))
+            {
                 OpenAccountSettingDialog();
-            } else if(button.Equals(materialButton_setting_client)) {
+            }
+            else if (button.Equals(materialButton_setting_client))
+            {
                 OpenClientSettingDialog();
-            } else if(button.Equals(materialButton_setting_shortcut)) {
+            }
+            else if (button.Equals(materialButton_setting_shortcut))
+            {
                 OpenShortcuttSettingDialog();
             }
         }
 
-        private void OpenShortcuttSettingDialog() {
+        private void OpenShortcuttSettingDialog()
+        {
             Form backgroundForm = InitBackgroundForm(this);
 
-            Form_ShortcutSetting dialog_shortcutSetting = new Form_ShortcutSetting() {
+            Form_ShortcutSetting dialog_shortcutSetting = new Form_ShortcutSetting()
+            {
                 Owner = this
             };
 
-            try {
+            try
+            {
                 backgroundForm.Show();
                 dialog_shortcutSetting.ShowDialog();
                 LoadShortcut();
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(ex.StackTrace);
-            } finally {
+            }
+            finally
+            {
                 backgroundForm.Dispose();
             }
         }
 
-        private void OpenClientSettingDialog() {
+        private void OpenClientSettingDialog()
+        {
             Form backgroundForm = InitBackgroundForm(this);
 
-            Form_ClientSetting dialog_clientSetting = new Form_ClientSetting() {
+            Form_ClientSetting dialog_clientSetting = new Form_ClientSetting()
+            {
                 Owner = this
             };
 
-            try {
+            try
+            {
                 backgroundForm.Show();
                 dialog_clientSetting.ShowDialog();
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(ex.StackTrace);
-            } finally {
+            }
+            finally
+            {
                 backgroundForm.Dispose();
             }
         }
 
-        private void OpenAccountSettingDialog() {
+        private void OpenAccountSettingDialog()
+        {
             Form backgroundForm = InitBackgroundForm(this);
 
-            Form_AccountSetting dialog_accountSetting = new Form_AccountSetting() {
+            Form_AccountSetting dialog_accountSetting = new Form_AccountSetting()
+            {
                 Owner = this
             };
 
-            try {
+            try
+            {
                 backgroundForm.Show();
                 dialog_accountSetting.ShowDialog();
                 LoadAccountComboBox();
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(ex.StackTrace);
-            } finally {
+            }
+            finally
+            {
                 backgroundForm.Dispose();
             }
         }
 
-        private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
+        private void OpenIntegrityCheckDialog()
+        {
+            Form backgroundForm = InitBackgroundForm(this);
+
+            Form_IntegrityCheck dialog_integrityCheck = new Form_IntegrityCheck()
+            {
+                Owner = this
+            };
+
+            try
+            {
+                backgroundForm.Show();
+                dialog_integrityCheck.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex.StackTrace);
+            }
+            finally
+            {
+                backgroundForm.Dispose();
+            }
+        }
+
+        private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e)
+        {
             MaterialCheckbox checkbox = (MaterialCheckbox)sender;
             ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
         }
 
-        public static Form InitBackgroundForm(Form owner) {
-            Form backgroundForm = new Form() {
+        public static Form InitBackgroundForm(Form owner)
+        {
+            Form backgroundForm = new Form()
+            {
                 StartPosition = FormStartPosition.Manual,
                 FormBorderStyle = FormBorderStyle.None,
                 Opacity = .50d,
@@ -1320,19 +1583,23 @@ namespace GersangStation {
             return backgroundForm;
         }
 
-        private void materialButton_patchNote_Click(object sender, EventArgs e) {
+        private void materialButton_patchNote_Click(object sender, EventArgs e)
+        {
             Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
         }
 
-        private void materialButton_blog_Click(object sender, EventArgs e) {
+        private void materialButton_blog_Click(object sender, EventArgs e)
+        {
             Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
         }
 
-        private void materialButton_gitHub_Click(object sender, EventArgs e) {
+        private void materialButton_gitHub_Click(object sender, EventArgs e)
+        {
             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
         }
 
-        private void button_tray_Click(object sender, EventArgs e) {
+        private void button_tray_Click(object sender, EventArgs e)
+        {
             notifyIcon1.Visible = true;
             notifyIcon1.BalloonTipTitle = "알림";
             notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";
@@ -1340,78 +1607,109 @@ namespace GersangStation {
             this.Hide();
         }
 
-        private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
+        private void notifyIcon1_DoubleClick(object sender, EventArgs e)
+        {
             notifyIcon1.Visible = false;
             this.Show();
         }
 
-        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
             Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
         }
 
-        private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+        private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
             ToolStripItem item = e.ClickedItem;
-            if(item.Equals(toolStripMenuItem_open)) {
+            if (item.Equals(toolStripMenuItem_open))
+            {
                 notifyIcon1.Visible = false;
                 this.Show();
-            } else if(item.Equals(toolStripMenuItem_exit)) {
+            }
+            else if (item.Equals(toolStripMenuItem_exit))
+            {
                 System.Windows.Forms.Application.Exit();
             }
         }
 
-        private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+        private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
             ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
             ToolStripItem item = e.ClickedItem;
 
-            if(menuItem.Equals(toolStripMenuItem_client_1)) {
+            if (menuItem.Equals(toolStripMenuItem_client_1))
+            {
                 // if (item.Equals(toolStripMenuItem_search_1)) { SearchClick(materialButton_search_1); } // 검색 이벤트 종료
-                if(item.Equals(toolStripMenuItem_start_1)) { StartClick(materialButton_start_1); }
-            } else if(menuItem.Equals(toolStripMenuItem_client_2)) {
+                if (item.Equals(toolStripMenuItem_start_1)) { StartClick(materialButton_start_1); }
+            }
+            else if (menuItem.Equals(toolStripMenuItem_client_2))
+            {
                 // if (item.Equals(toolStripMenuItem_search_2)) { SearchClick(materialButton_search_2); } // 검색 이벤트 종료
-                if(item.Equals(toolStripMenuItem_start_2)) { StartClick(materialButton_start_2); }
-            } else if(menuItem.Equals(toolStripMenuItem_client_3)) {
+                if (item.Equals(toolStripMenuItem_start_2)) { StartClick(materialButton_start_2); }
+            }
+            else if (menuItem.Equals(toolStripMenuItem_client_3))
+            {
                 // if (item.Equals(toolStripMenuItem_search_3)) { SearchClick(materialButton_search_3); } // 검색 이벤트 종료
-                if(item.Equals(toolStripMenuItem_start_3)) { StartClick(materialButton_start_3); }
+                if (item.Equals(toolStripMenuItem_start_3)) { StartClick(materialButton_start_3); }
             }
         }
 
-        private void materialButton_license_Click(object sender, EventArgs e) {
+        private void materialButton_license_Click(object sender, EventArgs e)
+        {
             Form backgroundForm = InitBackgroundForm(this);
 
-            Form_License dialog_license = new Form_License() {
+            Form_License dialog_license = new Form_License()
+            {
                 Owner = this
             };
 
-            try {
+            try
+            {
                 backgroundForm.Show();
                 dialog_license.ShowDialog();
-            } catch(Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 Trace.WriteLine(ex.StackTrace);
-            } finally {
+            }
+            finally
+            {
                 backgroundForm.Dispose();
             }
         }
 
-        private void materialButton_sponsor_Click(object sender, EventArgs e) {
+        private void materialButton_sponsor_Click(object sender, EventArgs e)
+        {
             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/26") { UseShellExecute = true });
         }
 
-        private void materialButton_question_kakao_Click(object sender, EventArgs e) {
+        private void materialButton_question_kakao_Click(object sender, EventArgs e)
+        {
             Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
         }
 
-        private void materialButton_question_naver_Click(object sender, EventArgs e) {
+        private void materialButton_question_naver_Click(object sender, EventArgs e)
+        {
             Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
         }
 
-        private void materialCheckbox_mouseClip_CheckedChanged(object sender, EventArgs e) {
+        private void materialCheckbox_mouseClip_CheckedChanged(object sender, EventArgs e)
+        {
             ConfigManager.setConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
 
-            if(materialCheckbox_mouseClip.Checked == true) {
+            if (materialCheckbox_mouseClip.Checked == true)
+            {
                 ClipMouse.Run();
-            } else {
+            }
+            else
+            {
                 ClipMouse.Stop(false);
             }
+        }
+
+        private void materialButton1_Click(object sender, EventArgs e)
+        {
+            OpenIntegrityCheckDialog();
         }
     } //Form1
 } //namespace
