@@ -15,9 +15,13 @@ namespace GersangStation
 {
     public partial class Form_IntegrityCheck : MaterialForm
     {
+        Thread? checkThread = null;
+        Dictionary<string, string>? result = null;
+
         public Form_IntegrityCheck()
         {
             InitializeComponent();
+            ProgressLabel.Text = "";
         }
 
         private void Form_IntegrityCheck_Load(object sender, EventArgs e)
@@ -63,27 +67,35 @@ namespace GersangStation
                 }
 
                 IntegrityChecker? checker = IntegrityChecker.CreateIntegrityChecker(ClientPathTextBox.Text, Directory.GetCurrentDirectory() + @"\Temp");
-                checker.Run(out reportFileName);
-
-                MessageBox.Show($"유효성 검사를 완료하였습니다. \n\r 거상스테이션 아래의 {reportFileName}를 확인해주세요.");
-
+                checker.ProgressChanged += IntegrityCheckerEventHandler;
+                checkThread = new Thread(() => { result = checker.Run(out reportFileName); });
+                checkThread.Start();
             }
             catch (Exception except)
             {
                 MessageBox.Show(except.Message, "유효성 검사에 실패하였습니다", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            finally
+        }
+
+        private void IntegrityCheckerEventHandler(object sender, ProgressChangedEventArgs e)
+        {
+            ProgressLabel.Invoke((Action)(() => ProgressLabel.Text = e.UserState.ToString()));
+            progressBar.Invoke((Action)(() => progressBar.Value = e.ProgressPercentage));
+            if (e.ProgressPercentage == 100)
             {
+                Thread.Sleep(100);
+                //Enable all controls
+                materialButton1.Invoke((Action)(() => materialButton1.Enabled = true));
+                materialButton2.Invoke((Action)(() => materialButton2.Enabled = true));
+                materialButton2.Invoke((Action)(() => materialButton2.Text = "실행"));
+                
+                MessageBox.Show($"유효성 검사를 완료하였습니다.\r\n {result.Count}개의 파일이 다릅니다");
+
                 if (Directory.Exists(Directory.GetCurrentDirectory() + @"\Temp"))
                 {
                     Directory.Delete(Directory.GetCurrentDirectory() + @"\Temp", true);
                 }
             }
-
-            //Enable all controls
-            materialButton1.Enabled = true;
-            materialButton2.Enabled = true;
-            materialButton2.Text = "실행";
         }
 
         private void materialLabel1_Click(object sender, EventArgs e)

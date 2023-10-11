@@ -32,6 +32,8 @@
             materialButton1 = new MaterialSkin.Controls.MaterialButton();
             materialButton2 = new MaterialSkin.Controls.MaterialButton();
             StatusLabel = new MaterialSkin.Controls.MaterialLabel();
+            progressBar = new MaterialSkin.Controls.MaterialProgressBar();
+            ProgressLabel = new MaterialSkin.Controls.MaterialLabel();
             SuspendLayout();
             // 
             // ClientPathTextBox
@@ -119,13 +121,37 @@
             StatusLabel.TabIndex = 5;
             StatusLabel.Click += materialLabel1_Click;
             // 
+            // progressBar
+            // 
+            progressBar.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            progressBar.Depth = 0;
+            progressBar.Location = new Point(8, 402);
+            progressBar.MouseState = MaterialSkin.MouseState.HOVER;
+            progressBar.Name = "progressBar";
+            progressBar.Size = new Size(781, 5);
+            progressBar.TabIndex = 6;
+            // 
+            // ProgressLabel
+            // 
+            ProgressLabel.AutoSize = true;
+            ProgressLabel.Depth = 0;
+            ProgressLabel.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
+            ProgressLabel.Location = new Point(8, 340);
+            ProgressLabel.MouseState = MaterialSkin.MouseState.HOVER;
+            ProgressLabel.Name = "ProgressLabel";
+            ProgressLabel.Size = new Size(65, 18);
+            ProgressLabel.TabIndex = 7;
+            ProgressLabel.Text = "Progress";
+            // 
             // Form_IntegrityCheck
             // 
             AutoScaleDimensions = new SizeF(192F, 192F);
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            ClientSize = new Size(797, 341);
+            ClientSize = new Size(797, 445);
+            Controls.Add(ProgressLabel);
+            Controls.Add(progressBar);
             Controls.Add(StatusLabel);
             Controls.Add(materialButton2);
             Controls.Add(materialButton1);
@@ -148,5 +174,7 @@
         private MaterialSkin.Controls.MaterialButton materialButton1;
         private MaterialSkin.Controls.MaterialButton materialButton2;
         private MaterialSkin.Controls.MaterialLabel StatusLabel;
+        private MaterialSkin.Controls.MaterialProgressBar progressBar;
+        private MaterialSkin.Controls.MaterialLabel ProgressLabel;
     }
 }

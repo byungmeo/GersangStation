@@ -3,6 +3,7 @@ using Microsoft.VisualBasic.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,9 @@ using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using SharpCompress;
+using SharpCompress.Archives.SevenZip;
+using SharpCompress.Archives;
 
 namespace GersangStation.Modules
 {
@@ -41,6 +45,14 @@ namespace GersangStation.Modules
         private string _ClientPath = string.Empty;
         private string _TempPath = string.Empty;
         private bool _verbose = false;
+
+        public event EventHandler<ProgressChangedEventArgs> ? ProgressChanged;
+        int start = 0;
+        int localCheckEnd = 80;
+        int webCheckEnd = 90;
+        int diffCheckEnd = 100;
+        static long progressCounter = 0;
+
 
         private IntegrityChecker(string clientPath, string tempPath, bool verbose)
         {
@@ -445,38 +457,83 @@ namespace GersangStation.Modules
             return files;
         }
 
+        public async Task<string[]?> GetCRC32FromLocalFile(string path) {
+            try
+            {
+                if (!File.Exists(path)) {
+                    Interlocked.Add(ref progressCounter, 1);
+                    return null;
+                } 
+                System.IO.Hashing.Crc32 crc32 = new();
+                byte[] file = await File.ReadAllBytesAsync(path);
+                crc32.Append(file);
+
+                string[] result = { path, BitConverter.ToInt32(crc32.GetCurrentHash()).ToString("X") };
+                Interlocked.Add(ref progressCounter, 1);
+                return result;
+            }
+            catch
+            {
+                throw;
+            }
+            finally {
+            }
+        }
 
         //Input: Client Path
         //Output: key = Path, val = CRC32
         public Dictionary<string, string>? GetFullClientFileListFromLocal(string localClientPath)
         {
-            string SevenZipPath = Directory.GetCurrentDirectory() + _SevenZipPath;
-            string args = $"h \"{localClientPath}\" -bsp2";
-            string[] pathSplit = localClientPath.Split(@"\", StringSplitOptions.RemoveEmptyEntries);
+            var output = new Dictionary<string, string>();
+            progressCounter = 0;
 
-            ProcessStartInfo psi = new ProcessStartInfo();
-            psi.FileName = SevenZipPath;
-            psi.Arguments = args;
-            psi.RedirectStandardOutput = true;
-            psi.UseShellExecute = false;
+            string[] files = Directory.GetFiles(localClientPath, "*.*", SearchOption.AllDirectories);
 
-            Process? FullClientListCheckProcess = Process.Start(psi);
-            if (FullClientListCheckProcess == null)
+            List < Task<string[]?>> tasks = new List<Task<string[]?>>();
+            foreach (string file in files)
             {
-                throw new Exception("Failed to get 7zip process");
+                tasks.Add(Task.Run(() => GetCRC32FromLocalFile(file)));
             }
-            string FullClientListProcessOutput = FullClientListCheckProcess.StandardOutput.ReadToEnd();
-            return ParsingSevenZipHashValueCheckOutput(FullClientListProcessOutput, pathSplit[pathSplit.Length-1]);
+
+            Trace.WriteLine($"Run {tasks.Count} files");
+
+            int whileCount = 0;
+            while (whileCount < 3000) { //Wait 3000 = 300s = 5mins
+                long currCount = Interlocked.Read(ref progressCounter);
+                int currProgress = ((int)currCount * (localCheckEnd - start) / tasks.Count) + start;
+                Trace.WriteLine(currProgress);
+                if (currCount == tasks.Count) break;
+                if(ProgressChanged != null)
+                    ProgressChanged(this, new ProgressChangedEventArgs(currProgress, $"클라이언트의 파일을 읽어오는 중 입니다.  ({currCount} / {tasks.Count})"));
+                Thread.Sleep(100);
+                whileCount++;
+            }
+
+            Task.WaitAll(tasks.ToArray());
+            foreach (Task<string[]?> task in tasks) {
+                string[]? result = task.Result;
+                if (result != null) output.Add(result[0].Substring(localClientPath.Length+1), result[1]);
+            }
+            return output;
         }
 
 
-        public void Run(out string reportFileName) {
+        public Dictionary<string, string> Run(out string reportFileName) {
+            if(ProgressChanged != null)
+                ProgressChanged(this, new ProgressChangedEventArgs(start, "클라이언트의 파일을 읽어오는 중 입니다."));
+
             var localFiles = this.GetFullClientFileListFromLocal(_ClientPath);
             Trace.WriteLine($"In local, {localFiles.Count} files detected.");
+
+            if (ProgressChanged != null)
+                ProgressChanged(this, new ProgressChangedEventArgs(localCheckEnd, "서버로부터 파일을 가져오는 중 입니다."));
 
             int versionInfo = 0;
             var webFiles = this.GetFullClientFileListFromWeb(out versionInfo);
             Trace.WriteLine($"In web, {webFiles.Count} files detected.");
+
+            if (ProgressChanged != null)
+                ProgressChanged(this, new ProgressChangedEventArgs(webCheckEnd, "파일을 확인중입니다."));
 
             Dictionary<string, bool> excludedFiles = new Dictionary<string, bool>();
             string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + @"\Resources\IntegrityCheckExcludes.txt");
@@ -485,10 +542,12 @@ namespace GersangStation.Modules
                 excludedFiles.Add(line, true);
             }
 
-
             string report = "";
-
             //Local to Web check
+
+            if (ProgressChanged != null)
+                ProgressChanged(this, new ProgressChangedEventArgs(webCheckEnd, "파일을 확인중입니다."));
+
             report += ("== Check report ==") + System.Environment.NewLine;
             foreach (var file in localFiles)
             {
@@ -506,7 +565,11 @@ namespace GersangStation.Modules
                 {
                     report += ($"WARNING: File {file.Key} is not exist in web full client") + System.Environment.NewLine;
                 }
+                webFiles.Remove(file.Key);
             }
+
+            if (ProgressChanged != null)
+                ProgressChanged(this, new ProgressChangedEventArgs(95, "파일을 확인중입니다."));
 
             //Web to Local
             foreach (var file in webFiles)
@@ -527,10 +590,18 @@ namespace GersangStation.Modules
                     excludedFiles.Add(file.Key, false);
                 }
             }
+
+            Trace.WriteLine("Writing report files... ");
+
             string date = "" + DateTime.Now;
             date = date.Replace(":", "");
             reportFileName = Directory.GetCurrentDirectory() + @"\IntegrityReport_" + date + ".txt";
             File.WriteAllText(reportFileName, report);
+
+            Trace.WriteLine("Done");
+
+            if (ProgressChanged != null)
+                ProgressChanged(this, new ProgressChangedEventArgs(100, ""));
         }
     }
 }
