@@ -277,12 +277,20 @@ namespace GersangStation {
             Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
             Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
 
-            //¹öÀü ºñ±³
+            // 업데이트 알림
+            string msg = releases[0].Body;
+            if(msg.Contains("<!--DIALOG-->") && msg.Contains("<!--END-->")) {
+                // <!--DIALOG-->와 <!--END--> 사이의 내용만 가져옵니다.
+                int start = msg.IndexOf("<!--DIALOG-->") + "<!--DIALOG-->".Length + 2;
+                int end = msg.IndexOf("<!--END-->") - start;
+                msg = msg.Substring(start, end);
+            }
+            
             int versionComparison = localVersion.CompareTo(latestGitHubVersion);
             if(versionComparison < 0) {
                 Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
 
-                DialogResult dr = MessageBox.Show(releases[0].Body + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
+                DialogResult dr = MessageBox.Show(msg + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
                     "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
 
                 if(dr == DialogResult.Yes) {
