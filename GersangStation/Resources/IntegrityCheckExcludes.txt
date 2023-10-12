@@ -2609,4 +2609,3 @@ Online\Map\log.txt
 Online\CombineInfo.txt
 Online\ContentFavorites.dat
 Online\AKinteractive.cfg
-Online\VillageItem\*

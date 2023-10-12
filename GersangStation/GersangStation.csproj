@@ -62,6 +62,9 @@
 	  <None Update="Resources\IntegrityCheckExcludes.txt">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
+	  <None Update="Resources\IntegrityCheckExcludeFolders.txt">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
   </ItemGroup>
 
   <ItemGroup>

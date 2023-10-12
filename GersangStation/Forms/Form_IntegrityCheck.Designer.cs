@@ -189,7 +189,7 @@
             Name = "Form_IntegrityCheck";
             Padding = new Padding(5, 146, 5, 5);
             ShowInTaskbar = false;
-            Text = "클라이언트 유효성 검사";
+            Text = "클라이언트 유효성 검사 - 현재 본서버만 가능";
             TopMost = true;
             Load += Form_IntegrityCheck_Load;
             materialExpansionPanel1.ResumeLayout(false);

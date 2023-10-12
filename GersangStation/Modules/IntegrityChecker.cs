@@ -547,11 +547,25 @@ namespace GersangStation.Modules
                 ProgressChanged(this, new ProgressChangedEventArgs(webCheckEnd, "파일을 확인중입니다."));
 
             Dictionary<string, bool> excludedFiles = new Dictionary<string, bool>();
-            string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + @"\Resources\IntegrityCheckExcludes.txt");
-            foreach (var line in lines)
             {
-                excludedFiles.Add(line, true);
+                string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + @"\Resources\IntegrityCheckExcludes.txt");
+                foreach (var line in lines)
+                {
+                    if (line.Trim().Length == 0) continue;
+                    excludedFiles.Add(line, true);
+                }
             }
+
+            List<string> excludedFolders = new List<string>();
+            {
+                string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + @"\Resources\IntegrityCheckExcludeFolders.txt");
+                foreach (var line in lines)
+                {
+                    if (line.Trim().Length == 0) continue;
+                    excludedFolders.Add(line);
+                }
+            }
+
 
             string report = "";
             //Local to Web check
@@ -564,6 +578,15 @@ namespace GersangStation.Modules
             {
                 string? crc = null;
                 if (excludedFiles.ContainsKey(file.Key)) continue;
+                bool isInExcludedFolder = false;
+                foreach (var dir in excludedFolders) {
+                    if (file.Key.StartsWith(dir)) {
+                        isInExcludedFolder = true;
+                        break;
+                    }
+                }
+                if (isInExcludedFolder) continue;
+
                 if (webFiles.TryGetValue(file.Key, out crc))
                 {
                     if (Convert.ToInt32(crc, 16) != Convert.ToInt32(file.Value, 16))
@@ -588,6 +611,16 @@ namespace GersangStation.Modules
             {
                 string? crc = null;
                 if (excludedFiles.ContainsKey(file.Key)) continue;
+                bool isInExcludedFolder = false;
+                foreach (var dir in excludedFolders)
+                {
+                    if (file.Key.StartsWith(dir))
+                    {
+                        isInExcludedFolder = true;
+                        break;
+                    }
+                }
+                if (isInExcludedFolder) continue;
                 if (localFiles.TryGetValue(file.Key, out crc))
                 {
                     if (Convert.ToInt32(crc, 16) != Convert.ToInt32(file.Value, 16))
@@ -629,8 +662,9 @@ namespace GersangStation.Modules
                     detailReport += $"{item.Key}\r\n";
                 }
             }
+            Trace.WriteLine(detailReport);
 
-            MessageBox.Show(detailReport, "유효성 검사를 완료했습니다. \r\n자세히 보기를 참조해주세요.", MessageBoxButtons.YesNo);
+            MessageBox.Show("유효성 검사를 완료했습니다. \r\n자세히 보기를 참조해주세요.");
 
             Trace.WriteLine("Exit");
         }

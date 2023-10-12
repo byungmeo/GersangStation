@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,8 @@ namespace GersangStation
     {
         Thread? checkThread = null;
         Dictionary<string, string>? result = null;
+        private const string url_main = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
+        private const string url_main_patch = url_main + @"Client_Patch_File/"; // + "{경로}/{파일명.확장자}"
 
         public Form_IntegrityCheck()
         {
@@ -64,37 +67,88 @@ namespace GersangStation
 
         private void materialButton2_Click(object sender, EventArgs e)
         {
-            //Check path
-            if (!Directory.Exists(ClientPathTextBox.Text))
+            if (materialButton2.Text.Contains("복원"))
             {
-                MessageBox.Show("해당 폴더가 존재하지 않습니다.", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-
-            //Disable all controls
-            materialButton1.Enabled = false;
-            materialButton2.Enabled = false;
-            materialButton2.Text = "실행중";
-
-            string reportFileName = "";
-            //Run checker
-            try
-            {
+                checkThread = null;
                 if (Directory.Exists(Directory.GetCurrentDirectory() + @"\Temp"))
                 {
                     Directory.Delete(Directory.GetCurrentDirectory() + @"\Temp", true);
                 }
 
-                IntegrityChecker? checker = IntegrityChecker.CreateIntegrityChecker(ClientPathTextBox.Text, Directory.GetCurrentDirectory() + @"\Temp");
-                checker.ProgressChanged += IntegrityCheckerEventHandler;
-                result = new();
-                checkThread = new Thread(() => { checker.Run(out reportFileName, ref result); });
-                checkThread.Start();
+                //Restore mode
+                Dictionary<string, string> downloadItems = new();
+                foreach (var item in checkedListBox1.CheckedItems)
+                {
+                    string? currString = item.ToString();
+                    if (currString != null)
+                    {
+                        int ends = currString.IndexOf(">");
+                        int start = currString.IndexOf("<");
 
+                        currString = currString.Substring(start + 1, ends - (start + 1));
+
+                        string k = url_main_patch + currString.Replace(@"\", "/") + ".gsz";
+                        string v = Directory.GetCurrentDirectory() + @"\Temp\" + currString;
+                        downloadItems.Add(k, v);
+
+                        Trace.WriteLine(currString + "을 복원합니다");
+                    }
+                }
+
+                PatchFileDownloader downloader = new PatchFileDownloader();
+                bool isSucceeded = downloader.DownloadAll(downloadItems, true);
+                if (isSucceeded)
+                {
+                    string clientPath = ClientPathTextBox.Text;
+                    if (clientPath.EndsWith(@"\") == false)
+                    {
+                        clientPath += @"\";
+                    }
+
+                    downloader.ExtractAll(Directory.GetCurrentDirectory() + @"\Temp\", clientPath);
+                    materialButton2.Text = "완료";
+                    materialButton2.Enabled = false;
+                    materialExpansionPanel1.Hide();
+                    MessageBox.Show($"{downloadItems.Count}개의 파일을 복원했습니다");
+                }
+                else
+                {
+                    MessageBox.Show("거상 서버에서 해당 파일을 가져오지 못했습니다. 재설치를 권장합니다.");
+                }
             }
-            catch (Exception except)
+            else
             {
-                MessageBox.Show(except.Message, "유효성 검사에 실패하였습니다", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                //Check path
+                if (!Directory.Exists(ClientPathTextBox.Text))
+                {
+                    MessageBox.Show("해당 폴더가 존재하지 않습니다.", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                //Disable all controls
+                materialButton1.Enabled = false;
+                materialButton2.Enabled = false;
+                materialButton2.Text = "실행중";
+
+                string reportFileName = "";
+                //Run checker
+                try
+                {
+                    if (Directory.Exists(Directory.GetCurrentDirectory() + @"\Temp"))
+                    {
+                        Directory.Delete(Directory.GetCurrentDirectory() + @"\Temp", true);
+                    }
+
+                    IntegrityChecker? checker = IntegrityChecker.CreateIntegrityChecker(ClientPathTextBox.Text, Directory.GetCurrentDirectory() + @"\Temp");
+                    checker.ProgressChanged += IntegrityCheckerEventHandler;
+                    result = new();
+                    checkThread = new Thread(() => { checker.Run(out reportFileName, ref result); });
+                    checkThread.Start();
+                }
+                catch (Exception except)
+                {
+                    MessageBox.Show(except.Message, "유효성 검사에 실패하였습니다", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -115,7 +169,7 @@ namespace GersangStation
             {
                 foreach (var item in result)
                 {
-                    checkedListBox1.Invoke((Action)((() => checkedListBox1.Items.Add($"{item.Key.ReplaceLineEndings().Replace(Environment.NewLine, "")}{item.Value}", true))));
+                    checkedListBox1.Invoke((Action)((() => checkedListBox1.Items.Add($"<{item.Key.ReplaceLineEndings().Replace(Environment.NewLine, "")}>{item.Value}", CheckState.Checked))));
                 }
 
                 if (this.InvokeRequired)
@@ -125,7 +179,8 @@ namespace GersangStation
                         materialButton2.Invoke((Action)(() => materialButton2.Text = $"{result.Count}개의 파일 복원하기"));
                         materialButton2.Invoke((Action)(() => materialButton2.Enabled = true));
                     }
-                    else {
+                    else
+                    {
                         materialButton2.Invoke((Action)(() => materialButton2.Text = $"모든 파일이 일치합니다"));
                         materialButton2.Invoke((Action)(() => materialButton2.Enabled = false));
                     }
@@ -133,7 +188,16 @@ namespace GersangStation
                 }
                 else
                 {
-                    materialButton2.Text = "완료";
+                    if (result.Count > 0)
+                    {
+                        materialButton2.Text = $"{result.Count}개의 파일 복원하기";
+                        materialButton2.Enabled = true;
+                    }
+                    else
+                    {
+                        materialButton2.Text = $"모든 파일이 일치합니다";
+                        materialButton2.Enabled = false;
+                    }
                     materialExpansionPanel1.Show();
                 }
 
@@ -150,9 +214,18 @@ namespace GersangStation
         }
 
         private void checkedListBox1_ItemCheck(object sender, ItemCheckEventArgs e)
-        {            
-            materialButton2.Text = $"{checkedListBox1.Items.Count - checkedListBox1.CheckedItems.Count}개의 파일 복원하기";
-            if (checkedListBox1.Items.Count - checkedListBox1.CheckedItems.Count > 0)
+        {
+            int count = checkedListBox1.CheckedItems.Count;
+            if (e.NewValue == CheckState.Checked)
+            {
+                count++;
+            }
+            else
+            {
+                count--;
+            }
+            materialButton2.Text = $"{count}개의 파일 복원하기";
+            if (count > 0)
                 materialButton2.Enabled = true;
             else
                 materialButton2.Enabled = false;
