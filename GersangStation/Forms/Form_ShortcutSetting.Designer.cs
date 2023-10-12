@@ -252,6 +252,7 @@
             // 
             // materialButton_save
             // 
+            materialButton_save.AutoSize = false;
             materialButton_save.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             materialButton_save.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             materialButton_save.Depth = 0;
@@ -268,7 +269,7 @@
             materialButton_save.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             materialButton_save.UseAccentColor = false;
             materialButton_save.UseVisualStyleBackColor = true;
-            materialButton_save.Click += this.materialButton_save_Click;
+            materialButton_save.Click += materialButton_save_Click;
             // 
             // Form_ShortcutSetting
             // 

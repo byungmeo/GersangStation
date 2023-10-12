@@ -455,6 +455,7 @@
             // 
             // materialButton_save
             // 
+            materialButton_save.AutoSize = false;
             materialButton_save.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             materialButton_save.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             materialButton_save.Depth = 0;

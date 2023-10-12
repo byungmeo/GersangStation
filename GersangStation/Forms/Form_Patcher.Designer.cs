@@ -160,6 +160,7 @@
             // 
             // materialButton_startPatch
             // 
+            materialButton_startPatch.AutoSize = false;
             materialButton_startPatch.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             materialButton_startPatch.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             materialButton_startPatch.Depth = 0;
