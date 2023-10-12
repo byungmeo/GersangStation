@@ -3,40 +3,40 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Text;
 
-namespace GersangStation.Modules
-{
+namespace GersangStation.Modules {
     internal static class ConfigManager
     {
         public static Configuration configuration = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
 
         public static void Validation()
         {
-            Dictionary<string, string> keyValuePairs = new Dictionary<string, string>();
-            keyValuePairs.Add("current_preset", "1");
-            keyValuePairs.Add("account_list", "");
-            keyValuePairs.Add("current_comboBox_index_preset_1", "0;0;0");
-            keyValuePairs.Add("current_comboBox_index_preset_2", "0;0;0");
-            keyValuePairs.Add("current_comboBox_index_preset_3", "0;0;0");
-            keyValuePairs.Add("current_comboBox_index_preset_4", "0;0;0");
-            keyValuePairs.Add("is_test_server", "False");
-            keyValuePairs.Add("client_path_1", "");
-            keyValuePairs.Add("client_path_2", "");
-            keyValuePairs.Add("client_path_3", "");
-            keyValuePairs.Add("client_path_test_1", "");
-            keyValuePairs.Add("client_path_test_2", "");
-            keyValuePairs.Add("client_path_test_3", "");
-            keyValuePairs.Add("shortcut_name", "거상홈페이지;홈페이지2;홈페이지3;홈페이지4;");
-            keyValuePairs.Add("shortcut_1", "https://www.gersang.co.kr/main/index.gs");
-            keyValuePairs.Add("shortcut_2", "");
-            keyValuePairs.Add("shortcut_3", "");
-            keyValuePairs.Add("shortcut_4", "");
-            keyValuePairs.Add("directory_name_client_2", "Gersang2");
-            keyValuePairs.Add("directory_name_client_3", "Gersang3");
-            keyValuePairs.Add("directory_name_client_test_2", "GerTest2");
-            keyValuePairs.Add("directory_name_client_test_3", "GerTest3");
-            keyValuePairs.Add("is_auto_update", "True");
-            keyValuePairs.Add("prev_announcement", "");
-            keyValuePairs.Add("use_clip_mouse", "False");
+             Dictionary<string, string> keyValuePairs = new Dictionary<string, string> {
+                { "current_preset", "1" },
+                { "account_list", "" },
+                { "current_comboBox_index_preset_1", "0;0;0" },
+                { "current_comboBox_index_preset_2", "0;0;0" },
+                { "current_comboBox_index_preset_3", "0;0;0" },
+                { "current_comboBox_index_preset_4", "0;0;0" },
+                { "is_test_server", "False" },
+                { "client_path_1", "" },
+                { "client_path_2", "" },
+                { "client_path_3", "" },
+                { "client_path_test_1", "" },
+                { "client_path_test_2", "" },
+                { "client_path_test_3", "" },
+                { "shortcut_name", "거상홈페이지;홈페이지2;홈페이지3;홈페이지4;" },
+                { "shortcut_1", "https://www.gersang.co.kr/main/index.gs" },
+                { "shortcut_2", "" },
+                { "shortcut_3", "" },
+                { "shortcut_4", "" },
+                { "directory_name_client_2", "Gersang2" },
+                { "directory_name_client_3", "Gersang3" },
+                { "directory_name_client_test_2", "GerTest2" },
+                { "directory_name_client_test_3", "GerTest3" },
+                { "is_auto_update", "True" },
+                { "prev_announcement", "" },
+                { "use_clip_mouse", "False" }
+            };
 
             if (false == ExistsConfig())
             {
@@ -80,7 +80,9 @@ namespace GersangStation.Modules
                     {
                         //File경로와 File명을 모두 가지고 온다.
                         string fileFullPath = openFileDialog.FileName;
-                        System.IO.File.Copy(fileFullPath, Application.StartupPath + "\\GersangStation.dll.config", true);
+                        string destPath = Application.StartupPath + "\\GersangStation.dll.config";
+                        System.IO.File.Copy(fileFullPath, destPath, true);
+                        CheckKey(keyValuePairs);
                         return;
                     }
                 }
