@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using SharpCompress;
 using SharpCompress.Archives.SevenZip;
 using SharpCompress.Archives;
+using MaterialSkin.Controls;
 
 namespace GersangStation.Modules
 {
@@ -48,7 +49,7 @@ namespace GersangStation.Modules
 
         public event EventHandler<ProgressChangedEventArgs> ? ProgressChanged;
         int start = 0;
-        int localCheckEnd = 80;
+        int localCheckEnd = 60;
         int webCheckEnd = 90;
         int diffCheckEnd = 100;
         static long progressCounter = 0;
@@ -259,7 +260,7 @@ namespace GersangStation.Modules
                         fullPath = fullPath.Substring(1, fullPath.Length - 1);
 
                         string CRC = long.Parse(columns[6]).ToString("X");
-                        output.Add(fullPath, CRC);
+                        output.Add(fullPath.StartsWith("Korean")? fullPath.Replace("Korean", "korean") : fullPath , CRC);
                         Trace.WriteLine($"{fullPath} = {CRC}");
                     }
                     catch (Exception)
@@ -294,12 +295,19 @@ namespace GersangStation.Modules
                 foreach (var version in versions)
                 {
                     string ver = version.Split("]")[0];
-                    Trace.Write($"{ver} -> ");
-                    if (ver.Contains("패치") == false) continue;
+                    
+                    if(_verbose)
+                        Trace.Write($"{ver} -> ");
+                    if (ver.Contains("패치") == false) {
+                        if (_verbose)
+                            Trace.WriteLine("");
+                        continue;
+                    } 
                     try
                     {
                         string result = Regex.Replace(ver, @"[^0-9]", "");
-                        Trace.WriteLine(result);
+                        if (_verbose)
+                            Trace.WriteLine(result);
                         versionList.Add(int.Parse(result));
                     }
                     catch (Exception)
@@ -357,7 +365,7 @@ namespace GersangStation.Modules
                     continue; //Ignore size 0 or does not have CRC value
                 if (attr["Size"] == "0")
                     continue;
-                data.Add(attrs[0], attr["CRC"]);
+                data.Add(attrs[0].StartsWith("Korean") ? attrs[0].Replace("Korean", "korean") : attrs[0], attr["CRC"]);
             }
             return data;
         }
@@ -512,14 +520,17 @@ namespace GersangStation.Modules
             Task.WaitAll(tasks.ToArray());
             foreach (Task<string[]?> task in tasks) {
                 string[]? result = task.Result;
+                if (_verbose)
+                    Trace.WriteLine($"Path = {result[0].Substring(localClientPath.Length + 1)} \r\nCRC ={result[1]}");
                 if (result != null) output.Add(result[0].Substring(localClientPath.Length+1), result[1]);
             }
             return output;
         }
 
 
-        public Dictionary<string, string> Run(out string reportFileName) {
-            if(ProgressChanged != null)
+        public void Run(out string reportFileName, ref Dictionary<string, string> output) {
+            //Dictionary<string, string> output = new();
+            if (ProgressChanged != null)
                 ProgressChanged(this, new ProgressChangedEventArgs(start, "클라이언트의 파일을 읽어오는 중 입니다."));
 
             var localFiles = this.GetFullClientFileListFromLocal(_ClientPath);
@@ -557,6 +568,7 @@ namespace GersangStation.Modules
                 {
                     if (Convert.ToInt32(crc, 16) != Convert.ToInt32(file.Value, 16))
                     {
+                        output.Add(file.Key, " 파일이 일치하지 않습니다.");
                         report += ($"ERROR: File {file.Key} not match = web({crc}) local({file.Value})") + System.Environment.NewLine;
                     }
                     excludedFiles.Add(file.Key, false);
@@ -580,12 +592,14 @@ namespace GersangStation.Modules
                 {
                     if (Convert.ToInt32(crc, 16) != Convert.ToInt32(file.Value, 16))
                     {
+                        output.Add(file.Key, " 파일이 일치하지 않습니다.");
                         report += ($"ERROR: File {file.Key} not match = web({file.Value}) local({crc})") + System.Environment.NewLine;
                         excludedFiles.Add(file.Key, false);
                     }
                 }
                 else
                 {
+                    output.Add(file.Key, " 파일이 로컬 클라이언트에 존재하지 않습니다.");
                     report += ($"ERROR: File {file.Key} is not exist in local client") + System.Environment.NewLine;
                     excludedFiles.Add(file.Key, false);
                 }
@@ -599,9 +613,30 @@ namespace GersangStation.Modules
             File.WriteAllText(reportFileName, report);
 
             Trace.WriteLine("Done");
-
+            
             if (ProgressChanged != null)
                 ProgressChanged(this, new ProgressChangedEventArgs(100, ""));
+
+            string detailReport;
+            if (output.Count == 0)
+            {
+                detailReport = "모든 파일이 정상입니다.";
+            }
+            else {
+                detailReport = $"{output.Count}개의 파일이 다릅니다.\n\r\n\r";
+                foreach (var item in output)
+                {
+                    detailReport += $"{item.Key}\r\n";
+                }
+            }
+
+            MessageBox.Show(detailReport, "유효성 검사를 완료했습니다. \r\n자세히 보기를 참조해주세요.", MessageBoxButtons.YesNo);
+
+            Trace.WriteLine("Exit");
+        }
+
+        private void MessageBoxClicked(object sender, EventArgs e) { 
+        
         }
     }
 }

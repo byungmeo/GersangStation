@@ -21,8 +21,27 @@ namespace GersangStation
         public Form_IntegrityCheck()
         {
             InitializeComponent();
-            ProgressLabel.Text = "";
+            this.FormClosing += Form_IntegrityCheck_FormClosing;
+            this.FormClosed += Form_IntegrityCheck_FormClosed;
+            materialExpansionPanel1.Hide();
         }
+
+        private void Form_IntegrityCheck_FormClosed(object? sender, FormClosedEventArgs e)
+        {
+            if (sender != this) return;
+            if (checkThread != null)
+            {
+            }
+        }
+
+        private void Form_IntegrityCheck_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            if (sender != this || checkThread == null) return;
+            if (checkThread.IsAlive == false) return;
+            DialogResult dr = MessageBox.Show("유효성 검사 중에는 중단할 수 없습니다.", "", MessageBoxButtons.OK);
+            e.Cancel = true;
+        }
+
 
         private void Form_IntegrityCheck_Load(object sender, EventArgs e)
         {
@@ -68,8 +87,10 @@ namespace GersangStation
 
                 IntegrityChecker? checker = IntegrityChecker.CreateIntegrityChecker(ClientPathTextBox.Text, Directory.GetCurrentDirectory() + @"\Temp");
                 checker.ProgressChanged += IntegrityCheckerEventHandler;
-                checkThread = new Thread(() => { result = checker.Run(out reportFileName); });
+                result = new();
+                checkThread = new Thread(() => { checker.Run(out reportFileName, ref result); });
                 checkThread.Start();
+
             }
             catch (Exception except)
             {
@@ -79,17 +100,42 @@ namespace GersangStation
 
         private void IntegrityCheckerEventHandler(object sender, ProgressChangedEventArgs e)
         {
-            ProgressLabel.Invoke((Action)(() => ProgressLabel.Text = e.UserState.ToString()));
-            progressBar.Invoke((Action)(() => progressBar.Value = e.ProgressPercentage));
+            if (this.InvokeRequired)
+            {
+                materialButton2.Invoke((Action)(() => materialButton2.Text = e.UserState.ToString()));
+                progressBar.Invoke((Action)(() => progressBar.Value = e.ProgressPercentage));
+            }
+            else
+            {
+                materialButton2.Text = e.UserState.ToString();
+                progressBar.Value = e.ProgressPercentage;
+            }
+
             if (e.ProgressPercentage == 100)
             {
-                Thread.Sleep(100);
-                //Enable all controls
-                materialButton1.Invoke((Action)(() => materialButton1.Enabled = true));
-                materialButton2.Invoke((Action)(() => materialButton2.Enabled = true));
-                materialButton2.Invoke((Action)(() => materialButton2.Text = "실행"));
-                
-                MessageBox.Show($"유효성 검사를 완료하였습니다.\r\n {result.Count}개의 파일이 다릅니다");
+                foreach (var item in result)
+                {
+                    checkedListBox1.Invoke((Action)((() => checkedListBox1.Items.Add($"{item.Key.ReplaceLineEndings().Replace(Environment.NewLine, "")}{item.Value}", true))));
+                }
+
+                if (this.InvokeRequired)
+                {
+                    if (result.Count > 0)
+                    {
+                        materialButton2.Invoke((Action)(() => materialButton2.Text = $"{result.Count}개의 파일 복원하기"));
+                        materialButton2.Invoke((Action)(() => materialButton2.Enabled = true));
+                    }
+                    else {
+                        materialButton2.Invoke((Action)(() => materialButton2.Text = $"모든 파일이 일치합니다"));
+                        materialButton2.Invoke((Action)(() => materialButton2.Enabled = false));
+                    }
+                    materialExpansionPanel1.Invoke((Action)((() => materialExpansionPanel1.Show())));
+                }
+                else
+                {
+                    materialButton2.Text = "완료";
+                    materialExpansionPanel1.Show();
+                }
 
                 if (Directory.Exists(Directory.GetCurrentDirectory() + @"\Temp"))
                 {
@@ -101,6 +147,15 @@ namespace GersangStation
         private void materialLabel1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void checkedListBox1_ItemCheck(object sender, ItemCheckEventArgs e)
+        {            
+            materialButton2.Text = $"{checkedListBox1.Items.Count - checkedListBox1.CheckedItems.Count}개의 파일 복원하기";
+            if (checkedListBox1.Items.Count - checkedListBox1.CheckedItems.Count > 0)
+                materialButton2.Enabled = true;
+            else
+                materialButton2.Enabled = false;
         }
     }
 }
