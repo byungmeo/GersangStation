@@ -1,26 +1,11 @@
-﻿using Microsoft.VisualBasic.Devices;
-using Microsoft.VisualBasic.Logging;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Runtime.ConstrainedExecution;
-using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using SharpCompress;
-using SharpCompress.Archives.SevenZip;
-using SharpCompress.Archives;
-using MaterialSkin.Controls;
 
-namespace GersangStation.Modules
-{
+namespace GersangStation.Modules {
 
     internal struct FullClientInfo
     {
