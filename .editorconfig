@@ -2,3 +2,134 @@
 
 # CS8602: null 가능 참조에 대한 역참조입니다.
 dotnet_diagnostic.CS8602.severity = silent
+
+[*.cs]
+#### 명명 스타일 ####
+
+# 명명 규칙
+
+dotnet_naming_rule.interface_should_be_begins_with_i.severity = suggestion
+dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
+dotnet_naming_rule.interface_should_be_begins_with_i.style = begins_with_i
+
+dotnet_naming_rule.types_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.types_should_be_pascal_case.symbols = types
+dotnet_naming_rule.types_should_be_pascal_case.style = pascal_case
+
+dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
+dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
+
+# 기호 사양
+
+dotnet_naming_symbols.interface.applicable_kinds = interface
+dotnet_naming_symbols.interface.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.interface.required_modifiers = 
+
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
+dotnet_naming_symbols.types.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.types.required_modifiers = 
+
+dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
+dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
+dotnet_naming_symbols.non_field_members.required_modifiers = 
+
+# 명명 스타일
+
+dotnet_naming_style.begins_with_i.required_prefix = I
+dotnet_naming_style.begins_with_i.required_suffix = 
+dotnet_naming_style.begins_with_i.word_separator = 
+dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+dotnet_naming_style.pascal_case.required_prefix = 
+dotnet_naming_style.pascal_case.required_suffix = 
+dotnet_naming_style.pascal_case.word_separator = 
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+dotnet_naming_style.pascal_case.required_prefix = 
+dotnet_naming_style.pascal_case.required_suffix = 
+dotnet_naming_style.pascal_case.word_separator = 
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+csharp_using_directive_placement = outside_namespace:silent
+csharp_style_conditional_delegate_call = true:suggestion
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = false:silent
+csharp_style_var_elsewhere = false:silent
+csharp_style_allow_embedded_statements_on_same_line_experimental = true:silent
+csharp_style_allow_blank_lines_between_consecutive_braces_experimental = true:silent
+csharp_style_allow_blank_line_after_colon_in_constructor_initializer_experimental = true:silent
+csharp_style_allow_blank_line_after_token_in_conditional_expression_experimental = true:silent
+csharp_style_allow_blank_line_after_token_in_arrow_expression_clause_experimental = true:silent
+csharp_style_expression_bodied_methods = false:silent
+csharp_style_expression_bodied_constructors = false:silent
+csharp_style_expression_bodied_operators = false:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_accessors = true:silent
+csharp_space_around_binary_operators = before_and_after
+csharp_indent_labels = one_less_than_current
+
+[*.vb]
+#### 명명 스타일 ####
+
+# 명명 규칙
+
+dotnet_naming_rule.interface_should_be_i로_시작.severity = suggestion
+dotnet_naming_rule.interface_should_be_i로_시작.symbols = interface
+dotnet_naming_rule.interface_should_be_i로_시작.style = i로_시작
+
+dotnet_naming_rule.형식_should_be_파스칼식_대_소문자.severity = suggestion
+dotnet_naming_rule.형식_should_be_파스칼식_대_소문자.symbols = 형식
+dotnet_naming_rule.형식_should_be_파스칼식_대_소문자.style = 파스칼식_대_소문자
+
+dotnet_naming_rule.필드가_아닌_멤버_should_be_파스칼식_대_소문자.severity = suggestion
+dotnet_naming_rule.필드가_아닌_멤버_should_be_파스칼식_대_소문자.symbols = 필드가_아닌_멤버
+dotnet_naming_rule.필드가_아닌_멤버_should_be_파스칼식_대_소문자.style = 파스칼식_대_소문자
+
+# 기호 사양
+
+dotnet_naming_symbols.interface.applicable_kinds = interface
+dotnet_naming_symbols.interface.applicable_accessibilities = public, friend, private, protected, protected_friend, private_protected
+dotnet_naming_symbols.interface.required_modifiers = 
+
+dotnet_naming_symbols.형식.applicable_kinds = class, struct, interface, enum
+dotnet_naming_symbols.형식.applicable_accessibilities = public, friend, private, protected, protected_friend, private_protected
+dotnet_naming_symbols.형식.required_modifiers = 
+
+dotnet_naming_symbols.필드가_아닌_멤버.applicable_kinds = property, event, method
+dotnet_naming_symbols.필드가_아닌_멤버.applicable_accessibilities = public, friend, private, protected, protected_friend, private_protected
+dotnet_naming_symbols.필드가_아닌_멤버.required_modifiers = 
+
+# 명명 스타일
+
+dotnet_naming_style.i로_시작.required_prefix = I
+dotnet_naming_style.i로_시작.required_suffix = 
+dotnet_naming_style.i로_시작.word_separator = 
+dotnet_naming_style.i로_시작.capitalization = pascal_case
+
+dotnet_naming_style.파스칼식_대_소문자.required_prefix = 
+dotnet_naming_style.파스칼식_대_소문자.required_suffix = 
+dotnet_naming_style.파스칼식_대_소문자.word_separator = 
+dotnet_naming_style.파스칼식_대_소문자.capitalization = pascal_case
+
+dotnet_naming_style.파스칼식_대_소문자.required_prefix = 
+dotnet_naming_style.파스칼식_대_소문자.required_suffix = 
+dotnet_naming_style.파스칼식_대_소문자.word_separator = 
+dotnet_naming_style.파스칼식_대_소문자.capitalization = pascal_case
+
+[*.{cs,vb}]
+dotnet_style_qualification_for_field = false:silent
+dotnet_style_qualification_for_property = false:silent
+dotnet_style_qualification_for_method = false:silent
+dotnet_style_qualification_for_event = false:silent
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity:silent
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary:silent
+dotnet_code_quality_unused_parameters = all:suggestion
+dotnet_style_allow_multiple_blank_lines_experimental = true:silent
+dotnet_style_allow_statement_immediately_after_block_experimental = true:silent
+tab_width = 4
+indent_size = 4
+end_of_line = crlf
+dotnet_style_operator_placement_when_wrapping = beginning_of_line
