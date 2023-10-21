@@ -266,7 +266,12 @@ namespace GersangStation {
             string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
             Trace.WriteLine(version_current);
 
-            string version_latest = releases[0].TagName;
+            int ver_idx;
+            for(ver_idx = 0; ver_idx < releases.Count; ++ver_idx) {
+                if(releases[ver_idx].Prerelease == false) break;
+            }
+            Release release = releases[ver_idx];
+            string version_latest = release.TagName;
             label_version_current.Text = label_version_current.Text.Replace("0.0.0", version_current);
             label_version_latest.Text = label_version_latest.Text.Replace("0.0.0", version_latest);
 
@@ -278,7 +283,7 @@ namespace GersangStation {
             Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
 
             // 업데이트 알림
-            string msg = releases[0].Body;
+            string msg = release.Body;
             if(msg.Contains("<!--DIALOG-->") && msg.Contains("<!--END-->")) {
                 // <!--DIALOG-->와 <!--END--> 사이의 내용만 가져옵니다.
                 int start = msg.IndexOf("<!--DIALOG-->") + "<!--DIALOG-->".Length + 2;
