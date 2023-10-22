@@ -98,9 +98,19 @@ namespace GersangStation {
                 Dock = DockStyle.Fill,
             };
             webView_main.CoreWebView2InitializationCompleted += webView_main_CoreWebView2InitializationCompleted;
+
             var path = Path.Combine(Path.GetTempPath(), $"{Environment.UserName}");
-            var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
-            await webView_main.EnsureCoreWebView2Async(env);
+            try {
+                var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
+                await webView_main.EnsureCoreWebView2Async(env);
+            } catch(WebView2RuntimeNotFoundException ex) {
+                DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                if(dr == DialogResult.Yes) {
+                    Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
+                }
+                System.Windows.Forms.Application.Exit();
+                return;
+            }
         }
 
         // EnsureCoreWebView2Async의 결과값이 null이 아니라면 CoreWebView2 초기화가 완료되기 직전 이 이벤트가 발생합니다.
