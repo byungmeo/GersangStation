@@ -61,6 +61,22 @@ namespace GersangStation.Modules {
             return RegisterHotKey(hWnd, GetHotKeyId(), 0 /*Prevent duplicated alarm*/, (int)key);
         }
 
+        public static bool RegisterHotKey(IntPtr hWnd, string keyConfigVal) {
+            if(keyConfigVal.Contains(',')) {
+                string[] comb = keyConfigVal.Split(','); // ex: "Ctrl,122"
+                string modStr = comb[0];
+                int mod = 0;
+                int key = int.Parse(comb[1]);
+                if(modStr == "Ctrl") mod = 0x0002;
+                else if(modStr == "Alt") mod = 0x0001;
+                else if(modStr == "Shift") mod = 0x0004;
+
+                return RegisterHotKey(hWnd, GetHotKeyId(), mod | 0x4000, key);
+            } else {
+                return RegisterHotKey(hWnd, (Keys)int.Parse(keyConfigVal));
+            }
+        }
+
         public static bool UnregisterHotKey(IntPtr hWnd)
         {
             return UnregisterHotKey(hWnd, GetHotKeyId());
@@ -201,9 +217,12 @@ namespace GersangStation.Modules {
                 //Trace.WriteLine(escapeArea);
                 //Trace.WriteLine(escapeCount);
 
-                if (!escapeArea.IsPointInRectangle(pt) && Control.ModifierKeys == Keys.Alt)
+                if (!escapeArea.IsPointInRectangle(pt))
                 {
-                    escapeCount++;
+                    // Alt 키를 누르고 있으면서 비활성화 단축키 기능을 활성화 한 경우
+                    if(Control.ModifierKeys == Keys.Alt && bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"))) {
+                        escapeCount++;
+                    }
                 }
                 else
                 {

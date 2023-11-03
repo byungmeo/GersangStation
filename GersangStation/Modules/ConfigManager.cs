@@ -2,6 +2,7 @@
 using System.Configuration;
 using System.Diagnostics;
 using System.Text;
+using System.Windows.Forms;
 
 namespace GersangStation.Modules {
     internal static class ConfigManager
@@ -35,7 +36,10 @@ namespace GersangStation.Modules {
                 { "directory_name_client_test_3", "GerTest3" },
                 { "is_auto_update", "True" },
                 { "prev_announcement", "" },
-                { "use_clip_mouse", "False" }
+                { "use_clip_mouse", "False" },
+                { "use_clip_disable_hotkey", "True" }, // Alt 키 고정
+                { "use_clip_toggle_hotkey", "False" },
+                { "clip_toggle_hotkey", "122" }, // Keys::F11
             };
 
             if (false == ExistsConfig())

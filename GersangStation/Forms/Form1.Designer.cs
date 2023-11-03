@@ -57,7 +57,14 @@
             radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
             radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
             tabPage_extension = new TabPage();
-            img_help = new PictureBox();
+            img_help_integrity = new PictureBox();
+            materialButton1 = new MaterialSkin.Controls.MaterialButton();
+            checkBox_onlyFirstClip = new CheckBox();
+            label1 = new Label();
+            checkBox_clipDisableHotKey = new CheckBox();
+            checkBox_clipToggleHotKey = new CheckBox();
+            textBox_clipToggleHotKey = new TextBox();
+            img_help_clip = new PictureBox();
             materialCheckbox_mouseClip = new MaterialSkin.Controls.MaterialCheckbox();
             tabPage_settings = new TabPage();
             materialButton_setting_shortcut = new MaterialSkin.Controls.MaterialButton();
@@ -104,7 +111,8 @@
             tabPage_home.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
             tabPage_extension.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)img_help).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)img_help_integrity).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)img_help_clip).BeginInit();
             tabPage_settings.SuspendLayout();
             tabPage_help.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox3).BeginInit();
@@ -659,7 +667,14 @@
             // tabPage_extension
             // 
             tabPage_extension.BackColor = Color.White;
-            tabPage_extension.Controls.Add(img_help);
+            tabPage_extension.Controls.Add(img_help_integrity);
+            tabPage_extension.Controls.Add(materialButton1);
+            tabPage_extension.Controls.Add(checkBox_onlyFirstClip);
+            tabPage_extension.Controls.Add(label1);
+            tabPage_extension.Controls.Add(checkBox_clipDisableHotKey);
+            tabPage_extension.Controls.Add(checkBox_clipToggleHotKey);
+            tabPage_extension.Controls.Add(textBox_clipToggleHotKey);
+            tabPage_extension.Controls.Add(img_help_clip);
             tabPage_extension.Controls.Add(materialCheckbox_mouseClip);
             tabPage_extension.ImageKey = "extension.png";
             tabPage_extension.Location = new Point(4, 31);
@@ -668,21 +683,106 @@
             tabPage_extension.TabIndex = 6;
             tabPage_extension.Text = "추가기능";
             // 
-            // img_help
+            // img_help_integrity
             // 
-            img_help.Image = (Image)resources.GetObject("img_help.Image");
-            img_help.Location = new Point(244, 112);
-            img_help.Name = "img_help";
-            img_help.Size = new Size(20, 20);
-            img_help.SizeMode = PictureBoxSizeMode.StretchImage;
-            img_help.TabIndex = 6;
-            img_help.TabStop = false;
+            img_help_integrity.Image = (Image)resources.GetObject("img_help_integrity.Image");
+            img_help_integrity.Location = new Point(152, 200);
+            img_help_integrity.Name = "img_help_integrity";
+            img_help_integrity.Size = new Size(20, 20);
+            img_help_integrity.SizeMode = PictureBoxSizeMode.StretchImage;
+            img_help_integrity.TabIndex = 10;
+            img_help_integrity.TabStop = false;
+            // 
+            // materialButton1
+            // 
+            materialButton1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton1.Depth = 0;
+            materialButton1.HighEmphasis = true;
+            materialButton1.Icon = null;
+            materialButton1.Location = new Point(24, 192);
+            materialButton1.Margin = new Padding(4, 6, 4, 6);
+            materialButton1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton1.Name = "materialButton1";
+            materialButton1.NoAccentTextColor = Color.Empty;
+            materialButton1.Size = new Size(123, 36);
+            materialButton1.TabIndex = 9;
+            materialButton1.Text = "거상 무결성 확인";
+            materialButton1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton1.UseAccentColor = false;
+            materialButton1.UseVisualStyleBackColor = true;
+            // 
+            // checkBox_onlyFirstClip
+            // 
+            checkBox_onlyFirstClip.AutoSize = true;
+            checkBox_onlyFirstClip.Enabled = false;
+            checkBox_onlyFirstClip.Location = new Point(40, 96);
+            checkBox_onlyFirstClip.Name = "checkBox_onlyFirstClip";
+            checkBox_onlyFirstClip.Size = new Size(238, 19);
+            checkBox_onlyFirstClip.TabIndex = 8;
+            checkBox_onlyFirstClip.Text = "처음으로 누른 거상 창만 마우스 가두기";
+            checkBox_onlyFirstClip.UseVisualStyleBackColor = true;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.ForeColor = Color.Red;
+            label1.Location = new Point(40, 120);
+            label1.Name = "label1";
+            label1.Size = new Size(249, 45);
+            label1.TabIndex = 7;
+            label1.Text = "※ 보안 문제로 거상 창이 활성화된 상태에서 \r\n    ON / OFF 단축키 사용은 불가능합니다.\r\n    (일시 해제 단축키 사용 권장)";
+            // 
+            // checkBox_clipDisableHotKey
+            // 
+            checkBox_clipDisableHotKey.AutoSize = true;
+            checkBox_clipDisableHotKey.Enabled = false;
+            checkBox_clipDisableHotKey.Location = new Point(40, 48);
+            checkBox_clipDisableHotKey.Name = "checkBox_clipDisableHotKey";
+            checkBox_clipDisableHotKey.Size = new Size(213, 19);
+            checkBox_clipDisableHotKey.TabIndex = 3;
+            checkBox_clipDisableHotKey.Text = "일시 해제 단축키 사용 (Alt키 고정)";
+            checkBox_clipDisableHotKey.UseVisualStyleBackColor = true;
+            checkBox_clipDisableHotKey.CheckedChanged += checkBox_clipDisableHotKey_CheckedChanged;
+            // 
+            // checkBox_clipToggleHotKey
+            // 
+            checkBox_clipToggleHotKey.AutoSize = true;
+            checkBox_clipToggleHotKey.Enabled = false;
+            checkBox_clipToggleHotKey.Location = new Point(40, 72);
+            checkBox_clipToggleHotKey.Name = "checkBox_clipToggleHotKey";
+            checkBox_clipToggleHotKey.Size = new Size(210, 19);
+            checkBox_clipToggleHotKey.TabIndex = 1;
+            checkBox_clipToggleHotKey.Text = "ON / OFF 단축키 사용 (조합 가능)";
+            checkBox_clipToggleHotKey.UseVisualStyleBackColor = true;
+            checkBox_clipToggleHotKey.CheckedChanged += checkBox_clipToggleHotKey_CheckedChanged;
+            // 
+            // textBox_clipToggleHotKey
+            // 
+            textBox_clipToggleHotKey.Enabled = false;
+            textBox_clipToggleHotKey.Location = new Point(256, 69);
+            textBox_clipToggleHotKey.Name = "textBox_clipToggleHotKey";
+            textBox_clipToggleHotKey.ReadOnly = true;
+            textBox_clipToggleHotKey.Size = new Size(80, 23);
+            textBox_clipToggleHotKey.TabIndex = 2;
+            textBox_clipToggleHotKey.TextAlign = HorizontalAlignment.Center;
+            textBox_clipToggleHotKey.KeyDown += textBox_hotKey_KeyDown;
+            // 
+            // img_help_clip
+            // 
+            img_help_clip.Image = (Image)resources.GetObject("img_help_clip.Image");
+            img_help_clip.Location = new Point(181, 17);
+            img_help_clip.Name = "img_help_clip";
+            img_help_clip.Size = new Size(20, 20);
+            img_help_clip.SizeMode = PictureBoxSizeMode.StretchImage;
+            img_help_clip.TabIndex = 6;
+            img_help_clip.TabStop = false;
             // 
             // materialCheckbox_mouseClip
             // 
             materialCheckbox_mouseClip.AutoSize = true;
             materialCheckbox_mouseClip.Depth = 0;
-            materialCheckbox_mouseClip.Location = new Point(79, 103);
+            materialCheckbox_mouseClip.Location = new Point(16, 8);
             materialCheckbox_mouseClip.Margin = new Padding(0);
             materialCheckbox_mouseClip.MouseLocation = new Point(-1, -1);
             materialCheckbox_mouseClip.MouseState = MaterialSkin.MouseState.HOVER;
@@ -1222,7 +1322,8 @@
             ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
             tabPage_extension.ResumeLayout(false);
             tabPage_extension.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)img_help).EndInit();
+            ((System.ComponentModel.ISupportInitialize)img_help_integrity).EndInit();
+            ((System.ComponentModel.ISupportInitialize)img_help_clip).EndInit();
             tabPage_settings.ResumeLayout(false);
             tabPage_settings.PerformLayout();
             tabPage_help.ResumeLayout(false);
@@ -1304,7 +1405,14 @@
         private MaterialSkin.Controls.MaterialLabel materialLabel3;
         private MaterialSkin.Controls.MaterialLabel materialLabel2;
         private TabPage tabPage_extension;
-        private PictureBox img_help;
+        private PictureBox img_help_clip;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_mouseClip;
+        private TextBox textBox_clipToggleHotKey;
+        private CheckBox checkBox_clipDisableHotKey;
+        private CheckBox checkBox_clipToggleHotKey;
+        private Label label1;
+        private MaterialSkin.Controls.MaterialButton materialButton1;
+        private CheckBox checkBox_onlyFirstClip;
+        private PictureBox img_help_integrity;
     }
 }
