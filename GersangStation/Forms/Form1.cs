@@ -157,6 +157,9 @@ namespace GersangStation {
             SetToolTip();
             CheckAccount();
 
+#if DEBUG
+            linkLabel_announcement.Text = "디버그 모드";
+#else
             // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
             try {
                 GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
@@ -173,7 +176,7 @@ namespace GersangStation {
                 MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
                 Trace.WriteLine(ex.Message);
             }
-
+#endif
             //ClipMouse implementation
             ClipMouse.icon = notifyIcon2;
             ClipMouse.RegisterHotKey(this.Handle, Keys.F11);
@@ -300,7 +303,7 @@ namespace GersangStation {
                 int end = msg.IndexOf("<!--END-->") - start;
                 msg = msg.Substring(start, end);
             }
-            
+
             int versionComparison = localVersion.CompareTo(latestGitHubVersion);
             if(versionComparison < 0) {
                 Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
