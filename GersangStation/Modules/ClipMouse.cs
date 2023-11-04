@@ -127,8 +127,8 @@ namespace GersangStation.Modules {
 
         private static void main_thread(CancellationToken token)
         {
-
             Trace.WriteLine("ClipMouse main started");
+            bool isClipping = false; // 거상이 아닌 다른 프로세스의 마우스 가두기를 방해하는 것을 막기 위한 flag
             bool selectedWindowHadFocus = false;
             int validateHandleCount = 0;
             int escapeCount = 0;
@@ -162,7 +162,10 @@ namespace GersangStation.Modules {
 
                 if (currentWindowsHandle == IntPtr.Zero)
                 { //Current foreground is not Gersang.
-                    ClipCursor(IntPtr.Zero); //Clear clip cursor
+                    if(isClipping) {
+                        ClipCursor(IntPtr.Zero); //Clear clip cursor
+                        isClipping = false;
+                    }
                     Thread.Sleep(ClippingRefreshInterval); //Wait next thread interval
                     continue;
                 }
@@ -217,12 +220,11 @@ namespace GersangStation.Modules {
                 }
                 else if (windowArea_original.IsPointInRectangle(pt))
                 {
-                    if (ClipCursor(ref windowArea) == 0)
-                    {
+                    if(ClipCursor(ref windowArea) == 0) {
                         throw new Win32Exception(
                             Marshal.GetLastWin32Error(),
                             string.Format("Clip cursor win32 error. windowArea {0:s}", windowArea.ToString()));
-                    }
+                    } else isClipping = true;
 
                     selectedWindowHadFocus = true;
 

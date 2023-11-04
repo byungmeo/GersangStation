@@ -112,9 +112,19 @@ namespace GersangStation
                 Dock = DockStyle.Fill,
             };
             webView_main.CoreWebView2InitializationCompleted += webView_main_CoreWebView2InitializationCompleted;
+
             var path = Path.Combine(Path.GetTempPath(), $"{Environment.UserName}");
-            var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
-            await webView_main.EnsureCoreWebView2Async(env);
+            try {
+                var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
+                await webView_main.EnsureCoreWebView2Async(env);
+            } catch(WebView2RuntimeNotFoundException ex) {
+                DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                if(dr == DialogResult.Yes) {
+                    Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
+                }
+                System.Windows.Forms.Application.Exit();
+                return;
+            }
         }
 
         // EnsureCoreWebView2Async의 결과값이 null이 아니라면 CoreWebView2 초기화가 완료되기 직전 이 이벤트가 발생합니다.
@@ -310,7 +320,12 @@ namespace GersangStation
             string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
             Trace.WriteLine(version_current);
 
-            string version_latest = releases[0].TagName;
+            int ver_idx;
+            for(ver_idx = 0; ver_idx < releases.Count; ++ver_idx) {
+                if(releases[ver_idx].Prerelease == false) break;
+            }
+            Release release = releases[ver_idx];
+            string version_latest = release.TagName;
             label_version_current.Text = label_version_current.Text.Replace("0.0.0", version_current);
             label_version_latest.Text = label_version_latest.Text.Replace("0.0.0", version_latest);
 
@@ -322,7 +337,7 @@ namespace GersangStation
             Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
 
             // 업데이트 알림
-            string msg = releases[0].Body;
+            string msg = release.Body;
             if(msg.Contains("<!--DIALOG-->") && msg.Contains("<!--END-->")) {
                 // <!--DIALOG-->와 <!--END--> 사이의 내용만 가져옵니다.
                 int start = msg.IndexOf("<!--DIALOG-->") + "<!--DIALOG-->".Length + 2;
