@@ -1515,6 +1515,7 @@ namespace GersangStation
 
         private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
             ConfigManager.setConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
+            ClipMouse.firstGameHandle = IntPtr.Zero;
             ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
         }
 

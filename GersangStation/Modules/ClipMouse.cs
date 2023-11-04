@@ -21,7 +21,7 @@ namespace GersangStation.Modules {
 
         private static CancellationTokenSource tokenSource = new CancellationTokenSource();
         private static Thread thread1 = new Thread(() => main_thread(tokenSource.Token));
-        private static IntPtr firstGameHandle = IntPtr.Zero;
+        public static IntPtr firstGameHandle = IntPtr.Zero;
         public static NotifyIcon? icon = null;
 
         // write는 UI 스레드만 하기 떄문에 큰 동시성 문제는 없음.
