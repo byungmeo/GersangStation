@@ -662,14 +662,7 @@ namespace GersangStation.Modules {
                 }
             }
             Trace.WriteLine(detailReport);
-
-            MessageBox.Show("유효성 검사를 완료했습니다. \r\n자세히 보기를 참조해주세요.");
-
             Trace.WriteLine("Exit");
-        }
-
-        private void MessageBoxClicked(object sender, EventArgs e) { 
-        
         }
     }
 }

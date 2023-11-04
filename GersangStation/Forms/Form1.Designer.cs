@@ -699,7 +699,7 @@
             // img_help_integrity
             // 
             img_help_integrity.Image = (Image)resources.GetObject("img_help_integrity.Image");
-            img_help_integrity.Location = new Point(152, 200);
+            img_help_integrity.Location = new Point(200, 200);
             img_help_integrity.Name = "img_help_integrity";
             img_help_integrity.Size = new Size(20, 20);
             img_help_integrity.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -718,9 +718,9 @@
             materialButton_integrity.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_integrity.Name = "materialButton_integrity";
             materialButton_integrity.NoAccentTextColor = Color.Empty;
-            materialButton_integrity.Size = new Size(123, 36);
+            materialButton_integrity.Size = new Size(173, 36);
             materialButton_integrity.TabIndex = 9;
-            materialButton_integrity.Text = "거상 무결성 확인";
+            materialButton_integrity.Text = "거상 무결성 확인 (BETA)";
             materialButton_integrity.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             materialButton_integrity.UseAccentColor = false;
             materialButton_integrity.UseVisualStyleBackColor = true;

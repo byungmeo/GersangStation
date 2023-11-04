@@ -5,6 +5,7 @@ using MaterialSkin.Controls;
 
 namespace GersangStation {
     public partial class Form_IntegrityCheck : MaterialForm {
+        private BackgroundWorker worker = new BackgroundWorker();
         Thread? checkThread = null;
         Dictionary<string, string>? result = null;
         private const string url_main = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
@@ -35,7 +36,7 @@ namespace GersangStation {
             textBox_clientPath.Text = ConfigManager.getConfig("client_path_1");
         }
 
-        private void materialButton1_Click(object sender, EventArgs e) {
+        private void materialButton_findPath_Click(object sender, EventArgs e) {
             MaterialButton button = (MaterialButton)sender;
             FolderBrowserDialog dlg = new FolderBrowserDialog();
             dlg.ShowDialog();
@@ -47,7 +48,7 @@ namespace GersangStation {
             selectDir(textBox_clientPath);
         }
 
-        private void materialButton2_Click(object sender, EventArgs e) {
+        private void materialButton_start_Click(object sender, EventArgs e) {
             if(materialButton_start.Text.Contains("복원")) {
                 checkThread = null;
                 if(Directory.Exists(Directory.GetCurrentDirectory() + @"\Temp")) {
@@ -84,14 +85,14 @@ namespace GersangStation {
                     materialButton_start.Text = "완료";
                     materialButton_start.Enabled = false;
                     materialExpansionPanel1.Hide();
-                    MessageBox.Show($"{downloadItems.Count}개의 파일을 복원했습니다");
+                    MessageBox.Show(this, $"{downloadItems.Count}개의 파일을 복원했습니다");
                 } else {
-                    MessageBox.Show("거상 서버에서 해당 파일을 가져오지 못했습니다. 재설치를 권장합니다.");
+                    MessageBox.Show(this, "거상 서버에서 해당 파일을 가져오지 못했습니다. 재설치를 권장합니다.");
                 }
             } else {
                 //Check path
                 if(!Directory.Exists(textBox_clientPath.Text)) {
-                    MessageBox.Show("해당 폴더가 존재하지 않습니다.", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(this, "해당 폴더가 존재하지 않습니다.", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -110,10 +111,13 @@ namespace GersangStation {
                     IntegrityChecker? checker = IntegrityChecker.CreateIntegrityChecker(textBox_clientPath.Text, Directory.GetCurrentDirectory() + @"\Temp");
                     checker.ProgressChanged += IntegrityCheckerEventHandler;
                     result = new();
-                    checkThread = new Thread(() => { checker.Run(out reportFileName, ref result); });
-                    checkThread.Start();
+                    worker.DoWork += (object? sender, DoWorkEventArgs e) => { checker.Run(out reportFileName, ref result); };
+                    worker.RunWorkerCompleted += (object? sender, RunWorkerCompletedEventArgs e) => { 
+                        MessageBox.Show(this, "유효성 검사를 완료했습니다. \r\n자세히 보기를 참조해주세요.", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    };
+                    worker.RunWorkerAsync();
                 } catch(Exception except) {
-                    MessageBox.Show(except.Message, "유효성 검사에 실패하였습니다", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(this, except.Message, "유효성 검사에 실패하였습니다", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

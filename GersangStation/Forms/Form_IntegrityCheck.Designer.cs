@@ -57,7 +57,7 @@
             materialButton_start.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             materialButton_start.UseAccentColor = false;
             materialButton_start.UseVisualStyleBackColor = true;
-            materialButton_start.Click += materialButton2_Click;
+            materialButton_start.Click += materialButton_start_Click;
             // 
             // StatusLabel
             // 
@@ -136,7 +136,7 @@
             materialButton_findPath.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             materialButton_findPath.UseAccentColor = false;
             materialButton_findPath.UseVisualStyleBackColor = true;
-            materialButton_findPath.Click += materialButton1_Click;
+            materialButton_findPath.Click += materialButton_findPath_Click;
             // 
             // textBox_clientPath
             // 
