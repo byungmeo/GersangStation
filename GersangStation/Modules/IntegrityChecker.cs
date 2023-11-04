@@ -380,24 +380,30 @@ namespace GersangStation.Modules {
             {
                 throw new Exception("Failed to get 7zip process");
             }
+
+            // 커맨드 실행 결과를 가져옵니다.
             string FullClientListProcessOutput = FullClientListCheckProcess.StandardOutput.ReadToEnd();
             if (_verbose)
             {
                 Trace.WriteLine(FullClientListProcessOutput);
             }
+
+            // 커맨드 실행 결과를 파싱하여 각 파일을 <경로, CRC> 쌍으로 구분합니다.
             var files = ParsingSevenZipArchiveContentOutput(FullClientListProcessOutput);
             if (_verbose)
             {
-                Trace.WriteLine(files);
+                Trace.WriteLine($"{files.Count}");
             }
 
+            // Full Client의 버전을 알기 위해 vsn.dat의 CRC를 가져옵니다.
             string webClientCRC = "";
             if (files.TryGetValue(@"Online\vsn.dat", out webClientCRC) == false) {
                 throw new Exception("Failed to find version data in FullClient");
             }
 
+            // 거상에서 게시하는 Readme.txt 모든 버전 목록을 가져옵니다.
+            // 버전은 내림차순으로 저장됩니다. (32209, 32208, 32207, ...)
             List<int> versions = GetVersionListFromReadMe();
-            //versions = versions.OrderByDescending(i => i).ToList();
             if (_verbose) {
                 Trace.WriteLine("Detected Version List");
                 foreach (var ver in versions) {
@@ -405,47 +411,44 @@ namespace GersangStation.Modules {
                 }
             }
 
-            int idx = 0;
+            // Dictionary<버전, 버전별파일정보Dic>
+            Dictionary<int, Dictionary<string, string>> dic = new();
             version = 0;
-            for (idx = 0; idx < versions.Count; idx++)
-            {
-                int ver = versions[idx];
+            for(int i = 0; i < versions.Count; i++) {
+                int ver = versions[i];
                 Dictionary<string, string> fileList = GetFileListFromVersion(ver);
+
                 string versionDataCRC = "";
-                if (fileList.TryGetValue(@"Online\vsn.dat", out versionDataCRC)) {
-                    if (versionDataCRC == webClientCRC) {
+                if(fileList.TryGetValue(@"Online\vsn.dat", out versionDataCRC)) {
+                    if(versionDataCRC == webClientCRC) {
                         Trace.WriteLine($"Detected web full client version : {ver}");
                         version = ver;
+                        versions.RemoveRange(i, versions.Count - i);
                         break;
                     }
                 }
-            }
-            if (versions.Contains(version) == false) {
-                throw new Exception($"Failed to find match version: currentCRC = {webClientCRC}");
+                dic.Add(ver, fileList);
             }
 
-            //Update CRC or files based on patch
-            idx--;
-            for (; idx >= 0; idx--) {
-                int ver = versions[idx];
-                Dictionary<string, string> fileList = GetFileListFromVersion(ver);
+            if(dic.Count == 0) return files;
+
+            for(int i = versions.Count - 1; i >= 0; i--) {
+                int ver = versions[i];
+                Dictionary<string, string> fileList = dic[ver];
                 Trace.WriteLine($"Update based on {ver}");
-                foreach (var file in fileList) {
+                foreach(var file in fileList) {
                     string strPath = file.Key;
                     string CRC = file.Value;
 
-                    if (files.ContainsKey(strPath)) {
+                    if(files.ContainsKey(strPath)) {
                         Trace.WriteLine($"  {strPath} = {files[strPath]} -> {CRC}");
                         files[strPath] = CRC;
-                    }
-                    else
-                    {
+                    } else {
                         Trace.WriteLine($"  {strPath} = (New) -> {CRC}");
                         files.Add(strPath, CRC);
                     }
                 }
             }
-
 
             return files;
         }
