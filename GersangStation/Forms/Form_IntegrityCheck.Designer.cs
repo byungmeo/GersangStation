@@ -26,114 +26,60 @@
         /// Required method for Designer support - do not modify
         /// the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
-        {
-            ClientPathTextBox = new MaterialSkin.Controls.MaterialTextBox2();
-            materialButton1 = new MaterialSkin.Controls.MaterialButton();
-            materialButton2 = new MaterialSkin.Controls.MaterialButton();
+        private void InitializeComponent() {
+            materialButton_start = new MaterialSkin.Controls.MaterialButton();
             StatusLabel = new MaterialSkin.Controls.MaterialLabel();
             progressBar = new MaterialSkin.Controls.MaterialProgressBar();
             materialExpansionPanel1 = new MaterialSkin.Controls.MaterialExpansionPanel();
             checkedListBox1 = new CheckedListBox();
+            materialButton_findPath = new MaterialSkin.Controls.MaterialButton();
+            textBox_clientPath = new TextBox();
+            materialLabel1 = new MaterialSkin.Controls.MaterialLabel();
             materialExpansionPanel1.SuspendLayout();
             SuspendLayout();
             // 
-            // ClientPathTextBox
+            // materialButton_start
             // 
-            ClientPathTextBox.AnimateReadOnly = false;
-            ClientPathTextBox.AutoCompleteMode = AutoCompleteMode.None;
-            ClientPathTextBox.AutoCompleteSource = AutoCompleteSource.None;
-            ClientPathTextBox.BackgroundImageLayout = ImageLayout.None;
-            ClientPathTextBox.CharacterCasing = CharacterCasing.Normal;
-            ClientPathTextBox.Depth = 0;
-            ClientPathTextBox.Dock = DockStyle.Top;
-            ClientPathTextBox.Enabled = false;
-            ClientPathTextBox.Font = new Font("Microsoft Sans Serif", 16F, FontStyle.Regular, GraphicsUnit.Pixel);
-            ClientPathTextBox.HideSelection = true;
-            ClientPathTextBox.Hint = "예시 : C:\\AKInteractive\\Gersang";
-            ClientPathTextBox.LeadingIcon = null;
-            ClientPathTextBox.Location = new Point(5, 146);
-            ClientPathTextBox.MaxLength = 32767;
-            ClientPathTextBox.MouseState = MaterialSkin.MouseState.OUT;
-            ClientPathTextBox.Name = "ClientPathTextBox";
-            ClientPathTextBox.PasswordChar = '\0';
-            ClientPathTextBox.PrefixSuffixText = null;
-            ClientPathTextBox.ReadOnly = true;
-            ClientPathTextBox.RightToLeft = RightToLeft.No;
-            ClientPathTextBox.SelectedText = "";
-            ClientPathTextBox.SelectionLength = 0;
-            ClientPathTextBox.SelectionStart = 0;
-            ClientPathTextBox.ShortcutsEnabled = false;
-            ClientPathTextBox.Size = new Size(787, 48);
-            ClientPathTextBox.TabIndex = 0;
-            ClientPathTextBox.TabStop = false;
-            ClientPathTextBox.TextAlign = HorizontalAlignment.Left;
-            ClientPathTextBox.TrailingIcon = null;
-            ClientPathTextBox.UseSystemPasswordChar = false;
-            // 
-            // materialButton1
-            // 
-            materialButton1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right;
-            materialButton1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton1.Depth = 0;
-            materialButton1.HighEmphasis = true;
-            materialButton1.Icon = null;
-            materialButton1.Location = new Point(725, 152);
-            materialButton1.Margin = new Padding(4, 6, 4, 6);
-            materialButton1.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton1.Name = "materialButton1";
-            materialButton1.NoAccentTextColor = Color.Empty;
-            materialButton1.Size = new Size(64, 36);
-            materialButton1.TabIndex = 1;
-            materialButton1.Text = "...";
-            materialButton1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Outlined;
-            materialButton1.UseAccentColor = false;
-            materialButton1.UseVisualStyleBackColor = true;
-            materialButton1.Click += materialButton1_Click;
-            // 
-            // materialButton2
-            // 
-            materialButton2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton2.Depth = 0;
-            materialButton2.Dock = DockStyle.Top;
-            materialButton2.HighEmphasis = true;
-            materialButton2.Icon = null;
-            materialButton2.Location = new Point(5, 194);
-            materialButton2.Margin = new Padding(4, 6, 4, 6);
-            materialButton2.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton2.Name = "materialButton2";
-            materialButton2.NoAccentTextColor = Color.Empty;
-            materialButton2.Size = new Size(787, 36);
-            materialButton2.TabIndex = 4;
-            materialButton2.Text = "실행";
-            materialButton2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton2.UseAccentColor = false;
-            materialButton2.UseVisualStyleBackColor = true;
-            materialButton2.Click += materialButton2_Click;
+            materialButton_start.AutoSize = false;
+            materialButton_start.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_start.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_start.Depth = 0;
+            materialButton_start.HighEmphasis = true;
+            materialButton_start.Icon = null;
+            materialButton_start.Location = new Point(6, 112);
+            materialButton_start.Margin = new Padding(2, 3, 2, 3);
+            materialButton_start.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_start.Name = "materialButton_start";
+            materialButton_start.NoAccentTextColor = Color.Empty;
+            materialButton_start.Size = new Size(394, 32);
+            materialButton_start.TabIndex = 4;
+            materialButton_start.Text = "검사";
+            materialButton_start.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_start.UseAccentColor = false;
+            materialButton_start.UseVisualStyleBackColor = true;
+            materialButton_start.Click += materialButton2_Click;
             // 
             // StatusLabel
             // 
             StatusLabel.AutoSize = true;
             StatusLabel.Depth = 0;
             StatusLabel.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
-            StatusLabel.Location = new Point(18, 216);
+            StatusLabel.Location = new Point(76, 77);
+            StatusLabel.Margin = new Padding(2, 0, 2, 0);
             StatusLabel.MouseState = MaterialSkin.MouseState.HOVER;
             StatusLabel.Name = "StatusLabel";
-            StatusLabel.Padding = new Padding(0, 23, 0, 0);
+            StatusLabel.Padding = new Padding(0, 12, 0, 0);
             StatusLabel.Size = new Size(1, 0);
             StatusLabel.TabIndex = 5;
-            StatusLabel.Click += materialLabel1_Click;
             // 
             // progressBar
             // 
             progressBar.Depth = 0;
-            progressBar.Dock = DockStyle.Top;
-            progressBar.Location = new Point(5, 230);
+            progressBar.Location = new Point(6, 104);
+            progressBar.Margin = new Padding(2);
             progressBar.MouseState = MaterialSkin.MouseState.HOVER;
             progressBar.Name = "progressBar";
-            progressBar.Size = new Size(787, 5);
+            progressBar.Size = new Size(394, 5);
             progressBar.TabIndex = 6;
             // 
             // materialExpansionPanel1
@@ -144,18 +90,17 @@
             materialExpansionPanel1.Controls.Add(checkedListBox1);
             materialExpansionPanel1.Depth = 0;
             materialExpansionPanel1.Description = "";
-            materialExpansionPanel1.Dock = DockStyle.Top;
             materialExpansionPanel1.DrawShadows = false;
             materialExpansionPanel1.ExpandHeight = 200;
             materialExpansionPanel1.Font = new Font("Microsoft Sans Serif", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
             materialExpansionPanel1.ForeColor = Color.FromArgb(222, 0, 0, 0);
-            materialExpansionPanel1.Location = new Point(5, 235);
-            materialExpansionPanel1.Margin = new Padding(16, 1, 16, 0);
+            materialExpansionPanel1.Location = new Point(6, 152);
+            materialExpansionPanel1.Margin = new Padding(8, 0, 8, 0);
             materialExpansionPanel1.MouseState = MaterialSkin.MouseState.HOVER;
             materialExpansionPanel1.Name = "materialExpansionPanel1";
-            materialExpansionPanel1.Padding = new Padding(24, 140, 24, 16);
+            materialExpansionPanel1.Padding = new Padding(12, 70, 12, 8);
             materialExpansionPanel1.ShowValidationButtons = false;
-            materialExpansionPanel1.Size = new Size(787, 48);
+            materialExpansionPanel1.Size = new Size(394, 48);
             materialExpansionPanel1.TabIndex = 8;
             materialExpansionPanel1.Tag = "";
             materialExpansionPanel1.Title = "결과 자세히 보기";
@@ -165,30 +110,75 @@
             checkedListBox1.BorderStyle = BorderStyle.None;
             checkedListBox1.Dock = DockStyle.Top;
             checkedListBox1.FormattingEnabled = true;
-            checkedListBox1.Location = new Point(24, 140);
+            checkedListBox1.Location = new Point(12, 70);
+            checkedListBox1.Margin = new Padding(2);
             checkedListBox1.Name = "checkedListBox1";
-            checkedListBox1.Size = new Size(739, 180);
+            checkedListBox1.Size = new Size(370, 90);
             checkedListBox1.TabIndex = 4;
             checkedListBox1.ItemCheck += checkedListBox1_ItemCheck;
             // 
+            // materialButton_findPath
+            // 
+            materialButton_findPath.AutoSize = false;
+            materialButton_findPath.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_findPath.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_findPath.Depth = 0;
+            materialButton_findPath.HighEmphasis = true;
+            materialButton_findPath.Icon = null;
+            materialButton_findPath.Location = new Point(356, 73);
+            materialButton_findPath.Margin = new Padding(4, 6, 4, 6);
+            materialButton_findPath.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_findPath.Name = "materialButton_findPath";
+            materialButton_findPath.NoAccentTextColor = Color.Empty;
+            materialButton_findPath.Size = new Size(33, 23);
+            materialButton_findPath.TabIndex = 72;
+            materialButton_findPath.Text = "...";
+            materialButton_findPath.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_findPath.UseAccentColor = false;
+            materialButton_findPath.UseVisualStyleBackColor = true;
+            materialButton_findPath.Click += materialButton1_Click;
+            // 
+            // textBox_clientPath
+            // 
+            textBox_clientPath.Location = new Point(96, 73);
+            textBox_clientPath.Name = "textBox_clientPath";
+            textBox_clientPath.PlaceholderText = "예시 : C:\\AKInteractive\\Gersang";
+            textBox_clientPath.Size = new Size(250, 23);
+            textBox_clientPath.TabIndex = 73;
+            // 
+            // materialLabel1
+            // 
+            materialLabel1.AutoSize = true;
+            materialLabel1.Depth = 0;
+            materialLabel1.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
+            materialLabel1.Location = new Point(19, 76);
+            materialLabel1.MouseState = MaterialSkin.MouseState.HOVER;
+            materialLabel1.Name = "materialLabel1";
+            materialLabel1.Size = new Size(70, 18);
+            materialLabel1.TabIndex = 75;
+            materialLabel1.Text = "본클라 경로";
+            // 
             // Form_IntegrityCheck
             // 
-            AutoScaleDimensions = new SizeF(192F, 192F);
+            AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
             AutoSize = true;
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            ClientSize = new Size(797, 238);
+            ClientSize = new Size(409, 207);
+            Controls.Add(materialLabel1);
+            Controls.Add(materialButton_findPath);
+            Controls.Add(textBox_clientPath);
             Controls.Add(materialExpansionPanel1);
             Controls.Add(progressBar);
             Controls.Add(StatusLabel);
-            Controls.Add(materialButton2);
-            Controls.Add(materialButton1);
-            Controls.Add(ClientPathTextBox);
+            Controls.Add(materialButton_start);
+            Margin = new Padding(2);
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "Form_IntegrityCheck";
-            Padding = new Padding(5, 146, 5, 5);
+            Padding = new Padding(2, 73, 2, 2);
             ShowInTaskbar = false;
+            StartPosition = FormStartPosition.CenterParent;
             Text = "클라이언트 유효성 검사 - 현재 본서버만 가능";
             TopMost = true;
             Load += Form_IntegrityCheck_Load;
@@ -199,13 +189,13 @@
         }
 
         #endregion
-
-        private MaterialSkin.Controls.MaterialTextBox2 ClientPathTextBox;
-        private MaterialSkin.Controls.MaterialButton materialButton1;
-        private MaterialSkin.Controls.MaterialButton materialButton2;
+        private MaterialSkin.Controls.MaterialButton materialButton_start;
         private MaterialSkin.Controls.MaterialLabel StatusLabel;
         private MaterialSkin.Controls.MaterialProgressBar progressBar;
         private MaterialSkin.Controls.MaterialExpansionPanel materialExpansionPanel1;
         private CheckedListBox checkedListBox1;
+        private MaterialSkin.Controls.MaterialButton materialButton_findPath;
+        private TextBox textBox_clientPath;
+        private MaterialSkin.Controls.MaterialLabel materialLabel1;
     }
 }

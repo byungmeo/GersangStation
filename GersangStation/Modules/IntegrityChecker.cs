@@ -65,6 +65,17 @@ namespace GersangStation.Modules {
             return new IntegrityChecker(clientPath, tempPath, verbose);
         }
 
+        /// <summary>
+        /// <para>요약: 거상 Full Client 압축 파일의 핵심 정보 (CRC, 경로 등)만 포함한 7zip 파일을 Write 한다.</para>
+        /// 
+        /// <para>1. <paramref name="path"/>에 파일을 생성한다. (빈 상태)</para>
+        /// <para>2. 7zip의 Signature Header Size인 32바이트만 다운 받는다.</para>
+        /// <para>3. Content-Range라는 콘텐츠 헤더 속성을 읽고 7zip 파일 전체 크기를 알아낸다.</para>
+        /// <para>4. 생성한 파일의 첫 32바이트에 7zip Signature Header를 Write 한다.</para>
+        /// <para>5. 이후 파일 전체 크기 - Footer Size(1MB) 만큼은 Dummy Data로 채운다.</para>
+        /// <para>6. Footer Size만큼 다운로드 한 후 파일의 마지막 1MB를 채운다.</para>
+        /// <para>7. 완성된 파일은 실제 거상 클라이언트 압축 파일의 크기와 동일하지만, 유의미한 정보는 헤더 뿐인 깡통이다.</para>
+        /// </summary>
         private void WriteFullClientFile(string path)
         {
             long headerSize = 32; //32 bytes
@@ -491,13 +502,13 @@ namespace GersangStation.Modules {
                 tasks.Add(Task.Run(() => GetCRC32FromLocalFile(file)));
             }
 
-            Trace.WriteLine($"Run {tasks.Count} files");
+            Trace.WriteLine($"{tasks.Count}개의 클라이언트 파일 읽기 시작");
 
             int whileCount = 0;
             while (whileCount < 3000) { //Wait 3000 = 300s = 5mins
                 long currCount = Interlocked.Read(ref progressCounter);
                 int currProgress = ((int)currCount * (localCheckEnd - start) / tasks.Count) + start;
-                Trace.WriteLine(currProgress);
+                Trace.WriteLine($"{currCount}/{tasks.Count} ({string.Format("{0:F2}",(float)currCount / tasks.Count * 100)}%)");
                 if (currCount == tasks.Count) break;
                 if(ProgressChanged != null)
                     ProgressChanged(this, new ProgressChangedEventArgs(currProgress, $"클라이언트의 파일을 읽어오는 중 입니다.  ({currCount} / {tasks.Count})"));
@@ -522,7 +533,7 @@ namespace GersangStation.Modules {
                 ProgressChanged(this, new ProgressChangedEventArgs(start, "클라이언트의 파일을 읽어오는 중 입니다."));
 
             var localFiles = this.GetFullClientFileListFromLocal(_ClientPath);
-            Trace.WriteLine($"In local, {localFiles.Count} files detected.");
+            Trace.WriteLine($"클라이언트 파일 읽기 완료 ({localFiles.Count}개)");
 
             if (ProgressChanged != null)
                 ProgressChanged(this, new ProgressChangedEventArgs(localCheckEnd, "서버로부터 파일을 가져오는 중 입니다."));
