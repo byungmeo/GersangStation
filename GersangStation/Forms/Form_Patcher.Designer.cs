@@ -31,10 +31,9 @@
             textBox_latestVersion = new TextBox();
             textBox_currentVersion = new TextBox();
             label1 = new Label();
-            label_status = new Label();
             toolTip1 = new ToolTip(components);
-            label_total = new Label();
             materialButton_startPatch = new MaterialSkin.Controls.MaterialButton();
+            progressBar = new MaterialSkin.Controls.MaterialProgressBar();
             materialCard1.SuspendLayout();
             SuspendLayout();
             // 
@@ -135,29 +134,6 @@
             label1.Text = "현재 버전 :";
             label1.TextAlign = ContentAlignment.MiddleCenter;
             // 
-            // label_status
-            // 
-            label_status.FlatStyle = FlatStyle.System;
-            label_status.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
-            label_status.ForeColor = Color.Black;
-            label_status.Location = new Point(6, 181);
-            label_status.Name = "label_status";
-            label_status.Size = new Size(353, 18);
-            label_status.TabIndex = 72;
-            label_status.Text = "패치 시작 버튼을 누르면 패치가 시작됩니다.";
-            label_status.TextAlign = ContentAlignment.MiddleCenter;
-            // 
-            // label_total
-            // 
-            label_total.FlatStyle = FlatStyle.System;
-            label_total.Font = new Font("Microsoft Sans Serif", 11.25F, FontStyle.Bold, GraphicsUnit.Point);
-            label_total.ForeColor = Color.Black;
-            label_total.Location = new Point(6, 210);
-            label_total.Name = "label_total";
-            label_total.Size = new Size(353, 18);
-            label_total.TabIndex = 73;
-            label_total.TextAlign = ContentAlignment.MiddleCenter;
-            // 
             // materialButton_startPatch
             // 
             materialButton_startPatch.AutoSize = false;
@@ -165,13 +141,13 @@
             materialButton_startPatch.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             materialButton_startPatch.Depth = 0;
             materialButton_startPatch.HighEmphasis = true;
-            materialButton_startPatch.Icon = Properties.Resources.download;
-            materialButton_startPatch.Location = new Point(129, 248);
+            materialButton_startPatch.Icon = null;
+            materialButton_startPatch.Location = new Point(16, 182);
             materialButton_startPatch.Margin = new Padding(4, 6, 4, 6);
             materialButton_startPatch.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_startPatch.Name = "materialButton_startPatch";
             materialButton_startPatch.NoAccentTextColor = Color.Empty;
-            materialButton_startPatch.Size = new Size(103, 36);
+            materialButton_startPatch.Size = new Size(336, 36);
             materialButton_startPatch.TabIndex = 74;
             materialButton_startPatch.Text = "패치시작";
             materialButton_startPatch.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
@@ -179,14 +155,22 @@
             materialButton_startPatch.UseVisualStyleBackColor = true;
             materialButton_startPatch.Click += materialButton_startPatch_Click;
             // 
+            // progressBar
+            // 
+            progressBar.Depth = 0;
+            progressBar.Location = new Point(16, 176);
+            progressBar.MouseState = MaterialSkin.MouseState.HOVER;
+            progressBar.Name = "progressBar";
+            progressBar.Size = new Size(336, 5);
+            progressBar.TabIndex = 75;
+            // 
             // Form_Patcher
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(365, 295);
+            ClientSize = new Size(365, 232);
+            Controls.Add(progressBar);
             Controls.Add(materialButton_startPatch);
-            Controls.Add(label_total);
-            Controls.Add(label_status);
             Controls.Add(materialCard1);
             Controls.Add(materialCheckbox_delete);
             Controls.Add(materialCheckbox_apply);
@@ -214,9 +198,8 @@
         private TextBox textBox_latestVersion;
         private TextBox textBox_currentVersion;
         private Label label1;
-        private Label label_status;
         private ToolTip toolTip1;
-        private Label label_total;
         private MaterialSkin.Controls.MaterialButton materialButton_startPatch;
+        private MaterialSkin.Controls.MaterialProgressBar progressBar;
     }
 }

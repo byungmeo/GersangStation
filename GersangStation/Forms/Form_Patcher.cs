@@ -1,5 +1,6 @@
 ﻿using GersangStation.Modules;
 using MaterialSkin.Controls;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
@@ -35,6 +36,8 @@ namespace GersangStation
         };
 
         Dictionary<string, string> list_retry = new Dictionary<string, string>();
+
+        private BackgroundWorker worker = new BackgroundWorker();
 
         public Form_Patcher(bool isTest) {
             InitializeComponent();
@@ -140,60 +143,79 @@ namespace GersangStation
                 }
             }
 
-            materialButton_startPatch.Enabled = false;
-
-            Trace.WriteLine("패치 시작!");
-
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+            worker.DoWork += new DoWorkEventHandler((object? sender, DoWorkEventArgs e) => StartPatch(equal));
+            worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
+            worker.ProgressChanged += ProgressChanged;
+            materialButton_startPatch.Enabled = false;
+            materialButton_startPatch.Text = "패치 진행중...";
+            worker.RunWorkerAsync();
+        }
+
+        private void ProgressChanged(object? sender, ProgressChangedEventArgs e) {
+            if(this.InvokeRequired) {
+                materialButton_startPatch.Invoke((Action)(() => materialButton_startPatch.Text = e.UserState.ToString()));
+                progressBar.Invoke((Action)(() => progressBar.Value = e.ProgressPercentage));
+            } else {
+                materialButton_startPatch.Text = e.UserState.ToString();
+                progressBar.Value = e.ProgressPercentage;
+            }
+        }
+
+        private void Worker_RunWorkerCompleted(object? sender, RunWorkerCompletedEventArgs e) {
+            materialButton_startPatch.Text = "패치 완료";
+            MessageBox.Show(this, "패치가 모두 완료되었습니다.", "패치 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            this.DialogResult = DialogResult.OK;
+        }
+
+        public void StartPatch(int equal) {
+            // ProgressChanged(this, new ProgressChangedEventArgs(currProgress, $"클라이언트의 파일을 읽어오는 중 입니다.  ({currCount} / {tasks.Count})")
+            Trace.WriteLine("패치 시작!");
+
             DirectoryInfo directory_patch = new DirectoryInfo(Application.StartupPath + @"\patch");
-            if (!directory_patch.Exists) { directory_patch.Create(); }
+            if(!directory_patch.Exists) { directory_patch.Create(); }
 
             DirectoryInfo directory_info = new DirectoryInfo(directory_patch + @"\info");
-            if (!directory_info.Exists) { directory_info.Create(); }
+            if(!directory_info.Exists) { directory_info.Create(); }
 
             DirectoryInfo directory_file = new DirectoryInfo(directory_patch + @"\" + server + "_" + version_current + "-" + version_latest);
-            if (!directory_file.Exists) { directory_file.Create(); }
+            if(!directory_file.Exists) { directory_file.Create(); }
 
             Dictionary<string, string> list_patchFile = new Dictionary<string, string>(); //key값으로 다운로드주소, value값으로 경로및파일명 저장
 
-            label_status.Text = "패치 파일 목록을 추출하는 중...";
+            ProgressChanged(this, new ProgressChangedEventArgs(0, "패치 파일 목록 추출 중..."));
             list_patchFile = GetPatchFileList(equal, directory_info, directory_file);
-            label_total.Text = "파일 개수 : " + list_patchFile.Count.ToString() + "개";
-            Trace.WriteLine("패치 정보 파일 병합 완료"); //////////////////////////////////////////////////////////////////////////////////////--
+            
+            Trace.WriteLine("패치 정보 파일 병합 완료");
 
-            label_status.Text = "패치 파일을 다운로드 중... (오래 걸릴 수 있음)";
+            ProgressChanged(this, new ProgressChangedEventArgs(10, $"다운로드 중... (파일 개수 : {list_patchFile.Count})"));
             bool isSuccess = DownloadAll(list_patchFile);
             if(!isSuccess) return; // 다운로드 실패 시 패치 적용하지 않음.
-            Trace.WriteLine("패치 파일 다운로드 완료"); //////////////////////////////////////////////////////////////////////////////////////--
+            Trace.WriteLine("패치 파일 다운로드 완료");
 
-            label_status.Text = "압축 해제 및 적용 중... (오래 걸릴 수 있음)";
+            ProgressChanged(this, new ProgressChangedEventArgs(60, $"압축 해제 중..."));
             ExtractAll(directory_file.FullName, path_main);
-            Trace.WriteLine("압축 해제 완료"); //////////////////////////////////////////////////////////////////////////////////////--
+            Trace.WriteLine("압축 해제 완료");
 
             //다클라 패치 적용
-            if (materialCheckbox_apply.Checked) {
-                label_status.Text = "다클라 패치 적용 중...";
+            if(materialCheckbox_apply.Checked) {
+                ProgressChanged(this, new ProgressChangedEventArgs(80, $"다클라 패치 적용 중..."));
                 ClientCreator.CreateClient(this, path_main, name_client_2, name_client_3);
             }
 
             //패치 후 파일 삭제
-            if (materialCheckbox_delete.Checked) {
-                label_status.Text = "패치 후 파일 삭제 중...";
+            if(materialCheckbox_delete.Checked) {
+                ProgressChanged(this, new ProgressChangedEventArgs(90, $"패치 후 파일 삭제 중..."));
                 try {
                     directory_file.Delete(true);
                     Trace.WriteLine("패치 파일 폴더 삭제 완료");
-                }
-                catch (Exception ex) {
+                } catch(Exception ex) {
                     Trace.WriteLine("패치 파일 폴더 삭제 실패\n" + ex.Message);
                 }
             }
 
-            label_status.Text = "패치가 모두 완료되었습니다!";
-            label_status.ForeColor = Color.SeaGreen;
-
-            MessageBox.Show(this, "패치가 모두 완료되었습니다.", "패치 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            this.DialogResult = DialogResult.OK;
+            ProgressChanged(this, new ProgressChangedEventArgs(100, $"패치 완료!"));
         }
 
         public Dictionary<string, string> GetPatchFileList(int equal, DirectoryInfo directory_info, DirectoryInfo directory_file) {
