@@ -178,7 +178,7 @@ namespace GersangStation {
                 Trace.WriteLine(ex.Message);
             }
 #endif
-            
+
         }
 
         private void LoadClipMouse() {
@@ -1496,7 +1496,7 @@ namespace GersangStation {
                 ClipMouse.UnregisterHotKey(this.Handle);
                 ClipMouse.RegisterHotKey(this.Handle, ConfigManager.getConfig("clip_toggle_hotkey"));
             }
-            
+
             // Alt 키를 누르면 포커스 풀리는 현상 방지
             if(e.KeyCode == Keys.Menu) e.SuppressKeyPress = true;
         }
@@ -1512,6 +1512,10 @@ namespace GersangStation {
         private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
             ConfigManager.setConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
             ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
+        }
+
+        private void linkLabel_clipInformation_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/37") { UseShellExecute = true });
         }
     } //Form1
 } //namespace

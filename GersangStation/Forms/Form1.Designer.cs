@@ -57,6 +57,7 @@
             radio_preset_2 = new MaterialSkin.Controls.MaterialRadioButton();
             radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
             tabPage_extension = new TabPage();
+            linkLabel_clipInformation = new LinkLabel();
             img_help_integrity = new PictureBox();
             materialButton1 = new MaterialSkin.Controls.MaterialButton();
             checkBox_onlyFirstClip = new CheckBox();
@@ -667,6 +668,7 @@
             // tabPage_extension
             // 
             tabPage_extension.BackColor = Color.White;
+            tabPage_extension.Controls.Add(linkLabel_clipInformation);
             tabPage_extension.Controls.Add(img_help_integrity);
             tabPage_extension.Controls.Add(materialButton1);
             tabPage_extension.Controls.Add(checkBox_onlyFirstClip);
@@ -682,6 +684,17 @@
             tabPage_extension.Size = new Size(398, 218);
             tabPage_extension.TabIndex = 6;
             tabPage_extension.Text = "추가기능";
+            // 
+            // linkLabel_clipInformation
+            // 
+            linkLabel_clipInformation.AutoSize = true;
+            linkLabel_clipInformation.Location = new Point(208, 20);
+            linkLabel_clipInformation.Name = "linkLabel_clipInformation";
+            linkLabel_clipInformation.Size = new Size(55, 15);
+            linkLabel_clipInformation.TabIndex = 11;
+            linkLabel_clipInformation.TabStop = true;
+            linkLabel_clipInformation.Text = "사용방법";
+            linkLabel_clipInformation.LinkClicked += linkLabel_clipInformation_LinkClicked;
             // 
             // img_help_integrity
             // 
@@ -716,7 +729,7 @@
             // 
             checkBox_onlyFirstClip.AutoSize = true;
             checkBox_onlyFirstClip.Enabled = false;
-            checkBox_onlyFirstClip.Location = new Point(40, 96);
+            checkBox_onlyFirstClip.Location = new Point(36, 72);
             checkBox_onlyFirstClip.Name = "checkBox_onlyFirstClip";
             checkBox_onlyFirstClip.Size = new Size(238, 19);
             checkBox_onlyFirstClip.TabIndex = 8;
@@ -728,7 +741,7 @@
             // 
             label1.AutoSize = true;
             label1.ForeColor = Color.Red;
-            label1.Location = new Point(40, 120);
+            label1.Location = new Point(36, 120);
             label1.Name = "label1";
             label1.Size = new Size(249, 45);
             label1.TabIndex = 7;
@@ -738,7 +751,7 @@
             // 
             checkBox_clipDisableHotKey.AutoSize = true;
             checkBox_clipDisableHotKey.Enabled = false;
-            checkBox_clipDisableHotKey.Location = new Point(40, 48);
+            checkBox_clipDisableHotKey.Location = new Point(36, 48);
             checkBox_clipDisableHotKey.Name = "checkBox_clipDisableHotKey";
             checkBox_clipDisableHotKey.Size = new Size(213, 19);
             checkBox_clipDisableHotKey.TabIndex = 3;
@@ -750,7 +763,7 @@
             // 
             checkBox_clipToggleHotKey.AutoSize = true;
             checkBox_clipToggleHotKey.Enabled = false;
-            checkBox_clipToggleHotKey.Location = new Point(40, 72);
+            checkBox_clipToggleHotKey.Location = new Point(36, 96);
             checkBox_clipToggleHotKey.Name = "checkBox_clipToggleHotKey";
             checkBox_clipToggleHotKey.Size = new Size(210, 19);
             checkBox_clipToggleHotKey.TabIndex = 1;
@@ -761,7 +774,7 @@
             // textBox_clipToggleHotKey
             // 
             textBox_clipToggleHotKey.Enabled = false;
-            textBox_clipToggleHotKey.Location = new Point(256, 69);
+            textBox_clipToggleHotKey.Location = new Point(252, 93);
             textBox_clipToggleHotKey.Name = "textBox_clipToggleHotKey";
             textBox_clipToggleHotKey.ReadOnly = true;
             textBox_clipToggleHotKey.Size = new Size(80, 23);
@@ -1415,5 +1428,6 @@
         private MaterialSkin.Controls.MaterialButton materialButton1;
         private CheckBox checkBox_onlyFirstClip;
         private PictureBox img_help_integrity;
+        private LinkLabel linkLabel_clipInformation;
     }
 }
