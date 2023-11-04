@@ -18,14 +18,10 @@ namespace GersangStation
         private const int WM_ACTIVATEAPP = 0x001C;
         private const int WM_HOTKEY = 0x0312;
 
-        protected override void WndProc(ref Message m)
-        {
-            if (m.Msg == WM_HOTKEY)
-            {
-                if (m.WParam == (IntPtr)ClipMouse.GetHotKeyId())
-                {
-                    if (ClipMouse.isRunning())
-                    {
+        protected override void WndProc(ref Message m) {
+            if(m.Msg == WM_HOTKEY && bool.Parse(ConfigManager.getConfig("use_clip_toggle_hotkey"))) {
+                if(m.WParam == (IntPtr)ClipMouse.GetHotKeyId()) {
+                    if(ClipMouse.isRunning()) {
                         ClipMouse.Stop(false);
                         ConfigManager.setConfig("use_clip_mouse", false.ToString());
                     }
@@ -183,7 +179,11 @@ namespace GersangStation
             LoadShortcut();
             SetToolTip();
             CheckAccount();
+            LoadClipMouse();
 
+#if DEBUG
+            linkLabel_announcement.Text = "디버그 모드";
+#else
             // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
             try
             {
@@ -203,11 +203,22 @@ namespace GersangStation
                 MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
                 Trace.WriteLine(ex.Message);
             }
+#endif
 
-            //ClipMouse implementation
+        }
+
+        private void LoadClipMouse() {
+            // 단축키 TextBox도 함께 초기화 
+            string hotKey = ConfigManager.getConfig("clip_toggle_hotkey");
+            if(hotKey.Contains(',')) {
+                string[] comb = hotKey.Split(',');
+                string mod = comb[0];
+                string key = ((Keys)int.Parse(comb[1])).ToString();
+                textBox_clipToggleHotKey.Text = mod + " + " + key;
+            } else textBox_clipToggleHotKey.Text = ((Keys)int.Parse(hotKey)).ToString();
+
             ClipMouse.icon = notifyIcon2;
-            ClipMouse.RegisterHotKey(this.Handle, Keys.F11);
-            materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
+            ClipMouse.RegisterHotKey(this.Handle, hotKey);
         }
 
         private void LoadSponsors(Readme r)
@@ -308,10 +319,14 @@ namespace GersangStation
             toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
             toolTip1.SetToolTip(materialButton_shortcut_4, shortcut_4);
 
-            toolTip1.SetToolTip(img_help,
+            toolTip1.SetToolTip(img_help_clip,
                 "창모드 환경에서 마우스 가두기를 하였음에도 마우스 커서가 밖으로 삐져나오는 현상을 개선합니다." +
                 "\n\n※ 게임 내 마우스 가두기 기능을 OFF 하시고 사용하셔야 합니다." +
-                "\n\nF11: 마우스 가두기 ON, OFF\nAlt: 일시적으로 OFF");
+                "\n\n(기본값)F11: 마우스 가두기 ON, OFF\nAlt: 일시적으로 OFF");
+
+            toolTip1.SetToolTip(img_help_integrity,
+                "거상 설치 폴더에 손상되거나 누락된 파일이 있는지 확인합니다." +
+                "\n거상 실행 시 오류가 발생하는 경우 유용합니다.");
         }
 
         private void CheckProgramUpdate(IReadOnlyList<Release> releases)
@@ -344,7 +359,7 @@ namespace GersangStation
                 int end = msg.IndexOf("<!--END-->") - start;
                 msg = msg.Substring(start, end);
             }
-            
+
             int versionComparison = localVersion.CompareTo(latestGitHubVersion);
             if (versionComparison < 0)
             {
@@ -380,9 +395,15 @@ namespace GersangStation
             }
         }
 
-        private void LoadCheckBox()
-        {
-            this.materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
+        private void LoadCheckBox() {
+            // 메인 탭
+            materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
+
+            // 추가 기능 탭
+            materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
+            checkBox_clipDisableHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"));
+            checkBox_clipToggleHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_toggle_hotkey"));
+            checkBox_onlyFirstClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_only_first"));
         }
 
         /* Edge 보안 업데이트로 인해 로직 제거
@@ -1720,19 +1741,66 @@ namespace GersangStation
         {
             ConfigManager.setConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
 
-            if (materialCheckbox_mouseClip.Checked == true)
-            {
+            if (materialCheckbox_mouseClip.Checked == true) {
                 ClipMouse.Run();
-            }
-            else
-            {
+                checkBox_clipToggleHotKey.Enabled = true;
+                checkBox_clipDisableHotKey.Enabled = true;
+                textBox_clipToggleHotKey.Enabled = true;
+                checkBox_onlyFirstClip.Enabled = true;
+            } else {
                 ClipMouse.Stop(false);
+                checkBox_clipToggleHotKey.Enabled = false;
+                checkBox_clipDisableHotKey.Enabled = false;
+                textBox_clipToggleHotKey.Enabled = false;
+                checkBox_onlyFirstClip.Enabled = false;
             }
         }
 
-        private void materialButton1_Click(object sender, EventArgs e)
-        {
-            OpenIntegrityCheckDialog();
+        private void textBox_hotKey_KeyDown(object sender, KeyEventArgs e) {
+            TextBox textBox = (TextBox)sender;
+            string org = textBox.Text;
+
+            // 조합 단축키 지원
+            string comb = string.Empty;
+            if(e.Control) comb = "Ctrl";
+            else if(e.Alt) comb = "Alt";
+            else if(e.Shift) comb = "Shift";
+
+            if(e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.Menu || e.KeyCode == Keys.ShiftKey) {
+                textBox.Text = comb;
+                ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
+            } else if(comb != string.Empty && e.KeyCode != Keys.ControlKey && e.KeyCode != Keys.Menu && e.KeyCode != Keys.ShiftKey) {
+                textBox.Text = comb + " + " + e.KeyCode.ToString();
+                ConfigManager.setConfig("clip_toggle_hotkey", comb + "," + ((int)e.KeyCode).ToString());
+            } else {
+                textBox.Text = e.KeyCode.ToString();
+                ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
+            }
+
+            if(org != textBox.Text) {
+                ClipMouse.UnregisterHotKey(this.Handle);
+                ClipMouse.RegisterHotKey(this.Handle, ConfigManager.getConfig("clip_toggle_hotkey"));
+            }
+
+            // Alt 키를 누르면 포커스 풀리는 현상 방지
+            if(e.KeyCode == Keys.Menu) e.SuppressKeyPress = true;
+        }
+
+        private void checkBox_clipDisableHotKey_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_disable_hotkey", ((CheckBox)sender).Checked.ToString());
+        }
+
+        private void checkBox_clipToggleHotKey_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_toggle_hotkey", ((CheckBox)sender).Checked.ToString());
+        }
+
+        private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
+            ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
+        }
+
+        private void linkLabel_clipInformation_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/37") { UseShellExecute = true });
         }
     } //Form1
 } //namespace

@@ -21,7 +21,11 @@ namespace GersangStation.Modules {
 
         private static CancellationTokenSource tokenSource = new CancellationTokenSource();
         private static Thread thread1 = new Thread(() => main_thread(tokenSource.Token));
+        private static IntPtr firstGameHandle = IntPtr.Zero;
         public static NotifyIcon? icon = null;
+
+        // write는 UI 스레드만 하기 떄문에 큰 동시성 문제는 없음.
+        public static bool isOnlyFirstClip = false;
 
         private const int WindowTitleMaxLength = 50; // Length window titles get truncated to
         private const int ValidateHandleThreshold = 10; // How often the user selected window handle gets validate
@@ -59,6 +63,22 @@ namespace GersangStation.Modules {
         {
             //Register hotkey
             return RegisterHotKey(hWnd, GetHotKeyId(), 0 /*Prevent duplicated alarm*/, (int)key);
+        }
+
+        public static bool RegisterHotKey(IntPtr hWnd, string keyConfigVal) {
+            if(keyConfigVal.Contains(',')) {
+                string[] comb = keyConfigVal.Split(','); // ex: "Ctrl,122"
+                string modStr = comb[0];
+                int mod = 0;
+                int key = int.Parse(comb[1]);
+                if(modStr == "Ctrl") mod = 0x0002;
+                else if(modStr == "Alt") mod = 0x0001;
+                else if(modStr == "Shift") mod = 0x0004;
+
+                return RegisterHotKey(hWnd, GetHotKeyId(), mod | 0x4000, key);
+            } else {
+                return RegisterHotKey(hWnd, (Keys)int.Parse(keyConfigVal));
+            }
         }
 
         public static bool UnregisterHotKey(IntPtr hWnd)
@@ -139,28 +159,28 @@ namespace GersangStation.Modules {
 
                 validateHandleCount++;
 
-                IntPtr currentWindowsHandle = IntPtr.Zero;
+                IntPtr currentGameHandle = IntPtr.Zero;
 
                 //Get windows handle for Gersang
-                List<IntPtr> windowHandles = GetAllWindowHandles();
+                List<IntPtr> gameHandles = GetAllGameHandles();
 
                 //Check current foreground
+                bool hasFirstGameHandle = false;
                 IntPtr foregroundWindow = GetForegroundWindow();
-                foreach (IntPtr windowHandle in windowHandles)
-                {
-                    if (foregroundWindow == windowHandle)
-                    {
-                        currentWindowsHandle = foregroundWindow;
-                        break;
-                    }
+                foreach (IntPtr gameHandle in gameHandles) {
+                    if (foregroundWindow == gameHandle) currentGameHandle = foregroundWindow;
+                    if (firstGameHandle == gameHandle) hasFirstGameHandle = true;
                 }
+
+                // 고정했던 핸들이 현재 거상 핸들 목록에 없으면 초기화
+                if(hasFirstGameHandle == false) firstGameHandle = IntPtr.Zero;
 
                 if (validateHandleCount > ValidateHandleThreshold)
                 {
                     validateHandleCount = 0;
                 }
 
-                if (currentWindowsHandle == IntPtr.Zero)
+                if (currentGameHandle == IntPtr.Zero)
                 { //Current foreground is not Gersang.
                     if(isClipping) {
                         ClipCursor(IntPtr.Zero); //Clear clip cursor
@@ -168,6 +188,18 @@ namespace GersangStation.Modules {
                     }
                     Thread.Sleep(ClippingRefreshInterval); //Wait next thread interval
                     continue;
+                }
+
+                if(isOnlyFirstClip) {
+                    if(firstGameHandle == IntPtr.Zero) firstGameHandle = currentGameHandle;
+                    else if(firstGameHandle != currentGameHandle) {
+                        if(isClipping) {
+                            ClipCursor(IntPtr.Zero); //Clear clip cursor
+                            isClipping = false;
+                        }
+                        Thread.Sleep(ClippingRefreshInterval);
+                        continue;
+                    }
                 }
 
                 Rectangle windowArea = new Rectangle();
@@ -180,7 +212,7 @@ namespace GersangStation.Modules {
 
                 //Make a gap for safety 
                 int borderGap = 2, escapeGap = 3;
-                windowArea = GetGameArea(currentWindowsHandle);
+                windowArea = GetGameArea(currentGameHandle);
 
                 windowArea_original.Left = windowArea.Left;
                 windowArea_original.Top = windowArea.Top;
@@ -201,9 +233,12 @@ namespace GersangStation.Modules {
                 //Trace.WriteLine(escapeArea);
                 //Trace.WriteLine(escapeCount);
 
-                if (!escapeArea.IsPointInRectangle(pt) && Control.ModifierKeys == Keys.Alt)
+                if (!escapeArea.IsPointInRectangle(pt))
                 {
-                    escapeCount++;
+                    // Alt 키를 누르고 있으면서 비활성화 단축키 기능을 활성화 한 경우
+                    if(Control.ModifierKeys == Keys.Alt && bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"))) {
+                        escapeCount++;
+                    }
                 }
                 else
                 {
@@ -248,7 +283,7 @@ namespace GersangStation.Modules {
         /// </summary>
         /// <param name="outputWindowNames">If true all window title texts are printed out.</param>
         /// <returns>Return a list all active window handles.</returns>
-        public static List<IntPtr> GetAllWindowHandles(bool outputWindowNames = true)
+        public static List<IntPtr> GetAllGameHandles(bool outputWindowNames = true)
         {
             Process[] processList;
             List<IntPtr> windowHandles = new List<IntPtr>();
