@@ -182,6 +182,7 @@
             StartPosition = FormStartPosition.CenterParent;
             Text = "GersangPatcher";
             TopMost = true;
+            FormClosing += Form_Patcher_FormClosing;
             Load += Form_Patcher_v2_Load;
             materialCard1.ResumeLayout(false);
             materialCard1.PerformLayout();
