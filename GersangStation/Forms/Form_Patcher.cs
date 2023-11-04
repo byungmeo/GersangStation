@@ -35,6 +35,7 @@ namespace GersangStation
             Test
         };
 
+        private readonly object listLock = new object();
         Dictionary<string, string> list_retry = new Dictionary<string, string>();
 
         private BackgroundWorker worker = new BackgroundWorker();
@@ -172,7 +173,6 @@ namespace GersangStation
         public void StartPatch(int equal) {
             // ProgressChanged(this, new ProgressChangedEventArgs(currProgress, $"클라이언트의 파일을 읽어오는 중 입니다.  ({currCount} / {tasks.Count})")
             Trace.WriteLine("패치 시작!");
-
             DirectoryInfo directory_patch = new DirectoryInfo(Application.StartupPath + @"\patch");
             if(!directory_patch.Exists) { directory_patch.Create(); }
 
@@ -195,7 +195,7 @@ namespace GersangStation
             Trace.WriteLine("패치 파일 다운로드 완료");
 
             ProgressChanged(this, new ProgressChangedEventArgs(60, $"압축 해제 중..."));
-            ExtractAll(directory_file.FullName, path_main);
+            ExtractAll(directory_file.FullName);
             Trace.WriteLine("압축 해제 완료");
 
             //다클라 패치 적용
@@ -282,7 +282,7 @@ namespace GersangStation
             }
         }
 
-        public void ExtractAll(string patch_dir, string main_dir) {
+        public void ExtractAll(string patch_dir) {
             foreach (string file in Directory.EnumerateFiles(patch_dir, "*.*", SearchOption.AllDirectories)) {
                 string dest = path_main + file.Remove(0, patch_dir.Length);
                 dest = dest.Remove(dest.LastIndexOf('\\'));
@@ -332,7 +332,14 @@ namespace GersangStation
                     foreach (var item in list_retry) {
                         Trace.WriteLine("다운로드 실패한 파일 주소 : " + item.Key);
                     }
-                    MessageBox.Show(this, $"{NUM_RETRY}번의 패치 재시도에도 불구하고\n모든 파일을 다운로드하는데 실패하였습니다.\n인터넷 환경을 확인해주시고 다시 패치를 진행해주세요.", "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    this.Invoke(new Action(() => {
+                        MessageBox.Show(this, 
+                            $"{NUM_RETRY}번의 패치 재시도에도 불구하고\n" +
+                            $"모든 파일을 다운로드하는데 실패하였습니다.\n" +
+                            $"인터넷 환경을 확인해주시고 다시 패치를 진행해주세요.", 
+                            "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }));
+                    
                     list_retry.Clear();
                     return false;
                 }
@@ -367,7 +374,9 @@ namespace GersangStation
                 }
                 catch (WebException e) {
                     Trace.WriteLine($"[다운로드 실패] {file_name}\n" + e.StackTrace);
-                    list_retry.Add(item.Key, item.Value);
+                    lock(listLock) {
+                        list_retry.Add(item.Key, item.Value);
+                    }
                 }
             }
         }
@@ -387,7 +396,9 @@ namespace GersangStation
                 try {
                     client.DownloadFile(item.Key, item.Value);
                     Trace.WriteLine($"[재다운로드 성공] {file_name}");
-                    list_retry.Remove(item.Key);
+                    lock(listLock) {
+                        list_retry.Remove(item.Key);
+                    }
                 }
                 catch (WebException e) {
                     Trace.WriteLine($"[재다운로드 실패] {file_name}\n" + e.StackTrace);
