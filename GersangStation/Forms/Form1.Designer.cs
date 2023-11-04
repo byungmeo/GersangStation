@@ -722,6 +722,7 @@
             checkBox_onlyFirstClip.TabIndex = 8;
             checkBox_onlyFirstClip.Text = "처음으로 누른 거상 창만 마우스 가두기";
             checkBox_onlyFirstClip.UseVisualStyleBackColor = true;
+            checkBox_onlyFirstClip.CheckedChanged += checkBox_onlyFirstClip_CheckedChanged;
             // 
             // label1
             // 

@@ -40,6 +40,7 @@ namespace GersangStation.Modules {
                 { "use_clip_disable_hotkey", "True" }, // Alt 키 고정
                 { "use_clip_toggle_hotkey", "False" },
                 { "clip_toggle_hotkey", "122" }, // Keys::F11
+                { "use_clip_only_first", "False" }
             };
 
             if (false == ExistsConfig())

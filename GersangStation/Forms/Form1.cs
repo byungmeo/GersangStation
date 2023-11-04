@@ -354,6 +354,7 @@ namespace GersangStation {
             materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
             checkBox_clipDisableHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"));
             checkBox_clipToggleHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_toggle_hotkey"));
+            checkBox_onlyFirstClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_only_first"));
         }
 
         /* Edge 보안 업데이트로 인해 로직 제거
@@ -1506,6 +1507,11 @@ namespace GersangStation {
 
         private void checkBox_clipToggleHotKey_CheckedChanged(object sender, EventArgs e) {
             ConfigManager.setConfig("use_clip_toggle_hotkey", ((CheckBox)sender).Checked.ToString());
+        }
+
+        private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
+            ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
         }
     } //Form1
 } //namespace
