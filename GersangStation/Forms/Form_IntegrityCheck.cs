@@ -49,6 +49,14 @@ namespace GersangStation {
         }
 
         private void materialButton_start_Click(object sender, EventArgs e) {
+            if(ClipMouse.GetAllGameHandles().Count > 0) {
+                MessageBox.Show(this, 
+                    "게임 실행 중에는 유효성 검사를 할 수 없습니다.", 
+                    "유효성 검사 실패", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             if(materialButton_start.Text.Contains("복원")) {
                 checkThread = null;
                 if(Directory.Exists(Directory.GetCurrentDirectory() + @"\Temp")) {
