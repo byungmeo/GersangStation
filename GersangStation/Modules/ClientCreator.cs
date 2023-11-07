@@ -1,81 +1,132 @@
 ﻿using System.Diagnostics;
+using System.IO;
 
 namespace GersangStation.Modules {
-    internal class ClientCreator
-    {
-        //성공 여부를 반환합니다.
-        public static bool CreateClient(Form owner, string originalPath, string name2, string name3)
-        {
-            if (false == Directory.Exists(originalPath))
-            {
-                owner.BeginInvoke(() =>
-                {
-                    MessageBox.Show(owner, "거상 폴더를 찾을 수 없습니다. 경로를 다시 지정해주세요.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+    internal class ClientCreator {
+        /// <summary>
+        /// 다클라 생성이 가능한 경로(드라이브)인지 검사합니다.
+        /// </summary>
+        private static bool IsValidDrive(Form owner, string path) {
+            DirectoryInfo dirInfo;
+            DriveInfo driveInfo;
+            try {
+                dirInfo = new DirectoryInfo(path);
+                driveInfo = new DriveInfo(dirInfo.Root.FullName);
+            } catch(Exception ex) {
+                owner.BeginInvoke(() => {
+                    MessageBox.Show(owner,
+                        $"{ex}",
+                        "드라이브 유효성 확인 실패",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 });
                 return false;
             }
 
-            string pathDrive = originalPath.Substring(0, 3).ToUpper();
-            Trace.WriteLine("거상 폴더 드라이브 : " + pathDrive);
-            foreach (DriveInfo item in DriveInfo.GetDrives())
-            {
-                if (pathDrive != item.Name) { continue; }
-                if (false == item.IsReady)
-                {
-                    owner.BeginInvoke(() =>
-                    {
-                        MessageBox.Show(owner, "다클라 생성(패치 적용)이 불가능한 경로입니다.\n원인 : 준비된 드라이브가 아닙니다.\n관리자에게 문의해주세요.", "다클라 생성(패치 적용) 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            string name = driveInfo.Name;
+            DriveType type = driveInfo.DriveType;
+
+            Trace.WriteLine($"Drive Name: {name}");
+            Trace.WriteLine($"Drive Type: {type}");
+            if(driveInfo.IsReady) {
+                string format = driveInfo.DriveFormat.ToUpper();
+                Trace.WriteLine($"Drive Format: {format}");
+
+                if(format == "NTFS" || format == "UDF") return true;
+                else {
+                    owner.BeginInvoke(() => {
+                        MessageBox.Show(owner, 
+                            $"다클라 생성이 불가능한 드라이브 포맷({format}) 입니다.",
+                            "다클라 생성(패치 적용) 불가", 
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/39") { UseShellExecute = true });
                     });
                     return false;
                 }
+            } else {
+                owner.BeginInvoke(() => {
+                    MessageBox.Show(owner,
+                        $"현재 드라이브 상태가 준비 중이 아닙니다.",
+                        "다클라 생성(패치 적용) 불가",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                if (item.DriveFormat == "FAT32")
-                {
-                    owner.BeginInvoke(() =>
-                    {
-                        MessageBox.Show(owner, "다클라 생성(패치 적용)이 불가능한 경로입니다.\n원인 : 드라이브 파일 시스템이 FAT32 입니다.\n관리자에게 문의해주세요.", "다클라 생성(패치 적용) 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    });
-                    return false;
-                }
-                break;
-            }
-            Trace.WriteLine("드라이브 유효성 검사 완료");
-
-            string originalOnlinePath = originalPath + "\\Online";
-            DirectoryInfo pathInfo = new DirectoryInfo(originalPath + "\\char");
-            if (true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
-            {
-                owner.BeginInvoke(() =>
-                {
-                    MessageBox.Show(owner, "잘못된 본클라 경로입니다. 다시 지정해주세요.\n원인 : 원본 폴더가 아닌 생성기로 생성된 폴더입니다.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/39") { UseShellExecute = true });
                 });
+                Trace.WriteLine("The drive is not ready.");
                 return false;
             }
+        }
 
-            // 복사-붙여넣기로 생성한 다클라인지 체크
-            bool flag = true;
-            Action<string, string> check = (name, path) =>
-            {
-                DirectoryInfo pathInfo = new DirectoryInfo(path + "\\char");
-                if (pathInfo.Exists)
-                {
-                    if (false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
-                    {
-                        owner.BeginInvoke(() =>
-                        {
-                            MessageBox.Show(owner, "복사-붙여넣기를 통해 다클 생성 시\n다클라 생성 기능 사용이 불가능합니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "다클라 생성 기능 사용 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        /// <summary>
+        /// <para>해당 다클라가 심볼릭 링크로 생성한 것인지 검증합니다.</para>
+        /// <para>원본 클라이언트가 심볼릭 링크인지 판단하려면 <paramref name="isOrg"/>를 <see langword="true"/>로,</para>
+        /// <para>다클라가 심볼릭 링크인지 판단하려면 <see langword="false"/>로 설정 하세요.</para>
+        /// </summary>
+        private static bool IsSymbolic(Form owner, string path, bool isOrg) {
+            DirectoryInfo pathInfo = new DirectoryInfo(path + "\\char");
+            if(isOrg) {
+                if(pathInfo.Exists) {
+                    if(true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
+                        owner.BeginInvoke(() => {
+                            MessageBox.Show(owner,
+                                "본클라 경로가 올바르지 않습니다." +
+                                "\n다클 생성기로 생성한 클라이언트는 본클라가 될 수 없습니다.",
+                                "잘못된 본클라 경로",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        });
+                        return true;
+                    }
+                    return false;
+                } else {
+                    owner.BeginInvoke(() => {
+                        MessageBox.Show(owner,
+                            "본클라 경로가 올바르지 않습니다." +
+                            "\n거상 폴더가 맞는지 다시 확인해주세요.",
+                            "잘못된 본클라 경로",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    });
+                    return true; // true를 반환해야 다클 생성을 더 진행하지 않는다
+                }
+            } else {
+                if(pathInfo.Exists) {
+                    if(false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
+                        owner.BeginInvoke(() => {
+                            MessageBox.Show(owner, 
+                                "이미 복사-붙여넣기로 생성한 다클라 폴더가 존재합니다.", 
+                                "다클라 생성(패치 적용) 불가", 
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
                             Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
                         });
-                        flag = false;
+                        return false;
                     }
                 }
-            };
+                return true; // 다클라 폴더는 존재하지 않아도 상관 없다.
+            }
+        }
 
-            // 거상 폴더 내 파일 복사
-            Action<string> copy = (path) =>
-            {
-                foreach (string eachFilePath in Directory.GetFiles(originalPath))
-                {
+        //성공 여부를 반환합니다.
+        public static bool CreateClient(Form owner, string orgPath, string name2, string name3) {
+            string orgOnlinePath = orgPath + "\\Online";
+
+            if (false == Directory.Exists(orgPath)) {
+                owner.BeginInvoke(() => {
+                    MessageBox.Show(owner, 
+                        "경로를 찾을 수 없습니다.", 
+                        "경로 인식 실패", 
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                });
+                return false;
+            }
+
+            if (false == IsValidDrive(owner, orgPath)) return false;
+            Trace.WriteLine("드라이브 유효성 검사 완료");
+
+            if(true == IsSymbolic(owner, orgPath, true)) return false;
+            Trace.WriteLine("원본 클라 확인 완료");
+
+            // 거상 폴더 내 파일을 복사하는 Action 정의
+            Action<string> copy = (path) => {
+                foreach (string eachFilePath in Directory.GetFiles(orgPath)) {
                     string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
                     string extension = Path.GetExtension(eachFilePath); // '.' 포함
                     if (extension == ".tmp" || extension == ".bmp" || extension == ".dmp") continue;
@@ -85,10 +136,8 @@ namespace GersangStation.Modules {
             };
 
             // 거상 폴더 내 폴더 심볼릭링크 생성 (XIGNCODE, Online는 별도 복사 또는 생성)
-            Action<string> symbolic = (path) =>
-            {
-                foreach (string eachDirPath in Directory.GetDirectories(originalPath))
-                {
+            Action<string> symbolic = (path) => {
+                foreach (string eachDirPath in Directory.GetDirectories(orgPath)) {
                     string? dirName = new DirectoryInfo(eachDirPath).Name;
                     if (dirName == "XIGNCODE" || dirName == "Online") continue;
                     string linkPath = path + '\\' + dirName;
@@ -98,23 +147,20 @@ namespace GersangStation.Modules {
                 }
 
                 // XIGNCODE 폴더 복사
-                Trace.WriteLine("COPY_DIR : " + originalPath + "\\XIGNCODE" + " -> " + path + "\\XIGNCODE");
-                DirectoryCopy(originalPath + "\\XIGNCODE", path + "\\XIGNCODE", true);
+                Trace.WriteLine("COPY_DIR : " + orgPath + "\\XIGNCODE" + " -> " + path + "\\XIGNCODE");
+                DirectoryCopy(orgPath + "\\XIGNCODE", path + "\\XIGNCODE", true);
 
                 // Online 폴더 생성
                 string onlinePath = path + "\\Online";
-                if (true == Directory.Exists(onlinePath))
-                {
+                if (true == Directory.Exists(onlinePath)) {
                     if (true == File.GetAttributes(onlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(onlinePath); };
                 }
                 Directory.CreateDirectory(onlinePath);
 
                 // Online 폴더 내 파일 심볼릭링크 생성 (KeySetting.dat , PetSetting.dat은 없을 경우에만 복사)
-                foreach (string eachFilePath in Directory.GetFiles(originalOnlinePath))
-                {
+                foreach (string eachFilePath in Directory.GetFiles(orgOnlinePath)) {
                     string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
-                    if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg")
-                    {
+                    if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg") {
                         if (File.Exists(onlinePath + fileName)) continue;
                         Trace.WriteLine("COPY : " + eachFilePath + " -> " + onlinePath + fileName);
                         File.Copy(eachFilePath, onlinePath + fileName, false);
@@ -126,8 +172,7 @@ namespace GersangStation.Modules {
                 }
 
                 //Online 폴더 내 폴더 심볼릭링크 생성
-                foreach (string eachDirPath in Directory.GetDirectories(originalOnlinePath))
-                {
+                foreach (string eachDirPath in Directory.GetDirectories(orgOnlinePath)) {
                     string? dirName = new DirectoryInfo(eachDirPath).Name;
                     string linkPath = onlinePath + '\\' + dirName;
                     Trace.WriteLine("SYMLINK_DIR : " + eachDirPath + " -> " + linkPath);
@@ -137,22 +182,18 @@ namespace GersangStation.Modules {
             };
 
             // 2클라 생성
-            if (name2 != "")
-            {
-                string secondPath = originalPath + "\\..\\" + name2;
-                check(name2, secondPath);
-                if (!flag) return false;
+            if (name2 != "") {
+                string secondPath = orgPath + "\\..\\" + name2;
+                if(false == IsSymbolic(owner, secondPath, false)) return false;
                 Directory.CreateDirectory(secondPath); // 거상 폴더 생성
                 copy(secondPath); // 거상 폴더 내 파일 복사
                 symbolic(secondPath);
             }
 
             // 3클라 생성
-            if (name3 != "")
-            {
-                string thirdPath = originalPath + "\\..\\" + name3;
-                check(name3, thirdPath);
-                if (!flag) return false;
+            if (name3 != "") {
+                string thirdPath = orgPath + "\\..\\" + name3;
+                if(false == IsSymbolic(owner, thirdPath, false)) return false;
                 Directory.CreateDirectory(thirdPath); // 거상 폴더 생성
                 copy(thirdPath); // 거상 폴더 내 파일 복사
                 symbolic(thirdPath);
@@ -168,8 +209,7 @@ namespace GersangStation.Modules {
             // Get the subdirectories for the specified directory.
             DirectoryInfo dir = new DirectoryInfo(sourceDirName);
 
-            if (!dir.Exists)
-            {
+            if (!dir.Exists) {
                 throw new DirectoryNotFoundException(
                     "Source directory does not exist or could not be found: "
                     + sourceDirName);
@@ -182,15 +222,13 @@ namespace GersangStation.Modules {
 
             // Get the files in the directory and copy them to the new location.
             FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files)
-            {
+            foreach (FileInfo file in files) {
                 string tempPath = Path.Combine(destDirName, file.Name);
                 file.CopyTo(tempPath, true);
             }
 
             // If copying subdirectories, copy them and their contents to new location.
-            if (copySubDirs)
-            {
+            if (copySubDirs) {
                 foreach (DirectoryInfo subdir in dirs)
                 {
                     string tempPath = Path.Combine(destDirName, subdir.Name);
