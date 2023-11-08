@@ -160,15 +160,23 @@ namespace GersangStation.Modules {
                 // Online 폴더 내 파일 심볼릭링크 생성 (KeySetting.dat , PetSetting.dat은 없을 경우에만 복사)
                 foreach (string eachFilePath in Directory.GetFiles(orgOnlinePath)) {
                     string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
-                    if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg") {
-                        if (File.Exists(onlinePath + fileName)) continue;
-                        Trace.WriteLine("COPY : " + eachFilePath + " -> " + onlinePath + fileName);
-                        File.Copy(eachFilePath, onlinePath + fileName, false);
-                        continue;
+                    if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg" || fileName == "\\CombineInfo.txt") {
+                        if(File.Exists(onlinePath + fileName)) {
+                            if(File.GetAttributes(onlinePath + fileName).HasFlag(FileAttributes.ReparsePoint)) { 
+                                // 설정 파일들이 이미 심볼릭 링크일 경우 삭제하고 복사합니다.
+                                File.Delete(onlinePath + fileName);
+                                Trace.WriteLine("COPY : " + eachFilePath + " -> " + onlinePath + fileName);
+                                File.Copy(eachFilePath, onlinePath + fileName, false);
+                            }
+                        } else {
+                            Trace.WriteLine("COPY : " + eachFilePath + " -> " + onlinePath + fileName);
+                            File.Copy(eachFilePath, onlinePath + fileName, false);
+                        }
+                    } else {
+                        Trace.WriteLine("SYMLINK_FILE : " + eachFilePath + " -> " + onlinePath + fileName);
+                        if(File.Exists(onlinePath + fileName)) { File.Delete(onlinePath + fileName); }
+                        File.CreateSymbolicLink(onlinePath + fileName, eachFilePath);
                     }
-                    Trace.WriteLine("SYMLINK_FILE : " + eachFilePath + " -> " + onlinePath + fileName);
-                    if (File.Exists(onlinePath + fileName)) { File.Delete(onlinePath + fileName); }
-                    File.CreateSymbolicLink(onlinePath + fileName, eachFilePath);
                 }
 
                 //Online 폴더 내 폴더 심볼릭링크 생성
