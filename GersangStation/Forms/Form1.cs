@@ -102,6 +102,7 @@ namespace GersangStation
 
             var path = Path.Combine(Path.GetTempPath(), $"{Environment.UserName}");
             try {
+                Logger.Log($"Webivew2 UserDataFolder {path}");
                 var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
                 await webView_main.EnsureCoreWebView2Async(env);
             } catch(WebView2RuntimeNotFoundException ex) {
@@ -139,6 +140,7 @@ namespace GersangStation
                         Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
                     }
                 } else {
+                    Logger.Log("WebView2 초기화 실패", e.InitializationException);
                     DialogResult dr = MessageBox.Show("WebView2 초기화 중 오류 발생하였습니다. 문의해주세요.\n" + e.InitializationException.Message, "WebView2 초기화 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     if(dr == DialogResult.OK) {
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/3") { UseShellExecute = true });
