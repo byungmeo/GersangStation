@@ -18,8 +18,9 @@ namespace GersangStation
 
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                
-                Application.SetHighDpiMode(HighDpiMode.DpiUnaware); // 애플리케이션 창은 DPI 변경에 맞게 조정되지 않으며 항상 100% 배율을 가정합니다.
+
+                // 애플리케이션 창은 DPI 변경에 맞게 조정되지 않으며 항상 100% 배율을 가정합니다. (기본값)
+                // Application.SetHighDpiMode(HighDpiMode.DpiUnaware);
 
                 // Dpi가 높아지면 메인화면의 1번설정버튼을 누를 수 없음 (밑에도 마찬가지, 높아질수록 뭔가가 가리는듯)
                 //Application.SetHighDpiMode(HighDpiMode.DpiUnawareGdiScaled); // DpiUnaware와 비슷하지만 GDI/GDI+ 기반 콘텐츠의 품질을 향상시킵니다.
