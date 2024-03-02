@@ -394,7 +394,7 @@ namespace GersangStation
                 //message가 정확히 "5초 후에 재로그인 가능합니다." 일 경우, 사용자가 로그인 실패 후 5초 이내에 로그인을 시도한 경우입니다.
                 if(message.Equals("5초 후에 재로그인 가능합니다.")) {
                     Trace.WriteLine("로그인 실패 후 5초 안에 로그인 시도 판정");
-                    MessageBox.Show("아직 5초가 지나지 않았습니다. 5초 후에 다시 로그인을 시도해주세요.");
+                    MessageBox.Show("로그인 실패 후 아직 5초가 지나지 않았습니다.\n5초 후에 다시 로그인을 시도해주세요.");
                     currentState = State.None;
                     currentClient = Client.None;
                     webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
@@ -433,10 +433,13 @@ namespace GersangStation
                     currentClient = Client.None;
                     webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
                     Trace.WriteLine("로그인 실패 판정");
-                    MessageBox.Show("로그인에 실패하였습니다. 5초후에 다시 로그인 해주세요.");
+                    MessageBox.Show("로그인에 실패하였습니다. \nID/PW 재확인 후 다시 로그인 해주세요.\n(잘 되던 계정이 갑자기 안되면 계정 설정을 다시 해보세요.)");
                 } else {
                     Trace.WriteLine("예외로 처리되지 않은 메시지 판정");
-                    MessageBox.Show(message);
+                    MessageBox.Show($"{message}\n\n" +
+                        $"1.인터넷 상태를 확인 해보세요.\n" +
+                        $"2.거상 홈페이지가 터졌거나 점검 중일 수 있습니다.\n" +
+                        $"계속해서 문제가 발생하면 문의 바랍니다.");
                 }
             });
         }
