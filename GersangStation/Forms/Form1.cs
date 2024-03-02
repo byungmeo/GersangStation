@@ -100,7 +100,7 @@ namespace GersangStation
             };
             webView_main.CoreWebView2InitializationCompleted += webView_main_CoreWebView2InitializationCompleted;
 
-            var path = Path.Combine(Path.GetTempPath(), $"{Environment.UserName}");
+            var path = Path.Combine(Path.GetTempPath(), $"GersangStation");
             try {
                 Logger.Log($"Webivew2 UserDataFolder {path}");
                 var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
