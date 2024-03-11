@@ -436,10 +436,7 @@ namespace GersangStation
                     MessageBox.Show("로그인에 실패하였습니다. \nID/PW 재확인 후 다시 로그인 해주세요.\n(잘 되던 계정이 갑자기 안되면 계정 설정을 다시 해보세요.)");
                 } else {
                     Trace.WriteLine("예외로 처리되지 않은 메시지 판정");
-                    MessageBox.Show($"{message}\n\n" +
-                        $"1.인터넷 상태를 확인 해보세요.\n" +
-                        $"2.거상 홈페이지가 터졌거나 점검 중일 수 있습니다.\n" +
-                        $"계속해서 문제가 발생하면 문의 바랍니다.");
+                    MessageBox.Show($"{message}");
                 }
             });
         }
@@ -661,26 +658,21 @@ namespace GersangStation
                 //알 수 없는 오류가 발생했음을 나타냅니다. (MS DOC)
                 if(webErrorStatus == CoreWebView2WebErrorStatus.Unknown) {
                     string title = webView_main.CoreWebView2.DocumentTitle;
-                    if(title != null) {
-                        if(title.Contains("점검")) {
-                            MessageBox.Show("현재 거상 홈페이지가 점검 중입니다.\n점검이 끝난 후에 주요 기능 이용이 가능합니다.");
-                            return;
-                        }
-                        MessageBox.Show("알 수 없는 오류로 인해 거상 홈페이지 접속에 실패하였습니다.\nDocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
-                    } else {
-                        MessageBox.Show("알 수 없는 오류로 인해 거상 홈페이지 접속에 실패하였습니다.\nDocumentTitle : NULL");
-                    }
-                    return;
+                    if(title != null) MessageBox.Show("거상 홈페이지 접속에 실패하였습니다.\n원인 : " + title);
+                    else MessageBox.Show("알 수 없는 오류로 인해 거상 홈페이지 접속에 실패하였습니다.\nDocumentTitle : NULL");
                 }
 
                 //인터넷 연결이 끊어졌음을 나타냅니다. (MS DOC)
-                if(webErrorStatus == CoreWebView2WebErrorStatus.Disconnected) {
+                else if(webErrorStatus == CoreWebView2WebErrorStatus.Disconnected) {
                     MessageBox.Show("거상 홈페이지 접속에 실패하였습니다.\n인터넷 연결을 확인 해주세요.");
-                    return;
                 }
 
-                MessageBox.Show("거상 홈페이지 접속에 실패하였습니다.\n문제 원인 : " + webErrorStatus + "\n문의 바랍니다.");
-                return;
+                else {
+                    MessageBox.Show($"거상 홈페이지 접속에 실패하였습니다. ({webErrorStatus})\n" +
+                    $"1.인터넷 상태를 확인 해보세요.\n" +
+                    $"2.거상 홈페이지가 터졌거나 점검 중일 수 있습니다.\n" +
+                    $"계속해서 문제가 발생하면 문의 바랍니다.\n");
+                }
             });
         }
 
