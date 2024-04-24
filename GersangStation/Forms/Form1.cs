@@ -107,9 +107,17 @@ namespace GersangStation
                 return;
             }
         }
+        private void Form1_Resize(object sender, EventArgs e) {
+            Trace.WriteLine("Form Resize! : " + this.WindowState);
+            if(this.WindowState == FormWindowState.Minimized) {
+                //this.WindowState = FormWindowState.Normal;
+            }
+        }
 
-        // EnsureCoreWebView2Async의 결과값이 null이 아니라면 CoreWebView2 초기화가 완료되기 직전 이 이벤트가 발생합니다.
+        #region WebView Event
         private void webView_main_CoreWebView2InitializationCompleted(object? sender, CoreWebView2InitializationCompletedEventArgs e) {
+            // EnsureCoreWebView2Async의 결과값이 null이 아니라면 CoreWebView2 초기화가 완료되기 직전 이 이벤트가 발생합니다.
+
             if(e.IsSuccess) {
                 //webView_main.CoreWebView2.NewWindowRequested += CoreWebView2_NewWindowRequested; //Edge 보안 업데이트로 인해 NewWindow 로직 제거
                 webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false; //Alert 등의 메시지창이 뜨지않고 ScriptDialogOpening 이벤트를 통해 제어할 수 있도록 합니다.
@@ -143,213 +151,6 @@ namespace GersangStation
                 return;
             }
         }
-        private void LoadComponent() {
-            ConfigManager.Validation();
-            LoadCheckBox();
-            LoadRadioButton();
-            LoadAccountComboBox();
-            LoadShortcut();
-            SetToolTip();
-            CheckAccount();
-            LoadClipMouse();
-
-#if DEBUG
-            linkLabel_announcement.Text = "디버그 모드";
-#else
-            // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
-            try
-            {
-                GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
-                IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
-                Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
-
-                CheckProgramUpdate(releases);
-                LoadAnnouncements(r);
-                LoadSponsors(r);
-            }
-            catch (Exception ex)
-            {
-                linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
-                MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
-                MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
-                Trace.WriteLine(ex.Message);
-            }
-#endif
-
-        }
-
-        private void LoadClipMouse() {
-            // 단축키 TextBox도 함께 초기화 
-            string hotKey = ConfigManager.getConfig("clip_toggle_hotkey");
-            if(hotKey.Contains(',')) {
-                string[] comb = hotKey.Split(',');
-                string mod = comb[0];
-                string key = ((Keys)int.Parse(comb[1])).ToString();
-                textBox_clipToggleHotKey.Text = mod + " + " + key;
-            } else textBox_clipToggleHotKey.Text = ((Keys)int.Parse(hotKey)).ToString();
-
-            ClipMouse.icon = notifyIcon2;
-            ClipMouse.RegisterHotKey(this.Handle, hotKey);
-        }
-
-        private void LoadSponsors(Readme r) {
-            string content = r.Content;
-            string[] sponsors = content.Substring(content.LastIndexOf("<summary>후원해주신 분들</summary>")).Split("<br>");
-
-            // 첫 번째와 마지막은 태그라 무시
-            for(int i = 1; i < sponsors.Length - 1; i++) {
-                materialListBox_sponsor.AddItem(new MaterialListBoxItem(sponsors[i]));
-            }
-            materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
-        }
-
-        private void LoadAnnouncements(Readme r) {
-            string content = r.Content;
-            string[] announcements = content.Substring(content.LastIndexOf("# 공지사항")).Split('\n');
-            if(announcements.Length <= 1) {
-                linkLabel_announcement.Text = "공지사항이 없습니다";
-            } else {
-                try {
-                    string latestAnnouncement = announcements[1];
-                    string title = latestAnnouncement.Split('{')[0];
-                    int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
-                    int length = latestAnnouncement.LastIndexOf('}') - startIndex;
-                    string pageNumber = latestAnnouncement.Substring(startIndex, length);
-                    string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
-                    linkLabel_announcement.Text = title;
-                    linkLabel_announcement.Click += (sender, e) => {
-                        Trace.Write(pageNumber + "번 공지사항 접속");
-                        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                    };
-
-                    // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
-                    string prevLink = ConfigManager.getConfig("prev_announcement");
-                    if(prevLink == "" || prevLink != url) {
-                        ConfigManager.setConfig("prev_announcement", url);
-                        DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']') + 1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                        if(dr == DialogResult.Yes) {
-                            Trace.Write(pageNumber + "번 공지사항 접속");
-                            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                        }
-                    }
-                } catch {
-                    linkLabel_announcement.Text = "공지사항 로딩 실패";
-                }
-            }
-        }
-
-        private void SetToolTip() {
-            toolTip1.Active = true;
-            /**
-             * <-- 메인화면 -->
-             */
-            toolTip1.SetToolTip(button_tray, "트레이에 숨기기");
-            toolTip1.SetToolTip(radio_preset_1, "1번 세팅");
-            toolTip1.SetToolTip(radio_preset_2, "2번 세팅");
-            toolTip1.SetToolTip(radio_preset_3, "3번 세팅");
-            toolTip1.SetToolTip(radio_preset_4, "4번 세팅");
-            toolTip1.SetToolTip(materialCheckbox_testServer, "활성화 시 테스트 서버로 실행합니다.\n(설치 별도)");
-            toolTip1.SetToolTip(materialButton_debugging, "작동하는 브라우저 직접 보기");
-            toolTip1.SetToolTip(materialComboBox_account_1, "본클라 계정 선택");
-            toolTip1.SetToolTip(materialComboBox_account_2, "2클라 계정 선택");
-            toolTip1.SetToolTip(materialComboBox_account_3, "3클라 계정 선택");
-            toolTip1.SetToolTip(materialSwitch_login_1, "본클라 홈페이지 로그인");
-            toolTip1.SetToolTip(materialSwitch_login_2, "2클라 홈페이지 로그인");
-            toolTip1.SetToolTip(materialSwitch_login_3, "3클라 홈페이지 로그인");
-            toolTip1.SetToolTip(materialButton_start_1, "본클라 게임 실행");
-            toolTip1.SetToolTip(materialButton_start_2, "2클라 게임 실행");
-            toolTip1.SetToolTip(materialButton_start_3, "3클라 게임 실행");
-            string shortcut_1 = ConfigManager.getConfig("shortcut_1");
-            if(shortcut_1 == "") shortcut_1 = "링크가 설정되지 않았습니다.";
-            string shortcut_2 = ConfigManager.getConfig("shortcut_2");
-            if(shortcut_2 == "") shortcut_2 = "링크가 설정되지 않았습니다.";
-            string shortcut_3 = ConfigManager.getConfig("shortcut_3");
-            if(shortcut_3 == "") shortcut_3 = "링크가 설정되지 않았습니다.";
-            string shortcut_4 = ConfigManager.getConfig("shortcut_4");
-            if(shortcut_4 == "") shortcut_4 = "링크가 설정되지 않았습니다.";
-            toolTip1.SetToolTip(materialButton_shortcut_1, shortcut_1);
-            toolTip1.SetToolTip(materialButton_shortcut_2, shortcut_2);
-            toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
-            toolTip1.SetToolTip(materialButton_shortcut_4, shortcut_4);
-
-            toolTip1.SetToolTip(img_help_clip,
-                "창모드 환경에서 마우스 가두기를 하였음에도 마우스 커서가 밖으로 삐져나오는 현상을 개선합니다." +
-                "\n\n※ 게임 내 마우스 가두기 기능을 OFF 하시고 사용하셔야 합니다." +
-                "\n\n(기본값)F11: 마우스 가두기 ON, OFF\nAlt: 일시적으로 OFF");
-
-            toolTip1.SetToolTip(img_help_integrity,
-                "거상 설치 폴더에 손상되거나 누락된 파일이 있는지 확인합니다." +
-                "\n거상 실행 시 오류가 발생하는 경우 유용합니다.");
-        }
-
-        private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
-            //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
-            string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
-            Trace.WriteLine(version_current);
-
-            int ver_idx;
-            for(ver_idx = 0; ver_idx < releases.Count; ++ver_idx) {
-                if(releases[ver_idx].Prerelease == false) break;
-            }
-            Release release = releases[ver_idx];
-            string version_latest = release.TagName;
-            label_version_current.Text = label_version_current.Text.Replace("0.0.0", version_current);
-            label_version_latest.Text = label_version_latest.Text.Replace("0.0.0", version_latest);
-
-            //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
-            //Version latestGitHubVersion = new Version(releases[0].TagName);
-            Version latestGitHubVersion = new Version(version_latest);
-            Version localVersion = new Version(version_current);
-            Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
-            Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
-
-            // 업데이트 알림
-            string msg = release.Body;
-            if(msg.Contains("<!--DIALOG-->") && msg.Contains("<!--END-->")) {
-                // <!--DIALOG-->와 <!--END--> 사이의 내용만 가져옵니다.
-                int start = msg.IndexOf("<!--DIALOG-->") + "<!--DIALOG-->".Length + 2;
-                int end = msg.IndexOf("<!--END-->") - start;
-                msg = msg.Substring(start, end);
-            }
-
-            int versionComparison = localVersion.CompareTo(latestGitHubVersion);
-            if(versionComparison < 0) {
-                Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
-
-                DialogResult dr = MessageBox.Show(msg + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
-                    "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-
-                if(dr == DialogResult.Yes) {
-                    Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
-                }
-            } else if(versionComparison > 0) {
-                Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
-            } else {
-                Trace.WriteLine("현재 버전은 최신버전입니다!");
-            }
-        }
-
-        private void CheckAccount() {
-            if(materialComboBox_account_1.Items.Count <= 1) {
-                DialogResult dr = MessageBox.Show("현재 저장된 계정이 하나도 없습니다.\n계정 설정 화면으로 이동하시겠습니까?", "계정 없음", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if(dr == DialogResult.OK) {
-                    OpenAccountSettingDialog();
-                }
-            }
-        }
-
-        private void LoadCheckBox() {
-            // 메인 탭
-            materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
-
-            // 추가 기능 탭
-            materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
-            checkBox_clipDisableHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"));
-            checkBox_clipToggleHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_toggle_hotkey"));
-            checkBox_onlyFirstClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_only_first"));
-        }
-
         private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
             string message = e.Message;
             Trace.WriteLine(message);
@@ -488,6 +289,576 @@ namespace GersangStation
                 handleWebError(e.WebErrorStatus);
             }
         }
+        #endregion WebView Event
+
+        #region Component Initialize
+        
+        private void LoadComponent() {
+            ConfigManager.Validation();
+            LoadCheckBox();
+            LoadRadioButton();
+            LoadAccountComboBox();
+            LoadShortcut();
+            SetToolTip();
+            CheckAccount();
+            LoadClipMouse();
+
+#if DEBUG
+            linkLabel_announcement.Text = "디버그 모드";
+#else
+            // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
+            try
+            {
+                GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
+                IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
+                Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
+
+                CheckProgramUpdate(releases);
+                LoadAnnouncements(r);
+                LoadSponsors(r);
+            }
+            catch (Exception ex)
+            {
+                linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
+                MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
+                MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
+                Trace.WriteLine(ex.Message);
+            }
+#endif
+        }
+
+        private void LoadCheckBox() {
+            // 메인 탭
+            materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
+
+            // 추가 기능 탭
+            materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
+            checkBox_clipDisableHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"));
+            checkBox_clipToggleHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_toggle_hotkey"));
+            checkBox_onlyFirstClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_only_first"));
+        }
+
+        private void LoadRadioButton() {
+            byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
+            switch(current_preset) {
+                case 1:
+                    radio_preset_1.PerformClick();
+                    break;
+                case 2:
+                    radio_preset_2.PerformClick();
+                    break;
+                case 3:
+                    radio_preset_3.PerformClick();
+                    break;
+                case 4:
+                    radio_preset_4.PerformClick();
+                    break;
+                default:
+                    MessageBox.Show("LoadRadioButton에서 오류 발생");
+                    break;
+            }
+        }
+
+        private void LoadAccountComboBox() {
+            materialComboBox_account_1.Items.Clear();
+            materialComboBox_account_2.Items.Clear();
+            materialComboBox_account_3.Items.Clear();
+
+            string temp = ConfigManager.getConfig("account_list");
+            string[] accountList;
+            if(temp.Length != 0) {
+                accountList = temp.Remove(temp.Length - 1, 1).Split(';');
+            } else {
+                accountList = Array.Empty<string>();
+            }
+
+            materialComboBox_account_1.Items.Add("선택안함");
+            materialComboBox_account_2.Items.Add("선택안함");
+            materialComboBox_account_3.Items.Add("선택안함");
+
+            foreach(var item in accountList) {
+                string id = ConfigManager.getConfig(item + "_nickname");
+                if(id == "") id = item;
+                materialComboBox_account_1.Items.Add(id);
+                materialComboBox_account_2.Items.Add(id);
+                materialComboBox_account_3.Items.Add(id);
+            }
+
+            materialComboBox_account_1.Items.Add("SNS_네이버");
+            materialComboBox_account_2.Items.Add("SNS_네이버");
+            materialComboBox_account_3.Items.Add("SNS_네이버");
+            materialComboBox_account_1.Items.Add("SNS_카카오");
+            materialComboBox_account_2.Items.Add("SNS_카카오");
+            materialComboBox_account_3.Items.Add("SNS_카카오");
+            materialComboBox_account_1.Items.Add("SNS_구글");
+            materialComboBox_account_2.Items.Add("SNS_구글");
+            materialComboBox_account_3.Items.Add("SNS_구글");
+
+            byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
+            int[] index = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
+
+            try {
+                materialComboBox_account_1.SelectedIndex = index[0];
+                materialComboBox_account_2.SelectedIndex = index[1];
+                materialComboBox_account_3.SelectedIndex = index[2];
+            } catch(ArgumentOutOfRangeException) {
+                materialComboBox_account_1.SelectedIndex = 0;
+                materialComboBox_account_2.SelectedIndex = 0;
+                materialComboBox_account_3.SelectedIndex = 0;
+            }
+
+            materialComboBox_account_1.Refresh();
+            materialComboBox_account_2.Refresh();
+            materialComboBox_account_3.Refresh();
+        }
+
+        private void LoadShortcut() {
+            string[] names = ConfigManager.getConfig("shortcut_name").Split(';');
+            materialButton_shortcut_1.Text = names[0];
+            materialButton_shortcut_2.Text = names[1];
+            materialButton_shortcut_3.Text = names[2];
+            materialButton_shortcut_4.Text = names[3];
+        }
+
+        private void SetToolTip() {
+            toolTip1.Active = true;
+            /**
+             * <-- 메인화면 -->
+             */
+            toolTip1.SetToolTip(button_tray, "트레이에 숨기기");
+            toolTip1.SetToolTip(radio_preset_1, "1번 세팅");
+            toolTip1.SetToolTip(radio_preset_2, "2번 세팅");
+            toolTip1.SetToolTip(radio_preset_3, "3번 세팅");
+            toolTip1.SetToolTip(radio_preset_4, "4번 세팅");
+            toolTip1.SetToolTip(materialCheckbox_testServer, "활성화 시 테스트 서버로 실행합니다.\n(설치 별도)");
+            toolTip1.SetToolTip(materialButton_debugging, "작동하는 브라우저 직접 보기");
+            toolTip1.SetToolTip(materialComboBox_account_1, "본클라 계정 선택");
+            toolTip1.SetToolTip(materialComboBox_account_2, "2클라 계정 선택");
+            toolTip1.SetToolTip(materialComboBox_account_3, "3클라 계정 선택");
+            toolTip1.SetToolTip(materialSwitch_login_1, "본클라 홈페이지 로그인");
+            toolTip1.SetToolTip(materialSwitch_login_2, "2클라 홈페이지 로그인");
+            toolTip1.SetToolTip(materialSwitch_login_3, "3클라 홈페이지 로그인");
+            toolTip1.SetToolTip(materialButton_start_1, "본클라 게임 실행");
+            toolTip1.SetToolTip(materialButton_start_2, "2클라 게임 실행");
+            toolTip1.SetToolTip(materialButton_start_3, "3클라 게임 실행");
+            string shortcut_1 = ConfigManager.getConfig("shortcut_1");
+            if(shortcut_1 == "") shortcut_1 = "링크가 설정되지 않았습니다.";
+            string shortcut_2 = ConfigManager.getConfig("shortcut_2");
+            if(shortcut_2 == "") shortcut_2 = "링크가 설정되지 않았습니다.";
+            string shortcut_3 = ConfigManager.getConfig("shortcut_3");
+            if(shortcut_3 == "") shortcut_3 = "링크가 설정되지 않았습니다.";
+            string shortcut_4 = ConfigManager.getConfig("shortcut_4");
+            if(shortcut_4 == "") shortcut_4 = "링크가 설정되지 않았습니다.";
+            toolTip1.SetToolTip(materialButton_shortcut_1, shortcut_1);
+            toolTip1.SetToolTip(materialButton_shortcut_2, shortcut_2);
+            toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
+            toolTip1.SetToolTip(materialButton_shortcut_4, shortcut_4);
+
+            toolTip1.SetToolTip(img_help_clip,
+                "창모드 환경에서 마우스 가두기를 하였음에도 마우스 커서가 밖으로 삐져나오는 현상을 개선합니다." +
+                "\n\n※ 게임 내 마우스 가두기 기능을 OFF 하시고 사용하셔야 합니다." +
+                "\n\n(기본값)F11: 마우스 가두기 ON, OFF\nAlt: 일시적으로 OFF");
+
+            toolTip1.SetToolTip(img_help_integrity,
+                "거상 설치 폴더에 손상되거나 누락된 파일이 있는지 확인합니다." +
+                "\n거상 실행 시 오류가 발생하는 경우 유용합니다.");
+        }
+
+        private void CheckAccount() {
+            if(materialComboBox_account_1.Items.Count <= 1) {
+                DialogResult dr = MessageBox.Show("현재 저장된 계정이 하나도 없습니다.\n계정 설정 화면으로 이동하시겠습니까?", "계정 없음", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if(dr == DialogResult.OK) {
+                    OpenAccountSettingDialog();
+                }
+            }
+        }
+
+        private void LoadClipMouse() {
+            // 단축키 TextBox도 함께 초기화 
+            string hotKey = ConfigManager.getConfig("clip_toggle_hotkey");
+            if(hotKey.Contains(',')) {
+                string[] comb = hotKey.Split(',');
+                string mod = comb[0];
+                string key = ((Keys)int.Parse(comb[1])).ToString();
+                textBox_clipToggleHotKey.Text = mod + " + " + key;
+            } else textBox_clipToggleHotKey.Text = ((Keys)int.Parse(hotKey)).ToString();
+
+            ClipMouse.icon = notifyIcon2;
+            ClipMouse.RegisterHotKey(this.Handle, hotKey);
+        }
+
+        private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
+            //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
+            string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
+            Trace.WriteLine(version_current);
+
+            int ver_idx;
+            for(ver_idx = 0; ver_idx < releases.Count; ++ver_idx) {
+                if(releases[ver_idx].Prerelease == false) break;
+            }
+            Release release = releases[ver_idx];
+            string version_latest = release.TagName;
+            label_version_current.Text = label_version_current.Text.Replace("0.0.0", version_current);
+            label_version_latest.Text = label_version_latest.Text.Replace("0.0.0", version_latest);
+
+            //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
+            //Version latestGitHubVersion = new Version(releases[0].TagName);
+            Version latestGitHubVersion = new Version(version_latest);
+            Version localVersion = new Version(version_current);
+            Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
+            Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
+
+            // 업데이트 알림
+            string msg = release.Body;
+            if(msg.Contains("<!--DIALOG-->") && msg.Contains("<!--END-->")) {
+                // <!--DIALOG-->와 <!--END--> 사이의 내용만 가져옵니다.
+                int start = msg.IndexOf("<!--DIALOG-->") + "<!--DIALOG-->".Length + 2;
+                int end = msg.IndexOf("<!--END-->") - start;
+                msg = msg.Substring(start, end);
+            }
+
+            int versionComparison = localVersion.CompareTo(latestGitHubVersion);
+            if(versionComparison < 0) {
+                Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
+
+                DialogResult dr = MessageBox.Show(msg + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
+                    "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+
+                if(dr == DialogResult.Yes) {
+                    Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
+                }
+            } else if(versionComparison > 0) {
+                Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
+            } else {
+                Trace.WriteLine("현재 버전은 최신버전입니다!");
+            }
+        }
+
+        private void LoadAnnouncements(Readme r) {
+            string content = r.Content;
+            string[] announcements = content.Substring(content.LastIndexOf("# 공지사항")).Split('\n');
+            if(announcements.Length <= 1) {
+                linkLabel_announcement.Text = "공지사항이 없습니다";
+            } else {
+                try {
+                    string latestAnnouncement = announcements[1];
+                    string title = latestAnnouncement.Split('{')[0];
+                    int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
+                    int length = latestAnnouncement.LastIndexOf('}') - startIndex;
+                    string pageNumber = latestAnnouncement.Substring(startIndex, length);
+                    string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
+                    linkLabel_announcement.Text = title;
+                    linkLabel_announcement.Click += (sender, e) => {
+                        Trace.Write(pageNumber + "번 공지사항 접속");
+                        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                    };
+
+                    // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
+                    string prevLink = ConfigManager.getConfig("prev_announcement");
+                    if(prevLink == "" || prevLink != url) {
+                        ConfigManager.setConfig("prev_announcement", url);
+                        DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']') + 1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                        if(dr == DialogResult.Yes) {
+                            Trace.Write(pageNumber + "번 공지사항 접속");
+                            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                        }
+                    }
+                } catch {
+                    linkLabel_announcement.Text = "공지사항 로딩 실패";
+                }
+            }
+        }
+
+        private void LoadSponsors(Readme r) {
+            string content = r.Content;
+            string[] sponsors = content.Substring(content.LastIndexOf("<summary>후원해주신 분들</summary>")).Split("<br>");
+
+            // 첫 번째와 마지막은 태그라 무시
+            for(int i = 1; i < sponsors.Length - 1; i++) {
+                materialListBox_sponsor.AddItem(new MaterialListBoxItem(sponsors[i]));
+            }
+            materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
+        }
+        #endregion Component Initialize
+
+        #region WinForm Component Event
+        private void materialSwitch_login_Click(object sender, EventArgs e) {
+            MaterialSwitch @switch = (MaterialSwitch)sender;
+            SwitchClick(@switch);
+        }
+
+        private void materialButton_setting_Click(object sender, EventArgs e) {
+            MaterialButton button = (MaterialButton)sender;
+            if(button.Equals(materialButton_setting_account)) {
+                OpenAccountSettingDialog();
+            } else if(button.Equals(materialButton_setting_client)) {
+                OpenClientSettingDialog();
+            } else if(button.Equals(materialButton_setting_shortcut)) {
+                OpenShortcuttSettingDialog();
+            }
+        }
+
+        private void radio_preset_CheckedChanged(object sender, EventArgs e) {
+            MaterialRadioButton radio = (MaterialRadioButton)sender;
+            if(radio.Checked == false) { return; }
+            string? value = radio.Tag.ToString();
+            if(value == null) {
+                MessageBox.Show("RadioButton의 Tag가 Null입니다.");
+                return;
+            }
+
+            ConfigManager.setConfig("current_preset", value);
+            LoadAccountComboBox();
+        }
+
+        private void materialButton_shortcut_Click(object sender, EventArgs e) {
+            MaterialButton button = (MaterialButton)sender;
+            string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
+
+            if(url == null || url.Equals("")) {
+                DialogResult dr = MessageBox.Show("나만의 바로가기 링크가 설정되어 있지 않습니다.\n설정화면으로 이동하시겠습니까?", "바로가기 미설정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
+                if(dr == DialogResult.OK) { OpenShortcuttSettingDialog(); }
+                return;
+            }
+
+            if(!Uri.IsWellFormedUriString(url, UriKind.Absolute)) {
+                MessageBox.Show("잘못된 링크 형식 입니다. 다시 설정해주세요.");
+                return;
+            }
+
+            webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
+
+            Form_Browser form = new Form_Browser(webView_main);
+            form.Load += (sender, e) => {
+                webView_main.CoreWebView2.Navigate(ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1)));
+            };
+            form.FormClosed += (sender, e) => {
+                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
+                webView_main.CoreWebView2.Navigate(url_main);
+                form.Controls.Clear();
+                LoadShortcut();
+            };
+            form.Show();
+        }
+
+        private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
+            MaterialComboBox comboBox = (MaterialComboBox)sender;
+
+            string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
+            if(id == "") id = comboBox.Text;
+            string switchTag;
+            Trace.WriteLine(id);
+            if(id.Contains("선택안함") || id.Contains("SNS_")) { switchTag = comboBox.Text; } else { switchTag = id + ";" + ConfigManager.getConfig(id); }
+
+            byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
+            int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
+
+            if(comboBox.Equals(materialComboBox_account_1)) {
+                materialSwitch_login_1.Tag = switchTag;
+                temp[0] = comboBox.SelectedIndex;
+            } else if(comboBox.Equals(materialComboBox_account_2)) {
+                materialSwitch_login_2.Tag = switchTag;
+                temp[1] = comboBox.SelectedIndex;
+            } else {
+                materialSwitch_login_3.Tag = switchTag;
+                temp[2] = comboBox.SelectedIndex;
+            }
+
+            ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, string.Join(';', temp));
+
+            if(Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
+                Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
+                webView_main.CoreWebView2.Navigate(url_logout);
+                materialSwitch_login_1.CheckState = CheckState.Unchecked;
+                materialSwitch_login_2.CheckState = CheckState.Unchecked;
+                materialSwitch_login_3.CheckState = CheckState.Unchecked;
+                currentState = State.None;
+                currentClient = Client.None;
+                return;
+            }
+        }
+
+        private void materialButton_debugging_Click(object sender, EventArgs e) {
+
+            webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
+
+            Form_Browser form = new Form_Browser(webView_main);
+            form.FormClosed += (sender, e) => {
+                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
+                webView_main.CoreWebView2.Navigate(url_main);
+                form.Controls.Clear();
+                LoadShortcut();
+            };
+
+            form.Show();
+        }
+
+        private void materialButton_naver_Click(object sender, EventArgs e) {
+            MaterialButton searchButton = (MaterialButton)sender;
+            SearchClick(searchButton);
+        }
+
+        private void materialButton_start_Click(object sender, EventArgs e) {
+            MaterialButton startButton = (MaterialButton)sender;
+            StartClick(startButton);
+        }
+
+        private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
+            MaterialCheckbox checkbox = (MaterialCheckbox)sender;
+            ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
+        }
+
+        private void materialButton_patchNote_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
+        }
+
+        private void materialButton_blog_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
+        }
+
+        private void materialButton_gitHub_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
+        }
+
+        private void button_tray_Click(object sender, EventArgs e) {
+            notifyIcon1.Visible = true;
+            notifyIcon1.BalloonTipTitle = "알림";
+            notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";
+            notifyIcon1.ShowBalloonTip(5000);
+            this.Hide();
+        }
+        private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
+            notifyIcon1.Visible = false;
+            this.Show();
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
+        }
+
+        private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+            ToolStripItem item = e.ClickedItem;
+            if(item.Equals(toolStripMenuItem_open)) {
+                notifyIcon1.Visible = false;
+                this.Show();
+            } else if(item.Equals(toolStripMenuItem_exit)) {
+                System.Windows.Forms.Application.Exit();
+            }
+        }
+
+        private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e) {
+            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+            ToolStripItem item = e.ClickedItem;
+
+            if(menuItem.Equals(toolStripMenuItem_client_1)) {
+                if(item.Equals(toolStripMenuItem_start_1)) { StartClick(materialButton_start_1); }
+            } else if(menuItem.Equals(toolStripMenuItem_client_2)) {
+                if(item.Equals(toolStripMenuItem_start_2)) { StartClick(materialButton_start_2); }
+            } else if(menuItem.Equals(toolStripMenuItem_client_3)) {
+                if(item.Equals(toolStripMenuItem_start_3)) { StartClick(materialButton_start_3); }
+            }
+        }
+
+        private void materialButton_license_Click(object sender, EventArgs e) {
+            Form backgroundForm = InitBackgroundForm(this);
+
+            Form_License dialog_license = new Form_License() {
+                Owner = this
+            };
+
+            try {
+                backgroundForm.Show();
+                dialog_license.ShowDialog();
+            } catch(Exception ex) {
+                Trace.WriteLine(ex.StackTrace);
+            } finally {
+                backgroundForm.Dispose();
+            }
+        }
+
+        private void materialButton_sponsor_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/26") { UseShellExecute = true });
+        }
+
+        private void materialButton_question_kakao_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
+        }
+
+        private void materialButton_question_naver_Click(object sender, EventArgs e) {
+            Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
+        }
+
+        private void materialCheckbox_mouseClip_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
+
+            if(materialCheckbox_mouseClip.Checked == true) {
+                ClipMouse.Run();
+                checkBox_clipToggleHotKey.Enabled = true;
+                checkBox_clipDisableHotKey.Enabled = true;
+                textBox_clipToggleHotKey.Enabled = true;
+                checkBox_onlyFirstClip.Enabled = true;
+            } else {
+                ClipMouse.Stop(false);
+                checkBox_clipToggleHotKey.Enabled = false;
+                checkBox_clipDisableHotKey.Enabled = false;
+                textBox_clipToggleHotKey.Enabled = false;
+                checkBox_onlyFirstClip.Enabled = false;
+            }
+        }
+
+        private void textBox_hotKey_KeyDown(object sender, KeyEventArgs e) {
+            TextBox textBox = (TextBox)sender;
+            string org = textBox.Text;
+
+            // 조합 단축키 지원
+            string comb = string.Empty;
+            if(e.Control) comb = "Ctrl";
+            else if(e.Alt) comb = "Alt";
+            else if(e.Shift) comb = "Shift";
+
+            if(e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.Menu || e.KeyCode == Keys.ShiftKey) {
+                textBox.Text = comb;
+                ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
+            } else if(comb != string.Empty && e.KeyCode != Keys.ControlKey && e.KeyCode != Keys.Menu && e.KeyCode != Keys.ShiftKey) {
+                textBox.Text = comb + " + " + e.KeyCode.ToString();
+                ConfigManager.setConfig("clip_toggle_hotkey", comb + "," + ((int)e.KeyCode).ToString());
+            } else {
+                textBox.Text = e.KeyCode.ToString();
+                ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
+            }
+
+            if(org != textBox.Text) {
+                ClipMouse.UnregisterHotKey(this.Handle);
+                ClipMouse.RegisterHotKey(this.Handle, ConfigManager.getConfig("clip_toggle_hotkey"));
+            }
+
+            // Alt 키를 누르면 포커스 풀리는 현상 방지
+            if(e.KeyCode == Keys.Menu) e.SuppressKeyPress = true;
+        }
+
+        private void checkBox_clipDisableHotKey_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_disable_hotkey", ((CheckBox)sender).Checked.ToString());
+        }
+
+        private void checkBox_clipToggleHotKey_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_toggle_hotkey", ((CheckBox)sender).Checked.ToString());
+        }
+
+        private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
+            ConfigManager.setConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
+            ClipMouse.firstGameHandle = IntPtr.Zero;
+            ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
+        }
+
+        private void linkLabel_clipInformation_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/37") { UseShellExecute = true });
+        }
+
+        private void materialButton_integrity_Click(object sender, EventArgs e) {
+            OpenIntegrityCheckDialog();
+        }
+        #endregion WinForm Component Event
 
         private void deactivateWebSideFunction() {
             //materialSwitch_login_1.Enabled = false;
@@ -690,11 +1061,6 @@ namespace GersangStation
             }
         }
 
-        private void materialButton_start_Click(object sender, EventArgs e) {
-            MaterialButton startButton = (MaterialButton)sender;
-            StartClick(startButton);
-        }
-
         private void StartClick(MaterialButton startButton) {
             MaterialSwitch? loginSwitch;
 
@@ -869,11 +1235,6 @@ namespace GersangStation
             }
         }
 
-        private void materialSwitch_login_Click(object sender, EventArgs e) {
-            MaterialSwitch @switch = (MaterialSwitch)sender;
-            SwitchClick(@switch);
-        }
-
         private void SwitchClick(MaterialSwitch sender) {
             if(isWebFunctionDeactivated) {
                 Trace.WriteLine("웹 로딩 중 스위치 작동이 불가능 합니다.");
@@ -933,154 +1294,6 @@ namespace GersangStation
             currentState = State.LoggedIn;
         }
 
-        private void materialButton_shortcut_Click(object sender, EventArgs e) {
-            MaterialButton button = (MaterialButton)sender;
-            string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
-
-            if(url == null || url.Equals("")) {
-                DialogResult dr = MessageBox.Show("나만의 바로가기 링크가 설정되어 있지 않습니다.\n설정화면으로 이동하시겠습니까?", "바로가기 미설정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-                if(dr == DialogResult.OK) { OpenShortcuttSettingDialog(); }
-                return;
-            }
-
-            if(!Uri.IsWellFormedUriString(url, UriKind.Absolute)) {
-                MessageBox.Show("잘못된 링크 형식 입니다. 다시 설정해주세요.");
-                return;
-            }
-
-            webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
-
-            Form_Browser form = new Form_Browser(webView_main);
-            form.Load += (sender, e) => {
-                webView_main.CoreWebView2.Navigate(ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1)));
-            };
-            form.FormClosed += (sender, e) => {
-                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
-                webView_main.CoreWebView2.Navigate(url_main);
-                form.Controls.Clear();
-                LoadShortcut();
-            };
-            form.Show();
-        }
-
-        private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
-            MaterialComboBox comboBox = (MaterialComboBox)sender;
-
-            string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
-            if(id == "") id = comboBox.Text;
-            string switchTag;
-            Trace.WriteLine(id);
-            if(id.Contains("선택안함") || id.Contains("SNS_")) { switchTag = comboBox.Text; } else { switchTag = id + ";" + ConfigManager.getConfig(id); }
-
-            byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-            int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
-
-            if(comboBox.Equals(materialComboBox_account_1)) {
-                materialSwitch_login_1.Tag = switchTag;
-                temp[0] = comboBox.SelectedIndex;
-            } else if(comboBox.Equals(materialComboBox_account_2)) {
-                materialSwitch_login_2.Tag = switchTag;
-                temp[1] = comboBox.SelectedIndex;
-            } else {
-                materialSwitch_login_3.Tag = switchTag;
-                temp[2] = comboBox.SelectedIndex;
-            }
-
-            ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, string.Join(';', temp));
-
-            if(Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
-                Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
-                webView_main.CoreWebView2.Navigate(url_logout);
-                materialSwitch_login_1.CheckState = CheckState.Unchecked;
-                materialSwitch_login_2.CheckState = CheckState.Unchecked;
-                materialSwitch_login_3.CheckState = CheckState.Unchecked;
-                currentState = State.None;
-                currentClient = Client.None;
-                return;
-            }
-        }
-
-        private void LoadAccountComboBox() {
-            materialComboBox_account_1.Items.Clear();
-            materialComboBox_account_2.Items.Clear();
-            materialComboBox_account_3.Items.Clear();
-
-            string temp = ConfigManager.getConfig("account_list");
-            string[] accountList;
-            if(temp.Length != 0) {
-                accountList = temp.Remove(temp.Length - 1, 1).Split(';');
-            } else {
-                accountList = Array.Empty<string>();
-            }
-
-            materialComboBox_account_1.Items.Add("선택안함");
-            materialComboBox_account_2.Items.Add("선택안함");
-            materialComboBox_account_3.Items.Add("선택안함");
-
-            foreach(var item in accountList) {
-                string id = ConfigManager.getConfig(item + "_nickname");
-                if(id == "") id = item;
-                materialComboBox_account_1.Items.Add(id);
-                materialComboBox_account_2.Items.Add(id);
-                materialComboBox_account_3.Items.Add(id);
-            }
-
-            materialComboBox_account_1.Items.Add("SNS_네이버");
-            materialComboBox_account_2.Items.Add("SNS_네이버");
-            materialComboBox_account_3.Items.Add("SNS_네이버");
-            materialComboBox_account_1.Items.Add("SNS_카카오");
-            materialComboBox_account_2.Items.Add("SNS_카카오");
-            materialComboBox_account_3.Items.Add("SNS_카카오");
-            materialComboBox_account_1.Items.Add("SNS_구글");
-            materialComboBox_account_2.Items.Add("SNS_구글");
-            materialComboBox_account_3.Items.Add("SNS_구글");
-
-            byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-            int[] index = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
-
-            try {
-                materialComboBox_account_1.SelectedIndex = index[0];
-                materialComboBox_account_2.SelectedIndex = index[1];
-                materialComboBox_account_3.SelectedIndex = index[2];
-            } catch(ArgumentOutOfRangeException) {
-                materialComboBox_account_1.SelectedIndex = 0;
-                materialComboBox_account_2.SelectedIndex = 0;
-                materialComboBox_account_3.SelectedIndex = 0;
-            }
-
-            materialComboBox_account_1.Refresh();
-            materialComboBox_account_2.Refresh();
-            materialComboBox_account_3.Refresh();
-        }
-
-        private void materialButton_debugging_Click(object sender, EventArgs e) {
-
-            webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
-
-            Form_Browser form = new Form_Browser(webView_main);
-            form.FormClosed += (sender, e) => {
-                webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
-                webView_main.CoreWebView2.Navigate(url_main);
-                form.Controls.Clear();
-                LoadShortcut();
-            };
-
-            form.Show();
-        }
-
-        private void LoadShortcut() {
-            string[] names = ConfigManager.getConfig("shortcut_name").Split(';');
-            materialButton_shortcut_1.Text = names[0];
-            materialButton_shortcut_2.Text = names[1];
-            materialButton_shortcut_3.Text = names[2];
-            materialButton_shortcut_4.Text = names[3];
-        }
-
-        private void materialButton_naver_Click(object sender, EventArgs e) {
-            MaterialButton searchButton = (MaterialButton)sender;
-            SearchClick(searchButton);
-        }
-
         private void SearchClick(MaterialButton searchButton) {
             // 검색 보상 이벤트가 더 이상 진행되지 않아 주석처리
             /*
@@ -1094,47 +1307,6 @@ namespace GersangStation
             if (true == loginSwitch.Checked) { webView_main.CoreWebView2.Navigate(url_search); } //네이버 검색
             else { SwitchClick(loginSwitch); }
             */
-        }
-
-        private void radio_preset_CheckedChanged(object sender, EventArgs e) {
-            MaterialRadioButton radio = (MaterialRadioButton)sender;
-            if(radio.Checked == false) { return; }
-            string? value = radio.Tag.ToString();
-            if(value == null) {
-                MessageBox.Show("RadioButton의 Tag가 Null입니다.");
-                return;
-            }
-
-            ConfigManager.setConfig("current_preset", value);
-            LoadAccountComboBox();
-        }
-
-        private void LoadRadioButton() {
-            byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-            switch(current_preset) {
-                case 1:
-                    radio_preset_1.PerformClick();
-                    break;
-                case 2:
-                    radio_preset_2.PerformClick();
-                    break;
-                case 3:
-                    radio_preset_3.PerformClick();
-                    break;
-                case 4:
-                    radio_preset_4.PerformClick();
-                    break;
-                default:
-                    MessageBox.Show("LoadRadioButton에서 오류 발생");
-                    break;
-            }
-        }
-
-        private void Form1_Resize(object sender, EventArgs e) {
-            Trace.WriteLine("Form Resize! : " + this.WindowState);
-            if(this.WindowState == FormWindowState.Minimized) {
-                //this.WindowState = FormWindowState.Normal;
-            }
         }
 
         private async void Login(string id, string protected_pw) {
@@ -1169,17 +1341,6 @@ namespace GersangStation
             ConfigManager.setConfig("current_comboBox_index_preset_3", "0;0;0");
             ConfigManager.setConfig("current_comboBox_index_preset_4", "0;0;0");
             LoadAccountComboBox();
-        }
-
-        private void materialButton_setting_Click(object sender, EventArgs e) {
-            MaterialButton button = (MaterialButton)sender;
-            if(button.Equals(materialButton_setting_account)) {
-                OpenAccountSettingDialog();
-            } else if(button.Equals(materialButton_setting_client)) {
-                OpenClientSettingDialog();
-            } else if(button.Equals(materialButton_setting_shortcut)) {
-                OpenShortcuttSettingDialog();
-            }
         }
 
         private void OpenShortcuttSettingDialog() {
@@ -1234,178 +1395,6 @@ namespace GersangStation
                 backgroundForm.Dispose();
             }
         }
-
-        private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
-            MaterialCheckbox checkbox = (MaterialCheckbox)sender;
-            ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
-        }
-
-        public static Form InitBackgroundForm(Form owner) {
-            Form backgroundForm = new Form() {
-                StartPosition = FormStartPosition.Manual,
-                FormBorderStyle = FormBorderStyle.None,
-                Opacity = .50d,
-                BackColor = Color.Black,
-                Location = owner.Location,
-                Size = owner.Size,
-                ShowInTaskbar = false,
-                TopMost = true,
-                Owner = owner
-            };
-            return backgroundForm;
-        }
-
-        private void materialButton_patchNote_Click(object sender, EventArgs e) {
-            Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
-        }
-
-        private void materialButton_blog_Click(object sender, EventArgs e) {
-            Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
-        }
-
-        private void materialButton_gitHub_Click(object sender, EventArgs e) {
-            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation") { UseShellExecute = true });
-        }
-
-        private void button_tray_Click(object sender, EventArgs e) {
-            notifyIcon1.Visible = true;
-            notifyIcon1.BalloonTipTitle = "알림";
-            notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";
-            notifyIcon1.ShowBalloonTip(5000);
-            this.Hide();
-        }
-
-        private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
-            notifyIcon1.Visible = false;
-            this.Show();
-        }
-
-        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-            Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
-        }
-
-        private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {
-            ToolStripItem item = e.ClickedItem;
-            if(item.Equals(toolStripMenuItem_open)) {
-                notifyIcon1.Visible = false;
-                this.Show();
-            } else if(item.Equals(toolStripMenuItem_exit)) {
-                System.Windows.Forms.Application.Exit();
-            }
-        }
-
-        private void toolStripMenuItem_client_DropDownItemClicked(object sender, ToolStripItemClickedEventArgs e) {
-            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
-            ToolStripItem item = e.ClickedItem;
-
-            if(menuItem.Equals(toolStripMenuItem_client_1)) {
-                if(item.Equals(toolStripMenuItem_start_1)) { StartClick(materialButton_start_1); }
-            } else if(menuItem.Equals(toolStripMenuItem_client_2)) {
-                if(item.Equals(toolStripMenuItem_start_2)) { StartClick(materialButton_start_2); }
-            } else if(menuItem.Equals(toolStripMenuItem_client_3)) {
-                if(item.Equals(toolStripMenuItem_start_3)) { StartClick(materialButton_start_3); }
-            }
-        }
-
-        private void materialButton_license_Click(object sender, EventArgs e) {
-            Form backgroundForm = InitBackgroundForm(this);
-
-            Form_License dialog_license = new Form_License() {
-                Owner = this
-            };
-
-            try {
-                backgroundForm.Show();
-                dialog_license.ShowDialog();
-            } catch(Exception ex) {
-                Trace.WriteLine(ex.StackTrace);
-            } finally {
-                backgroundForm.Dispose();
-            }
-        }
-
-        private void materialButton_sponsor_Click(object sender, EventArgs e) {
-            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/26") { UseShellExecute = true });
-        }
-
-        private void materialButton_question_kakao_Click(object sender, EventArgs e) {
-            Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
-        }
-
-        private void materialButton_question_naver_Click(object sender, EventArgs e) {
-            Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
-        }
-
-        private void materialCheckbox_mouseClip_CheckedChanged(object sender, EventArgs e) {
-            ConfigManager.setConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
-
-            if(materialCheckbox_mouseClip.Checked == true) {
-                ClipMouse.Run();
-                checkBox_clipToggleHotKey.Enabled = true;
-                checkBox_clipDisableHotKey.Enabled = true;
-                textBox_clipToggleHotKey.Enabled = true;
-                checkBox_onlyFirstClip.Enabled = true;
-            } else {
-                ClipMouse.Stop(false);
-                checkBox_clipToggleHotKey.Enabled = false;
-                checkBox_clipDisableHotKey.Enabled = false;
-                textBox_clipToggleHotKey.Enabled = false;
-                checkBox_onlyFirstClip.Enabled = false;
-            }
-        }
-
-        private void textBox_hotKey_KeyDown(object sender, KeyEventArgs e) {
-            TextBox textBox = (TextBox)sender;
-            string org = textBox.Text;
-
-            // 조합 단축키 지원
-            string comb = string.Empty;
-            if(e.Control) comb = "Ctrl";
-            else if(e.Alt) comb = "Alt";
-            else if(e.Shift) comb = "Shift";
-
-            if(e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.Menu || e.KeyCode == Keys.ShiftKey) {
-                textBox.Text = comb;
-                ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
-            } else if(comb != string.Empty && e.KeyCode != Keys.ControlKey && e.KeyCode != Keys.Menu && e.KeyCode != Keys.ShiftKey) {
-                textBox.Text = comb + " + " + e.KeyCode.ToString();
-                ConfigManager.setConfig("clip_toggle_hotkey", comb + "," + ((int)e.KeyCode).ToString());
-            } else {
-                textBox.Text = e.KeyCode.ToString();
-                ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
-            }
-
-            if(org != textBox.Text) {
-                ClipMouse.UnregisterHotKey(this.Handle);
-                ClipMouse.RegisterHotKey(this.Handle, ConfigManager.getConfig("clip_toggle_hotkey"));
-            }
-
-            // Alt 키를 누르면 포커스 풀리는 현상 방지
-            if(e.KeyCode == Keys.Menu) e.SuppressKeyPress = true;
-        }
-
-        private void checkBox_clipDisableHotKey_CheckedChanged(object sender, EventArgs e) {
-            ConfigManager.setConfig("use_clip_disable_hotkey", ((CheckBox)sender).Checked.ToString());
-        }
-
-        private void checkBox_clipToggleHotKey_CheckedChanged(object sender, EventArgs e) {
-            ConfigManager.setConfig("use_clip_toggle_hotkey", ((CheckBox)sender).Checked.ToString());
-        }
-
-        private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
-            ConfigManager.setConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
-            ClipMouse.firstGameHandle = IntPtr.Zero;
-            ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
-        }
-
-        private void linkLabel_clipInformation_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
-            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/37") { UseShellExecute = true });
-        }
-
-        private void materialButton_integrity_Click(object sender, EventArgs e) {
-            OpenIntegrityCheckDialog();
-        }
-
         private void OpenIntegrityCheckDialog() {
             Form backgroundForm = InitBackgroundForm(this);
 
@@ -1421,6 +1410,21 @@ namespace GersangStation
             } finally {
                 backgroundForm.Dispose();
             }
+        }
+
+        public static Form InitBackgroundForm(Form owner) {
+            Form backgroundForm = new Form() {
+                StartPosition = FormStartPosition.Manual,
+                FormBorderStyle = FormBorderStyle.None,
+                Opacity = .50d,
+                BackColor = Color.Black,
+                Location = owner.Location,
+                Size = owner.Size,
+                ShowInTaskbar = false,
+                TopMost = true,
+                Owner = owner
+            };
+            return backgroundForm;
         }
     } //Form1
 } //namespace
