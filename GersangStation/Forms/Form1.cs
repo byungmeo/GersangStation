@@ -116,7 +116,7 @@ namespace GersangStation
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
 
                 webView_main.NavigationStarting += webView_main_NavigationStarting;
-                // webView_main.NavigationCompleted += webView_main_NavigationCompleted;
+                webView_main.NavigationCompleted += webView_main_NavigationCompleted;
                 webView_main.CoreWebView2.Navigate(url_main);
 
                 LoadComponent();
@@ -143,7 +143,6 @@ namespace GersangStation
                 return;
             }
         }
-
         private void LoadComponent() {
             ConfigManager.Validation();
             LoadCheckBox();
@@ -444,6 +443,7 @@ namespace GersangStation
             CoreWebView2 coreWebView2 = (CoreWebView2)sender;
             string url = coreWebView2.Source;
             Trace.WriteLine($"DOMContentLoaded url : {url}");
+            Trace.WriteLine($"DOMContentLoaded Title : {coreWebView2.DocumentTitle}");
 
             // 비밀번호 변경 안내 페이지라면, "다음에 변경하기" 클릭
             if(url.Contains("pw_reset.gs")) {
@@ -480,6 +480,12 @@ namespace GersangStation
                     if(materialSwitch_login_3.Checked) materialSwitch_login_3.Checked = false;
                 }
                 return;
+            }
+        }
+
+        private void webView_main_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e) {
+            if(e.IsSuccess == false) {
+                handleWebError(e.WebErrorStatus);
             }
         }
 
