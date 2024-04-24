@@ -57,16 +57,6 @@ namespace GersangStation
         private const string url_logout = "https://www.gersang.co.kr/member/logoutProc.gs";
         private const string url_installStarter = "https://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe";
 
-        // 검색 이벤트 종료로 인해 주석 처리
-        /*
-        private const string url_search = "https://search.naver.com/search.naver?&query=거상";
-        private const string url_search_gersang = "http://www.gersang.co.kr/main.gs";
-        private bool isSearch = false;
-        private bool isGetSearchItem = false;
-        private bool isExceptSearch = false; //2022-04-26 거상 홈페이지 검색 시 이벤트 페이지로 바로 넘어가는 경우
-        private string previousUrl = "";
-        */
-
         private const string url_main_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
         private const string url_test_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
 
@@ -265,11 +255,6 @@ namespace GersangStation
             toolTip1.SetToolTip(materialSwitch_login_1, "본클라 홈페이지 로그인");
             toolTip1.SetToolTip(materialSwitch_login_2, "2클라 홈페이지 로그인");
             toolTip1.SetToolTip(materialSwitch_login_3, "3클라 홈페이지 로그인");
-            /* 검색 이벤트 종료
-            toolTip1.SetToolTip(materialButton_search_1, "본클라 검색보상 수령");
-            toolTip1.SetToolTip(materialButton_search_2, "2클라 검색보상 수령");
-            toolTip1.SetToolTip(materialButton_search_3, "3클라 검색보상 수령");
-            */
             toolTip1.SetToolTip(materialButton_start_1, "본클라 게임 실행");
             toolTip1.SetToolTip(materialButton_start_2, "2클라 게임 실행");
             toolTip1.SetToolTip(materialButton_start_3, "3클라 게임 실행");
@@ -363,13 +348,6 @@ namespace GersangStation
             checkBox_onlyFirstClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_only_first"));
         }
 
-        /* Edge 보안 업데이트로 인해 로직 제거
-        private void CoreWebView2_NewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e) {
-            if (sender != null) e.NewWindow = (CoreWebView2)sender; //WebView2가 죽고 새로운 창이 뜨는 대신 WebView2에서 모든 것을 진행
-            //e.Handled = true; //true면 새로운 창이 뜨는 걸 취소
-        }
-        */
-
         private async void CoreWebView2_ScriptDialogOpening(object? sender, CoreWebView2ScriptDialogOpeningEventArgs e) {
             string message = e.Message;
             Trace.WriteLine(message);
@@ -443,7 +421,6 @@ namespace GersangStation
         private void webView_main_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
             Trace.WriteLine("NavigationStarting : " + e.Uri.ToString());
             Trace.WriteLine("NavigationStarting Previous URL : " + webView_main.Source);
-            //previousUrl = webView_main.CoreWebView2.Source; // 검색 이벤트 종료
             deactivateWebSideFunction();
         }
 
@@ -492,43 +469,12 @@ namespace GersangStation
 
                     if(otpCode == null) {
                         MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
-                        //isSearch = false; // 검색 이벤트 종료
                     } else { doOtpInput(otpCode); }
                 });
                 return;
             }
 
-            // 검색 이벤트 종료
-            /*
-            if (url.Contains("search.naver")) {
-                if (isSearch) { doNavigateGersangSite(); }
-                return;
-            }
-
-            if (url.Contains("attendance")) {
-                if (isSearch) { doGetEventItem(); }
-                //else { webView_main.CoreWebView2.Navigate(url_main); }
-                return;
-            }
-            */
-
             if(url.Contains("main/index.gs")) {
-                // 검색 이벤트 종료
-                /*
-                if(isSearch) {
-                    if(previousUrl.Contains("search.naver")) {
-                        doNavigateAttendancePage();
-                        return;
-                    }
-
-                    if(previousUrl.Contains("event") && isExceptSearch) {
-                        isExceptSearch = false;
-                        doNavigateAttendancePage();
-                        return;
-                    }
-                }
-                */
-
                 if(currentState == State.LoginOther) { doLoginOther(); } else if(currentState == State.LoggedIn) { doCheckLogin(); } else {
                     // 로그인 되어있지 않은 상태인데 스위치가 켜져있다면 다시 끈다
                     if(materialSwitch_login_1.Checked) materialSwitch_login_1.Checked = false;
@@ -537,70 +483,12 @@ namespace GersangStation
                 }
                 return;
             }
-            // 검색 이벤트 종료
-            /*
-            else if (url.Contains("event")) {
-                if(isSearch && previousUrl.Contains("search.naver")) {
-                    isExceptSearch = true;
-                    webView_main.CoreWebView2.Navigate(url_main);
-                    return;
-                }
-            }
-            */
         }
-
-        // 검색 이벤트 종료
-        /*
-        private async void doGetEventItem() {
-            isSearch = false;
-
-            // 검색보상 수령 시간대별 인자 값
-            // 1-> 00:05 ~05:55
-            // 2-> 06:05 ~11:55
-            // 3-> 12:05 ~17:55
-            // 4-> 18:05 ~23:55
-            
-            int arg; //event_Search_Use 스크립트 실행 인자
-
-            int koreaHour = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Korea Standard Time").Hour;
-            if (koreaHour >= 0 && koreaHour <= 5) { arg = 1; } 
-            else if (koreaHour >= 6 && koreaHour <= 11) { arg = 2; } 
-            else if (koreaHour >= 12 && koreaHour <= 17) { arg = 3; } 
-            else { arg = 4; }
-
-            isGetSearchItem = true;
-            await webView_main.ExecuteScriptAsync("event_Search_Use(" + arg + ");");
-        }
-        */
-
-        // 검색 이벤트 종료
-        /*
-        private async void doNavigateAttendancePage() {
-            Trace.WriteLine("(검색) 메인 -> 출석페이지");
-            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""attendance""]').click();");
-        }
-
-        private async void doNavigateGersangSite() {
-            Trace.WriteLine("(검색) 네이버 -> 거상");
-
-            //새로운 창이 뜨지 않도록 a태그에 target 속성을 제거
-            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""gersang.co.kr""]').removeAttribute(""target"");");
-
-            //target 속성이 제거된 a태그를 클릭
-            await webView_main.ExecuteScriptAsync(@"document.querySelector('[href *= ""gersang.co.kr""]').click();");
-        }
-        */
 
         private void deactivateWebSideFunction() {
             //materialSwitch_login_1.Enabled = false;
             //materialSwitch_login_2.Enabled = false;
             //materialSwitch_login_3.Enabled = false;
-
-            /* 검색 이벤트 종료
-            materialButton_search_1.Enabled = false;
-            materialButton_search_2.Enabled = false;
-            materialButton_search_3.Enabled = false;
-            */
 
             materialButton_start_1.Enabled = false;
             materialButton_start_2.Enabled = false;
@@ -617,12 +505,6 @@ namespace GersangStation
             //materialSwitch_login_1.Enabled = true;
             //materialSwitch_login_2.Enabled = true;
             //materialSwitch_login_3.Enabled = true;
-
-            /* 검색 이벤트 종료
-            materialButton_search_1.Enabled = true;
-            materialButton_search_2.Enabled = true;
-            materialButton_search_3.Enabled = true;
-            */
 
             materialButton_start_1.Enabled = true;
             materialButton_start_2.Enabled = true;
@@ -701,7 +583,6 @@ namespace GersangStation
                 materialSwitch_login_3.CheckState = CheckState.Unchecked;
             }
 
-            //if (true == isSearch) { webView_main.CoreWebView2.Navigate(url_search); } // 검색 이벤트 종료
             if(true == isGameStartLogin) { GameStart(); }
         }
 
@@ -1414,13 +1295,10 @@ namespace GersangStation
             ToolStripItem item = e.ClickedItem;
 
             if(menuItem.Equals(toolStripMenuItem_client_1)) {
-                // if (item.Equals(toolStripMenuItem_search_1)) { SearchClick(materialButton_search_1); } // 검색 이벤트 종료
                 if(item.Equals(toolStripMenuItem_start_1)) { StartClick(materialButton_start_1); }
             } else if(menuItem.Equals(toolStripMenuItem_client_2)) {
-                // if (item.Equals(toolStripMenuItem_search_2)) { SearchClick(materialButton_search_2); } // 검색 이벤트 종료
                 if(item.Equals(toolStripMenuItem_start_2)) { StartClick(materialButton_start_2); }
             } else if(menuItem.Equals(toolStripMenuItem_client_3)) {
-                // if (item.Equals(toolStripMenuItem_search_3)) { SearchClick(materialButton_search_3); } // 검색 이벤트 종료
                 if(item.Equals(toolStripMenuItem_start_3)) { StartClick(materialButton_start_3); }
             }
         }
