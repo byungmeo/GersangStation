@@ -93,10 +93,13 @@ namespace GersangStation
             var path = Path.Combine(Path.GetTempPath(), $"GersangStation");
             try {
                 Logger.Log($"Webivew2 UserDataFolder {path}");
-                var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path);
+                CoreWebView2EnvironmentOptions opt = new() {
+                    //
+                };
+                var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path, options: opt);
                 await webView_main.EnsureCoreWebView2Async(env);
             } catch(WebView2RuntimeNotFoundException ex) {
-                DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                DialogResult dr = MessageBox.Show("거상 스테이션 실행을 위해 WebView2 런타임 설치가 필요합니다.\n설치 하시겠습니까? (Microsoft 공식 다운로드 링크 접속)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                 if(dr == DialogResult.Yes) {
                     Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
                 }
@@ -125,8 +128,8 @@ namespace GersangStation
                         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
                     }
                 } else if(e.InitializationException is WebView2RuntimeNotFoundException) {
-                    DialogResult dr = MessageBox.Show("다클라 스테이션을 이용하기 위해선\nWebView2 런타임을 반드시 설치하셔야 합니다.\n설치 하시겠습니까? (설치 링크에 자동으로 접속합니다.)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    if(dr == DialogResult.Yes) {
+                    DialogResult dr = MessageBox.Show("거상 스테이션 실행을 위해 WebView2 런타임 설치가 필요합니다.\n설치 하시겠습니까? (Microsoft 공식 다운로드 링크 접속)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                    if (dr == DialogResult.Yes) {
                         Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
                     }
                 } else {
@@ -141,7 +144,7 @@ namespace GersangStation
             }
         }
 
-        private async void LoadComponent() {
+        private void LoadComponent() {
             ConfigManager.Validation();
             LoadCheckBox();
             LoadRadioButton();
