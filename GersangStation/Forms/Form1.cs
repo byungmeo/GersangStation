@@ -116,7 +116,7 @@ namespace GersangStation
                 webView_main.CoreWebView2.ScriptDialogOpening += CoreWebView2_ScriptDialogOpening;
 
                 webView_main.NavigationStarting += webView_main_NavigationStarting;
-                webView_main.NavigationCompleted += webView_main_NavigationCompleted;
+                // webView_main.NavigationCompleted += webView_main_NavigationCompleted;
                 webView_main.CoreWebView2.Navigate(url_main);
 
                 LoadComponent();
@@ -421,34 +421,29 @@ namespace GersangStation
                 }
             });
         }
+
         private void webView_main_NavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
             Trace.WriteLine("NavigationStarting : " + e.Uri.ToString());
             Trace.WriteLine("NavigationStarting Previous URL : " + webView_main.Source);
+            webView_main.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoaded;
+            webView_main.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoaded;
+
             deactivateWebSideFunction();
         }
 
-        private void webView_main_NavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e) {
-            /*
-                1. 스위치로 로그인 하는 경우
-                2. 스위치로 로그아웃 하는 경우
-                3. 스위치로 로그아웃 -> 로그인 하는 경우 (2)
-                4. (로그인 된 상태에서) 검색버튼으로 검색보상 수령
-                5. (로그인 된 상태에서) 실행버튼으로 실행
-            */
-
+        private void CoreWebView2_DOMContentLoaded(object? sender, CoreWebView2DOMContentLoadedEventArgs e) {
             if(sender == null) {
                 this.BeginInvoke(() => { MessageBox.Show("NavigationFailed : sender is NULL"); });
                 return;
             }
 
-            if(!e.IsSuccess) {
-                deactivateWebSideFunction(); //WebView2 활용 기능 비활성화 처리
-                this.BeginInvoke(() => { handleWebError(e.WebErrorStatus); });
-                return;
-            } else { if(isWebFunctionDeactivated) { activateWebSideFunction(); } } //WebView2 활용 기능이 비활성화 상태인 경우 활성화 처리
+            if(isWebFunctionDeactivated) {
+                activateWebSideFunction();
+            }
 
-            string? url = ((WebView2)sender).Source.ToString();
-            Trace.WriteLine("NavigationCompleted : " + url);
+            CoreWebView2 coreWebView2 = (CoreWebView2)sender;
+            string url = coreWebView2.Source;
+            Trace.WriteLine($"DOMContentLoaded url : {url}");
 
             // 비밀번호 변경 안내 페이지라면, "다음에 변경하기" 클릭
             if(url.Contains("pw_reset.gs")) {
@@ -469,16 +464,16 @@ namespace GersangStation
             if(url.Contains("otp.gs")) {
                 this.BeginInvoke(() => {
                     string? otpCode = showDialogOtp();
-
-                    if(otpCode == null) {
-                        MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
-                    } else { doOtpInput(otpCode); }
+                    if(otpCode == null) MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
+                    else doOtpInput(otpCode);
                 });
                 return;
             }
 
             if(url.Contains("main/index.gs")) {
-                if(currentState == State.LoginOther) { doLoginOther(); } else if(currentState == State.LoggedIn) { doCheckLogin(); } else {
+                if(currentState == State.LoginOther) doLoginOther();
+                else if(currentState == State.LoggedIn) doCheckLogin();
+                else {
                     // 로그인 되어있지 않은 상태인데 스위치가 켜져있다면 다시 끈다
                     if(materialSwitch_login_1.Checked) materialSwitch_login_1.Checked = false;
                     if(materialSwitch_login_2.Checked) materialSwitch_login_2.Checked = false;
