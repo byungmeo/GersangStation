@@ -196,18 +196,6 @@ public partial class Form1 : MaterialForm {
                 }
             }
 
-            // 검색 보상 이벤트 종료로 인해 주석처리
-            /*
-            //검색 보상 지급 메시지
-            else if (message.Contains("아이템이 지급되었습니다.") || message.Contains("이미 아이템을 수령하셨습니다.") || message.Contains("참여 시간이 아닙니다.")) {
-                MessageBox.Show(message);
-                if (e.Uri.Contains("attendance") && true == isGetSearchItem) {
-                    webView_main.CoreWebView2.Navigate(url_main);
-                    isGetSearchItem = false;
-                }
-            }
-            */
-
             //아이디 또는 비밀번호가 틀린 경우입니다.
             else if(message.Contains("아이디 또는 비밀번호 오류")) {
                 currentState = State.None;
@@ -293,7 +281,7 @@ public partial class Form1 : MaterialForm {
 
     #region Component Initialize
     
-    private void LoadComponent() {
+    private async void LoadComponent() {
         ConfigManager.Validation();
         LoadCheckBox();
         LoadRadioButton();
@@ -694,11 +682,6 @@ public partial class Form1 : MaterialForm {
         form.Show();
     }
 
-    private void materialButton_naver_Click(object sender, EventArgs e) {
-        MaterialButton searchButton = (MaterialButton)sender;
-        SearchClick(searchButton);
-    }
-
     private void materialButton_start_Click(object sender, EventArgs e) {
         MaterialButton startButton = (MaterialButton)sender;
         StartClick(startButton);
@@ -706,7 +689,7 @@ public partial class Form1 : MaterialForm {
 
     private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
         MaterialCheckbox checkbox = (MaterialCheckbox)sender;
-        ConfigManager.setConfig("is_test_server", ((MaterialCheckbox)sender).Checked.ToString());
+        ConfigManager.setConfig("is_test_server", checkbox.Checked.ToString());
     }
 
     private void materialButton_patchNote_Click(object sender, EventArgs e) {
@@ -1292,21 +1275,6 @@ public partial class Form1 : MaterialForm {
         }
 
         currentState = State.LoggedIn;
-    }
-
-    private void SearchClick(MaterialButton searchButton) {
-        // 검색 보상 이벤트가 더 이상 진행되지 않아 주석처리
-        /*
-        MaterialSwitch loginSwitch;
-
-        if (searchButton.Equals(materialButton_search_1)) { loginSwitch = materialSwitch_login_1; } 
-        else if (searchButton.Equals(materialButton_search_2)) { loginSwitch = materialSwitch_login_2; } 
-        else { loginSwitch = materialSwitch_login_3; }
-
-        isSearch = true;
-        if (true == loginSwitch.Checked) { webView_main.CoreWebView2.Navigate(url_search); } //네이버 검색
-        else { SwitchClick(loginSwitch); }
-        */
     }
 
     private async void Login(string id, string protected_pw) {

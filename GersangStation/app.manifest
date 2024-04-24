@@ -45,18 +45,6 @@
     </application>
   </compatibility>
 
-  <!-- 애플리케이션이 DPI를 인식하며 높은 DPI에서 Windows가 자동으로 스케일링하지
-       않음을 나타냅니다. WPF(Windows Presentation Foundation) 애플리케이션은 자동으로 DPI를 인식하며 
-       옵트인할 필요가 없습니다. 이 설정에 옵트인한 .NET Framework 4.6을 대상으로 하는 
-       Windows Forms 애플리케이션은 app.config에서 'EnableWindowsFormsHighDpiAutoResizing' 설정도 'true'로 설정해야 합니다. 
-       
-       애플리케이션이 긴 경로를 인식하도록 설정합니다. https://docs.microsoft.com/windows/win32/fileio/maximum-file-path-limitation을 참조하세요. -->
-  <application xmlns="urn:schemas-microsoft-com:asm.v3">
-    <windowsSettings>
-      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">false</dpiAware>
-    </windowsSettings>
-  </application>
-
   <!-- Windows 공용 컨트롤 및 대화 상자의 테마 사용(Windows XP 이상) -->
   <!--
   <dependency>

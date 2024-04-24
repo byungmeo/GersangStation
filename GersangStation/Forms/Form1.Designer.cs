@@ -26,7 +26,8 @@
         ///  Required method for Designer support - do not modify
         ///  the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent() {
+        private void InitializeComponent()
+        {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             materialTabControl1 = new MaterialSkin.Controls.MaterialTabControl();
@@ -36,9 +37,7 @@
             label2 = new Label();
             materialCheckbox_testServer = new MaterialSkin.Controls.MaterialCheckbox();
             materialButton_start_3 = new MaterialSkin.Controls.MaterialButton();
-            materialButton_search_3 = new MaterialSkin.Controls.MaterialButton();
             materialButton_start_2 = new MaterialSkin.Controls.MaterialButton();
-            materialButton_search_2 = new MaterialSkin.Controls.MaterialButton();
             materialButton_shortcut_1 = new MaterialSkin.Controls.MaterialButton();
             materialButton_shortcut_2 = new MaterialSkin.Controls.MaterialButton();
             materialButton_debugging = new MaterialSkin.Controls.MaterialButton();
@@ -46,7 +45,6 @@
             materialSwitch_login_1 = new MaterialSkin.Controls.MaterialSwitch();
             materialButton_shortcut_3 = new MaterialSkin.Controls.MaterialButton();
             materialButton_start_1 = new MaterialSkin.Controls.MaterialButton();
-            materialButton_search_1 = new MaterialSkin.Controls.MaterialButton();
             materialSwitch_login_3 = new MaterialSkin.Controls.MaterialSwitch();
             materialComboBox_account_3 = new MaterialSkin.Controls.MaterialComboBox();
             materialSwitch_login_2 = new MaterialSkin.Controls.MaterialSwitch();
@@ -97,13 +95,10 @@
             toolStripMenuItem_open = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
             toolStripMenuItem_client_1 = new ToolStripMenuItem();
-            toolStripMenuItem_search_1 = new ToolStripMenuItem();
             toolStripMenuItem_start_1 = new ToolStripMenuItem();
             toolStripMenuItem_client_2 = new ToolStripMenuItem();
-            toolStripMenuItem_search_2 = new ToolStripMenuItem();
             toolStripMenuItem_start_2 = new ToolStripMenuItem();
             toolStripMenuItem_client_3 = new ToolStripMenuItem();
-            toolStripMenuItem_search_3 = new ToolStripMenuItem();
             toolStripMenuItem_start_3 = new ToolStripMenuItem();
             toolStripSeparator2 = new ToolStripSeparator();
             toolStripMenuItem_exit = new ToolStripMenuItem();
@@ -148,9 +143,7 @@
             tabPage_home.Controls.Add(label2);
             tabPage_home.Controls.Add(materialCheckbox_testServer);
             tabPage_home.Controls.Add(materialButton_start_3);
-            tabPage_home.Controls.Add(materialButton_search_3);
             tabPage_home.Controls.Add(materialButton_start_2);
-            tabPage_home.Controls.Add(materialButton_search_2);
             tabPage_home.Controls.Add(materialButton_shortcut_1);
             tabPage_home.Controls.Add(materialButton_shortcut_2);
             tabPage_home.Controls.Add(materialButton_debugging);
@@ -158,7 +151,6 @@
             tabPage_home.Controls.Add(materialSwitch_login_1);
             tabPage_home.Controls.Add(materialButton_shortcut_3);
             tabPage_home.Controls.Add(materialButton_start_1);
-            tabPage_home.Controls.Add(materialButton_search_1);
             tabPage_home.Controls.Add(materialSwitch_login_3);
             tabPage_home.Controls.Add(materialComboBox_account_3);
             tabPage_home.Controls.Add(materialSwitch_login_2);
@@ -244,29 +236,6 @@
             materialButton_start_3.UseVisualStyleBackColor = true;
             materialButton_start_3.Click += materialButton_start_Click;
             // 
-            // materialButton_search_3
-            // 
-            materialButton_search_3.AutoSize = false;
-            materialButton_search_3.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton_search_3.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton_search_3.Depth = 0;
-            materialButton_search_3.Enabled = false;
-            materialButton_search_3.HighEmphasis = true;
-            materialButton_search_3.Icon = (Image)resources.GetObject("materialButton_search_3.Icon");
-            materialButton_search_3.Location = new Point(242, 130);
-            materialButton_search_3.Margin = new Padding(4, 6, 4, 6);
-            materialButton_search_3.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton_search_3.Name = "materialButton_search_3";
-            materialButton_search_3.NoAccentTextColor = Color.Empty;
-            materialButton_search_3.Size = new Size(39, 35);
-            materialButton_search_3.TabIndex = 36;
-            materialButton_search_3.TabStop = false;
-            materialButton_search_3.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton_search_3.UseAccentColor = true;
-            materialButton_search_3.UseVisualStyleBackColor = true;
-            materialButton_search_3.Visible = false;
-            materialButton_search_3.Click += materialButton_naver_Click;
-            // 
             // materialButton_start_2
             // 
             materialButton_start_2.AutoSize = false;
@@ -287,29 +256,6 @@
             materialButton_start_2.UseAccentColor = false;
             materialButton_start_2.UseVisualStyleBackColor = true;
             materialButton_start_2.Click += materialButton_start_Click;
-            // 
-            // materialButton_search_2
-            // 
-            materialButton_search_2.AutoSize = false;
-            materialButton_search_2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton_search_2.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton_search_2.Depth = 0;
-            materialButton_search_2.Enabled = false;
-            materialButton_search_2.HighEmphasis = true;
-            materialButton_search_2.Icon = (Image)resources.GetObject("materialButton_search_2.Icon");
-            materialButton_search_2.Location = new Point(242, 89);
-            materialButton_search_2.Margin = new Padding(4, 6, 4, 6);
-            materialButton_search_2.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton_search_2.Name = "materialButton_search_2";
-            materialButton_search_2.NoAccentTextColor = Color.Empty;
-            materialButton_search_2.Size = new Size(39, 35);
-            materialButton_search_2.TabIndex = 34;
-            materialButton_search_2.TabStop = false;
-            materialButton_search_2.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton_search_2.UseAccentColor = true;
-            materialButton_search_2.UseVisualStyleBackColor = true;
-            materialButton_search_2.Visible = false;
-            materialButton_search_2.Click += materialButton_naver_Click;
             // 
             // materialButton_shortcut_1
             // 
@@ -456,29 +402,6 @@
             materialButton_start_1.UseAccentColor = false;
             materialButton_start_1.UseVisualStyleBackColor = true;
             materialButton_start_1.Click += materialButton_start_Click;
-            // 
-            // materialButton_search_1
-            // 
-            materialButton_search_1.AutoSize = false;
-            materialButton_search_1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton_search_1.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton_search_1.Depth = 0;
-            materialButton_search_1.Enabled = false;
-            materialButton_search_1.HighEmphasis = true;
-            materialButton_search_1.Icon = (Image)resources.GetObject("materialButton_search_1.Icon");
-            materialButton_search_1.Location = new Point(242, 48);
-            materialButton_search_1.Margin = new Padding(4, 6, 4, 6);
-            materialButton_search_1.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton_search_1.Name = "materialButton_search_1";
-            materialButton_search_1.NoAccentTextColor = Color.Empty;
-            materialButton_search_1.Size = new Size(39, 35);
-            materialButton_search_1.TabIndex = 24;
-            materialButton_search_1.TabStop = false;
-            materialButton_search_1.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton_search_1.UseAccentColor = true;
-            materialButton_search_1.UseVisualStyleBackColor = true;
-            materialButton_search_1.Visible = false;
-            materialButton_search_1.Click += materialButton_naver_Click;
             // 
             // materialSwitch_login_3
             // 
@@ -1233,68 +1156,44 @@
             // 
             // toolStripMenuItem_client_1
             // 
-            toolStripMenuItem_client_1.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_search_1, toolStripMenuItem_start_1 });
+            toolStripMenuItem_client_1.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_start_1 });
             toolStripMenuItem_client_1.Name = "toolStripMenuItem_client_1";
             toolStripMenuItem_client_1.Size = new Size(105, 22);
             toolStripMenuItem_client_1.Text = "1클라";
             toolStripMenuItem_client_1.DropDownItemClicked += toolStripMenuItem_client_DropDownItemClicked;
             // 
-            // toolStripMenuItem_search_1
-            // 
-            toolStripMenuItem_search_1.Enabled = false;
-            toolStripMenuItem_search_1.Name = "toolStripMenuItem_search_1";
-            toolStripMenuItem_search_1.Size = new Size(146, 22);
-            toolStripMenuItem_search_1.Text = "검색보상수령";
-            toolStripMenuItem_search_1.Visible = false;
-            // 
             // toolStripMenuItem_start_1
             // 
             toolStripMenuItem_start_1.Name = "toolStripMenuItem_start_1";
-            toolStripMenuItem_start_1.Size = new Size(146, 22);
+            toolStripMenuItem_start_1.Size = new Size(180, 22);
             toolStripMenuItem_start_1.Text = "게임시작";
             // 
             // toolStripMenuItem_client_2
             // 
-            toolStripMenuItem_client_2.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_search_2, toolStripMenuItem_start_2 });
+            toolStripMenuItem_client_2.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_start_2 });
             toolStripMenuItem_client_2.Name = "toolStripMenuItem_client_2";
             toolStripMenuItem_client_2.Size = new Size(105, 22);
             toolStripMenuItem_client_2.Text = "2클라";
             toolStripMenuItem_client_2.DropDownItemClicked += toolStripMenuItem_client_DropDownItemClicked;
             // 
-            // toolStripMenuItem_search_2
-            // 
-            toolStripMenuItem_search_2.Enabled = false;
-            toolStripMenuItem_search_2.Name = "toolStripMenuItem_search_2";
-            toolStripMenuItem_search_2.Size = new Size(146, 22);
-            toolStripMenuItem_search_2.Text = "검색보상수령";
-            toolStripMenuItem_search_2.Visible = false;
-            // 
             // toolStripMenuItem_start_2
             // 
             toolStripMenuItem_start_2.Name = "toolStripMenuItem_start_2";
-            toolStripMenuItem_start_2.Size = new Size(146, 22);
+            toolStripMenuItem_start_2.Size = new Size(180, 22);
             toolStripMenuItem_start_2.Text = "게임시작";
             // 
             // toolStripMenuItem_client_3
             // 
-            toolStripMenuItem_client_3.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_search_3, toolStripMenuItem_start_3 });
+            toolStripMenuItem_client_3.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem_start_3 });
             toolStripMenuItem_client_3.Name = "toolStripMenuItem_client_3";
             toolStripMenuItem_client_3.Size = new Size(105, 22);
             toolStripMenuItem_client_3.Text = "3클라";
             toolStripMenuItem_client_3.DropDownItemClicked += toolStripMenuItem_client_DropDownItemClicked;
             // 
-            // toolStripMenuItem_search_3
-            // 
-            toolStripMenuItem_search_3.Enabled = false;
-            toolStripMenuItem_search_3.Name = "toolStripMenuItem_search_3";
-            toolStripMenuItem_search_3.Size = new Size(146, 22);
-            toolStripMenuItem_search_3.Text = "검색보상수령";
-            toolStripMenuItem_search_3.Visible = false;
-            // 
             // toolStripMenuItem_start_3
             // 
             toolStripMenuItem_start_3.Name = "toolStripMenuItem_start_3";
-            toolStripMenuItem_start_3.Size = new Size(146, 22);
+            toolStripMenuItem_start_3.Size = new Size(180, 22);
             toolStripMenuItem_start_3.Text = "게임시작";
             // 
             // toolStripSeparator2
@@ -1357,7 +1256,6 @@
         private TabPage tabPage_home;
         private TabPage tabPage_settings;
         private MaterialSkin.Controls.MaterialButton materialButton_start_1;
-        private MaterialSkin.Controls.MaterialButton materialButton_search_1;
         private MaterialSkin.Controls.MaterialSwitch materialSwitch_login_3;
         private MaterialSkin.Controls.MaterialComboBox materialComboBox_account_3;
         private MaterialSkin.Controls.MaterialSwitch materialSwitch_login_2;
@@ -1376,9 +1274,7 @@
         private FolderBrowserDialog folderBrowserDialog;
         private MaterialSkin.Controls.MaterialButton materialButton_debugging;
         private MaterialSkin.Controls.MaterialButton materialButton_start_3;
-        private MaterialSkin.Controls.MaterialButton materialButton_search_3;
         private MaterialSkin.Controls.MaterialButton materialButton_start_2;
-        private MaterialSkin.Controls.MaterialButton materialButton_search_2;
         private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_testServer;
         private TabPage tabPage_help;
         private Label label2;
@@ -1393,13 +1289,10 @@
         private ToolStripMenuItem toolStripMenuItem_exit;
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripSeparator toolStripSeparator2;
-        private ToolStripMenuItem toolStripMenuItem_search_1;
         private ToolStripMenuItem toolStripMenuItem_start_1;
         private ToolStripMenuItem toolStripMenuItem_client_2;
-        private ToolStripMenuItem toolStripMenuItem_search_2;
         private ToolStripMenuItem toolStripMenuItem_start_2;
         private ToolStripMenuItem toolStripMenuItem_client_3;
-        private ToolStripMenuItem toolStripMenuItem_search_3;
         private ToolStripMenuItem toolStripMenuItem_start_3;
         private TabPage tabPage_sponsor;
         private MaterialSkin.Controls.MaterialListBox materialListBox_sponsor;
