@@ -481,7 +481,7 @@ public partial class Form1 : MaterialForm {
 
     private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
         //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
-        string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 5);
+        string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 7);
         Trace.WriteLine(version_current);
 
         int ver_idx;
@@ -490,8 +490,8 @@ public partial class Form1 : MaterialForm {
         }
         Release release = releases[ver_idx];
         string version_latest = release.TagName;
-        label_version_current.Text = label_version_current.Text.Replace("0.0.0", version_current);
-        label_version_latest.Text = label_version_latest.Text.Replace("0.0.0", version_latest);
+        label_version_current.Text = label_version_current.Text.Replace("0.0.0.0", version_current);
+        label_version_latest.Text = label_version_latest.Text.Replace("0.0.0.0", version_latest);
 
         //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
         //Version latestGitHubVersion = new Version(releases[0].TagName);

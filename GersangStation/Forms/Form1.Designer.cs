@@ -932,24 +932,24 @@
             label_version_latest.AutoSize = true;
             label_version_latest.Depth = 0;
             label_version_latest.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
-            label_version_latest.Location = new Point(225, 128);
+            label_version_latest.Location = new Point(219, 128);
             label_version_latest.MouseState = MaterialSkin.MouseState.HOVER;
             label_version_latest.Name = "label_version_latest";
-            label_version_latest.Size = new Size(104, 18);
+            label_version_latest.Size = new Size(117, 18);
             label_version_latest.TabIndex = 14;
-            label_version_latest.Text = "최신 버전 : 0.0.0";
+            label_version_latest.Text = "최신 버전 : 0.0.0.0";
             // 
             // label_version_current
             // 
             label_version_current.AutoSize = true;
             label_version_current.Depth = 0;
             label_version_current.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
-            label_version_current.Location = new Point(225, 95);
+            label_version_current.Location = new Point(219, 95);
             label_version_current.MouseState = MaterialSkin.MouseState.HOVER;
             label_version_current.Name = "label_version_current";
-            label_version_current.Size = new Size(104, 18);
+            label_version_current.Size = new Size(117, 18);
             label_version_current.TabIndex = 13;
-            label_version_current.Text = "현재 버전 : 0.0.0";
+            label_version_current.Text = "현재 버전 : 0.0.0.0";
             // 
             // materialLabel1
             // 
@@ -1165,7 +1165,7 @@
             // toolStripMenuItem_start_1
             // 
             toolStripMenuItem_start_1.Name = "toolStripMenuItem_start_1";
-            toolStripMenuItem_start_1.Size = new Size(180, 22);
+            toolStripMenuItem_start_1.Size = new Size(122, 22);
             toolStripMenuItem_start_1.Text = "게임시작";
             // 
             // toolStripMenuItem_client_2
@@ -1179,7 +1179,7 @@
             // toolStripMenuItem_start_2
             // 
             toolStripMenuItem_start_2.Name = "toolStripMenuItem_start_2";
-            toolStripMenuItem_start_2.Size = new Size(180, 22);
+            toolStripMenuItem_start_2.Size = new Size(122, 22);
             toolStripMenuItem_start_2.Text = "게임시작";
             // 
             // toolStripMenuItem_client_3
@@ -1193,7 +1193,7 @@
             // toolStripMenuItem_start_3
             // 
             toolStripMenuItem_start_3.Name = "toolStripMenuItem_start_3";
-            toolStripMenuItem_start_3.Size = new Size(180, 22);
+            toolStripMenuItem_start_3.Size = new Size(122, 22);
             toolStripMenuItem_start_3.Text = "게임시작";
             // 
             // toolStripSeparator2
