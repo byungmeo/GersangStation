@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Windows.Forms;
 using File = System.IO.File;
 
 namespace GersangStation;
@@ -129,8 +130,8 @@ public partial class Form1 : MaterialForm {
 
             LoadComponent();
         } else {
-            Trace.WriteLine(e.InitializationException.StackTrace);
             if(e.InitializationException is DllNotFoundException) {
+                Logger.Log($"실행 파일 위치 : {System.Windows.Forms.Application.StartupPath}");
                 DialogResult dr = MessageBox.Show("실행 파일의 위치가 잘못되었습니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 실행 파일 위치", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 if(dr == DialogResult.OK) {
                     Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/2") { UseShellExecute = true });
@@ -142,6 +143,7 @@ public partial class Form1 : MaterialForm {
                 }
             } else {
                 Logger.Log("WebView2 초기화 실패", e.InitializationException);
+                Logger.Log($"WebView2 버전 : {((webView_main.CoreWebView2 == null) ? "null" : webView_main.CoreWebView2.Environment.BrowserVersionString)}");
                 DialogResult dr = MessageBox.Show("WebView2 초기화 중 오류 발생하였습니다. 문의해주세요.\n" + e.InitializationException.Message, "WebView2 초기화 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 if(dr == DialogResult.OK) {
                     Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/3") { UseShellExecute = true });
@@ -204,6 +206,7 @@ public partial class Form1 : MaterialForm {
                 Trace.WriteLine("로그인 실패 판정");
                 MessageBox.Show("로그인에 실패하였습니다. \nID/PW 재확인 후 다시 로그인 해주세요.\n(잘 되던 계정이 갑자기 안되면 계정 설정을 다시 해보세요.)");
             } else {
+                Logger.Log($"CoreWebView2_ScriptDialogOpening Unhandled Message : {message}");
                 Trace.WriteLine("예외로 처리되지 않은 메시지 판정");
                 MessageBox.Show($"{message}");
             }
@@ -235,7 +238,7 @@ public partial class Form1 : MaterialForm {
         Trace.WriteLine($"DOMContentLoaded Title : {coreWebView2.DocumentTitle}");
 
         // 비밀번호 변경 안내 페이지라면, "다음에 변경하기" 클릭
-        if(url.Contains("pw_reset.gs")) {
+        if (url.Contains("pw_reset.gs")) {
             // https://www.gersang.co.kr/member/pw_reset.gs?returnUrl=www.gersang.co.kr/main/index.gs
             string returnUrl = url.Substring(url.IndexOf("returnUrl=") + 10);
             doPwReset(returnUrl);
@@ -885,6 +888,8 @@ public partial class Form1 : MaterialForm {
     private delegate void DelegateActivateWebSideFunction();
 
     private void handleWebError(CoreWebView2WebErrorStatus webErrorStatus) {
+        Logger.Log($"NavigationFailed - WebErrorStatus : {webErrorStatus}");
+        Logger.Log($"NavigationFailed - DocumentTitle : {webView_main.CoreWebView2.DocumentTitle}");
         Trace.WriteLine("NavigationFailed - WebErrorStatus : " + webErrorStatus);
         Trace.WriteLine("NavigationFailed - DocumentTitle : " + webView_main.CoreWebView2.DocumentTitle);
 
