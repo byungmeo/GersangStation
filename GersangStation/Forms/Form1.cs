@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
 using File = System.IO.File;
 
 namespace GersangStation;
@@ -41,8 +40,9 @@ public partial class Form1 : MaterialForm {
     }
 
     public enum State {
-        LoggedIn, LoginOther, None
+        LoggedIn, LoginOther, LoginOtherSNS, None
     }
+    public string sns_platform { get; set; } = string.Empty;
 
     public enum Client {
         None = 0,
@@ -262,8 +262,19 @@ public partial class Form1 : MaterialForm {
             return;
         }
 
+        if(url.Contains("signup.gs")) {
+            this.BeginInvoke(() => {
+                MessageBox.Show("거상 회원가입이 되어있지 않은 SNS 계정입니다.");
+            });
+            currentState = State.None;
+            currentClient = Client.None;
+            webView_main.CoreWebView2.Navigate(url_main);
+            return;
+        }
+
         if(url.Contains("main/index.gs")) {
             if(currentState == State.LoginOther) doLoginOther();
+            else if(currentState == State.LoginOtherSNS) SNS_Login(sns_platform);
             else if(currentState == State.LoggedIn) doCheckLogin();
             else {
                 // 로그인 되어있지 않은 상태인데 스위치가 켜져있다면 다시 끈다
@@ -1250,7 +1261,12 @@ public partial class Form1 : MaterialForm {
             materialSwitch_login_2.CheckState = CheckState.Unchecked;
             materialSwitch_login_3.CheckState = CheckState.Unchecked;
 
-            currentState = State.LoginOther;
+            if(materialSwitch.Tag.ToString().Contains("SNS_")) {
+                currentState = State.LoginOtherSNS;
+                sns_platform = materialSwitch.Tag.ToString()!;
+            } else {
+                currentState = State.LoginOther;
+            }
 
             webView_main.CoreWebView2.Navigate(url_logout);
             return;
