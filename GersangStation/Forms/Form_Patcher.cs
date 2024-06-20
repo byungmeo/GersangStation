@@ -220,7 +220,7 @@ public partial class Form_Patcher : MaterialForm {
         List<string> list_infoFile = new List<string>();
 
         using(var webClient = new WebClient()) {
-            for(int i = Int16.Parse(version_current) + equal; i <= Int16.Parse(version_latest); i++) {
+            for(int i = Int32.Parse(version_current) + equal; i <= Int32.Parse(version_latest); i++) {
                 string url = url_info + i;
                 try {
                     webClient.DownloadFile(new Uri(url), directory_info + @"\" + server + "_" + i + ".txt");
