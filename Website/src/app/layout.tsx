@@ -1,26 +1,12 @@
-import { useEffect } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 
 import Tag from "./_components/Tag";
 
 import background from "@/_assets/images/background.png";
 import imageTitleRound from "@/_assets/images/image_title_round.png";
 import handImage from "@/_assets/images/icon_hand.png";
-import BackIcon from "@/_assets/images/icon_back.svg?react";
 
 function SupportLayout() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (
-      !location.pathname.includes("faq") &&
-      !location.pathname.includes("notice")
-    ) {
-      navigate("faq");
-    }
-  }, [location.pathname]);
-
   return (
     <>
       <div
@@ -63,7 +49,7 @@ function SupportLayout() {
         {/* 오른쪽 */}
         <div className="bg-white">
           <div className="p-4">
-            <BackIcon />
+
           </div>
 
           

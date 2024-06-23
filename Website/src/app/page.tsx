@@ -1,4 +1,4 @@
-function FaqPage() {
+function Page() {
   return (
     <div className="">
       asd
@@ -6,4 +6,4 @@ function FaqPage() {
   );
 }
 
-export default FaqPage;
+export default Page;
