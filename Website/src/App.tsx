@@ -4,13 +4,16 @@ import {
   createBrowserRouter,
   createRoutesFromElements,
 } from "react-router-dom";
+
 import SupportLayout from "@/layout";
+import FaqPage from "@/faq/page";
+import PageLoadingSpinner from "@/_components/PageLoadingSpinner";
 
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
-      <Route element={<SupportLayout />} path="/">
-        <Route path="faq" />,
+      <Route element={<SupportLayout />}>
+        <Route path="faq" element={<FaqPage />} />,
         <Route path="notice" />,
       </Route>
     ),
@@ -19,7 +22,12 @@ function App() {
     }
   );
 
-  return <RouterProvider router={router} fallbackElement={<p>Loading...</p>} />;
+  return (
+    <RouterProvider
+      router={router}
+      fallbackElement={<PageLoadingSpinner text="Gersang Station..." />}
+    />
+  );
 }
 
 export default App;
