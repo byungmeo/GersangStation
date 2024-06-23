@@ -1,8 +1,7 @@
-
 function FaqPage() {
   return (
-    <div>
-      
+    <div className="">
+      asd
     </div>
   );
 }
