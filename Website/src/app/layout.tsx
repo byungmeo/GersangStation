@@ -80,7 +80,7 @@ function SupportLayout() {
 
               <p
                 className="text-[75px] lg:text-[90px] xl:text-[110px] font-semibold 
-                bg-gradient-to-r from-[#d141ff] to-orange-400 bg-clip-text text-transparent font-[Dongle]"
+                text-indigo-700 font-[Dongle]"
               >
                 거상 스테이션
               </p>
@@ -88,16 +88,16 @@ function SupportLayout() {
 
             <div className="hidden gap-3 flex-col lg:flex-row lg:mt-8 lg:flex ">
               <a
-                className="w-full bg-pink-400 rounded-full text-xl font-bold text-white text-center px-7 py-4
-                transition-all hover:scale-105 duration-500 hover:bg-pink-500/90"
+                className="w-full bg-indigo-600 rounded-full text-xl font-bold text-white text-center px-7 py-4
+                transition-all hover:scale-105 duration-500 hover:bg-indigo-600/90"
                 href="https://github.com/byungmeo/GersangStation/releases/latest"
                 target="_blank"
               >
                 설치하기
               </a>
               <a
-                className="text-nowrap bg-pink-400 lg:bg-transparent rounded-full text-xl font-bold text-white lg:text-pink-400 text-center 
-                px-7 py-3 lg:py-4 border-[1px] border-pink-400 transition-all hover:scale-[103%] lg:hover:scale-105 duration-500 lg:hover:bg-pink-50/50"
+                className="text-nowrap bg-indigo-600 lg:bg-transparent rounded-full text-xl font-bold text-white lg:text-indigo-600 text-center 
+                px-7 py-3 lg:py-4 border-[1px] border-indigo-600 transition-all hover:scale-[103%] lg:hover:scale-105 duration-500 lg:hover:bg-indigo-50/50"
                 href="https://github.com/byungmeo/GersangStation/releases/latest"
                 target="_blank"
               >
@@ -109,8 +109,8 @@ function SupportLayout() {
               {exLinks.map((link, index) => (
                 <li className="block" key={index}>
                   <a
-                    className="block text-center bg-transparent rounded-md text-pink-400 py-1
-                      border-[1px] border-pink-200 text-sm transition-all hover:scale-105 duration-500 hover:bg-pink-50/50"
+                    className="block text-center bg-transparent rounded-md text-indigo-600 py-1
+                      border-[1px] border-indigo-600 text-sm transition-all hover:scale-105 duration-500 hover:bg-indigo-50/50"
                     href={link.link}
                     target="_blank"
                   >
@@ -135,7 +135,7 @@ function SupportLayout() {
           col-span-2"
         >
           <p
-            className="bg-gradient-to-r from-[#d141ff] to-orange-400 bg-clip-text text-transparent font-[Dongle] font-bold
+            className="text-indigo-700 font-[Dongle] font-bold
           text-[40px]"
           >
             거상 스테이션

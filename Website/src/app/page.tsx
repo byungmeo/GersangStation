@@ -141,7 +141,7 @@ function Page() {
 
         <div className="flex pt-6 pb-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white">
           <p className="text-2xl animate-wobble">📢</p>
-          <p className="font-[Dongle] text-[40px] text-pink-400 ">
+          <p className="font-[Dongle] text-[40px] text-indigo-600 ">
             자주 묻는 질문
           </p>
         </div>
@@ -162,7 +162,7 @@ function Page() {
       >
         <button
           onClick={() => setModalOpen(true)}
-          className="block h-full w-full rounded-full p-2 lg:p-4 bg-pink-400 text-white font-semibold
+          className="block h-full w-full rounded-full p-2 lg:p-4 bg-indigo-600 text-white font-semibold
             transition-transform hover:scale-[103%] duration-500 text-center"
         >
           1:1 문의하기
