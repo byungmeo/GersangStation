@@ -1,0 +1,37 @@
+name: Build and Deploy Website
+on:
+  push:
+    branches: ["master"]
+    paths: [".github/workflows/**", "Website/**"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: |
+      github.event_name == 'push' && github.ref == 'refs/heads/master' || 
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./Website/
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - uses: actions/checkout@v4
+      - name: set git email
+        run: git config --global user.email "wlsrlfvkr@gmail.com"
+      - name: set git username
+        run: git config --global user.name "byungmeo"
+      - name: set remote url
+        run: git remote set-url origin https://${{ secrets.GIT_TOKEN }}@github.com/byungmeo/GersangStation.git
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: './Website/package-lock.json'
+      - name: install dependencies
+        run: npm i
+      - name: build and deploy
+        run: npm run deploy
