@@ -1,91 +1,91 @@
 import QA from "@/_components/QA";
 import { ReactNode, useState } from "react";
-import SampleImage from "@/_assets/images/샘플사진.jpg";
+// import SampleImage from "@/_assets/images/샘플사진.jpg";
 import Modal from "./_components/Modal";
 
 const QAs: { question: string; answer: ReactNode }[] = [
   {
-    question: "거렌더는 어떻게 사용하나요?",
+    question: "준비 중 1",
     answer: (
       <>
-        <p className="inline">답변할때는 이렇게 하면 됩니다</p>
+        <p className="inline">준비 중입니다.</p>
         <div className="h-4" />
         <p>
-          inline클래스는 줄바꿈을 안 시키고, block 클래스는 줄바꿈 해주는 거라고
-          보면 됨.
+          "inline" - 줄바꿈 없음
+          "block" - 줄바꿈
         </p>
-        <img src={SampleImage} alt="샘플 사진" className="w-full my-1" />
-        <strong className="block">나는 스트롱</strong>
-        <i className="block">나는 이탤릭</i>
-        <p>태그 간격 사이는 my-1 my-2 my-3 이나 mt-1 mt-2 mb-1 mb-2</p>
+        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <strong className="block">strong</strong>
+        <i className="block">italic</i>
+        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
       </>
     ),
   },
   {
-    question: "거렌더는 어떻게 사용하나요?",
+    question: "준비 중 2",
     answer: (
       <>
-        <p className="inline">답변할때는 이렇게 하면 됩니다</p>
+        <p className="inline">준비 중입니다.</p>
         <div className="h-4" />
         <p>
-          inline클래스는 줄바꿈을 안 시키고, block 클래스는 줄바꿈 해주는 거라고
-          보면 됨.
+          "inline" - 줄바꿈 없음
+          "block" - 줄바꿈
         </p>
-        <img src={SampleImage} alt="샘플 사진" className="w-full my-1" />
-        <strong className="block">나는 스트롱</strong>
-        <i className="block">나는 이탤릭</i>
-        <p>태그 간격 사이는 my-1 my-2 my-3 이나 mt-1 mt-2 mb-1 mb-2</p>
+        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <strong className="block">strong</strong>
+        <i className="block">italic</i>
+        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
       </>
     ),
   },
   {
-    question: "거렌더는 어떻게 사용하나요?",
+    question: "준비 중 3",
     answer: (
       <>
-        <p className="inline">답변할때는 이렇게 하면 됩니다</p>
+        <p className="inline">준비 중입니다.</p>
         <div className="h-4" />
         <p>
-          inline클래스는 줄바꿈을 안 시키고, block 클래스는 줄바꿈 해주는 거라고
-          보면 됨.
+          "inline" - 줄바꿈 없음
+          "block" - 줄바꿈
         </p>
-        <img src={SampleImage} alt="샘플 사진" className="w-full my-1" />
-        <strong className="block">나는 스트롱</strong>
-        <i className="block">나는 이탤릭</i>
-        <p>태그 간격 사이는 my-1 my-2 my-3 이나 mt-1 mt-2 mb-1 mb-2</p>
+        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <strong className="block">strong</strong>
+        <i className="block">italic</i>
+        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
       </>
     ),
   },
   {
-    question: "거렌더는 어떻게 사용하나요?",
+    question: "준비 중 4",
     answer: (
       <>
-        <p className="inline">답변할때는 이렇게 하면 됩니다</p>
+        <p className="inline">준비 중입니다.</p>
         <div className="h-4" />
         <p>
-          inline클래스는 줄바꿈을 안 시키고, block 클래스는 줄바꿈 해주는 거라고
-          보면 됨.
+          "inline" - 줄바꿈 없음
+          "block" - 줄바꿈
         </p>
-        <img src={SampleImage} alt="샘플 사진" className="w-full my-1" />
-        <strong className="block">나는 스트롱</strong>
-        <i className="block">나는 이탤릭</i>
-        <p>태그 간격 사이는 my-1 my-2 my-3 이나 mt-1 mt-2 mb-1 mb-2</p>
+        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <strong className="block">strong</strong>
+        <i className="block">italic</i>
+        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
       </>
     ),
   },
   {
-    question: "거렌더는 어떻게 사용하나요?",
+    question: "준비 중 5",
     answer: (
       <>
-        <p className="inline">답변할때는 이렇게 하면 됩니다</p>
+        <p className="inline">준비 중입니다.</p>
         <div className="h-4" />
         <p>
-          inline클래스는 줄바꿈을 안 시키고, block 클래스는 줄바꿈 해주는 거라고
-          보면 됨.
+          "inline" - 줄바꿈 없음
+          "block" - 줄바꿈
         </p>
-        <img src={SampleImage} alt="샘플 사진" className="w-full my-1" />
-        <strong className="block">나는 스트롱</strong>
-        <i className="block">나는 이탤릭</i>
-        <p>태그 간격 사이는 my-1 my-2 my-3 이나 mt-1 mt-2 mb-1 mb-2</p>
+        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <strong className="block">strong</strong>
+        <i className="block">italic</i>
+        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
       </>
     ),
   },
