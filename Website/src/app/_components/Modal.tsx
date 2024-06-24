@@ -36,16 +36,16 @@ function Modal({ open, onClose }: ModalProps) {
         >
           x
         </button>
-        <p className="text-xl font-bold ">이해가 잘 되셨나요?</p>
+        <p className="text-xl font-bold ">문의 전 참고사항</p>
         <ol className="list-decimal">
           <li className="">
-            <p>어쩌구저쩌구</p>
+            <p>문의하기 전에 거상이 점검 중인지 확인 해주세요. (점검 중 일부 기능 제한)</p>
           </li>
           <li className="">
-            <p>어쩌구저쩌구</p>
+            <p>오류가 발생하는 경우 반드시 스크린샷을 함께 준비 해주세요.</p>
           </li>
           <li className="">
-            <p>어쩌구저쩌구</p>
+            <p>답변이 늦을 수 있습니다! 미리 문의 내용을 말씀 주시고 기다려주세요.</p>
           </li>
         </ol>
         <a
@@ -54,7 +54,7 @@ function Modal({ open, onClose }: ModalProps) {
           className="block mt-7 bg-[#6151f3] px-4 py-2 lg:py-4 lg:px-7 rounded-full text-white font-semibold text-sm
             transition-transform hover:scale-105 duration-500"
         >
-          1:1 문의 시작하기
+          네, 확인 했습니다.
         </a>
       </div>
     </div>
