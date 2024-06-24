@@ -3,7 +3,7 @@ import { Outlet } from "react-router-dom";
 // import Tag from "./_components/Tag";
 
 import background from "@/_assets/images/background.png";
-import imageTitleRound from "@/_assets/images/image_title_round.png";
+// import imageTitleRound from "@/_assets/images/image_title_round.png";
 // import handImage from "@/_assets/images/icon_hand.png";
 
 const exLinks: {
@@ -46,11 +46,13 @@ function SupportLayout() {
               <p>다클 생성, 패치</p>
               <p>3분만에!</p>
               <div className="lg:mt-8">
+{/*
                 <img
                   src={imageTitleRound}
                   alt="토닥토닥"
                   className="absolute w-[260px] lg:w-[448px] -translate-y-1 lg:-translate-y-3 mx-auto z-[-1]"
                 />
+*/}                
                 <p className="text-[#6151f3]">거상 스테이션</p>
               </div>
             </div>
