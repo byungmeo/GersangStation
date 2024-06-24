@@ -14,7 +14,7 @@ function Footer() {
         © 2024-present Byungmeo. All Rights Reserved.
       </p>
       <p className="text-black/60 mt-2 text-xs">
-        This website is designed and developed by Jehee Cheon
+        This website is designed and developed by Jehee Cheon.
       </p>
     </footer>
   );

@@ -66,7 +66,7 @@ function SupportLayout() {
         lg:grid grid-cols-2 gap-x-[80px]"
       >
         {/* 왼쪽 */}
-        <div className="px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0">
+        <div className="px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0 min-h-[15dvh] lg:animate-fade-in-slow">
           <div
             ref={leftPannelRef}
             className="lg:fixed h-fit lg:h-full flex flex-col justify-center w-full lg:max-w-[460px] xl:max-w-[560px]
@@ -125,8 +125,8 @@ function SupportLayout() {
 
         {/* 오른쪽 */}
         <div
-          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none lg:min-h-[100dvh] w-full min-h-[65dvh] h-full
-          ounded-t-2xl border-[1px] overflow-hidden border-gray-200 mt-[30px] lg:mt-0"
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none lg:min-h-[100dvh] w-full min-h-[85dvh] h-full
+          border-[1px] overflow-hidden border-gray-200 mt-[30px] lg:mt-0 lg:animate-show-from-right"
         >
           <Outlet />
         </div>

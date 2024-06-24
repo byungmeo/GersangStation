@@ -28,6 +28,10 @@ const QAList: {
     filename: "예시파일.md",
     question: "거상이란 무엇인가요?",
   },
+  {
+    filename: "예시파일.md",
+    question: "거상이란 무엇인가요?",
+  },
 ];
 
 function Page() {
@@ -35,61 +39,56 @@ function Page() {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [QAs, setQAs] = useState<QAInfo[]>([]);
 
-  function calcHeaderPosition() {
-    const footer = document.querySelector("footer");
-    const footerY = document.body.scrollHeight - footer!.clientHeight;
+  function calcHeaderPosition(button: React.RefObject<HTMLDivElement>) {
+    const footerY = document.body.scrollHeight - 250;
     const scrollBottom = window.scrollY + window.innerHeight;
     const diff = scrollBottom - footerY;
-
     if (diff > 0) {
-      buttonRef.current!.style.bottom = `${diff}px`;
+      button.current!.style.bottom = `${diff}px`;
     } else {
-      buttonRef.current!.style.bottom = `0px`;
+      button.current!.style.bottom = `0px`;
     }
   }
 
-  function fetchQA(index: number) {
-    if (index >= QAList.length) return;
-    fetch(
-      `/${import.meta.env.VITE_REPOSITORY_NAME}/answers/${
-        QAList[index].filename
-      }`
-    )
-      .then((res) => {
-        if (res.ok) return res.text();
-        else throw new Error("Failed to fetch");
-      })
-      .then((text) => {
-        setQAs((prev) => [
-          ...prev,
-          {
-            question: QAList[index].question,
-            answer: <Markdown className="inline">{text}</Markdown>,
-          },
-        ]);
-        fetchQA(index + 1);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-  }
-
   useEffect(() => {
+    function fetchQA(index: number) {
+      if (index >= QAList.length) return;
+      fetch(
+        `/${import.meta.env.VITE_REPOSITORY_NAME}/answers/${
+          QAList[index].filename
+        }`
+      )
+        .then((res) => {
+          if (res.ok) return res.text();
+          else throw new Error("Failed to fetch");
+        })
+        .then((text) => {
+          setQAs((prev) => [
+            ...prev,
+            {
+              question: QAList[index].question,
+              answer: <Markdown className="inline">{text}</Markdown>,
+            },
+          ]);
+          fetchQA(index + 1);
+        })
+        .catch((err) => {
+          console.error(err);
+        });
+    }
     fetchQA(0);
 
-    calcHeaderPosition();
-    document.addEventListener("scroll", calcHeaderPosition);
-    document.addEventListener("click", calcHeaderPosition);
-    document.addEventListener("touchend", calcHeaderPosition);
-    document.addEventListener("resize", calcHeaderPosition);
-    document.addEventListener("orientationchange", calcHeaderPosition);
+    calcHeaderPosition(buttonRef);
+    document.addEventListener("scroll", () => calcHeaderPosition(buttonRef));
+    document.addEventListener("resize", () => calcHeaderPosition(buttonRef));
 
     return () => {
-      document.removeEventListener("scroll", calcHeaderPosition);
-      document.removeEventListener("click", calcHeaderPosition);
-      document.removeEventListener("touchend", calcHeaderPosition);
-      document.removeEventListener("resize", calcHeaderPosition);
-      document.removeEventListener("orientationchange", calcHeaderPosition);
+      document.removeEventListener("scroll", () =>
+        calcHeaderPosition(buttonRef)
+      );
+      document.removeEventListener("resize", () =>
+        calcHeaderPosition(buttonRef)
+      );
     };
   }, []);
 
@@ -110,11 +109,18 @@ function Page() {
             자주 묻는 질문
           </p>
         </div>
+        <div className="hidden lg:block h-[83px]"/>
 
         {/* 자주 묻는 질문 */}
         <div className="flex flex-col">
           {QAs.map((qa, index) => (
-            <QA key={index} question={qa.question} answer={qa.answer} />
+            <QA
+              key={index}
+              buttonRef={buttonRef}
+              question={qa.question}
+              answer={qa.answer}
+              calcHeaderPosition={calcHeaderPosition}
+            />
           ))}
         </div>
 
@@ -122,8 +128,7 @@ function Page() {
       </div>
       <div
         ref={buttonRef}
-        className="fixed px-3 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-3 bg-white lg:bg-transparent border-t-[1px] border-gray-300"
-        style={{ bottom: "-100vh" }}
+        className="fixed px-3 w-full lg:max-w-[460px] xl:max-w-[560px] py-3 bg-white border-[1px] border-gray-200 rounded-b-2xl lg:rounded-none lg:animate-show-up"
       >
         <button
           onClick={() => setModalOpen(true)}
