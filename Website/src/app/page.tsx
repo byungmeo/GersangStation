@@ -122,7 +122,7 @@ function Page() {
       </div>
       <div
         ref={buttonRef}
-        className="fixed px-3 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-3 bg-transparent border-t-[1px] border-gray-300"
+        className="fixed px-3 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-3 bg-white lg:bg-transparent border-t-[1px] border-gray-300"
         style={{ bottom: "-100vh" }}
       >
         <button
