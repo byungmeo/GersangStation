@@ -36,16 +36,16 @@ function Modal({ open, onClose }: ModalProps) {
         >
           x
         </button>
-        <p className="text-xl font-bold ">문의 전 참고사항</p>
+        <p className="text-xl font-bold mb-3">문의 전 참고사항</p>
         <ol className="list-decimal">
           <li className="">
-            <p>문의하기 전에 거상이 점검 중인지 확인 해주세요. (점검 중 일부 기능 제한)</p>
+            <p>문의 전 거상 점검 시간인지 확인 해주세요. (일부 기능 제한)</p>
           </li>
           <li className="">
             <p>오류가 발생하는 경우 반드시 스크린샷을 함께 준비 해주세요.</p>
           </li>
           <li className="">
-            <p>답변이 늦을 수 있습니다! 미리 문의 내용을 말씀 주시고 기다려주세요.</p>
+            <p>답변이 늦을 수 있습니다. 미리 문의내용 적어주시고 기다려주세요.</p>
           </li>
         </ol>
         <a
