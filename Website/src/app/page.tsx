@@ -14,7 +14,7 @@ const QAs: { question: string; answer: ReactNode }[] = [
           "inline" - 줄바꿈 없음
           "block" - 줄바꿈
         </p>
-        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <img src="https://placehold.co/300x200/png" alt="샘플 사진" className="w-full my-1" />
         <strong className="block">strong</strong>
         <i className="block">italic</i>
         <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
@@ -31,7 +31,7 @@ const QAs: { question: string; answer: ReactNode }[] = [
           "inline" - 줄바꿈 없음
           "block" - 줄바꿈
         </p>
-        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <img src="https://placehold.co/300x200/png" alt="샘플 사진" className="w-full my-1" />
         <strong className="block">strong</strong>
         <i className="block">italic</i>
         <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
@@ -48,7 +48,7 @@ const QAs: { question: string; answer: ReactNode }[] = [
           "inline" - 줄바꿈 없음
           "block" - 줄바꿈
         </p>
-        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <img src="https://placehold.co/300x200/png" alt="샘플 사진" className="w-full my-1" />
         <strong className="block">strong</strong>
         <i className="block">italic</i>
         <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
@@ -65,7 +65,7 @@ const QAs: { question: string; answer: ReactNode }[] = [
           "inline" - 줄바꿈 없음
           "block" - 줄바꿈
         </p>
-        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <img src="https://placehold.co/300x200/png​" alt="샘플 사진" className="w-full my-1" />
         <strong className="block">strong</strong>
         <i className="block">italic</i>
         <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
@@ -82,7 +82,7 @@ const QAs: { question: string; answer: ReactNode }[] = [
           "inline" - 줄바꿈 없음
           "block" - 줄바꿈
         </p>
-        <img src="https://picsum.photos/300/200​" alt="샘플 사진" className="w-full my-1" />
+        <img src="https://placehold.co/300x200/png" alt="샘플 사진" className="w-full my-1" />
         <strong className="block">strong</strong>
         <i className="block">italic</i>
         <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
