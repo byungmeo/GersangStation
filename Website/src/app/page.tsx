@@ -101,6 +101,7 @@ function Page() {
   const buttonRef = useRef<HTMLDivElement>(null);
 
   function calcHeaderPosition() {
+    console.log("asd")
     const footer = document.querySelector("footer");
     const footerY = document.body.scrollHeight - footer!.clientHeight;
     const scrollBottom = window.scrollY + window.innerHeight;
@@ -114,6 +115,7 @@ function Page() {
   }
 
   useEffect(() => {
+    calcHeaderPosition();
     document.addEventListener("scroll", calcHeaderPosition);
     document.addEventListener("click", calcHeaderPosition);
     document.addEventListener("touchend", calcHeaderPosition);
@@ -128,7 +130,7 @@ function Page() {
       document.removeEventListener("orientationchange", calcHeaderPosition);
     };
   }, []);
-  
+
   return (
     <>
       <div className="flex flex-col h-full overflow-hidden">
@@ -155,7 +157,8 @@ function Page() {
       </div>
       <div
         ref={buttonRef}
-        className="fixed px-4 bottom-0 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-4"
+        className="fixed px-3 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-3 bg-white border-t-[1px] border-gray-300"
+        style={{ bottom: "-100vh"}}
       >
         <button
           onClick={() => setModalOpen(true)}

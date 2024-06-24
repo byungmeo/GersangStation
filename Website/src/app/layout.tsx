@@ -71,22 +71,24 @@ function SupportLayout() {
             className="lg:fixed h-fit lg:h-full flex flex-col justify-center w-full lg:max-w-[460px] xl:max-w-[560px]
             transition-all duration-1000"
           >
-            <div className="flex gap-2 ">
-              <Tag text="다클생성" />
-              <Tag text="패치" />
-              <Tag text="커서고정" />
+            <div className="flex flex-col-reverse lg:flex-col">
+              <div className="flex gap-2 ">
+                <Tag text="다클생성" />
+                <Tag text="패치" />
+                <Tag text="커서고정" />
+              </div>
+
+              <p
+                className="text-[75px] lg:text-[90px] xl:text-[110px] font-semibold 
+                bg-gradient-to-r from-[#d141ff] to-orange-400 bg-clip-text text-transparent font-[Dongle]"
+              >
+                거상 스테이션
+              </p>
             </div>
 
-            <p
-              className="text-[75px] lg:text-[90px] xl:text-[110px] font-semibold 
-              bg-gradient-to-r from-[#d141ff] to-orange-400 bg-clip-text text-transparent font-[Dongle]"
-            >
-              거상 스테이션
-            </p>
-
-            <div className="flex gap-3 flex-col lg:flex-row lg:mt-8">
+            <div className="hidden gap-3 flex-col lg:flex-row lg:mt-8 lg:flex ">
               <a
-                className="hidden lg:block w-full bg-pink-400 rounded-full text-xl font-bold text-white text-center px-7 py-4
+                className="w-full bg-pink-400 rounded-full text-xl font-bold text-white text-center px-7 py-4
                 transition-all hover:scale-105 duration-500 hover:bg-pink-500/90"
                 href="https://github.com/byungmeo/GersangStation/releases/latest"
                 target="_blank"
@@ -122,8 +124,8 @@ function SupportLayout() {
 
         {/* 오른쪽 */}
         <div
-          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none lg:min-h-[100dvh] w-full h-full
-          ounded-t-2xl border-[1px] overflow-hidden border-gray-200"
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none lg:min-h-[100dvh] w-full min-h-[65dvh] h-full
+          ounded-t-2xl border-[1px] overflow-hidden border-gray-200 mt-[30px] lg:mt-0"
         >
           <Outlet />
         </div>
@@ -138,8 +140,8 @@ function SupportLayout() {
           >
             거상 스테이션
           </p>
-          <p className="mt-5">© 2024-present Byungmeo. All Rights Reserved.</p>
-          <p className="text-black/60 mt-2">
+          <p className="mt-5 text-sm">© 2024-present Byungmeo. All Rights Reserved.</p>
+          <p className="text-black/60 mt-2 text-xs">
             This website is designed and developed by Jehee Cheon
           </p>
         </footer>

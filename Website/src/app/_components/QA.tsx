@@ -28,7 +28,7 @@ function QA({ question, answer }: QAProps) {
       </div>
 
       {showAnswer && (
-        <div className="text-left bg-[#fbfbfb] p-5 items-center">
+        <div className="text-left bg-[#f7f7f7] p-5 items-center">
           <span className="text-xs text-gray-300 font-bold">
             A.&nbsp;&nbsp;
           </span>
