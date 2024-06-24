@@ -1,10 +1,8 @@
 import { Outlet } from "react-router-dom";
 
-// import Tag from "./_components/Tag";
-
-import background from "@/_assets/images/background.png";
-// import imageTitleRound from "@/_assets/images/image_title_round.png";
-// import handImage from "@/_assets/images/icon_hand.png";
+import Tag from "@/_components/Tag";
+import BgParticles from "@/_components/BgParticles";
+import { useEffect, useRef } from "react";
 
 const exLinks: {
   title: string;
@@ -29,44 +27,88 @@ const exLinks: {
 ];
 
 function SupportLayout() {
-  return (
-    <>
-      <div
-        className="h-[100vh] w-full absolute lg:fixed bg-cover bg-center bg-no-repeat bg-[rgb(214,235,255)] z-[-1]"
-        style={{
-          backgroundImage: `url(${background})`,
-        }}
-      />
+  const leftPannelRef = useRef<HTMLDivElement>(null);
 
-      <div className="max-w-[920px] h-fit mx-auto grid grid-cols-1 lg:grid-cols-2 font-['Noto_Sans_KR']">
+  function calvLeftPannelPosition() {
+    const footer = document.querySelector("footer");
+    const footerY = document.body.scrollHeight - footer!.clientHeight;
+    const scrollBottom = window.scrollY + window.innerHeight;
+    const diff = scrollBottom - footerY;
+
+    if (diff > 0) {
+      leftPannelRef.current!.style.bottom = `${diff}px`;
+    } else {
+      leftPannelRef.current!.style.bottom = `0px`;
+    }
+  }
+
+  useEffect(() => {
+    document.addEventListener("scroll", calvLeftPannelPosition);
+    document.addEventListener("click", calvLeftPannelPosition);
+    document.addEventListener("touchend", calvLeftPannelPosition);
+    document.addEventListener("resize", calvLeftPannelPosition);
+    document.addEventListener("orientationchange", calvLeftPannelPosition);
+
+    return () => {
+      document.removeEventListener("scroll", calvLeftPannelPosition);
+      document.removeEventListener("click", calvLeftPannelPosition);
+      document.removeEventListener("touchend", calvLeftPannelPosition);
+      document.removeEventListener("resize", calvLeftPannelPosition);
+      document.removeEventListener("orientationchange", calvLeftPannelPosition);
+    };
+  }, []);
+
+  return (
+    <div className="font-['Noto_Sans_KR']">
+      <div
+        className="h-full min-h-[100dvh] lg:max-w-[1000px] xl:max-w-[1200px] mx-auto 
+        lg:grid grid-cols-2 gap-x-[80px]"
+      >
         {/* 왼쪽 */}
         <div className="px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0">
-          <div className="lg:fixed h-full flex flex-col justify-center">
-            <div className="font-semibold leading-[55px] lg:leading-[85px] text-[35px] lg:text-[60px] ">
-              <p>다클 생성, 패치</p>
-              <p>3분만에!</p>
-              <div className="lg:mt-8">
-{/*
-                <img
-                  src={imageTitleRound}
-                  alt="토닥토닥"
-                  className="absolute w-[260px] lg:w-[448px] -translate-y-1 lg:-translate-y-3 mx-auto z-[-1]"
-                />
-*/}                
-                <p className="text-[#6151f3]">거상 스테이션</p>
-              </div>
+          <div
+            ref={leftPannelRef}
+            className="lg:fixed h-fit lg:h-full flex flex-col justify-center w-full lg:max-w-[460px] xl:max-w-[560px]
+            transition-all duration-1000"
+          >
+            <div className="flex gap-2 ">
+              <Tag text="다클생성" />
+              <Tag text="패치" />
+              <Tag text="커서고정" />
             </div>
 
-            <a className="hidden lg:block mt-8 bg-[#6151f3] rounded-full text-xl font-bold text-white text-center px-7 py-4" href="https://github.com/byungmeo/GersangStation/releases/latest" target="_blank">
-              설치하기
-            </a>
+            <p
+              className="text-[75px] lg:text-[90px] xl:text-[110px] font-semibold 
+              bg-gradient-to-r from-[#d141ff] to-orange-400 bg-clip-text text-transparent font-[Dongle]"
+            >
+              거상 스테이션
+            </p>
+
+            <div className="flex gap-3 flex-col lg:flex-row lg:mt-8">
+              <a
+                className="hidden lg:block w-full bg-pink-400 rounded-full text-xl font-bold text-white text-center px-7 py-4
+                transition-all hover:scale-105 duration-500 hover:bg-pink-500/90"
+                href="https://github.com/byungmeo/GersangStation/releases/latest"
+                target="_blank"
+              >
+                설치하기
+              </a>
+              <a
+                className="text-nowrap bg-pink-400 lg:bg-transparent rounded-full text-xl font-bold text-white lg:text-pink-400 text-center 
+                px-7 py-3 lg:py-4 border-[1px] border-pink-400 transition-all hover:scale-[103%] lg:hover:scale-105 duration-500 lg:hover:bg-pink-50/50"
+                href="https://github.com/byungmeo/GersangStation/releases/latest"
+                target="_blank"
+              >
+                프로그램 소개
+              </a>
+            </div>
 
             <ul className="hidden grid-cols-2 gap-3 mt-5 lg:grid">
               {exLinks.map((link, index) => (
                 <li className="block" key={index}>
                   <a
-                    className="block text-center bg-white rounded-md text-gray-800 py-1
-                      border-[1px] border-gray-300 text-sm"
+                    className="block text-center bg-transparent rounded-md text-pink-400 py-1
+                      border-[1px] border-pink-200 text-sm transition-all hover:scale-105 duration-500 hover:bg-pink-50/50"
                     href={link.link}
                     target="_blank"
                   >
@@ -75,29 +117,36 @@ function SupportLayout() {
                 </li>
               ))}
             </ul>
-            
-{/*
-            <div className="space-y-3 mt-[30px]">
-              <div className="flex items-center gap-2">
-                <p className="text-xl font-bold">사용방법이 궁금하신가요?</p>
-                <img src={handImage} alt="손 이미지" className="w-[24px]" />
-              </div>
-              <div className="flex gap-2">
-                <Tag text="다클생성" />
-                <Tag text="패치" />
-                <Tag text="1분만에" />
-              </div>
-            </div>
-*/}
           </div>
         </div>
 
         {/* 오른쪽 */}
-        <div className="bg-white rounded-2xl lg:rounded-none lg:min-h-[100dvh] h-fit">
+        <div
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none lg:min-h-[100dvh] w-full h-full
+          ounded-t-2xl border-[1px] overflow-hidden border-gray-200"
+        >
           <Outlet />
         </div>
+
+        <footer
+          className="flex flex-col justify-center text-center bg-transparent z-[50] h-[250px]
+          col-span-2"
+        >
+          <p
+            className="bg-gradient-to-r from-[#d141ff] to-orange-400 bg-clip-text text-transparent font-[Dongle] font-bold
+          text-[40px]"
+          >
+            거상 스테이션
+          </p>
+          <p className="mt-5">© 2024-present Byungmeo. All Rights Reserved.</p>
+          <p className="text-black/60 mt-2">
+            This website is designed and developed by Jehee Cheon
+          </p>
+        </footer>
       </div>
-    </>
+
+      <BgParticles />
+    </div>
   );
 }
 
