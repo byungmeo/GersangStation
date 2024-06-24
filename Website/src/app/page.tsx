@@ -1,107 +1,41 @@
 import QA from "@/_components/QA";
 import { ReactNode, useEffect, useRef, useState } from "react";
-// import SampleImage from "@/_assets/images/샘플사진.jpg";
-import Modal from "./_components/Modal";
+import Modal from "@/_components/Modal";
+import Markdown from "react-markdown";
 
-const QAs: { question: string; answer: ReactNode }[] = [
+interface QAInfo {
+  question: string;
+  answer: ReactNode;
+}
+
+/*
+  QA 작성 방법:
+  1. /public/qa 폴더에 md 파일을 작성한다.
+  2. QAList에 작성한 파일명과 질문이름을 추가한다.
+  - 파일명은 확장자를 포함한다.
+  - QAList에 추가된 순서대로 질문이 출력된다.
+  - 파일이름에 물음표같은 특수문자가 들어갈 수 없어서 아래 배열에 질문을 추가할 때 
+  질문이름과 파일이름을 따로 작성하도록 했다.
+  - 이미지를 넣고 싶다면 /public/images 폴더에 이미지를 넣고 md 파일에 이미지 경로를 작성한다.
+  이미지 경로는 /GersantStation/images/이미지파일명.jpg 로 작성한다.
+  예시로 예시파일.md을 참고
+*/
+const QAList: {
+  filename: string;
+  question: string;
+}[] = [
   {
-    question: "준비 중 1",
-    answer: (
-      <>
-        <p className="inline">준비 중입니다.</p>
-        <div className="h-4" />
-        <p>"inline" - 줄바꿈 없음 "block" - 줄바꿈</p>
-        <img
-          src="https://placehold.co/300x200/png"
-          alt="샘플 사진"
-          className="w-full my-1"
-        />
-        <strong className="block">strong</strong>
-        <i className="block">italic</i>
-        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
-      </>
-    ),
-  },
-  {
-    question: "준비 중 2",
-    answer: (
-      <>
-        <p className="inline">준비 중입니다.</p>
-        <div className="h-4" />
-        <p>"inline" - 줄바꿈 없음 "block" - 줄바꿈</p>
-        <img
-          src="https://placehold.co/300x200/png"
-          alt="샘플 사진"
-          className="w-full my-1"
-        />
-        <strong className="block">strong</strong>
-        <i className="block">italic</i>
-        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
-      </>
-    ),
-  },
-  {
-    question: "준비 중 3",
-    answer: (
-      <>
-        <p className="inline">준비 중입니다.</p>
-        <div className="h-4" />
-        <p>"inline" - 줄바꿈 없음 "block" - 줄바꿈</p>
-        <img
-          src="https://placehold.co/300x200/png"
-          alt="샘플 사진"
-          className="w-full my-1"
-        />
-        <strong className="block">strong</strong>
-        <i className="block">italic</i>
-        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
-      </>
-    ),
-  },
-  {
-    question: "준비 중 4",
-    answer: (
-      <>
-        <p className="inline">준비 중입니다.</p>
-        <div className="h-4" />
-        <p>"inline" - 줄바꿈 없음 "block" - 줄바꿈</p>
-        <img
-          src="https://placehold.co/300x200/png​"
-          alt="샘플 사진"
-          className="w-full my-1"
-        />
-        <strong className="block">strong</strong>
-        <i className="block">italic</i>
-        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
-      </>
-    ),
-  },
-  {
-    question: "준비 중 5",
-    answer: (
-      <>
-        <p className="inline">준비 중입니다.</p>
-        <div className="h-4" />
-        <p>"inline" - 줄바꿈 없음 "block" - 줄바꿈</p>
-        <img
-          src="https://placehold.co/300x200/png"
-          alt="샘플 사진"
-          className="w-full py-1"
-        />
-        <strong className="block">strong</strong>
-        <i className="block">italic</i>
-        <p>태그 간격 my-1 my-2 my-3 또는 mt-1 mt-2 mb-1 mb-2</p>
-      </>
-    ),
+    filename: "예시파일.md",
+    question: "거상이란 무엇인가요?",
   },
 ];
 
 function Page() {
   const [modalOpen, setModalOpen] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
+  const [QAs, setQAs] = useState<QAInfo[]>([]);
 
   function calcHeaderPosition() {
-    console.log("asd")
     const footer = document.querySelector("footer");
     const footerY = document.body.scrollHeight - footer!.clientHeight;
     const scrollBottom = window.scrollY + window.innerHeight;
@@ -114,7 +48,35 @@ function Page() {
     }
   }
 
+  function fetchQA(index: number) {
+    if (index >= QAList.length) return;
+    fetch(
+      `/${import.meta.env.VITE_REPOSITORY_NAME}/answers/${
+        QAList[index].filename
+      }`
+    )
+      .then((res) => {
+        if (res.ok) return res.text();
+        else throw new Error("Failed to fetch");
+      })
+      .then((text) => {
+        setQAs((prev) => [
+          ...prev,
+          {
+            question: QAList[index].question,
+            answer: <Markdown className="inline">{text}</Markdown>,
+          },
+        ]);
+        fetchQA(index + 1);
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
+
   useEffect(() => {
+    fetchQA(0);
+
     calcHeaderPosition();
     document.addEventListener("scroll", calcHeaderPosition);
     document.addEventListener("click", calcHeaderPosition);
@@ -139,8 +101,10 @@ function Page() {
           lg:hidden"
         />
 
-        <div className="lg:fixed w-full max-w-[560px] flex py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
-        border-x-[1px] border-gray-200">
+        <div
+          className="lg:fixed w-full max-w-[560px] flex py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
+          border-x-[1px] border-gray-200"
+        >
           <p className="text-2xl animate-wobble">📢</p>
           <p className="font-[Dongle] text-[40px] text-indigo-600 ">
             자주 묻는 질문
@@ -159,7 +123,7 @@ function Page() {
       <div
         ref={buttonRef}
         className="fixed px-3 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-3 bg-transparent border-t-[1px] border-gray-300"
-        style={{ bottom: "-100vh"}}
+        style={{ bottom: "-100vh" }}
       >
         <button
           onClick={() => setModalOpen(true)}
