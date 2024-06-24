@@ -139,7 +139,8 @@ function Page() {
           lg:hidden"
         />
 
-        <div className="flex pt-6 pb-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white">
+        <div className="lg:fixed w-full max-w-[560px] flex py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
+        border-x-[1px] border-gray-200">
           <p className="text-2xl animate-wobble">📢</p>
           <p className="font-[Dongle] text-[40px] text-indigo-600 ">
             자주 묻는 질문
@@ -157,7 +158,7 @@ function Page() {
       </div>
       <div
         ref={buttonRef}
-        className="fixed px-3 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-3 bg-white border-t-[1px] border-gray-300"
+        className="fixed px-3 w-full max-w-[920px] lg:max-w-[460px] xl:max-w-[560px] py-3 bg-transparent border-t-[1px] border-gray-300"
         style={{ bottom: "-100vh"}}
       >
         <button
