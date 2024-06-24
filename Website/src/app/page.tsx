@@ -102,7 +102,7 @@ function Page() {
         />
 
         <div
-          className="lg:fixed w-full max-w-[560px] flex py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
+          className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px] flex py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
           border-x-[1px] border-gray-200"
         >
           <p className="text-2xl animate-wobble">📢</p>
