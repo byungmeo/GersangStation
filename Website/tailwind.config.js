@@ -9,9 +9,9 @@ export default {
           "50%": { transform: "rotate(5deg)" },
         },
         "show-up": {
-          "0%": { transform: "translateY(100%)" },
-          "90%": { transform: "translateY(100%)" },
-          "100%": { transform: "translateY(0)" },
+          "0%": { transform: "translateY(100%)", opacity: 0 },
+          "90%": { transform: "translateY(100%)", opacity: 0 },
+          "100%": { transform: "translateY(0)", opacity: 1 },
         },
         "show-from-right": {
           "0%": { transform: "translateX(100%)", opacity: 0 },
