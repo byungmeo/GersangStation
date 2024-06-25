@@ -44,16 +44,13 @@ function SupportLayout() {
   }
 
   useEffect(() => {
+    calvLeftPannelPosition();
     document.addEventListener("scroll", calvLeftPannelPosition);
-    document.addEventListener("click", calvLeftPannelPosition);
-    document.addEventListener("touchend", calvLeftPannelPosition);
     document.addEventListener("resize", calvLeftPannelPosition);
     document.addEventListener("orientationchange", calvLeftPannelPosition);
 
     return () => {
       document.removeEventListener("scroll", calvLeftPannelPosition);
-      document.removeEventListener("click", calvLeftPannelPosition);
-      document.removeEventListener("touchend", calvLeftPannelPosition);
       document.removeEventListener("resize", calvLeftPannelPosition);
       document.removeEventListener("orientationchange", calvLeftPannelPosition);
     };
@@ -125,7 +122,7 @@ function SupportLayout() {
 
         {/* 오른쪽 */}
         <div
-          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none lg:min-h-[100dvh] w-full min-h-[85dvh] h-full
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-full
           border-[1px] overflow-hidden border-gray-200 mt-[30px] lg:mt-0 lg:animate-show-from-right"
         >
           <Outlet />

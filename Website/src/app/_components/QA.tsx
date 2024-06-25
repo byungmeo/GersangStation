@@ -3,20 +3,26 @@ import { ReactNode, useEffect, useState } from "react";
 interface QAProps {
   question: string;
   answer: ReactNode;
-  calcHeaderPosition: (button: React.RefObject<HTMLDivElement>) => void;
+  calcButtonPosition: (button: React.RefObject<HTMLDivElement>) => void;
   buttonRef: React.RefObject<HTMLDivElement>;
 }
 
-function QA({ question, answer, calcHeaderPosition, buttonRef }: QAProps) {
+function QA({ question, answer, calcButtonPosition, buttonRef }: QAProps) {
   const [showAnswer, setShowAnswer] = useState(false);
+  const [triggerRender, setTriggerRender] = useState(false);
 
   const toggleQA = () => {
     setShowAnswer((prev) => !prev);
   };
 
   useEffect(() => {
-    calcHeaderPosition(buttonRef);
-  }, [showAnswer]);
+    calcButtonPosition(buttonRef);
+    setTriggerRender((prev) => !prev);
+  }, [showAnswer, buttonRef]);
+
+  useEffect(() => {
+    calcButtonPosition(buttonRef);
+  }, [triggerRender, buttonRef]);
 
   return (
     <button onClick={toggleQA}>

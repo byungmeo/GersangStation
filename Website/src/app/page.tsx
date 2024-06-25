@@ -38,16 +38,24 @@ function Page() {
   const [modalOpen, setModalOpen] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
   const [QAs, setQAs] = useState<QAInfo[]>([]);
+  const scrollingDown = useRef(false);
+  const prevScrollY = useRef(scrollY);
 
-  function calcHeaderPosition(button: React.RefObject<HTMLDivElement>) {
+  function calcButtonPosition(button: React.RefObject<HTMLDivElement>) {
+    if (prevScrollY.current != scrollY)
+      scrollingDown.current = prevScrollY.current < scrollY;
+
     const footerY = document.body.scrollHeight - 250;
     const scrollBottom = window.scrollY + window.innerHeight;
     const diff = scrollBottom - footerY;
-    if (diff > 0) {
-      button.current!.style.bottom = `${diff}px`;
+
+    if (diff > (scrollingDown.current ? 0 : 81.33)) {
+      button.current!.style.position = "static";
     } else {
-      button.current!.style.bottom = `0px`;
+      button.current!.style.position = "fixed";
     }
+
+    prevScrollY.current = scrollY;
   }
 
   useEffect(() => {
@@ -78,16 +86,22 @@ function Page() {
     }
     fetchQA(0);
 
-    calcHeaderPosition(buttonRef);
-    document.addEventListener("scroll", () => calcHeaderPosition(buttonRef));
-    document.addEventListener("resize", () => calcHeaderPosition(buttonRef));
+    calcButtonPosition(buttonRef);
+    document.addEventListener("scroll", () => calcButtonPosition(buttonRef));
+    document.addEventListener("resize", () => calcButtonPosition(buttonRef));
+    document.addEventListener("orientationchange", () =>
+      calcButtonPosition(buttonRef)
+    );
 
     return () => {
       document.removeEventListener("scroll", () =>
-        calcHeaderPosition(buttonRef)
+        calcButtonPosition(buttonRef)
       );
       document.removeEventListener("resize", () =>
-        calcHeaderPosition(buttonRef)
+        calcButtonPosition(buttonRef)
+      );
+      document.removeEventListener("orientationchange", () =>
+        calcButtonPosition(buttonRef)
       );
     };
   }, []);
@@ -109,7 +123,7 @@ function Page() {
             자주 묻는 질문
           </p>
         </div>
-        <div className="hidden lg:block h-[83px]"/>
+        <div className="hidden lg:block h-[83px]" />
 
         {/* 자주 묻는 질문 */}
         <div className="flex flex-col">
@@ -119,24 +133,24 @@ function Page() {
               buttonRef={buttonRef}
               question={qa.question}
               answer={qa.answer}
-              calcHeaderPosition={calcHeaderPosition}
+              calcButtonPosition={calcButtonPosition}
             />
           ))}
         </div>
 
-        <div className="h-[80px]" />
-      </div>
-      <div
-        ref={buttonRef}
-        className="fixed px-3 w-full lg:max-w-[460px] xl:max-w-[560px] py-3 bg-white border-[1px] border-gray-200 rounded-b-2xl lg:rounded-none lg:animate-show-up"
-      >
-        <button
-          onClick={() => setModalOpen(true)}
-          className="block h-full w-full rounded-full p-2 lg:p-4 bg-indigo-600 text-white font-semibold
-            transition-transform hover:scale-[103%] duration-500 text-center"
+        <div
+          ref={buttonRef}
+          className="block mt-auto bottom-0 px-3 w-full lg:max-w-[460px] xl:max-w-[560px] py-3 
+          bg-white border-[1px] border-gray-200 rounded-b-2xl lg:rounded-none transition-transform duration-500 lg:animate-show-up"
         >
-          1:1 문의하기
-        </button>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="block h-full w-full rounded-full p-2 lg:p-4 bg-indigo-600 text-white font-semibold
+            transition-transform hover:scale-[103%] duration-500 text-center"
+          >
+            1:1 문의하기
+          </button>
+        </div>
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} />
