@@ -37,6 +37,7 @@ const QAList: {
 function Page() {
   const [modalOpen, setModalOpen] = useState(false);
   const buttonRef = useRef<HTMLDivElement>(null);
+  const buttonPlaceholderRef = useRef<HTMLDivElement>(null);
   const [QAs, setQAs] = useState<QAInfo[]>([]);
   const scrollingDown = useRef(false);
   const prevScrollY = useRef(scrollY);
@@ -49,9 +50,11 @@ function Page() {
     const scrollBottom = window.scrollY + window.innerHeight;
     const diff = scrollBottom - footerY;
 
-    if (diff > (scrollingDown.current ? 0 : 81.33)) {
+    if (diff > 0) {
+      buttonPlaceholderRef.current!.style.display = "none";
       button.current!.style.position = "static";
     } else {
+      buttonPlaceholderRef.current!.style.display = "block";
       button.current!.style.position = "fixed";
     }
 
@@ -108,7 +111,7 @@ function Page() {
 
   return (
     <>
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-full overflow-hidden min-h-[85vh]">
         <div
           className="mx-auto w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px]
           lg:hidden"
@@ -138,6 +141,10 @@ function Page() {
           ))}
         </div>
 
+        <div
+          ref={buttonPlaceholderRef}
+          className="h-[65.33px] lg:h-[81.33px]"
+        />
         <div
           ref={buttonRef}
           className="block mt-auto bottom-0 px-3 w-full lg:max-w-[460px] xl:max-w-[560px] py-3 
