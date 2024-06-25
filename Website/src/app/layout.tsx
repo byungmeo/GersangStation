@@ -77,7 +77,7 @@ function SupportLayout() {
               </div>
 
               <p
-                className="text-[75px] lg:text-[90px] xl:text-[110px] font-semibold 
+                className="text-[55px] lg:text-[90px] xl:text-[110px] font-semibold 
                 text-indigo-700 font-[Dongle]"
               >
                 거상 스테이션
@@ -123,7 +123,7 @@ function SupportLayout() {
         {/* 오른쪽 */}
         <div
           className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-full
-          border-[1px] overflow-hidden border-gray-200 mt-[30px] lg:mt-0 lg:animate-show-from-right"
+          border-[1px] shadow-[0_0_3px_3px_rgba(150,150,150,0.1)] lg:shadow-none overflow-hidden border-gray-200 mt-[30px] lg:mt-0 lg:animate-show-from-right"
         >
           <Outlet />
         </div>

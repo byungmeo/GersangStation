@@ -118,11 +118,11 @@ function Page() {
         />
 
         <div
-          className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px] flex py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
-          border-x-[1px] border-gray-200"
+          className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px]  py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
+          border-x-[1px] border-gray-200 flex pb-5 lg:pb-0"
         >
           <p className="text-2xl animate-wobble">📢</p>
-          <p className="font-[Dongle] text-[40px] text-indigo-600 ">
+          <p className="lg:font-[Dongle] text-[20px] lg:text-[40px] lg:text-indigo-600 text-gray-800">
             자주 묻는 질문
           </p>
         </div>
