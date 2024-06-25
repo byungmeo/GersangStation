@@ -96,7 +96,13 @@ function Page() {
       calcButtonPosition(buttonRef)
     );
 
+    // Q/A 펼치고 이미지 로드 후에 버튼 위치 변경되어야 하는 것 임시 해결
+    const interval = setInterval(() => {
+      calcButtonPosition(buttonRef);
+    }, 10);
+
     return () => {
+      clearInterval(interval);
       document.removeEventListener("scroll", () =>
         calcButtonPosition(buttonRef)
       );
