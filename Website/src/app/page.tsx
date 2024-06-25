@@ -141,7 +141,7 @@ function Page() {
         <div
           ref={buttonRef}
           className="block mt-auto bottom-0 px-3 w-full lg:max-w-[460px] xl:max-w-[560px] py-3 
-          bg-white border-[1px] border-gray-200 rounded-b-2xl lg:rounded-none"
+          bg-white border-[1px] border-gray-200 rounded-b-2xl lg:rounded-none lg:animate-show-up"
         >
           <button
             onClick={() => setModalOpen(true)}

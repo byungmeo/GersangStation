@@ -16,7 +16,6 @@ function QA({ question, answer, calcButtonPosition, buttonRef }: QAProps) {
   };
 
   useEffect(() => {
-    calcButtonPosition(buttonRef);
     setTriggerRender((prev) => !prev);
   }, [showAnswer, buttonRef]);
 
