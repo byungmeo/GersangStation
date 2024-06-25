@@ -60,7 +60,7 @@ function SupportLayout() {
     <div className="font-['Noto_Sans_KR']">
       <div
         className="h-full min-h-[100dvh] lg:max-w-[1000px] xl:max-w-[1200px] mx-auto 
-        lg:grid grid-cols-2 gap-x-[80px]"
+        lg:grid grid-cols-2 gap-x-[80px] flex"
       >
         {/* 왼쪽 */}
         <div className="px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0 min-h-[15dvh] lg:animate-fade-in-slow">

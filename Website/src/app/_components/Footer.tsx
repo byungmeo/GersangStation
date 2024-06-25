@@ -1,7 +1,7 @@
 function Footer() {
   return (
     <footer
-      className="flex flex-col justify-center text-center bg-transparent z-[50] h-[250px]
+      className="mt-auto flex flex-col justify-center text-center bg-transparent z-[50] h-[250px]
           col-span-2"
     >
       <p
