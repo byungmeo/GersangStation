@@ -26,11 +26,7 @@ const QAList: {
 }[] = [
   {
     filename: "예시파일.md",
-    question: "거상이란 무엇인가요?",
-  },
-  {
-    filename: "예시파일.md",
-    question: "거상이란 무엇인가요?",
+    question: "Q/A 예시 제목",
   },
 ];
 
