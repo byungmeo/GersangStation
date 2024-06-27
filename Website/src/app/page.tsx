@@ -123,7 +123,7 @@ function Page() {
           />
         </div>
 
-        <div
+        <h1
           ref={qaContainerRef}
           className="lg:fixed py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
           border-b-gray-200 bg-transparent lg:bg-white 
@@ -133,11 +133,11 @@ function Page() {
           <p className="lg:font-[Dongle] text-[20px] lg:text-[40px] lg:text-indigo-600 text-gray-600">
             자주 묻는 질문
           </p>
-        </div>
+        </h1>
         <div className="hidden lg:block h-[72.67px]" />
 
         {/* 자주 묻는 질문 */}
-        <div className="w-full h-full flex flex-col">
+        <section className="w-full h-full flex flex-col">
           {QAs.map((qa, index) => (
             <QA
               key={index}
@@ -146,7 +146,7 @@ function Page() {
               calcButtonPosition={calcButtonPosition}
             />
           ))}
-        </div>
+        </section>
 
         <div
           ref={buttonPlaceholderRef}

@@ -18,8 +18,8 @@ function QA({ question, answer, calcButtonPosition }: QAProps) {
   }, [showAnswer]);
 
   return (
-    <button onClick={toggleQA}>
-      <div
+    <article className="cursor-pointer" onClick={toggleQA}>
+      <button
         className={`px-5 py-7 transition-colors duration-500 ${
           !showAnswer && "hover:bg-[#f6f6f6]"
         }`}
@@ -28,18 +28,18 @@ function QA({ question, answer, calcButtonPosition }: QAProps) {
           <span className="text-xs text-gray-300 font-bold">Q.</span>
           <p className="text-gray-700 text-[15px]">{question}</p>
         </div>
-      </div>
+      </button>
 
       {showAnswer && (
-        <div
+        <button
           className="text-left bg-[#f7f7f7] p-5 flex gap-2 text-gray-600"
           onLoad={calcButtonPosition}
         >
           <span className="text-xs text-gray-300 font-bold">A.</span>
           {answer}
-        </div>
+        </button>
       )}
-    </button>
+    </article>
   );
 }
 
