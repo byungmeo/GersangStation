@@ -63,7 +63,7 @@ function Page() {
   function resizeContent() {
     buttonRef.current!.style.minWidth = `${pannerRef.current!.clientWidth}px`;
     qaContainerRef.current!.style.minWidth = `${
-      pannerRef.current!.clientHeight
+      pannerRef.current!.clientWidth
     }px`;
     buttonRef.current!.style.minWidth;
   }
@@ -95,7 +95,7 @@ function Page() {
         });
     }
     fetchQA(0);
-
+    resizeContent()
     document.addEventListener("scroll", calcButtonPosition);
     window.addEventListener("resize", calcButtonPosition);
     document.addEventListener("orientationchange", calcButtonPosition);
@@ -125,7 +125,7 @@ function Page() {
 
         <div
           ref={qaContainerRef}
-          className="lg:fixed w-full py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
+          className="lg:fixed py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
           border-b-gray-200 bg-transparent 
           flex pb-5 lg:pb-0"
         >
