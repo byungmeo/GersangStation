@@ -1,7 +1,16 @@
-import QA from "@/_components/QA";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import Modal from "@/_components/Modal";
+
 import Markdown from "react-markdown";
+// remark and rehype plugins
+import rehypeRaw from "rehype-raw";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import remarkGfm from 'remark-gfm'
+
+import QA from "@/_components/QA";
+import Modal from "@/_components/Modal";
+
+import "github-markdown-css/github-markdown-light.css";
 
 interface QAInfo {
   question: string;
@@ -82,7 +91,17 @@ function Page() {
             ...prev,
             {
               question: QAList[index].question,
-              answer: <Markdown className="inline">{text}</Markdown>,
+              answer: (
+                <Markdown
+                  skipHtml={false}
+                  remarkPlugins={[remarkMath, remarkGfm]}
+                  rehypePlugins={[rehypeRaw, rehypeKatex]}
+                  components={{ a: ({ ...props }) => <a {...props} target="_blank" /> }}
+                  className="inline"
+                >
+                  {text}
+                </Markdown>
+              ),
             },
           ]);
           fetchQA(index + 1);
