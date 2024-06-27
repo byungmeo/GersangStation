@@ -63,15 +63,15 @@ function SupportLayout() {
     >
       <div
         className="h-full w-full lg:mx-auto lg:px-[5vw] xl:px-[10vw]  
-        lg:grid lg:grid-cols-[460px_auto] xl:grid-cols-[560px_auto] 2xl:grid-cols-[640px_auto] gap-x-[80px] 
-        flex flex-col md:mx-5"
+        lg:grid lg:grid-cols-[400px_auto] xl:grid-cols-[420px_auto] 2xl:grid-cols-[540px_auto] gap-x-[80px] 
+        flex flex-col md:px-5"
       >
         {/* 왼쪽 */}
         <aside className="my-[50px] lg:my-0 lg:px-0 px-4 lg:animate-fade-in-slow">
           <div
             ref={leftPannelRef}
             className="lg:fixed h-full flex flex-col justify-center w-full 
-            lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[640px]
+            lg:max-w-[400px] xl:max-w-[420px] 2xl:max-w-[540px]
             transition-all duration-1000"
           >
             <section className="flex flex-col-reverse lg:flex-col">
