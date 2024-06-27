@@ -1,60 +1,45 @@
-import { ReactNode, useRef, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 interface QAProps {
   question: string;
   answer: ReactNode;
+  calcButtonPosition: () => void;
 }
 
-function QA({ question, answer }: QAProps) {
+function QA({ question, answer, calcButtonPosition }: QAProps) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const answerContainerRef = useRef<HTMLDivElement>(null);
 
   const toggleQA = () => {
     setShowAnswer((prev) => !prev);
-    setTimeout(
-      () => {
-        answerContainerRef.current!.style.position = showAnswer
-          ? "absolute"
-          : "relative";
-        answerContainerRef.current!.style.visibility = showAnswer
-          ? "hidden"
-          : "visible";
-        answerContainerRef.current!.style.display = showAnswer
-          ? "none"
-          : "block";
-      },
-      showAnswer ? 300 : 0
-    );
   };
 
+  useEffect(() => {
+    calcButtonPosition();
+  }, [showAnswer]);
+
   return (
-    <button onClick={toggleQA}>
-      <div
-        className={`p-5 transition-colors duration-500 ${
+    <article className="cursor-pointer w-full" onClick={toggleQA}>
+      <button
+        className={`px-5 py-7 w-full transition-colors duration-500 ${
           !showAnswer && "hover:bg-[#f6f6f6]"
         }`}
       >
-        <div className="flex items-center">
-          <span className="text-xs text-gray-300 font-bold">
-            Q.&nbsp;&nbsp;
-          </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-300 font-bold">Q.</span>
           <p className="text-gray-700 text-[15px]">{question}</p>
         </div>
-      </div>
+      </button>
 
-      <div
-        ref={answerContainerRef}
-        className={`text-left bg-[#f2f4f6] p-5 items-center transition-opacity duration-300
-        ${showAnswer ? "opacity-100" : "opacity-0"}`}
-        style={{
-          position: "absolute",
-          visibility: "hidden",
-        }}
-      >
-        <span className="text-xs text-gray-300 font-bold">A.&nbsp;&nbsp;</span>
-        {answer}
-      </div>
-    </button>
+      {showAnswer && (
+        <button
+          className="w-full text-left bg-[#f7f7f7] p-5 flex gap-2 text-gray-600"
+          onLoad={calcButtonPosition}
+        >
+          <span className="text-xs text-gray-300 font-bold">A.</span>
+          {answer}
+        </button>
+      )}
+    </article>
   );
 }
 

@@ -31,13 +31,15 @@ function Modal({ open, onClose }: ModalProps) {
       bg-white shadow-lg border-2 border-[#f1f1f1]"
       >
         <button
-          className="ml-auto text-2xl font-semibold"
+          className="ml-auto text-2xl lg:text-[26px] font-semibold text-gray-500"
           onClick={handleClose}
         >
           x
         </button>
-        <p className="text-xl font-bold mb-3">문의 전 참고사항</p>
-        <ol className="list-decimal">
+
+        <h1 className="text-gray-600 text-xl lg:text-2xl font-bold mb-3">문의 전 참고사항</h1>
+
+        <ol className="list-decimal px-3 text-pretty text-gray-500">
           <li className="">
             <p>문의 전 거상 점검 시간인지 확인 해주세요. (일부 기능 제한)</p>
           </li>
@@ -45,13 +47,16 @@ function Modal({ open, onClose }: ModalProps) {
             <p>오류가 발생하는 경우 반드시 스크린샷을 함께 준비 해주세요.</p>
           </li>
           <li className="">
-            <p>답변이 늦을 수 있습니다. 미리 문의내용 적어주시고 기다려주세요.</p>
+            <p>
+              답변이 늦을 수 있습니다. 미리 문의내용 적어주시고 기다려주세요.
+            </p>
           </li>
         </ol>
+
         <a
           href="https://open.kakao.com/o/sXJQ1qPd"
           target="_blank"
-          className="block mt-7 bg-[#6151f3] px-4 py-2 lg:py-4 lg:px-7 rounded-full text-white font-semibold text-sm
+          className="block mt-7 bg-indigo-600 px-4 py-2 lg:py-4 lg:px-7 rounded-full text-white font-semibold text-sm
             transition-transform hover:scale-105 duration-500"
         >
           네, 확인 했습니다.

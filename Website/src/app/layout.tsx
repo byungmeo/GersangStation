@@ -1,10 +1,9 @@
 import { Outlet } from "react-router-dom";
 
-// import Tag from "./_components/Tag";
-
-import background from "@/_assets/images/background.png";
-// import imageTitleRound from "@/_assets/images/image_title_round.png";
-// import handImage from "@/_assets/images/icon_hand.png";
+import Tag from "@/_components/Tag";
+import BgParticles from "@/_components/BgParticles";
+import { useEffect, useRef } from "react";
+import Footer from "@/_components/Footer";
 
 const exLinks: {
   title: string;
@@ -29,75 +28,121 @@ const exLinks: {
 ];
 
 function SupportLayout() {
+  const leftPannelRef = useRef<HTMLDivElement>(null);
+
+  function calcLeftPannelPosition() {
+    const footer = document.querySelector("footer");
+    const footerY = document.body.scrollHeight - footer!.clientHeight;
+    const scrollBottom = window.scrollY + window.innerHeight;
+    const diff = scrollBottom - footerY;
+
+    if (diff > 0) {
+      leftPannelRef.current!.style.bottom = `${diff}px`;
+    } else {
+      leftPannelRef.current!.style.bottom = `0px`;
+    }
+  }
+
+  useEffect(() => {
+    calcLeftPannelPosition();
+    document.addEventListener("scroll", calcLeftPannelPosition);
+    window.addEventListener("resize", calcLeftPannelPosition);
+    document.addEventListener("orientationchange", calcLeftPannelPosition);
+
+    return () => {
+      document.removeEventListener("scroll", calcLeftPannelPosition);
+      window.removeEventListener("resize", calcLeftPannelPosition);
+      document.removeEventListener("orientationchange", calcLeftPannelPosition);
+    };
+  }, []);
+
   return (
-    <>
+    <div
+      className="font-['Noto_Sans_KR'] h-full w-full"
+      onLoad={() => calcLeftPannelPosition()}
+    >
       <div
-        className="h-[100vh] w-full absolute lg:fixed bg-cover bg-center bg-no-repeat bg-[rgb(214,235,255)] z-[-1]"
-        style={{
-          backgroundImage: `url(${background})`,
-        }}
-      />
-
-      <div className="max-w-[920px] h-fit mx-auto grid grid-cols-1 lg:grid-cols-2 font-['Noto_Sans_KR']">
+        className="h-full w-full lg:mx-auto lg:px-[5vw] xl:px-[10vw]  
+        lg:grid lg:grid-cols-[460px_auto] xl:grid-cols-[560px_auto] 2xl:grid-cols-[640px_auto] gap-x-[80px] 
+        flex flex-col md:mx-5"
+      >
         {/* 왼쪽 */}
-        <div className="px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0">
-          <div className="lg:fixed h-full flex flex-col justify-center">
-            <div className="font-semibold leading-[55px] lg:leading-[85px] text-[35px] lg:text-[60px] ">
-              <p>다클 생성, 패치</p>
-              <p>3분만에!</p>
-              <div className="lg:mt-8">
-{/*
-                <img
-                  src={imageTitleRound}
-                  alt="토닥토닥"
-                  className="absolute w-[260px] lg:w-[448px] -translate-y-1 lg:-translate-y-3 mx-auto z-[-1]"
-                />
-*/}                
-                <p className="text-[#6151f3]">거상 스테이션</p>
-              </div>
-            </div>
-
-            <a className="hidden lg:block mt-8 bg-[#6151f3] rounded-full text-xl font-bold text-white text-center px-7 py-4" href="https://github.com/byungmeo/GersangStation/releases/latest" target="_blank">
-              설치하기
-            </a>
-
-            <ul className="hidden grid-cols-2 gap-3 mt-5 lg:grid">
-              {exLinks.map((link, index) => (
-                <li className="block" key={index}>
-                  <a
-                    className="block text-center bg-white rounded-md text-gray-800 py-1
-                      border-[1px] border-gray-300 text-sm"
-                    href={link.link}
-                    target="_blank"
-                  >
-                    {link.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-            
-{/*
-            <div className="space-y-3 mt-[30px]">
-              <div className="flex items-center gap-2">
-                <p className="text-xl font-bold">사용방법이 궁금하신가요?</p>
-                <img src={handImage} alt="손 이미지" className="w-[24px]" />
-              </div>
-              <div className="flex gap-2">
+        <aside className="my-[50px] lg:my-0 lg:px-0 px-4 lg:animate-fade-in-slow">
+          <div
+            ref={leftPannelRef}
+            className="lg:fixed h-full flex flex-col justify-center w-full 
+            lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[640px]
+            transition-all duration-1000"
+          >
+            <section className="flex flex-col-reverse lg:flex-col">
+              <div className="flex gap-2 ">
                 <Tag text="다클생성" />
                 <Tag text="패치" />
-                <Tag text="1분만에" />
+                <Tag text="커서고정" />
               </div>
-            </div>
-*/}
+
+              <h1
+                className="text-[55px] lg:text-[90px] xl:text-[110px] font-semibold 
+                text-indigo-700 font-[Dongle]"
+              >
+                거상 스테이션
+              </h1>
+            </section>
+
+            <section>
+              <nav>
+                <ul className="hidden gap-3 flex-col lg:flex-row lg:mt-8 lg:flex ">
+                  <a
+                    className="w-full bg-indigo-600 rounded-full text-xl font-bold text-white text-center px-7 py-4
+                    transition-all hover:scale-105 duration-500 hover:bg-indigo-600/90"
+                    href="https://github.com/byungmeo/GersangStation/releases/latest"
+                    target="_blank"
+                  >
+                    설치하기
+                  </a>
+                  <a
+                    className="text-nowrap bg-indigo-600 lg:bg-transparent rounded-full text-xl font-bold text-white lg:text-indigo-600 text-center 
+                    px-7 py-3 lg:py-4 border-[1px] border-indigo-600 transition-all hover:scale-[103%] lg:hover:scale-105 duration-500 lg:hover:bg-indigo-50/50"
+                    href="https://github.com/byungmeo/GersangStation/releases/latest"
+                    target="_blank"
+                  >
+                    프로그램 소개
+                  </a>
+                </ul>
+
+                <ul className="hidden grid-cols-2 gap-3 mt-5 lg:grid">
+                  {exLinks.map((link, index) => (
+                    <li className="block" key={index}>
+                      <a
+                        className="block text-center bg-transparent rounded-md text-indigo-600 py-1
+                        border-[1px] border-indigo-600 text-sm transition-all hover:scale-105 duration-500 hover:bg-indigo-50/50"
+                        href={link.link}
+                        target="_blank"
+                      >
+                        {link.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </section>
           </div>
-        </div>
+        </aside>
 
         {/* 오른쪽 */}
-        <div className="bg-white rounded-2xl lg:rounded-none lg:min-h-[100dvh] h-fit">
+        <main
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full max-w-[1000px] mx-auto h-fit
+          lg:my-0 lg:animate-show-from-right
+          border-[1.5px] lg:border-[1px] border-gray-200"
+        >
           <Outlet />
-        </div>
+        </main>
+
+        <Footer className="col-span-2 mt-auto shrink-0" />
       </div>
-    </>
+
+      <BgParticles />
+    </div>
   );
 }
 
