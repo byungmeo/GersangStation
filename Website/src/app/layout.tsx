@@ -123,7 +123,7 @@ function SupportLayout() {
         {/* 오른쪽 */}
         <div
           className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-fit box-content
-          border-[2px] lg:border-[1px] border-gray-200 mb-[30px] lg:my-0 lg:animate-show-from-right"
+          border-[1.5px] lg:border-[1px] border-gray-200 mb-[30px] lg:my-0 lg:animate-show-from-right"
         >
           <Outlet />
         </div>

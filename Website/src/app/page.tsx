@@ -126,7 +126,7 @@ function Page() {
         <div
           ref={qaContainerRef}
           className="lg:fixed py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
-          border-b-gray-200 bg-transparent 
+          border-b-gray-200 bg-transparent lg:bg-white 
           flex pb-5 lg:pb-0"
         >
           <p className="text-2xl animate-wobble">📢</p>
