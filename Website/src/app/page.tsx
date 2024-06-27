@@ -5,10 +5,11 @@ import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import remarkGfm from 'remark-gfm'
+import remarkGfm from "remark-gfm";
 
 import QA from "@/_components/QA";
 import Modal from "@/_components/Modal";
+import FallbackImage from "@/_components/FallbackImage";
 
 import "github-markdown-css/github-markdown-light.css";
 
@@ -96,7 +97,14 @@ function Page() {
                   skipHtml={false}
                   remarkPlugins={[remarkMath, remarkGfm]}
                   rehypePlugins={[rehypeRaw, rehypeKatex]}
-                  components={{ a: ({ ...props }) => <a {...props} target="_blank" /> }}
+                  components={{
+                    a: ({ ...props }) => <a {...props} target="_blank" />,
+                    img: ({ ...props }) => (
+                      <FallbackImage
+                        src={props.src!}
+                      />
+                    ),
+                  }}
                   className="inline"
                 >
                   {text}
