@@ -78,7 +78,7 @@ function SupportLayout() {
               <div className="flex gap-2 ">
                 <Tag text="다클생성" />
                 <Tag text="패치" />
-                <Tag text="커서고정" />
+                <Tag text="3분만에" />
               </div>
 
               <h1
@@ -103,10 +103,10 @@ function SupportLayout() {
                   <a
                     className="text-nowrap bg-indigo-600 lg:bg-transparent rounded-full text-xl font-bold text-white lg:text-indigo-600 text-center 
                     px-7 py-3 lg:py-4 border-[1px] border-indigo-600 transition-all hover:scale-[103%] lg:hover:scale-105 duration-500 lg:hover:bg-indigo-50/50"
-                    href="https://github.com/byungmeo/GersangStation/releases/latest"
+                    href="https://github.com/byungmeo/GersangStation"
                     target="_blank"
                   >
-                    프로그램 소개
+                    GitHub
                   </a>
                 </ul>
 
