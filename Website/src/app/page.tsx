@@ -119,14 +119,14 @@ function Page() {
 
         <h1
           ref={qaContainerRef}
-          className="lg:fixed border-b-[1px] border-b-gray-200 bg-transparent lg:bg-white"
+          className="lg:fixed border-b-[1px] border-b-gray-200 bg-transparent lg:bg-indigo-50"
         >
           <div
             className="flex gap-3 items-center text-gray-800 font-bold 
-            pb-5 lg:pb-0 pl-4 py-3"
+            py-4 lg:py-2 pl-4"
           >
             <p className="text-2xl animate-wobble">📢</p>
-            <p className="lg:font-[Dongle] text-[20px] lg:text-[40px] lg:text-indigo-600 text-gray-600">
+            <p className="lg:font-[Dongle] text-[19px] lg:text-[40px] lg:text-indigo-600 text-gray-600">
               자주 묻는 질문
             </p>
           </div>
