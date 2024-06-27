@@ -62,14 +62,16 @@ function SupportLayout() {
       onLoad={() => calcLeftPannelPosition()}
     >
       <div
-        className="h-full w-full lg:px-[5vw] xl:px-[10vw]
-        lg:grid lg:grid-cols-[460px_auto] xl:grid-cols-[560px_auto] 2xl:grid-cols-[640px_auto] gap-x-[80px] flex flex-col md:mx-5 lg:mx-auto"
+        className="h-full w-full lg:mx-auto lg:px-[5vw] xl:px-[10vw]  
+        lg:grid lg:grid-cols-[460px_auto] xl:grid-cols-[560px_auto] 2xl:grid-cols-[640px_auto] gap-x-[80px] 
+        flex flex-col md:mx-5"
       >
         {/* 왼쪽 */}
-        <aside className="my-[40px] lg:my-0 px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0 lg:animate-fade-in-slow">
+        <aside className="my-[50px] lg:my-0 lg:px-0 px-4 lg:animate-fade-in-slow">
           <div
             ref={leftPannelRef}
-            className="lg:fixed h-fit lg:h-full flex flex-col justify-center w-full lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[640px]
+            className="lg:fixed h-full flex flex-col justify-center w-full 
+            lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[640px]
             transition-all duration-1000"
           >
             <section className="flex flex-col-reverse lg:flex-col">
@@ -113,7 +115,7 @@ function SupportLayout() {
                     <li className="block" key={index}>
                       <a
                         className="block text-center bg-transparent rounded-md text-indigo-600 py-1
-                      border-[1px] border-indigo-600 text-sm transition-all hover:scale-105 duration-500 hover:bg-indigo-50/50"
+                        border-[1px] border-indigo-600 text-sm transition-all hover:scale-105 duration-500 hover:bg-indigo-50/50"
                         href={link.link}
                         target="_blank"
                       >
@@ -129,8 +131,8 @@ function SupportLayout() {
 
         {/* 오른쪽 */}
         <main
-          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-fit box-content
-          border-[1.5px] lg:border-[1px] border-gray-200 mb-[30px] lg:my-0 lg:animate-show-from-right"
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-fit
+          mb-[30px] lg:my-0 lg:animate-show-from-right"
         >
           <Outlet />
         </main>

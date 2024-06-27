@@ -61,11 +61,8 @@ function Page() {
   }
 
   function resizeContent() {
-    buttonRef.current!.style.minWidth = `${pannerRef.current!.clientWidth}px`;
-    qaContainerRef.current!.style.minWidth = `${
-      pannerRef.current!.clientWidth
-    }px`;
-    buttonRef.current!.style.minWidth;
+    buttonRef.current!.style.width = `${pannerRef.current!.clientWidth}px`;
+    qaContainerRef.current!.style.width = `${pannerRef.current!.clientWidth}px`;
   }
 
   useEffect(() => {
@@ -95,7 +92,8 @@ function Page() {
         });
     }
     fetchQA(0);
-    resizeContent()
+    resizeContent();
+
     document.addEventListener("scroll", calcButtonPosition);
     window.addEventListener("resize", calcButtonPosition);
     document.addEventListener("orientationchange", calcButtonPosition);
@@ -113,26 +111,26 @@ function Page() {
     <>
       <div
         ref={pannerRef}
-        className="flex flex-col h-full min-h-[100vh] w-full"
-        onLoad={resizeContent}
+        className="flex flex-col h-full min-h-[100vh] w-full
+        border-[1.5px] lg:border-[1px] border-gray-200"
       >
         <div className="absolute w-full flex justify-center">
-          <div
-            className="w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px]
-            lg:hidden"
-          />
+          <div className="w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px] lg:hidden" />
         </div>
 
         <h1
           ref={qaContainerRef}
-          className="lg:fixed py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
-          border-b-gray-200 bg-transparent lg:bg-white 
-          flex pb-5 lg:pb-0"
+          className="lg:fixed border-b-[1px] border-b-gray-200 bg-transparent lg:bg-white"
         >
-          <p className="text-2xl animate-wobble">📢</p>
-          <p className="lg:font-[Dongle] text-[20px] lg:text-[40px] lg:text-indigo-600 text-gray-600">
-            자주 묻는 질문
-          </p>
+          <div
+            className="flex gap-3 items-center text-gray-800 font-bold 
+            pb-5 lg:pb-0 pl-4 py-3"
+          >
+            <p className="text-2xl animate-wobble">📢</p>
+            <p className="lg:font-[Dongle] text-[20px] lg:text-[40px] lg:text-indigo-600 text-gray-600">
+              자주 묻는 질문
+            </p>
+          </div>
         </h1>
         <div className="hidden lg:block h-[72.67px]" />
 
