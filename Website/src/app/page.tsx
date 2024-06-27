@@ -10,6 +10,8 @@ import remarkGfm from 'remark-gfm'
 import QA from "@/_components/QA";
 import Modal from "@/_components/Modal";
 
+import "github-markdown-css/github-markdown-light.css";
+
 interface QAInfo {
   question: string;
   answer: ReactNode;
@@ -94,6 +96,7 @@ function Page() {
                   skipHtml={false}
                   remarkPlugins={[remarkMath, remarkGfm]}
                   rehypePlugins={[rehypeRaw, rehypeKatex]}
+                  components={{ a: ({ ...props }) => <a {...props} target="_blank" /> }}
                   className="inline"
                 >
                   {text}
