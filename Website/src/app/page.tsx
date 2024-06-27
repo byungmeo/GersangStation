@@ -117,7 +117,7 @@ function Page() {
 
         <div
           className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[710px] py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
-          border-b-gray-200 bg-transparent
+          border-b-gray-200 bg-transparent 
           flex pb-5 lg:pb-0"
         >
           <p className="text-2xl animate-wobble">📢</p>
@@ -125,7 +125,7 @@ function Page() {
             자주 묻는 질문
           </p>
         </div>
-        <div className="hidden lg:block h-[83px]" />
+        <div className="hidden lg:block h-[72.67px]" />
 
         {/* 자주 묻는 질문 */}
         <div className="w-full h-full flex flex-col">
