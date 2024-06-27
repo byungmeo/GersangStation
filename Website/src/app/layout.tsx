@@ -30,7 +30,7 @@ const exLinks: {
 function SupportLayout() {
   const leftPannelRef = useRef<HTMLDivElement>(null);
 
-  function calvLeftPannelPosition() {
+  function calcLeftPannelPosition() {
     const footer = document.querySelector("footer");
     const footerY = document.body.scrollHeight - footer!.clientHeight;
     const scrollBottom = window.scrollY + window.innerHeight;
@@ -44,20 +44,23 @@ function SupportLayout() {
   }
 
   useEffect(() => {
-    calvLeftPannelPosition();
-    document.addEventListener("scroll", calvLeftPannelPosition);
-    window.addEventListener("resize", calvLeftPannelPosition);
-    document.addEventListener("orientationchange", calvLeftPannelPosition);
+    calcLeftPannelPosition();
+    document.addEventListener("scroll", calcLeftPannelPosition);
+    window.addEventListener("resize", calcLeftPannelPosition);
+    document.addEventListener("orientationchange", calcLeftPannelPosition);
 
     return () => {
-      document.removeEventListener("scroll", calvLeftPannelPosition);
-      window.removeEventListener("resize", calvLeftPannelPosition);
-      document.removeEventListener("orientationchange", calvLeftPannelPosition);
+      document.removeEventListener("scroll", calcLeftPannelPosition);
+      window.removeEventListener("resize", calcLeftPannelPosition);
+      document.removeEventListener("orientationchange", calcLeftPannelPosition);
     };
   }, []);
 
   return (
-    <div className="font-['Noto_Sans_KR'] h-full w-full">
+    <div
+      className="font-['Noto_Sans_KR'] h-full w-full"
+      onLoad={() => calcLeftPannelPosition()}
+    >
       <div
         className="h-full w-full lg:px-[5vw] xl:px-[10vw]
         lg:grid lg:grid-cols-[460px_auto] xl:grid-cols-[560px_auto] 2xl:grid-cols-[640px_auto] gap-x-[80px] flex flex-col md:mx-5 lg:mx-auto"

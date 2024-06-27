@@ -113,7 +113,7 @@ function Page() {
     <>
       <div
         ref={pannerRef}
-        className="flex flex-col h-full w-full"
+        className="flex flex-col h-full min-h-[100vh] w-full"
         onLoad={resizeContent}
       >
         <div className="absolute w-full flex justify-center">
