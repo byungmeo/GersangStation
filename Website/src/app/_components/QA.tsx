@@ -18,9 +18,9 @@ function QA({ question, answer, calcButtonPosition }: QAProps) {
   }, [showAnswer]);
 
   return (
-    <article className="cursor-pointer" onClick={toggleQA}>
+    <article className="cursor-pointer w-full" onClick={toggleQA}>
       <button
-        className={`px-5 py-7 transition-colors duration-500 ${
+        className={`px-5 py-7 w-full transition-colors duration-500 ${
           !showAnswer && "hover:bg-[#f6f6f6]"
         }`}
       >
@@ -32,7 +32,7 @@ function QA({ question, answer, calcButtonPosition }: QAProps) {
 
       {showAnswer && (
         <button
-          className="text-left bg-[#f7f7f7] p-5 flex gap-2 text-gray-600"
+          className="w-full text-left bg-[#f7f7f7] p-5 flex gap-2 text-gray-600"
           onLoad={calcButtonPosition}
         >
           <span className="text-xs text-gray-300 font-bold">A.</span>
