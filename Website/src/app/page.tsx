@@ -160,7 +160,7 @@ function Page() {
         >
           <button
             onClick={() => setModalOpen(true)}
-            className="block h-full w-full rounded-full p-2 lg:p-4 bg-indigo-600 text-white font-semibold
+            className="block mx-auto max-w-[500px] h-full w-full rounded-full p-2 lg:p-4 bg-indigo-600 text-white font-semibold
             transition-transform hover:scale-[103%] duration-500 text-center"
           >
             1:1 문의하기
