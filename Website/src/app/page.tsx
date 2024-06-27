@@ -32,13 +32,16 @@ const QAList: {
 
 function Page() {
   const [modalOpen, setModalOpen] = useState(false);
+  const pannerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLDivElement>(null);
+  const qaContainerRef = useRef<HTMLDivElement>(null);
   const buttonPlaceholderRef = useRef<HTMLDivElement>(null);
+
   const [QAs, setQAs] = useState<QAInfo[]>([]);
   const scrollingDown = useRef(false);
   const prevScrollY = useRef(scrollY);
 
-  function calcButtonPosition(button: React.RefObject<HTMLDivElement>) {
+  function calcButtonPosition() {
     if (prevScrollY.current != scrollY)
       scrollingDown.current = prevScrollY.current < scrollY;
 
@@ -48,13 +51,21 @@ function Page() {
 
     if (diff > 0) {
       buttonPlaceholderRef.current!.style.display = "none";
-      button.current!.style.position = "static";
+      buttonRef.current!.style.position = "static";
     } else {
       buttonPlaceholderRef.current!.style.display = "block";
-      button.current!.style.position = "fixed";
+      buttonRef.current!.style.position = "fixed";
     }
 
     prevScrollY.current = scrollY;
+  }
+
+  function resizeContent() {
+    buttonRef.current!.style.minWidth = `${pannerRef.current!.clientWidth}px`;
+    qaContainerRef.current!.style.minWidth = `${
+      pannerRef.current!.clientHeight
+    }px`;
+    buttonRef.current!.style.minWidth;
   }
 
   useEffect(() => {
@@ -85,29 +96,26 @@ function Page() {
     }
     fetchQA(0);
 
-    calcButtonPosition(buttonRef);
-    document.addEventListener("scroll", () => calcButtonPosition(buttonRef));
-    document.addEventListener("resize", () => calcButtonPosition(buttonRef));
-    document.addEventListener("orientationchange", () =>
-      calcButtonPosition(buttonRef)
-    );
+    document.addEventListener("scroll", calcButtonPosition);
+    window.addEventListener("resize", calcButtonPosition);
+    document.addEventListener("orientationchange", calcButtonPosition);
+    window.addEventListener("resize", resizeContent);
 
     return () => {
-      document.removeEventListener("scroll", () =>
-        calcButtonPosition(buttonRef)
-      );
-      document.removeEventListener("resize", () =>
-        calcButtonPosition(buttonRef)
-      );
-      document.removeEventListener("orientationchange", () =>
-        calcButtonPosition(buttonRef)
-      );
+      document.removeEventListener("scroll", calcButtonPosition);
+      window.removeEventListener("resize", calcButtonPosition);
+      document.removeEventListener("orientationchange", calcButtonPosition);
+      window.removeEventListener("resize", resizeContent);
     };
   }, []);
 
   return (
     <>
-      <div className="flex flex-col h-full w-full">
+      <div
+        ref={pannerRef}
+        className="flex flex-col h-full w-full"
+        onLoad={resizeContent}
+      >
         <div className="absolute w-full flex justify-center">
           <div
             className="w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px]
@@ -116,7 +124,8 @@ function Page() {
         </div>
 
         <div
-          className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[710px] py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
+          ref={qaContainerRef}
+          className="lg:fixed w-full py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
           border-b-gray-200 bg-transparent 
           flex pb-5 lg:pb-0"
         >
@@ -132,7 +141,6 @@ function Page() {
           {QAs.map((qa, index) => (
             <QA
               key={index}
-              buttonRef={buttonRef}
               question={qa.question}
               answer={qa.answer}
               calcButtonPosition={calcButtonPosition}
@@ -142,11 +150,12 @@ function Page() {
 
         <div
           ref={buttonPlaceholderRef}
-          className="h-[65.33px] lg:h-[81.33px]"
+          className="block h-[65.33px] lg:h-[81.33px] w-full"
         />
+
         <div
           ref={buttonRef}
-          className="block mt-auto bottom-0 px-3 w-full lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[710px] py-3 
+          className="block mt-auto bottom-0 px-3 py-3 
           bg-white border-t-[1px] border-gray-200 rounded-b-2xl lg:rounded-none lg:animate-show-up"
         >
           <button

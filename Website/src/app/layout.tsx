@@ -46,21 +46,21 @@ function SupportLayout() {
   useEffect(() => {
     calvLeftPannelPosition();
     document.addEventListener("scroll", calvLeftPannelPosition);
-    document.addEventListener("resize", calvLeftPannelPosition);
+    window.addEventListener("resize", calvLeftPannelPosition);
     document.addEventListener("orientationchange", calvLeftPannelPosition);
 
     return () => {
       document.removeEventListener("scroll", calvLeftPannelPosition);
-      document.removeEventListener("resize", calvLeftPannelPosition);
+      window.removeEventListener("resize", calvLeftPannelPosition);
       document.removeEventListener("orientationchange", calvLeftPannelPosition);
     };
   }, []);
 
   return (
-    <div className="font-['Noto_Sans_KR'] h-full">
+    <div className="font-['Noto_Sans_KR'] h-full w-full">
       <div
-        className="h-full lg:max-w-[1000px] xl:max-w-[1200px] 2xl:max-w-[1500px]
-        lg:grid grid-cols-2 gap-x-[80px] flex flex-col md:mx-5 lg:mx-auto"
+        className="h-full w-full lg:px-[5vw] xl:px-[10vw]
+        lg:grid lg:grid-cols-[460px_auto] xl:grid-cols-[560px_auto] 2xl:grid-cols-[640px_auto] gap-x-[80px] flex flex-col md:mx-5 lg:mx-auto"
       >
         {/* 왼쪽 */}
         <div className="my-[40px] lg:my-0 px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0 lg:animate-fade-in-slow">
@@ -122,7 +122,7 @@ function SupportLayout() {
 
         {/* 오른쪽 */}
         <div
-          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-fit lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[710px] box-content
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-fit box-content
           border-[2px] lg:border-[1px] border-gray-200 mb-[30px] lg:my-0 lg:animate-show-from-right"
         >
           <Outlet />
