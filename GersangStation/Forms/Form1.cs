@@ -779,11 +779,7 @@ public partial class Form1 : MaterialForm {
     }
 
     private void materialButton_question_kakao_Click(object sender, EventArgs e) {
-        Process.Start(new ProcessStartInfo("https://open.kakao.com/o/sXJQ1qPd") { UseShellExecute = true });
-    }
-
-    private void materialButton_question_naver_Click(object sender, EventArgs e) {
-        Process.Start(new ProcessStartInfo("https://blog.naver.com/kog5071/222644960946") { UseShellExecute = true });
+        Process.Start(new ProcessStartInfo("https://byungmeo.github.io/GersangStation/") { UseShellExecute = true });
     }
 
     private void materialCheckbox_mouseClip_CheckedChanged(object sender, EventArgs e) {

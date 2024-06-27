@@ -35,8 +35,8 @@ const QAList: {
   question: string;
 }[] = [
   {
-    filename: "예시파일.md",
-    question: "Q/A 예시 제목",
+    filename: "1.다클복붙문제.md",
+    question: "클라이언트 버전이 서버와 틀립니다.",
   },
 ];
 

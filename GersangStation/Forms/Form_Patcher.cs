@@ -170,7 +170,7 @@ public partial class Form_Patcher : MaterialForm {
 
     public void StartPatch(int equal) {
         // ProgressChanged(this, new ProgressChangedEventArgs(currProgress, $"클라이언트의 파일을 읽어오는 중 입니다.  ({currCount} / {tasks.Count})")
-        Trace.WriteLine("패치 시작!");
+        Logger.Log("패치 시작");
         DirectoryInfo directory_patch = new DirectoryInfo(Application.StartupPath + @"\patch");
         if(!directory_patch.Exists) { directory_patch.Create(); }
 
@@ -180,39 +180,46 @@ public partial class Form_Patcher : MaterialForm {
         DirectoryInfo directory_file = new DirectoryInfo(directory_patch + @"\" + server + "_" + version_current + "-" + version_latest);
         if(!directory_file.Exists) { directory_file.Create(); }
 
-        Dictionary<string, string> list_patchFile = new Dictionary<string, string>(); //key값으로 다운로드주소, value값으로 경로및파일명 저장
+        Dictionary<string, string> list_patchFile; //key값으로 다운로드주소, value값으로 경로및파일명 저장
 
+        Logger.Log("패치 정보 파일 목록 추출 및 병합 시작");
         ProgressChanged(this, new ProgressChangedEventArgs(0, "패치 파일 목록 추출 중..."));
         list_patchFile = GetPatchFileList(equal, directory_info, directory_file);
 
-        Trace.WriteLine("패치 정보 파일 병합 완료");
-
+        Logger.Log("패치 파일 다운로드 시작");
         ProgressChanged(this, new ProgressChangedEventArgs(10, $"다운로드 중... (파일 개수 : {list_patchFile.Count})"));
         bool isSuccess = DownloadAll(list_patchFile);
-        if(!isSuccess) return; // 다운로드 실패 시 패치 적용하지 않음.
-        Trace.WriteLine("패치 파일 다운로드 완료");
+        if (!isSuccess)
+        {
+            Logger.Log("패치 파일 다운로드 실패로 인한 패치 종료");
+            MessageBox.Show(this, "패치 파일 다운로드에 실패하였습니다.\n문의 또는 로그를 확인 바랍니다.", "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            ProgressChanged(this, new ProgressChangedEventArgs(100, $"패치 실패"));
+            return; // 다운로드 실패 시 패치 적용하지 않음.
+        }
 
+        Logger.Log("압축 해제 및 본클라 패치 파일 적용 시작");
         ProgressChanged(this, new ProgressChangedEventArgs(60, $"압축 해제 중..."));
         ExtractAll(directory_file.FullName);
-        Trace.WriteLine("압축 해제 완료");
 
         //다클라 패치 적용
         if(materialCheckbox_apply.Checked) {
+            Logger.Log("다클라 패치 시작");
             ProgressChanged(this, new ProgressChangedEventArgs(80, $"다클라 패치 적용 중..."));
             ClientCreator.CreateClient(this, path_main, name_client_2, name_client_3);
         }
 
         //패치 후 파일 삭제
         if(materialCheckbox_delete.Checked) {
+            Logger.Log("패치 파일 삭제 시작");
             ProgressChanged(this, new ProgressChangedEventArgs(90, $"패치 후 파일 삭제 중..."));
             try {
                 directory_file.Delete(true);
-                Trace.WriteLine("패치 파일 폴더 삭제 완료");
             } catch(Exception ex) {
-                Trace.WriteLine("패치 파일 폴더 삭제 실패\n" + ex.Message);
+                Logger.Log("패치 파일 폴더 삭제 실패", ex);
             }
         }
 
+        Logger.Log("패치 종료");
         ProgressChanged(this, new ProgressChangedEventArgs(100, $"패치 완료!"));
     }
 
@@ -232,7 +239,7 @@ public partial class Form_Patcher : MaterialForm {
                     Trace.WriteLine(ex.Message);
                 }
             }
-            Trace.WriteLine("모든 패치정보 파일 다운로드 성공"); ////////////////////////////////////////////////////////////////////////////////--
+            Logger.Log("모든 패치정보 파일 다운로드 성공"); ////////////////////////////////////////////////////////////////////////////////--
 
             Dictionary<string, string> list_patchFile = new Dictionary<string, string>(); //key값으로 다운로드주소, value값으로 경로및파일명 저장
 
@@ -287,8 +294,7 @@ public partial class Form_Patcher : MaterialForm {
             try {
                 ZipFile.ExtractToDirectory(file, dest, true);
             } catch(Exception ex) {
-                Trace.WriteLine("압축 오류 발생 : " + file);
-                Trace.WriteLine(ex.StackTrace);
+                Logger.Log("압축 오류 발생 : " + file, ex);
             }
         }
     }
@@ -303,10 +309,10 @@ public partial class Form_Patcher : MaterialForm {
         // 아직도 모든 파일을 다운로드 하지 못한 경우
         if(list_retry.Count > 0) {
             foreach(var item in list_retry) {
-                Trace.WriteLine("다운로드 실패한 파일 주소 : " + item.Key);
+                Logger.Log("다운로드 실패한 파일 주소 : " + item.Key);
             }
 
-            Trace.WriteLine("다운로드 실패한 파일을 재다운로드 합니다.");
+            Logger.Log("다운로드 실패한 파일들만 재다운로드 시도");
 
             // NUM_RETRY 만큼 다운로드 재시도
             for(int i = 0; i < NUM_RETRY; i++) {
@@ -314,7 +320,7 @@ public partial class Form_Patcher : MaterialForm {
                     break;
                 }
 
-                Trace.WriteLine(i + 1 + "번째 재다운로드 시도... 남은 파일 수 : " + list_retry.Count + "개");
+                Logger.Log(i + 1 + "번째 재다운로드 시도... 총 파일 수 : " + list_retry.Count + "개");
 
                 Parallel.ForEach(
                 list_retry,
@@ -324,28 +330,20 @@ public partial class Form_Patcher : MaterialForm {
 
             // 그럼에도 실패
             if(list_retry.Count > 0) {
-                Trace.WriteLine($"{NUM_RETRY}번의 재다운로드 시도 결과 모든 파일을 재다운로드 하는데 실패하였습니다.");
+                Logger.Log($"{NUM_RETRY}번의 재다운로드 시도에도 불구하고 실패");
                 foreach(var item in list_retry) {
-                    Trace.WriteLine("다운로드 실패한 파일 주소 : " + item.Key);
+                    Logger.Log("최종 다운로드 실패한 파일 주소 : " + item.Key);
                 }
-                this.Invoke(new Action(() => {
-                    MessageBox.Show(this,
-                        $"{NUM_RETRY}번의 패치 재시도에도 불구하고\n" +
-                        $"모든 파일을 다운로드하는데 실패하였습니다.\n" +
-                        $"인터넷 환경을 확인해주시고 다시 패치를 진행해주세요.",
-                        "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }));
 
                 list_retry.Clear();
                 return false;
             } else {
-                Trace.WriteLine("모든 파일을 성공적으로 다운로드 하였습니다.");
+                Logger.Log("모든 파일을 성공적으로 다운로드 하였습니다.");
             }
         } else {
-            Trace.WriteLine("모든 파일을 성공적으로 다운로드 하였습니다.");
+            Logger.Log("모든 파일을 성공적으로 다운로드 하였습니다.");
         }
 
-        Trace.WriteLine("다운로드 종료");
         list_retry.Clear();
         return true;
     }
@@ -366,7 +364,7 @@ public partial class Form_Patcher : MaterialForm {
                 client.DownloadFile(item.Key, item.Value);
                 Trace.WriteLine($"[다운로드 성공] {file_name}");
             } catch(WebException e) {
-                Trace.WriteLine($"[다운로드 실패] {file_name}\n" + e.StackTrace);
+                Logger.Log($"[다운로드 실패] {file_name}", e);
                 lock(listLock) {
                     list_retry.Add(item.Key, item.Value);
                 }
@@ -393,7 +391,7 @@ public partial class Form_Patcher : MaterialForm {
                     list_retry.Remove(item.Key);
                 }
             } catch(WebException e) {
-                Trace.WriteLine($"[재다운로드 실패] {file_name}\n" + e.StackTrace);
+                Logger.Log($"[재다운로드 실패] {file_name}\n", e);
             }
         }
     }

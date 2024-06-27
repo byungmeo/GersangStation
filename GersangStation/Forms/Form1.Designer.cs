@@ -79,7 +79,6 @@
             label_version_current = new MaterialSkin.Controls.MaterialLabel();
             materialLabel1 = new MaterialSkin.Controls.MaterialLabel();
             pictureBox3 = new PictureBox();
-            materialButton_question_naver = new MaterialSkin.Controls.MaterialButton();
             materialButton_question_kakao = new MaterialSkin.Controls.MaterialButton();
             tabPage_sponsor = new TabPage();
             materialLabel3 = new MaterialSkin.Controls.MaterialLabel();
@@ -823,7 +822,6 @@
             tabPage_help.Controls.Add(label_version_current);
             tabPage_help.Controls.Add(materialLabel1);
             tabPage_help.Controls.Add(pictureBox3);
-            tabPage_help.Controls.Add(materialButton_question_naver);
             tabPage_help.Controls.Add(materialButton_question_kakao);
             tabPage_help.ImageKey = "outline_help_outline_black_24dp.png";
             tabPage_help.Location = new Point(4, 31);
@@ -851,7 +849,7 @@
             materialButton_blog.Depth = 0;
             materialButton_blog.HighEmphasis = true;
             materialButton_blog.Icon = (Image)resources.GetObject("materialButton_blog.Icon");
-            materialButton_blog.Location = new Point(14, 176);
+            materialButton_blog.Location = new Point(14, 161);
             materialButton_blog.Margin = new Padding(4, 6, 4, 6);
             materialButton_blog.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_blog.Name = "materialButton_blog";
@@ -872,7 +870,7 @@
             materialButton_gitHub.Depth = 0;
             materialButton_gitHub.HighEmphasis = true;
             materialButton_gitHub.Icon = (Image)resources.GetObject("materialButton_gitHub.Icon");
-            materialButton_gitHub.Location = new Point(112, 176);
+            materialButton_gitHub.Location = new Point(112, 161);
             materialButton_gitHub.Margin = new Padding(4, 6, 4, 6);
             materialButton_gitHub.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_gitHub.Name = "materialButton_gitHub";
@@ -893,7 +891,7 @@
             materialButton_license.Depth = 0;
             materialButton_license.HighEmphasis = true;
             materialButton_license.Icon = null;
-            materialButton_license.Location = new Point(279, 159);
+            materialButton_license.Location = new Point(279, 164);
             materialButton_license.Margin = new Padding(4, 6, 4, 6);
             materialButton_license.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_license.Name = "materialButton_license";
@@ -914,7 +912,7 @@
             materialButton_patchNote.Depth = 0;
             materialButton_patchNote.HighEmphasis = true;
             materialButton_patchNote.Icon = null;
-            materialButton_patchNote.Location = new Point(217, 159);
+            materialButton_patchNote.Location = new Point(217, 164);
             materialButton_patchNote.Margin = new Padding(4, 6, 4, 6);
             materialButton_patchNote.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_patchNote.Name = "materialButton_patchNote";
@@ -932,7 +930,7 @@
             label_version_latest.AutoSize = true;
             label_version_latest.Depth = 0;
             label_version_latest.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
-            label_version_latest.Location = new Point(219, 128);
+            label_version_latest.Location = new Point(219, 133);
             label_version_latest.MouseState = MaterialSkin.MouseState.HOVER;
             label_version_latest.Name = "label_version_latest";
             label_version_latest.Size = new Size(117, 18);
@@ -944,7 +942,7 @@
             label_version_current.AutoSize = true;
             label_version_current.Depth = 0;
             label_version_current.Font = new Font("Noto Sans KR", 14F, FontStyle.Regular, GraphicsUnit.Pixel);
-            label_version_current.Location = new Point(219, 95);
+            label_version_current.Location = new Point(219, 100);
             label_version_current.MouseState = MaterialSkin.MouseState.HOVER;
             label_version_current.Name = "label_version_current";
             label_version_current.Size = new Size(117, 18);
@@ -974,27 +972,6 @@
             pictureBox3.TabIndex = 7;
             pictureBox3.TabStop = false;
             // 
-            // materialButton_question_naver
-            // 
-            materialButton_question_naver.AutoSize = false;
-            materialButton_question_naver.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton_question_naver.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton_question_naver.Depth = 0;
-            materialButton_question_naver.HighEmphasis = true;
-            materialButton_question_naver.Icon = (Image)resources.GetObject("materialButton_question_naver.Icon");
-            materialButton_question_naver.Location = new Point(14, 128);
-            materialButton_question_naver.Margin = new Padding(4, 6, 4, 6);
-            materialButton_question_naver.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton_question_naver.Name = "materialButton_question_naver";
-            materialButton_question_naver.NoAccentTextColor = Color.Empty;
-            materialButton_question_naver.Size = new Size(191, 36);
-            materialButton_question_naver.TabIndex = 1;
-            materialButton_question_naver.Text = "네이버 블로그댓글 문의";
-            materialButton_question_naver.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton_question_naver.UseAccentColor = false;
-            materialButton_question_naver.UseVisualStyleBackColor = true;
-            materialButton_question_naver.Click += materialButton_question_naver_Click;
-            // 
             // materialButton_question_kakao
             // 
             materialButton_question_kakao.AutoSize = false;
@@ -1003,7 +980,7 @@
             materialButton_question_kakao.Depth = 0;
             materialButton_question_kakao.HighEmphasis = true;
             materialButton_question_kakao.Icon = (Image)resources.GetObject("materialButton_question_kakao.Icon");
-            materialButton_question_kakao.Location = new Point(14, 80);
+            materialButton_question_kakao.Location = new Point(14, 99);
             materialButton_question_kakao.Margin = new Padding(4, 6, 4, 6);
             materialButton_question_kakao.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_question_kakao.Name = "materialButton_question_kakao";
@@ -1297,7 +1274,6 @@
         private TabPage tabPage_sponsor;
         private MaterialSkin.Controls.MaterialListBox materialListBox_sponsor;
         private NotifyIcon notifyIcon2;
-        private MaterialSkin.Controls.MaterialButton materialButton_question_naver;
         private MaterialSkin.Controls.MaterialButton materialButton_question_kakao;
         private MaterialSkin.Controls.MaterialLabel materialLabel1;
         private PictureBox pictureBox3;
