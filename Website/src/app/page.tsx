@@ -111,8 +111,7 @@ function Page() {
     <>
       <div
         ref={pannerRef}
-        className="flex flex-col h-full min-h-[100vh] w-full
-        border-[1.5px] lg:border-[1px] border-gray-200"
+        className="flex flex-col h-full min-h-[100vh] w-full"
       >
         <div className="absolute w-full flex justify-center">
           <div className="w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px] lg:hidden" />

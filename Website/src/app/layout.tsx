@@ -131,13 +131,14 @@ function SupportLayout() {
 
         {/* 오른쪽 */}
         <main
-          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-fit
-          mb-[30px] lg:my-0 lg:animate-show-from-right"
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full max-w-[1000px] mx-auto h-fit
+          lg:my-0 lg:animate-show-from-right
+          border-[1.5px] lg:border-[1px] border-gray-200"
         >
           <Outlet />
         </main>
 
-        <Footer />
+        <Footer className="col-span-2 mt-auto shrink-0" />
       </div>
 
       <BgParticles />

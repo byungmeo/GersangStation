@@ -1,8 +1,12 @@
-function Footer() {
+interface FooterProps {
+  className?: string;
+}
+
+function Footer({ className }: FooterProps) {
   return (
     <footer
-      className="mt-auto flex flex-col justify-center text-center bg-transparent z-[50] h-[250px]
-          col-span-2"
+      className={`flex flex-col justify-center text-center bg-transparent z-[50] h-[250px] 
+      ${className}`}
     >
       <p
         className="text-indigo-700 font-[Dongle] font-bold
