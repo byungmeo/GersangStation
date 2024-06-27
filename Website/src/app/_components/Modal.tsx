@@ -27,7 +27,7 @@ function Modal({ open, onClose }: ModalProps) {
     }`}
     >
       <div
-        className="flex flex-col pt-2 px-6 pb-6 rounded-2xl h-fit max-w-[500px] w-full items-center mx-4 lg:mx-0
+        className="flex flex-col pt-2 px-6 pb-6 rounded-2xl h-fit max-w-[800px] w-full items-center mx-4 lg:mx-0
       bg-white shadow-lg border-2 border-[#f1f1f1]"
       >
         <button
