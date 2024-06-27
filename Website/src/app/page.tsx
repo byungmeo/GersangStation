@@ -107,7 +107,7 @@ function Page() {
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full w-full">
         <div className="absolute w-full flex justify-center">
           <div
             className="w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px]
@@ -116,18 +116,19 @@ function Page() {
         </div>
 
         <div
-          className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px]  py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
-          border-x-[1px] border-gray-200 flex pb-5 lg:pb-0"
+          className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[710px] py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px]
+          border-b-gray-200 bg-transparent
+          flex pb-5 lg:pb-0"
         >
           <p className="text-2xl animate-wobble">📢</p>
-          <p className="lg:font-[Dongle] text-[20px] lg:text-[40px] lg:text-indigo-600 text-gray-800">
+          <p className="lg:font-[Dongle] text-[20px] lg:text-[40px] lg:text-indigo-600 text-gray-600">
             자주 묻는 질문
           </p>
         </div>
         <div className="hidden lg:block h-[83px]" />
 
         {/* 자주 묻는 질문 */}
-        <div className="h-full flex flex-col">
+        <div className="w-full h-full flex flex-col">
           {QAs.map((qa, index) => (
             <QA
               key={index}
@@ -145,8 +146,8 @@ function Page() {
         />
         <div
           ref={buttonRef}
-          className="block mt-auto bottom-0 px-3 w-full lg:max-w-[460px] xl:max-w-[560px] py-3 
-          bg-white border-[1px] border-gray-200 rounded-b-2xl lg:rounded-none lg:animate-show-up"
+          className="block mt-auto bottom-0 px-3 w-full lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[710px] py-3 
+          bg-white border-t-[1px] border-gray-200 rounded-b-2xl lg:rounded-none lg:animate-show-up"
         >
           <button
             onClick={() => setModalOpen(true)}

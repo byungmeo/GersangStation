@@ -59,14 +59,14 @@ function SupportLayout() {
   return (
     <div className="font-['Noto_Sans_KR'] h-full">
       <div
-        className="h-full lg:max-w-[1000px] xl:max-w-[1200px] mx-auto 
-        lg:grid grid-cols-2 gap-x-[80px] flex flex-col"
+        className="h-full lg:max-w-[1000px] xl:max-w-[1200px] 2xl:max-w-[1500px]
+        lg:grid grid-cols-2 gap-x-[80px] flex flex-col md:mx-5 lg:mx-auto"
       >
         {/* 왼쪽 */}
-        <div className="px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0 lg:animate-fade-in-slow">
+        <div className="my-[40px] lg:my-0 px-4 lg:p-0 pb-4 lg:pb-0 pt-3 lg:pt-0 lg:animate-fade-in-slow">
           <div
             ref={leftPannelRef}
-            className="lg:fixed h-fit lg:h-full flex flex-col justify-center w-full lg:max-w-[460px] xl:max-w-[560px]
+            className="lg:fixed h-fit lg:h-full flex flex-col justify-center w-full lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[640px]
             transition-all duration-1000"
           >
             <div className="flex flex-col-reverse lg:flex-col">
@@ -122,8 +122,8 @@ function SupportLayout() {
 
         {/* 오른쪽 */}
         <div
-          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full
-          border-[1px] shadow-[0_0_3px_3px_rgba(150,150,150,0.1)] lg:shadow-none border-gray-200 mt-[30px] lg:mt-0 lg:animate-show-from-right"
+          className="bg-white lg:bg-transparent rounded-2xl lg:rounded-none w-full h-fit lg:max-w-[460px] xl:max-w-[560px] 2xl:max-w-[710px] box-content
+          border-[2px] lg:border-[1px] border-gray-200 mb-[30px] lg:my-0 lg:animate-show-from-right"
         >
           <Outlet />
         </div>
