@@ -96,13 +96,13 @@ function Page() {
       calcButtonPosition(buttonRef)
     );
 
-    // Q/A 펼치고 이미지 로드 후에 버튼 위치 변경되어야 하는 것 임시 해결
-    const interval = setInterval(() => {
-      calcButtonPosition(buttonRef);
-    }, 10);
+    // // Q/A 펼치고 이미지 로드 후에 버튼 위치 변경되어야 하는 것 임시 해결
+    // const interval = setInterval(() => {
+    //   calcButtonPosition(buttonRef);
+    // }, 10);
 
     return () => {
-      clearInterval(interval);
+      // clearInterval(interval);
       document.removeEventListener("scroll", () =>
         calcButtonPosition(buttonRef)
       );
@@ -117,11 +117,13 @@ function Page() {
 
   return (
     <>
-      <div className="flex flex-col h-full overflow-hidden min-h-[85vh]">
-        <div
-          className="mx-auto w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px]
-          lg:hidden"
-        />
+      <div className="flex flex-col h-full">
+        <div className="absolute w-full flex justify-center">
+          <div
+            className="w-[20vw] min-w-[120px] max-w-[170px] h-[6px] bg-gray-400/90 rounded-full -translate-y-[1.5px]
+            lg:hidden"
+          />
+        </div>
 
         <div
           className="lg:fixed w-full lg:max-w-[460px] xl:max-w-[560px]  py-3 gap-3 items-center px-4 text-gray-800 font-bold border-b-[1px] bg-white
@@ -135,7 +137,7 @@ function Page() {
         <div className="hidden lg:block h-[83px]" />
 
         {/* 자주 묻는 질문 */}
-        <div className="flex flex-col">
+        <div className="h-full flex flex-col">
           {QAs.map((qa, index) => (
             <QA
               key={index}

@@ -5,5 +5,10 @@
 @layer base {
     body {
         @apply overflow-x-hidden;
+        @apply overflow-y-auto;
+    }
+
+    html, body, #root {
+        @apply h-full;
     }
 }

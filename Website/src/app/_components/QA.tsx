@@ -9,19 +9,14 @@ interface QAProps {
 
 function QA({ question, answer, calcButtonPosition, buttonRef }: QAProps) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [triggerRender, setTriggerRender] = useState(false);
 
   const toggleQA = () => {
     setShowAnswer((prev) => !prev);
   };
 
   useEffect(() => {
-    setTriggerRender((prev) => !prev);
-  }, [showAnswer, buttonRef]);
-
-  useEffect(() => {
     calcButtonPosition(buttonRef);
-  }, [triggerRender, buttonRef]);
+  }, [showAnswer, buttonRef]);
 
   return (
     <button onClick={toggleQA}>
@@ -37,7 +32,10 @@ function QA({ question, answer, calcButtonPosition, buttonRef }: QAProps) {
       </div>
 
       {showAnswer && (
-        <div className="text-left bg-[#f7f7f7] p-5 flex gap-2 text-gray-600">
+        <div
+          className="text-left bg-[#f7f7f7] p-5 flex gap-2 text-gray-600"
+          onLoad={() => calcButtonPosition(buttonRef)}
+        >
           <span className="text-xs text-gray-300 font-bold">A.</span>
           {answer}
         </div>
