@@ -38,6 +38,10 @@ const QAList: {
     filename: "1.다클복붙문제.md",
     question: "클라이언트 버전이 서버와 틀립니다.",
   },
+  {
+    filename: "2.소켓문제.md",
+    question: "엑세스 권한에 의해 숨겨진 소켓에 엑세스를 시도했습니다",
+  },
 ];
 
 function Page() {

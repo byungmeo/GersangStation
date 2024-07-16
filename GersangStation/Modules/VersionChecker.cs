@@ -40,7 +40,7 @@ internal class VersionChecker
         }
         catch (Exception e)
         {
-            MessageBox.Show(owner, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요." + e.Message
+            MessageBox.Show(owner, "거상 최신 버전 확인 중 오류가 발생하였습니다.\n문의해주세요.\n" + e.Message
                 , "거상 경로 확인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return "";
         }
