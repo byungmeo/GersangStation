@@ -1209,6 +1209,7 @@
             Tag = "408, 295";
             Text = "GersangStation";
             Load += Form1_Load;
+            VisibleChanged += Form1_VisibleChanged;
             Resize += Form1_Resize;
             materialTabControl1.ResumeLayout(false);
             tabPage_home.ResumeLayout(false);

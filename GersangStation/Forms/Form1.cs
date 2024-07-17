@@ -110,13 +110,17 @@ public partial class Form1 : MaterialForm {
         }
     }
 
+    private void Form1_VisibleChanged(object sender, EventArgs e) {
+        if(Visible && !Disposing) notifyIcon1.Visible = false;
+    }
+
     [DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr findname);
     private void Form1_Resize(object sender, EventArgs e) {
         Trace.WriteLine("Form Resize! : " + this.WindowState);
         if(this.WindowState == FormWindowState.Normal) {
             notifyIcon1.Visible = false;
-            this.ShowInTaskbar = true;
+            this.Show();
             SetForegroundWindow(this.Handle);
         } else if(this.WindowState == FormWindowState.Maximized) {
             this.WindowState = FormWindowState.Normal;
@@ -731,12 +735,11 @@ public partial class Form1 : MaterialForm {
         notifyIcon1.BalloonTipTitle = "알림";
         notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";
         notifyIcon1.ShowBalloonTip(5000);
-        this.ShowInTaskbar = false;
-        this.WindowState = FormWindowState.Minimized;
+        this.Hide();
     }
 
     private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
-        this.WindowState = FormWindowState.Normal;
+        this.Show();
     }
 
     private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
