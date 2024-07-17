@@ -7,6 +7,7 @@ using Microsoft.Win32;
 using Octokit;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using File = System.IO.File;
@@ -108,10 +109,17 @@ public partial class Form1 : MaterialForm {
             return;
         }
     }
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr findname);
     private void Form1_Resize(object sender, EventArgs e) {
         Trace.WriteLine("Form Resize! : " + this.WindowState);
-        if(this.WindowState == FormWindowState.Minimized) {
-            //this.WindowState = FormWindowState.Normal;
+        if(this.WindowState == FormWindowState.Normal) {
+            notifyIcon1.Visible = false;
+            this.ShowInTaskbar = true;
+            SetForegroundWindow(this.Handle);
+        } else if(this.WindowState == FormWindowState.Maximized) {
+            this.WindowState = FormWindowState.Normal;
         }
     }
 
@@ -723,11 +731,12 @@ public partial class Form1 : MaterialForm {
         notifyIcon1.BalloonTipTitle = "알림";
         notifyIcon1.BalloonTipText = "프로그램이 트레이로 이동되었습니다.";
         notifyIcon1.ShowBalloonTip(5000);
-        this.Hide();
+        this.ShowInTaskbar = false;
+        this.WindowState = FormWindowState.Minimized;
     }
+
     private void notifyIcon1_DoubleClick(object sender, EventArgs e) {
-        notifyIcon1.Visible = false;
-        this.Show();
+        this.WindowState = FormWindowState.Normal;
     }
 
     private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
