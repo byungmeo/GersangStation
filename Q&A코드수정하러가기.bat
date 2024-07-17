@@ -1,0 +1,1 @@
+start "" "./../src/app/page.tsx"
