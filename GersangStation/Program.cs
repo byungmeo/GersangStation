@@ -39,7 +39,8 @@ internal static class Program {
             if(other == null) return;
 
             // MainWindowHandle이 Zero인 경우 Tray 모드라는 것을 의미한다 (Minimize & ShowInTaskbar = false 상태)
-            if(other.MainWindowHandle == IntPtr.Zero) { 
+            // https://stackoverflow.com/questions/25961231/unhide-process-by-its-process-name
+            if (other.MainWindowHandle == IntPtr.Zero) { 
                 IntPtr handle = IntPtr.Zero;
                 int prcsId = 0;
                 do {

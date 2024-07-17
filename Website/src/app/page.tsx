@@ -40,8 +40,12 @@ const QAList: {
   },
   {
     filename: "2.소켓문제.md",
-    question: "엑세스 권한에 의해 숨겨진 소켓에 엑세스를 시도했습니다",
+    question: "엑세스 권한에 의해 숨겨진 소켓에 엑세스를 시도했습니다.",
   },
+  {
+    filename: "3.바로가기문제.md",
+    question: "지정된 모듈을 찾을 수 없습니다.",
+  }
 ];
 
 function Page() {
