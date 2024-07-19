@@ -45,6 +45,10 @@ const QAList: {
   {
     filename: "3.바로가기문제.md",
     question: "지정된 모듈을 찾을 수 없습니다.",
+  },
+  {
+    filename: "4.IP차단문제.md",
+    question: "해당IP는 로그인이 차단되었습니다.",
   }
 ];
 
