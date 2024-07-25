@@ -1,6 +1,5 @@
 ﻿using IWshRuntimeLibrary;
 using System.Configuration;
-using System.Diagnostics;
 using System.Text;
 
 namespace GersangStation.Modules;
@@ -68,10 +67,9 @@ internal static class ConfigManager {
                 }
             }
 
-            msg = "이전 버전에서 입력한 계정정보를 불러오시겠습니까?\n자세한 방법은 예를 누르면 뜨는 홈페이지를 참고해주세요.";
+            msg = "이전 버전에서 입력한 계정정보를 불러오시겠습니까?\n자세한 방법은 설치 웹사이트를 참고 바랍니다.";
             dr = MessageBox.Show(msg, "이전 설정 불러오기", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if(dr == DialogResult.Yes) {
-                Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/27") { UseShellExecute = true });
                 OpenFileDialog openFileDialog = new OpenFileDialog() { Filter = "설정파일|*.config" };
                 dr = openFileDialog.ShowDialog();
                 if(dr == DialogResult.OK) {

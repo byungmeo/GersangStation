@@ -395,9 +395,9 @@ public partial class Form1 : MaterialForm {
         if(temp.Length != 0) accountList = temp.Remove(temp.Length - 1, 1).Split(';');
         else accountList = Array.Empty<string>();
 
-        materialComboBox_account_1.Items.Add("선택안함");
-        materialComboBox_account_2.Items.Add("선택안함");
-        materialComboBox_account_3.Items.Add("선택안함");
+        materialComboBox_account_1.Items.Add("계정 미선택");
+        materialComboBox_account_2.Items.Add("계정 미선택");
+        materialComboBox_account_3.Items.Add("계정 미선택");
 
         foreach (var item in accountList) {
             string id = ConfigManager.GetConfig(item + "_nickname");
@@ -676,7 +676,7 @@ public partial class Form1 : MaterialForm {
         if(id == "") id = comboBox.Text;
         string switchTag;
         Trace.WriteLine(id);
-        if(id.Contains("선택안함") || id.Contains("SNS_")) switchTag = comboBox.Text; 
+        if(id.Contains("계정 미선택") || id.Contains("SNS_")) switchTag = comboBox.Text; 
         else switchTag = id + ";" + ConfigManager.GetConfig(id);
 
         byte current_preset = Byte.Parse(ConfigManager.GetConfig("current_preset"));
@@ -1269,8 +1269,8 @@ public partial class Form1 : MaterialForm {
             return;
         }
 
-        if(materialSwitch.Tag == null || materialSwitch.Tag.ToString().Length == 0 || materialSwitch.Tag.ToString().Contains("선택안함")) {
-            MessageBox.Show("로그인 할 계정이 선택되지 않았습니다.");
+        if(materialSwitch.Tag == null || materialSwitch.Tag.ToString().Length == 0 || materialSwitch.Tag.ToString().Contains("계정 미선택")) {
+            MessageBox.Show("로그인 할 계정이 선택되지 않았습니다.", "계정 미설정", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
