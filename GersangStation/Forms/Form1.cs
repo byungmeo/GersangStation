@@ -198,7 +198,7 @@ public partial class Form1 : MaterialForm {
                 MessageBox.Show("로그인 실패 후 아직 5초가 지나지 않았습니다.\n5초 후에 다시 로그인을 시도해주세요.");
                 currentState = State.None;
                 currentClient = Client.None;
-                webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
+                webView_main.CoreWebView2.Navigate(url_main);
             }
 
             //otp 인증번호가 틀릴 시 다시 입력하도록 합니다.
@@ -220,10 +220,12 @@ public partial class Form1 : MaterialForm {
             else if(message.Contains("아이디 또는 비밀번호 오류")) {
                 currentState = State.None;
                 currentClient = Client.None;
-                webView_main.Source = new Uri("https://www.gersang.co.kr/main/index.gs");
+                webView_main.CoreWebView2.Navigate(url_main);
                 Trace.WriteLine("로그인 실패 판정");
                 MessageBox.Show("로그인에 실패하였습니다. \nID/PW 재확인 후 다시 로그인 해주세요.\n(잘 되던 계정이 갑자기 안되면 계정 설정을 다시 해보세요.)");
-            } else {
+            } 
+
+            else {
                 Logger.Log($"CoreWebView2_ScriptDialogOpening Unhandled Message : {message}");
                 Trace.WriteLine("예외로 처리되지 않은 메시지 판정");
                 MessageBox.Show($"{message}");
@@ -268,6 +270,9 @@ public partial class Form1 : MaterialForm {
             this.BeginInvoke(() => {
                 MessageBox.Show("휴대폰 본인 인증이 필요합니다.\n크롬 또는 엣지 등의 웹브라우저를 통해\n거상 로그인 후 본인인증을 완료해주세요.");
             });
+            currentState = State.None;
+            currentClient = Client.None;
+            webView_main.CoreWebView2.Navigate(url_main);
             return;
         }
 
