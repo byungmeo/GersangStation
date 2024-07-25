@@ -156,7 +156,7 @@ public partial class Form_AccountSetting : MaterialForm {
                 int[][] preset_list = { preset1, preset2, preset3, preset4 };
                 foreach (int[] preset in preset_list) {
                     for(int i = 0; i < preset.Length; i++) {
-                        if (preset[i] >= count - 4) preset[i]++;
+                        if (preset[i] >= count) preset[i]++;
                     }
                 }
                 ConfigManager.SetConfig("current_comboBox_index_preset_1", String.Join(';', preset1));
@@ -250,7 +250,9 @@ public partial class Form_AccountSetting : MaterialForm {
         int[] temp = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
         StringBuilder sb = new StringBuilder();
         foreach (var item in temp) {
-            if (item > index) { sb.Append((item - 1).ToString() + ';'); } else { sb.Append(item.ToString() + ';'); }
+            if (item > index + 1) sb.Append((item - 1).ToString() + ';');
+            else if(item == index + 1) sb.Append(0.ToString() + ';');
+            else sb.Append(item.ToString() + ';');
         }
         sb.Remove(sb.Length - 1, 1);
         ConfigManager.SetConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
