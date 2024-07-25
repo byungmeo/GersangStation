@@ -4,8 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace GersangStation.Modules; 
 
-public struct GUITHREADINFO
-{
+public struct GUITHREADINFO {
     public int cbSize;
     public int flags;
     public int hwndActive;
@@ -16,8 +15,7 @@ public struct GUITHREADINFO
     public int hwndCaret;
 }
 
-public class ClipMouse
-{
+public class ClipMouse {
 
     private static CancellationTokenSource tokenSource = new CancellationTokenSource();
     private static Thread thread1 = new Thread(() => main_thread(tokenSource.Token));
@@ -33,14 +31,12 @@ public class ClipMouse
     private const int HotKeyId = 33333;
 
     #region EnumerationsAndFlags
-    private enum GetWindowLongIndex : int
-    {
+    private enum GetWindowLongIndex : int {
         GWL_WNDPROC = -4, GWL_HINSTANCE = -6, GWL_HWNDPARENT = -8, GWL_STYLE = -16, GWL_EXSTYLE = -20, GWL_USERDATA = -21, GWL_ID = -12
     }
 
     [Flags]
-    private enum WindowStyles : int
-    {
+    private enum WindowStyles : int {
         WS_OVERLAPPED = 0x00000000, WS_POPUP = -2147483648, WS_CHILD = 0x40000000, WS_MINIMIZE = 0x20000000,
         WS_VISIBLE = 0x10000000, WS_DISABLED = 0x08000000, WS_CLIPSIBLINGS = 0x04000000, WS_CLIPCHILDREN = 0x02000000,
         WS_MAXIMIZE = 0x01000000, WS_CAPTION = 0x00C00000, WS_BORDER = 0x00800000, WS_DLGFRAME = 0x00400000,
@@ -48,19 +44,16 @@ public class ClipMouse
         WS_GROUP = 0x00020000, WS_TABSTOP = 0x00010000, WS_MINIMIZEBOX = 0x00020000, WS_MAXIMIZEBOX = 0x00010000
     }
 
-    private enum SystemMetric : int
-    {
+    private enum SystemMetric : int {
         SM_CXBORDER = 5, SM_CYBORDER = 6, SM_CXSIZEFRAME = 32, SM_CYSIZEFRAME = 33, SM_CYCAPTION = 4, SM_CXFIXEDFRAME = 7, SM_CYFIXEDFRAME = 8
     }
     #endregion
 
-    public static int GetHotKeyId()
-    {
+    public static int GetHotKeyId() {
         return HotKeyId;
     }
 
-    public static bool RegisterHotKey(IntPtr hWnd, Keys key)
-    {
+    public static bool RegisterHotKey(IntPtr hWnd, Keys key) {
         //Register hotkey
         return RegisterHotKey(hWnd, GetHotKeyId(), 0 /*Prevent duplicated alarm*/, (int)key);
     }
@@ -81,24 +74,20 @@ public class ClipMouse
         }
     }
 
-    public static bool UnregisterHotKey(IntPtr hWnd)
-    {
+    public static bool UnregisterHotKey(IntPtr hWnd) {
         return UnregisterHotKey(hWnd, GetHotKeyId());
     }
 
-    public static bool isRunning()
-    {
+    public static bool isRunning() {
         return thread1.IsAlive;
     }
 
     //Run thread for mouse clip.
     //Output: True (SUCCEEDED)
     //        False (FAILED)
-    public static bool Run()
-    {
+    public static bool Run() {
         Trace.WriteLine("Try to run clipMouse");
-        if (isRunning())
-        {
+        if(isRunning()) {
             Trace.WriteLine("Thread is already running");
             return false; //thread is already running
         }
@@ -109,8 +98,7 @@ public class ClipMouse
         thread1.Start();
         Trace.WriteLine("Thread Started");
 
-        if (icon != null)
-        {
+        if(icon != null) {
             icon.Visible = true;
             icon.BalloonTipTitle = "향상된 마우스 가두기 ON";
             icon.BalloonTipText = "Alt 버튼을 누르면 일시적으로 빠져나올 수 있습니다.";
@@ -120,11 +108,9 @@ public class ClipMouse
         return true;
     }
 
-    public static bool Stop(bool isFormClosed)
-    {
+    public static bool Stop(bool isFormClosed) {
         Trace.WriteLine("Try to stop clipMouse");
-        if (!isRunning())
-        {
+        if(!isRunning()) {
             Trace.WriteLine("Thread is already stopped");
             return false;
         }
@@ -134,8 +120,7 @@ public class ClipMouse
         tokenSource.Dispose();
         Trace.WriteLine("Thread Stopped");
 
-        if (icon != null && !isFormClosed)
-        {
+        if(icon != null && !isFormClosed) {
             icon.Visible = true;
             icon.BalloonTipTitle = "향상된 마우스 가두기 OFF";
             icon.BalloonTipText = "F11 버튼을 눌러 다시 활성화 할 수 있습니다.";
@@ -145,16 +130,14 @@ public class ClipMouse
         return true;
     }
 
-    private static void main_thread(CancellationToken token)
-    {
+    private static void main_thread(CancellationToken token) {
         Trace.WriteLine("ClipMouse main started");
         bool isClipping = false; // 거상이 아닌 다른 프로세스의 마우스 가두기를 방해하는 것을 막기 위한 flag
         bool selectedWindowHadFocus = false;
         int validateHandleCount = 0;
         int escapeCount = 0;
 
-        while (!token.IsCancellationRequested)
-        {
+        while(!token.IsCancellationRequested) {
             //Trace.WriteLine("ClipMouse main running");
 
             validateHandleCount++;
@@ -167,7 +150,7 @@ public class ClipMouse
             //Check current foreground
             bool hasFirstGameHandle = false;
             IntPtr foregroundWindow = GetForegroundWindow();
-            foreach (IntPtr gameHandle in gameHandles) {
+            foreach(IntPtr gameHandle in gameHandles) {
                 if (foregroundWindow == gameHandle) currentGameHandle = foregroundWindow;
                 if (firstGameHandle == gameHandle) hasFirstGameHandle = true;
             }
@@ -175,13 +158,11 @@ public class ClipMouse
             // 고정했던 핸들이 현재 거상 핸들 목록에 없으면 초기화
             if(hasFirstGameHandle == false) firstGameHandle = IntPtr.Zero;
 
-            if (validateHandleCount > ValidateHandleThreshold)
-            {
+            if(validateHandleCount > ValidateHandleThreshold) {
                 validateHandleCount = 0;
             }
 
-            if (currentGameHandle == IntPtr.Zero)
-            { //Current foreground is not Gersang.
+            if(currentGameHandle == IntPtr.Zero) { //Current foreground is not Gersang.
                 if(isClipping) {
                     ClipCursor(IntPtr.Zero); //Clear clip cursor
                     isClipping = false;
@@ -233,28 +214,24 @@ public class ClipMouse
             //Trace.WriteLine(escapeArea);
             //Trace.WriteLine(escapeCount);
 
-            if (!escapeArea.IsPointInRectangle(pt))
-            {
+            if(!escapeArea.IsPointInRectangle(pt)) {
                 // Alt 키를 누르고 있으면서 비활성화 단축키 기능을 활성화 한 경우
-                if(Control.ModifierKeys == Keys.Alt && bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"))) {
+                if(Control.ModifierKeys == Keys.Alt && bool.Parse(ConfigManager.GetConfig("use_clip_disable_hotkey"))) {
                     escapeCount++;
                 }
             }
-            else
-            {
+            else {
                 escapeCount = 0;
             }
 
             //Escape function
-            if (escapeCount > 2)
-            {
+            if(escapeCount > 2) {
                 escapeCount = 0;
                 ClipCursor(IntPtr.Zero);
                 selectedWindowHadFocus = false;
                 Thread.Sleep(1000);
             }
-            else if (windowArea_original.IsPointInRectangle(pt))
-            {
+            else if(windowArea_original.IsPointInRectangle(pt)) {
                 if(ClipCursor(ref windowArea) == 0) {
                     throw new Win32Exception(
                         Marshal.GetLastWin32Error(),
@@ -264,8 +241,7 @@ public class ClipMouse
                 selectedWindowHadFocus = true;
 
             }
-            else if (selectedWindowHadFocus)
-            {
+            else if(selectedWindowHadFocus) {
                 // If the window lost focus remove the clipping area.
                 // Usually the clipping gets removed by default if the window loses focus. 
                 ClipCursor(IntPtr.Zero);
@@ -283,27 +259,22 @@ public class ClipMouse
     /// </summary>
     /// <param name="outputWindowNames">If true all window title texts are printed out.</param>
     /// <returns>Return a list all active window handles.</returns>
-    public static List<IntPtr> GetAllGameHandles(bool outputWindowNames = true)
-    {
+    public static List<IntPtr> GetAllGameHandles(bool outputWindowNames = true) {
         Process[] processList;
         List<IntPtr> windowHandles = new List<IntPtr>();
 
         // Get Gersang process only
         processList = Process.GetProcessesByName("Gersang");
 
-        if (windowHandles == null)
-        {
+        if(windowHandles == null) {
             windowHandles = new List<IntPtr>();
         }
-        else
-        {
+        else {
             windowHandles.Clear();
         }
 
-        foreach (Process process in processList)
-        {
-            if (!string.IsNullOrEmpty(process.MainWindowTitle))
-            {
+        foreach(Process process in processList) {
+            if(!string.IsNullOrEmpty(process.MainWindowTitle)) {
                 windowHandles.Add(process.MainWindowHandle);
             }
         }
@@ -311,8 +282,7 @@ public class ClipMouse
         return windowHandles;
     }
 
-    public static Rectangle GetGameArea(IntPtr window) 
-    {
+    public static Rectangle GetGameArea(IntPtr window)  {
         Rectangle ClientRect = new Rectangle();
         Rectangle WindowRect = new Rectangle();
 
@@ -322,10 +292,9 @@ public class ClipMouse
         //Trace.WriteLine("WindowRect: " + WindowRect);
         //Trace.WriteLine("ClientRect: " + ClientRect);
 
-        if (ClientRect.Bottom - ClientRect.Top == WindowRect.Bottom - WindowRect.Top) //No title, No border
+        if(ClientRect.Bottom - ClientRect.Top == WindowRect.Bottom - WindowRect.Top) //No title, No border
             return WindowRect;
-        else
-        {
+        else {
             int borderWidth = ((WindowRect.Right - WindowRect.Left) - (ClientRect.Right - ClientRect.Left)) / 2;
 
             Rectangle GameRect = new Rectangle();
@@ -378,8 +347,7 @@ public class ClipMouse
     /// <summary>
     /// An implementation of the WINAPI RECT structure.
     /// </summary>
-    public struct Rectangle
-    {
+    public struct Rectangle {
         public int Left;
         public int Top;
         public int Right;
@@ -389,25 +357,21 @@ public class ClipMouse
         /// Generates a string containing all attributes of the rectangle.
         /// </summary>
         /// <returns>Returns a string containing all attributes of the rectangle.</returns>
-        public override string ToString()
-        {
+        public override string ToString() {
             return string.Format("Left : {0:d}, Top : {1:d}, Right : {2:d}, Bottom : {3:d}", Left, Top, Right, Bottom);
         }
 
-        public bool IsPointInRectangle(in POINT pt)
-        {
+        public bool IsPointInRectangle(in POINT pt) {
             return pt.x >= Left && pt.x <= Right && pt.y <= Bottom && pt.y >= Top;
         }
     }
 
-    public struct POINT
-    {
+    public struct POINT {
         public int x;
         public int y;
     }
 
-    public enum ShowWindowCommand : int
-    {
+    public enum ShowWindowCommand : int {
         SW_HIDE = 0,
         SW_SHOWNORMAL = 1,
         SW_SHOWMINIMIZED = 2,
@@ -421,18 +385,15 @@ public class ClipMouse
         SW_RESTORE = 9
     }
 
-    public struct WINDOWPLACEMENT
-    {
+    public struct WINDOWPLACEMENT {
         public int Length;
         public int Flag;
         public ShowWindowCommand ShowWindowCommand;
         public POINT MinimumPosition;
         public POINT MaximumPosition;
         public Rectangle NormalRectangle;
-        public static WINDOWPLACEMENT Default
-        {
-            get
-            {
+        public static WINDOWPLACEMENT Default {
+            get {
                 WINDOWPLACEMENT windowPlacement = new WINDOWPLACEMENT();
 
                 windowPlacement.Length = Marshal.SizeOf(windowPlacement);

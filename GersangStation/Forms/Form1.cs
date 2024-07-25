@@ -17,20 +17,19 @@ namespace GersangStation;
 public partial class Form1 : MaterialForm {
     private const int WM_ACTIVATEAPP = 0x001C;
     private const int WM_HOTKEY = 0x0312;
-
     protected override void WndProc(ref Message m) {
-        if(m.Msg == WM_HOTKEY && bool.Parse(ConfigManager.getConfig("use_clip_toggle_hotkey"))) {
+        if(m.Msg == WM_HOTKEY && bool.Parse(ConfigManager.GetConfig("use_clip_toggle_hotkey"))) {
             if(m.WParam == (IntPtr)ClipMouse.GetHotKeyId()) {
                 if(ClipMouse.isRunning()) {
                     ClipMouse.Stop(false);
-                    ConfigManager.setConfig("use_clip_mouse", false.ToString());
+                    ConfigManager.SetConfig("use_clip_mouse", false.ToString());
                 } else {
                     ClipMouse.Run();
-                    ConfigManager.setConfig("use_clip_mouse", true.ToString());
+                    ConfigManager.SetConfig("use_clip_mouse", true.ToString());
                 }
 
                 if(materialCheckbox_mouseClip != null)
-                    materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
+                    materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.GetConfig("use_clip_mouse"));
             }
         }
 
@@ -41,28 +40,34 @@ public partial class Form1 : MaterialForm {
     }
 
     public enum State {
-        LoggedIn, LoginOther, LoginOtherSNS, None
+        LoggedIn,
+        LoginOther,
+        LoginOtherSNS,
+        None
     }
-    public string sns_platform { get; set; } = string.Empty;
-
     public enum Client {
         None = 0,
         Client1 = 1,
         Client2 = 2,
         Client3 = 3
     }
+    public enum Server {
+        Main = 0, // 본섭
+        Test = 1, // 테섭
+        RnD = 2, // 천라
+    }
 
     private State currentState = State.None;
     private Client currentClient = Client.None;
+    private Server currentServer = Server.Main;
+    private string sns_platform = string.Empty;
+    private string UrlServer => (currentServer == Server.Main) ? "Gersang_Server" : (currentServer == Server.Test) ? "Test_Server" : "RnD_Server";
+    private string UrlVsn => $@"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/{UrlServer}/Client_Patch_File/Online/vsn.dat.gsz";
 
-    private const string url_main = "https://www.gersang.co.kr/main/index.gs?";
-    private const string url_logout = "https://www.gersang.co.kr/member/logoutProc.gs";
-    private const string url_installStarter = "https://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe";
-
-    private const string url_main_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
-    private const string url_test_vsn = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/" + @"Client_Patch_File/" + @"Online/vsn.dat.gsz";
-
-    private const string url_release = "https://github.com/byungmeo/GersangStation/releases/latest";
+    private const string url_main = "https://www.gersang.co.kr/main/index.gs?"; // 거상 홈페이지 메인
+    private const string url_logout = "https://www.gersang.co.kr/member/logoutProc.gs"; // 로그아웃 링크
+    private const string url_installStarter = "https://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe"; // 거상 스타터 다운로드 링크
+    private const string url_release = "https://github.com/byungmeo/GersangStation/releases/latest"; // 깃허브 릴리즈
 
     private bool isWebFunctionDeactivated = false;
     private bool isGameStartLogin = false;
@@ -111,7 +116,8 @@ public partial class Form1 : MaterialForm {
     }
 
     private void Form1_VisibleChanged(object sender, EventArgs e) {
-        if(Visible && !Disposing) notifyIcon1.Visible = false;
+        if(Visible && !Disposing)
+            notifyIcon1.Visible = false;
     }
 
     [DllImport("user32.dll")]
@@ -150,7 +156,7 @@ public partial class Form1 : MaterialForm {
                 }
             } else if(e.InitializationException is WebView2RuntimeNotFoundException) {
                 DialogResult dr = MessageBox.Show("거상 스테이션 실행을 위해 WebView2 런타임 설치가 필요합니다.\n설치 하시겠습니까? (Microsoft 공식 다운로드 링크 접속)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                if (dr == DialogResult.Yes) {
+                if(dr == DialogResult.Yes) {
                     Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
                 }
             } else {
@@ -250,7 +256,7 @@ public partial class Form1 : MaterialForm {
         Trace.WriteLine($"DOMContentLoaded Title : {coreWebView2.DocumentTitle}");
 
         // 비밀번호 변경 안내 페이지라면, "다음에 변경하기" 클릭
-        if (url.Contains("pw_reset.gs")) {
+        if(url.Contains("pw_reset.gs")) {
             // https://www.gersang.co.kr/member/pw_reset.gs?returnUrl=www.gersang.co.kr/main/index.gs
             string returnUrl = url.Substring(url.IndexOf("returnUrl=") + 10);
             doPwReset(returnUrl);
@@ -268,8 +274,10 @@ public partial class Form1 : MaterialForm {
         if(url.Contains("otp.gs")) {
             this.BeginInvoke(() => {
                 string? otpCode = showDialogOtp();
-                if(otpCode == null) MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
-                else doOtpInput(otpCode);
+                if(otpCode == null)
+                    MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
+                else
+                    doOtpInput(otpCode);
             });
             return;
         }
@@ -285,14 +293,20 @@ public partial class Form1 : MaterialForm {
         }
 
         if(url.Contains("main/index.gs")) {
-            if(currentState == State.LoginOther) doLoginOther();
-            else if(currentState == State.LoginOtherSNS) SNS_Login(sns_platform);
-            else if(currentState == State.LoggedIn) doCheckLogin();
+            if(currentState == State.LoginOther)
+                doLoginOther();
+            else if(currentState == State.LoginOtherSNS)
+                SNS_Login(sns_platform);
+            else if(currentState == State.LoggedIn)
+                doCheckLogin();
             else {
                 // 로그인 되어있지 않은 상태인데 스위치가 켜져있다면 다시 끈다
-                if(materialSwitch_login_1.Checked) materialSwitch_login_1.Checked = false;
-                if(materialSwitch_login_2.Checked) materialSwitch_login_2.Checked = false;
-                if(materialSwitch_login_3.Checked) materialSwitch_login_3.Checked = false;
+                if(materialSwitch_login_1.Checked)
+                    materialSwitch_login_1.Checked = false;
+                if(materialSwitch_login_2.Checked)
+                    materialSwitch_login_2.Checked = false;
+                if(materialSwitch_login_3.Checked)
+                    materialSwitch_login_3.Checked = false;
             }
             return;
         }
@@ -306,7 +320,7 @@ public partial class Form1 : MaterialForm {
     #endregion WebView Event
 
     #region Component Initialize
-    
+
     private async void LoadComponent() {
         ConfigManager.Validation();
         LoadCheckBox();
@@ -321,8 +335,7 @@ public partial class Form1 : MaterialForm {
         linkLabel_announcement.Text = "디버그 모드";
 #else
         // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
-        try
-        {
+        try {
             GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
             IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
             Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
@@ -330,9 +343,7 @@ public partial class Form1 : MaterialForm {
             CheckProgramUpdate(releases);
             LoadAnnouncements(r);
             LoadSponsors(r);
-        }
-        catch (Exception ex)
-        {
+        } catch(Exception ex) {
             linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
             MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
             MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
@@ -344,18 +355,18 @@ public partial class Form1 : MaterialForm {
 
     private void LoadCheckBox() {
         // 메인 탭
-        materialCheckbox_testServer.Checked = bool.Parse(ConfigManager.getConfig("is_test_server"));
+        comboBox_selectServer.SelectedIndex = int.Parse(ConfigManager.GetConfig("current_server"));
 
         // 추가 기능 탭
-        materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_mouse"));
-        checkBox_clipDisableHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_disable_hotkey"));
-        checkBox_clipToggleHotKey.Checked = bool.Parse(ConfigManager.getConfig("use_clip_toggle_hotkey"));
-        checkBox_onlyFirstClip.Checked = bool.Parse(ConfigManager.getConfig("use_clip_only_first"));
+        materialCheckbox_mouseClip.Checked = bool.Parse(ConfigManager.GetConfig("use_clip_mouse"));
+        checkBox_clipDisableHotKey.Checked = bool.Parse(ConfigManager.GetConfig("use_clip_disable_hotkey"));
+        checkBox_clipToggleHotKey.Checked = bool.Parse(ConfigManager.GetConfig("use_clip_toggle_hotkey"));
+        checkBox_onlyFirstClip.Checked = bool.Parse(ConfigManager.GetConfig("use_clip_only_first"));
     }
 
     private void LoadRadioButton() {
-        byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-        switch(current_preset) {
+        byte current_preset = Byte.Parse(ConfigManager.GetConfig("current_preset"));
+        switch (current_preset) {
             case 1:
                 radio_preset_1.PerformClick();
                 break;
@@ -379,20 +390,17 @@ public partial class Form1 : MaterialForm {
         materialComboBox_account_2.Items.Clear();
         materialComboBox_account_3.Items.Clear();
 
-        string temp = ConfigManager.getConfig("account_list");
+        string temp = ConfigManager.GetConfig("account_list");
         string[] accountList;
-        if(temp.Length != 0) {
-            accountList = temp.Remove(temp.Length - 1, 1).Split(';');
-        } else {
-            accountList = Array.Empty<string>();
-        }
+        if(temp.Length != 0) accountList = temp.Remove(temp.Length - 1, 1).Split(';');
+        else accountList = Array.Empty<string>();
 
         materialComboBox_account_1.Items.Add("선택안함");
         materialComboBox_account_2.Items.Add("선택안함");
         materialComboBox_account_3.Items.Add("선택안함");
 
-        foreach(var item in accountList) {
-            string id = ConfigManager.getConfig(item + "_nickname");
+        foreach (var item in accountList) {
+            string id = ConfigManager.GetConfig(item + "_nickname");
             if(id == "") id = item;
             materialComboBox_account_1.Items.Add(id);
             materialComboBox_account_2.Items.Add(id);
@@ -409,8 +417,8 @@ public partial class Form1 : MaterialForm {
         materialComboBox_account_2.Items.Add("SNS_구글");
         materialComboBox_account_3.Items.Add("SNS_구글");
 
-        byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-        int[] index = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
+        byte current_preset = Byte.Parse(ConfigManager.GetConfig("current_preset"));
+        int[] index = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
 
         try {
             materialComboBox_account_1.SelectedIndex = index[0];
@@ -428,7 +436,7 @@ public partial class Form1 : MaterialForm {
     }
 
     private void LoadShortcut() {
-        string[] names = ConfigManager.getConfig("shortcut_name").Split(';');
+        string[] names = ConfigManager.GetConfig("shortcut_name").Split(';');
         materialButton_shortcut_1.Text = names[0];
         materialButton_shortcut_2.Text = names[1];
         materialButton_shortcut_3.Text = names[2];
@@ -445,7 +453,6 @@ public partial class Form1 : MaterialForm {
         toolTip1.SetToolTip(radio_preset_2, "2번 세팅");
         toolTip1.SetToolTip(radio_preset_3, "3번 세팅");
         toolTip1.SetToolTip(radio_preset_4, "4번 세팅");
-        toolTip1.SetToolTip(materialCheckbox_testServer, "활성화 시 테스트 서버로 실행합니다.\n(설치 별도)");
         toolTip1.SetToolTip(materialButton_debugging, "작동하는 브라우저 직접 보기");
         toolTip1.SetToolTip(materialComboBox_account_1, "본클라 계정 선택");
         toolTip1.SetToolTip(materialComboBox_account_2, "2클라 계정 선택");
@@ -456,14 +463,18 @@ public partial class Form1 : MaterialForm {
         toolTip1.SetToolTip(materialButton_start_1, "본클라 게임 실행");
         toolTip1.SetToolTip(materialButton_start_2, "2클라 게임 실행");
         toolTip1.SetToolTip(materialButton_start_3, "3클라 게임 실행");
-        string shortcut_1 = ConfigManager.getConfig("shortcut_1");
-        if(shortcut_1 == "") shortcut_1 = "링크가 설정되지 않았습니다.";
-        string shortcut_2 = ConfigManager.getConfig("shortcut_2");
-        if(shortcut_2 == "") shortcut_2 = "링크가 설정되지 않았습니다.";
-        string shortcut_3 = ConfigManager.getConfig("shortcut_3");
-        if(shortcut_3 == "") shortcut_3 = "링크가 설정되지 않았습니다.";
-        string shortcut_4 = ConfigManager.getConfig("shortcut_4");
-        if(shortcut_4 == "") shortcut_4 = "링크가 설정되지 않았습니다.";
+        string shortcut_1 = ConfigManager.GetConfig("shortcut_1");
+        if(shortcut_1 == "")
+            shortcut_1 = "링크가 설정되지 않았습니다.";
+        string shortcut_2 = ConfigManager.GetConfig("shortcut_2");
+        if(shortcut_2 == "")
+            shortcut_2 = "링크가 설정되지 않았습니다.";
+        string shortcut_3 = ConfigManager.GetConfig("shortcut_3");
+        if(shortcut_3 == "")
+            shortcut_3 = "링크가 설정되지 않았습니다.";
+        string shortcut_4 = ConfigManager.GetConfig("shortcut_4");
+        if(shortcut_4 == "")
+            shortcut_4 = "링크가 설정되지 않았습니다.";
         toolTip1.SetToolTip(materialButton_shortcut_1, shortcut_1);
         toolTip1.SetToolTip(materialButton_shortcut_2, shortcut_2);
         toolTip1.SetToolTip(materialButton_shortcut_3, shortcut_3);
@@ -490,13 +501,14 @@ public partial class Form1 : MaterialForm {
 
     private void LoadClipMouse() {
         // 단축키 TextBox도 함께 초기화 
-        string hotKey = ConfigManager.getConfig("clip_toggle_hotkey");
+        string hotKey = ConfigManager.GetConfig("clip_toggle_hotkey");
         if(hotKey.Contains(',')) {
             string[] comb = hotKey.Split(',');
             string mod = comb[0];
             string key = ((Keys)int.Parse(comb[1])).ToString();
             textBox_clipToggleHotKey.Text = mod + " + " + key;
-        } else textBox_clipToggleHotKey.Text = ((Keys)int.Parse(hotKey)).ToString();
+        } else
+            textBox_clipToggleHotKey.Text = ((Keys)int.Parse(hotKey)).ToString();
 
         ClipMouse.icon = notifyIcon2;
         ClipMouse.RegisterHotKey(this.Handle, hotKey);
@@ -509,7 +521,8 @@ public partial class Form1 : MaterialForm {
 
         int ver_idx;
         for(ver_idx = 0; ver_idx < releases.Count; ++ver_idx) {
-            if(releases[ver_idx].Prerelease == false) break;
+            if(releases[ver_idx].Prerelease == false)
+                break;
         }
         Release release = releases[ver_idx];
         string version_latest = release.TagName;
@@ -569,9 +582,9 @@ public partial class Form1 : MaterialForm {
                 };
 
                 // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
-                string prevLink = ConfigManager.getConfig("prev_announcement");
+                string prevLink = ConfigManager.GetConfig("prev_announcement");
                 if(prevLink == "" || prevLink != url) {
-                    ConfigManager.setConfig("prev_announcement", url);
+                    ConfigManager.SetConfig("prev_announcement", url);
                     DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']') + 1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                     if(dr == DialogResult.Yes) {
                         Trace.Write(pageNumber + "번 공지사항 접속");
@@ -622,13 +635,13 @@ public partial class Form1 : MaterialForm {
             return;
         }
 
-        ConfigManager.setConfig("current_preset", value);
+        ConfigManager.SetConfig("current_preset", value);
         LoadAccountComboBox();
     }
 
     private void materialButton_shortcut_Click(object sender, EventArgs e) {
         MaterialButton button = (MaterialButton)sender;
-        string? url = ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
+        string? url = ConfigManager.GetConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1));
 
         if(url == null || url.Equals("")) {
             DialogResult dr = MessageBox.Show("나만의 바로가기 링크가 설정되어 있지 않습니다.\n설정화면으로 이동하시겠습니까?", "바로가기 미설정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
@@ -645,7 +658,7 @@ public partial class Form1 : MaterialForm {
 
         Form_Browser form = new Form_Browser(webView_main);
         form.Load += (sender, e) => {
-            webView_main.CoreWebView2.Navigate(ConfigManager.getConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1)));
+            webView_main.CoreWebView2.Navigate(ConfigManager.GetConfig("shortcut_" + button.Name.Substring(button.Name.Length - 1, 1)));
         };
         form.FormClosed += (sender, e) => {
             webView_main.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
@@ -659,14 +672,15 @@ public partial class Form1 : MaterialForm {
     private void materialComboBox_account_SelectedIndexChanged(object sender, EventArgs e) {
         MaterialComboBox comboBox = (MaterialComboBox)sender;
 
-        string id = ConfigManager.getKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
+        string id = ConfigManager.GetKeyByValue(comboBox.Text).Replace("_nickname", string.Empty);
         if(id == "") id = comboBox.Text;
         string switchTag;
         Trace.WriteLine(id);
-        if(id.Contains("선택안함") || id.Contains("SNS_")) { switchTag = comboBox.Text; } else { switchTag = id + ";" + ConfigManager.getConfig(id); }
+        if(id.Contains("선택안함") || id.Contains("SNS_")) switchTag = comboBox.Text; 
+        else switchTag = id + ";" + ConfigManager.GetConfig(id);
 
-        byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-        int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
+        byte current_preset = Byte.Parse(ConfigManager.GetConfig("current_preset"));
+        int[] temp = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
 
         if(comboBox.Equals(materialComboBox_account_1)) {
             materialSwitch_login_1.Tag = switchTag;
@@ -679,7 +693,7 @@ public partial class Form1 : MaterialForm {
             temp[2] = comboBox.SelectedIndex;
         }
 
-        ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, string.Join(';', temp));
+        ConfigManager.SetConfig("current_comboBox_index_preset_" + current_preset, string.Join(';', temp));
 
         if(Byte.Parse(comboBox.Name.Substring(comboBox.Name.Length - 1, 1)) == (byte)currentClient && currentState == State.LoggedIn) {
             Trace.WriteLine("현재 로그인한 클라이언트의 계정을 변경하였으므로, 로그아웃 합니다.");
@@ -711,11 +725,6 @@ public partial class Form1 : MaterialForm {
     private void materialButton_start_Click(object sender, EventArgs e) {
         MaterialButton startButton = (MaterialButton)sender;
         StartClick(startButton);
-    }
-
-    private void materialCheckbox_testServer_CheckedChanged(object sender, EventArgs e) {
-        MaterialCheckbox checkbox = (MaterialCheckbox)sender;
-        ConfigManager.setConfig("is_test_server", checkbox.Checked.ToString());
     }
 
     private void materialButton_patchNote_Click(object sender, EventArgs e) {
@@ -795,7 +804,7 @@ public partial class Form1 : MaterialForm {
     }
 
     private void materialCheckbox_mouseClip_CheckedChanged(object sender, EventArgs e) {
-        ConfigManager.setConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
+        ConfigManager.SetConfig("use_clip_mouse", materialCheckbox_mouseClip.Checked.ToString());
 
         if(materialCheckbox_mouseClip.Checked == true) {
             ClipMouse.Run();
@@ -818,40 +827,44 @@ public partial class Form1 : MaterialForm {
 
         // 조합 단축키 지원
         string comb = string.Empty;
-        if(e.Control) comb = "Ctrl";
-        else if(e.Alt) comb = "Alt";
-        else if(e.Shift) comb = "Shift";
+        if(e.Control)
+            comb = "Ctrl";
+        else if(e.Alt)
+            comb = "Alt";
+        else if(e.Shift)
+            comb = "Shift";
 
         if(e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.Menu || e.KeyCode == Keys.ShiftKey) {
             textBox.Text = comb;
-            ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
+            ConfigManager.SetConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
         } else if(comb != string.Empty && e.KeyCode != Keys.ControlKey && e.KeyCode != Keys.Menu && e.KeyCode != Keys.ShiftKey) {
             textBox.Text = comb + " + " + e.KeyCode.ToString();
-            ConfigManager.setConfig("clip_toggle_hotkey", comb + "," + ((int)e.KeyCode).ToString());
+            ConfigManager.SetConfig("clip_toggle_hotkey", comb + "," + ((int)e.KeyCode).ToString());
         } else {
             textBox.Text = e.KeyCode.ToString();
-            ConfigManager.setConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
+            ConfigManager.SetConfig("clip_toggle_hotkey", ((int)e.KeyCode).ToString());
         }
 
         if(org != textBox.Text) {
             ClipMouse.UnregisterHotKey(this.Handle);
-            ClipMouse.RegisterHotKey(this.Handle, ConfigManager.getConfig("clip_toggle_hotkey"));
+            ClipMouse.RegisterHotKey(this.Handle, ConfigManager.GetConfig("clip_toggle_hotkey"));
         }
 
         // Alt 키를 누르면 포커스 풀리는 현상 방지
-        if(e.KeyCode == Keys.Menu) e.SuppressKeyPress = true;
+        if(e.KeyCode == Keys.Menu)
+            e.SuppressKeyPress = true;
     }
 
     private void checkBox_clipDisableHotKey_CheckedChanged(object sender, EventArgs e) {
-        ConfigManager.setConfig("use_clip_disable_hotkey", ((CheckBox)sender).Checked.ToString());
+        ConfigManager.SetConfig("use_clip_disable_hotkey", ((CheckBox)sender).Checked.ToString());
     }
 
     private void checkBox_clipToggleHotKey_CheckedChanged(object sender, EventArgs e) {
-        ConfigManager.setConfig("use_clip_toggle_hotkey", ((CheckBox)sender).Checked.ToString());
+        ConfigManager.SetConfig("use_clip_toggle_hotkey", ((CheckBox)sender).Checked.ToString());
     }
 
     private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
-        ConfigManager.setConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
+        ConfigManager.SetConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
         ClipMouse.firstGameHandle = IntPtr.Zero;
         ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
     }
@@ -922,16 +935,16 @@ public partial class Form1 : MaterialForm {
             //알 수 없는 오류가 발생했음을 나타냅니다. (MS DOC)
             if(webErrorStatus == CoreWebView2WebErrorStatus.Unknown) {
                 string title = webView_main.CoreWebView2.DocumentTitle;
-                if(title != null) MessageBox.Show("거상 홈페이지 접속에 실패하였습니다.\n원인 : " + title);
-                else MessageBox.Show("알 수 없는 오류로 인해 거상 홈페이지 접속에 실패하였습니다.\nDocumentTitle : NULL");
+                if(title != null)
+                    MessageBox.Show("거상 홈페이지 접속에 실패하였습니다.\n원인 : " + title);
+                else
+                    MessageBox.Show("알 수 없는 오류로 인해 거상 홈페이지 접속에 실패하였습니다.\nDocumentTitle : NULL");
             }
 
             //인터넷 연결이 끊어졌음을 나타냅니다. (MS DOC)
             else if(webErrorStatus == CoreWebView2WebErrorStatus.Disconnected) {
                 MessageBox.Show("거상 홈페이지 접속에 실패하였습니다.\n인터넷 연결을 확인 해주세요.");
-            }
-
-            else {
+            } else {
                 MessageBox.Show($"거상 홈페이지 접속에 실패하였습니다. ({webErrorStatus})\n" +
                 $"1.인터넷 상태를 확인 해보세요.\n" +
                 $"2.거상 홈페이지가 터졌거나 점검 중일 수 있습니다.\n" +
@@ -944,7 +957,7 @@ public partial class Form1 : MaterialForm {
         var logout_btn = await webView_main.ExecuteScriptAsync(@"document.querySelector(""a[href = '" + "/member/logoutProc.gs" + @"']"")");
         if(logout_btn != null) {
             Trace.WriteLine("체크하였더니 로그인이 되어있음.");
-            switch(currentClient) {
+            switch (currentClient) {
                 case Client.Client1:
                     materialSwitch_login_1.CheckState = CheckState.Checked;
                     break;
@@ -975,7 +988,7 @@ public partial class Form1 : MaterialForm {
 
         string? tag = null;
         string[] account;
-        switch(currentClient) {
+        switch (currentClient) {
             case Client.Client1:
                 tag = materialSwitch_login_1.Tag.ToString();
                 break;
@@ -1082,52 +1095,28 @@ public partial class Form1 : MaterialForm {
     private async void GameStart() {
         isGameStartLogin = false;
 
-        string configKey;
+        string opt = (currentServer == Server.Main) ? "" : (currentServer == Server.Test) ? "test_" : "rnd_";
+        string configKey = $"client_path_{opt}";
         string regKey;
-        string server;
-        string url_vsn;
-        if(materialCheckbox_testServer.Checked) {
-            configKey = "client_path_test_";
-            regKey = "TestPath";
-            server = "test";
-            url_vsn = url_test_vsn;
-        } else {
-            configKey = "client_path_";
-            regKey = "InstallPath";
-            server = "main";
-            url_vsn = url_main_vsn;
-        }
+        if(currentServer == Server.Main) regKey = "InstallPath";
+        else if(currentServer == Server.Test) regKey = "TestPath";
+        else regKey = "RNDPath";
 
-        string client_path;
-        switch(currentClient) {
-            case Client.Client1:
-                client_path = ConfigManager.getConfig(configKey + '1');
-                break;
-            case Client.Client2:
-                client_path = ConfigManager.getConfig(configKey + '2');
-                break;
-            case Client.Client3:
-                client_path = ConfigManager.getConfig(configKey + '3');
-                break;
-            default:
-                client_path = "";
-                break;
-        }
-
+        string client_path = ConfigManager.GetConfig(configKey + (int)currentClient);
         if(client_path == "") {
             DialogResult dr = MessageBox.Show(this, "클라이언트 경로가 지정되어 있지 않습니다.\n설정 창으로 이동하시겠습니까?", "경로 미지정", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
             if(dr == DialogResult.OK) { OpenClientSettingDialog(); }
             return;
         }
 
-        if(false == ValidationPath(client_path, server)) return;
+        if(false == ValidationPath(client_path, currentServer)) return;
 
-        string version_current = VersionChecker.GetCurrentVersion(this, ConfigManager.getConfig(configKey + '1'));
-        string version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
+        string version_current = VersionChecker.GetCurrentVersion(this, ConfigManager.GetConfig(configKey + '1'));
+        string version_latest = VersionChecker.GetLatestVersion(this, UrlVsn);
         if(version_current != version_latest) {
             DialogResult dr = DialogResult.No;
             bool update = false;
-            if(!bool.Parse(ConfigManager.getConfig("is_auto_update"))) {
+            if(!bool.Parse(ConfigManager.GetConfig("is_auto_update"))) {
                 dr = MessageBox.Show(this, "거상 업데이트가 가능합니다! (" + version_current + "->" + version_latest + ")\n프로그램 기능을 사용하여 업데이트 하시겠습니까?\n거상 스테이션은 공식 패치 프로그램보다\n더 빠르게 업데이트 가능합니다.",
                     "거상 패치", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             } else {
@@ -1138,8 +1127,7 @@ public partial class Form1 : MaterialForm {
                 this.BeginInvoke(() => {
                     Form backgroundForm = InitBackgroundForm(this);
 
-                    bool isTest = (server == "test") ? true : false;
-                    Form_Patcher form_Patcher = new Form_Patcher(isTest) {
+                    Form_Patcher form_Patcher = new Form_Patcher(currentServer) {
                         Owner = this
                     };
 
@@ -1192,23 +1180,24 @@ public partial class Form1 : MaterialForm {
         if(!File.Exists(starterPath)) {
             OpenGersangStarterInstallDialog();
             return;
-        } else {
-            await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + server + @"')"", 2000);"); //소켓을 엽니다.
-            Process starter = new Process();
-            starter.StartInfo.FileName = value.ToString();
-            starter.EnableRaisingEvents = true;
-            starter.Exited += (sender, e) => {
-                Trace.WriteLine("게임 스타터가 종료됨.");
-                activateWebSideFunction_invoke();
-            };
-            deactivateWebSideFunction();
-            starter.Start();
         }
+
+        string param = (currentServer == Server.Main) ? "main" : (currentServer == Server.Test) ? "test" : "inak";
+        await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + param + @"')"", 2000);"); //소켓을 엽니다.
+        Process starter = new Process();
+        starter.StartInfo.FileName = value.ToString();
+        starter.EnableRaisingEvents = true;
+        starter.Exited += (sender, e) => {
+            Trace.WriteLine("게임 스타터가 종료됨.");
+            activateWebSideFunction_invoke();
+        };
+        deactivateWebSideFunction();
+        starter.Start();
     }
 
-    private bool ValidationPath(string client_path, string server) {
+    private bool ValidationPath(string client_path, Server server) {
         string iniName;
-        if(server == "main") { iniName = "GerSangKR.ini"; } else { iniName = "GerSangKRTest.ini"; }
+        if(server == Server.Main) { iniName = "GerSangKR.ini"; } else { iniName = "GerSangKRTest.ini"; }
 
         if(!File.Exists(client_path + "\\" + "Gersang.exe")) {
             this.BeginInvoke(() => {
@@ -1219,7 +1208,7 @@ public partial class Form1 : MaterialForm {
 
         if(!File.Exists(client_path + "\\" + iniName)) {
             string message;
-            if(server == "main") { message = "본섭 경로가 아닙니다."; } else { message = "테섭 경로가 아닙니다."; }
+            if(server == Server.Main) { message = "본섭 경로가 아닙니다."; } else { message = "테섭 또는 천라 경로가 아닙니다."; }
             this.BeginInvoke(() => {
                 MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : " + message, "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
             });
@@ -1295,9 +1284,12 @@ public partial class Form1 : MaterialForm {
     }
 
     private async void SNS_Login(string platform) {
-        if(platform == "SNS_네이버") await webView_main.ExecuteScriptAsync("document.getElementById('btn_naver').click()");
-        else if(platform == "SNS_카카오") await webView_main.ExecuteScriptAsync("document.getElementById('btn_kakao').click()");
-        else if(platform == "SNS_구글") await webView_main.ExecuteScriptAsync("document.getElementById('btn_google').click()");
+        if(platform == "SNS_네이버")
+            await webView_main.ExecuteScriptAsync("document.getElementById('btn_naver').click()");
+        else if(platform == "SNS_카카오")
+            await webView_main.ExecuteScriptAsync("document.getElementById('btn_kakao').click()");
+        else if(platform == "SNS_구글")
+            await webView_main.ExecuteScriptAsync("document.getElementById('btn_google').click()");
         else {
             MessageBox.Show("SNS 로그인에 실패하였습니다. 관리자에게 문의해주세요.", "SNS 로그인 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
@@ -1325,18 +1317,18 @@ public partial class Form1 : MaterialForm {
     }
 
     private void ClearAccount() {
-        string temp = ConfigManager.getConfig("account_list");
+        string temp = ConfigManager.GetConfig("account_list");
         string[] account_list = temp.Remove(temp.Length - 1, 1).Split(';');
-        foreach(var item in account_list) {
-            ConfigManager.removeConfig(item);
-            ConfigManager.removeConfig(item + "_nickname");
+        foreach (var item in account_list) {
+            ConfigManager.RemoveConfig(item);
+            ConfigManager.RemoveConfig(item + "_nickname");
         }
-        ConfigManager.setConfig("account_list", "");
+        ConfigManager.SetConfig("account_list", "");
 
-        ConfigManager.setConfig("current_comboBox_index_preset_1", "0;0;0");
-        ConfigManager.setConfig("current_comboBox_index_preset_2", "0;0;0");
-        ConfigManager.setConfig("current_comboBox_index_preset_3", "0;0;0");
-        ConfigManager.setConfig("current_comboBox_index_preset_4", "0;0;0");
+        ConfigManager.SetConfig("current_comboBox_index_preset_1", "0;0;0");
+        ConfigManager.SetConfig("current_comboBox_index_preset_2", "0;0;0");
+        ConfigManager.SetConfig("current_comboBox_index_preset_3", "0;0;0");
+        ConfigManager.SetConfig("current_comboBox_index_preset_4", "0;0;0");
         LoadAccountComboBox();
     }
 
@@ -1361,7 +1353,7 @@ public partial class Form1 : MaterialForm {
     private void OpenClientSettingDialog() {
         Form backgroundForm = InitBackgroundForm(this);
 
-        Form_ClientSetting dialog_clientSetting = new Form_ClientSetting() {
+        Form_ClientSetting dialog_clientSetting = new Form_ClientSetting(currentServer) {
             Owner = this
         };
 
@@ -1422,6 +1414,12 @@ public partial class Form1 : MaterialForm {
             Owner = owner
         };
         return backgroundForm;
+    }
+
+    private void comboBox_selectServer_SelectedIndexChanged(object sender, EventArgs e) {
+        ComboBox comboBox = (ComboBox)sender;
+        currentServer = (Server)comboBox.SelectedIndex;
+        ConfigManager.SetConfig("current_server", comboBox.SelectedIndex.ToString());
     }
 } //Form1
 //namespace

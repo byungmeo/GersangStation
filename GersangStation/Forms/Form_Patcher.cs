@@ -5,20 +5,11 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
+using static GersangStation.Form1;
 
 namespace GersangStation;
-
 public partial class Form_Patcher : MaterialForm {
     private const int NUM_RETRY = 15; // 모든 파일 다운로드 실패 시 다운로드 재시도 최대 횟수
-
-    private const string url_main = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/";
-    private const string url_test = @"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/";
-    private const string url_main_info = url_main + @"Client_info_File/"; // + "00000"
-    private const string url_test_info = url_test + @"Client_info_File/"; // + "00000"
-    private const string url_main_patch = url_main + @"Client_Patch_File/"; // + "{경로}/{파일명.확장자}"
-    private const string url_test_patch = url_test + @"Client_Patch_File/"; // + "{경로}/{파일명.확장자}"
-    private const string url_main_vsn = url_main_patch + @"Online/vsn.dat.gsz";
-    private const string url_test_vsn = url_test_patch + @"Online/vsn.dat.gsz";
 
     private string path_main;
     private string name_client_2;
@@ -28,47 +19,35 @@ public partial class Form_Patcher : MaterialForm {
     private string url_vsn;
     private string version_current;
     private string version_latest;
-    private Server server;
 
-    private enum Server {
-        Main,
-        Test
-    };
+    private Server server;
+    private string serverName;
 
     private readonly object listLock = new object();
     Dictionary<string, string> list_retry = new Dictionary<string, string>();
 
     private BackgroundWorker worker = new BackgroundWorker();
 
-    public Form_Patcher(bool isTest) {
+    private string Opt => (server == Server.Main) ? "" : (server == Server.Test) ? "test_" : "rnd_";
+
+    public Form_Patcher(Server server) {
         InitializeComponent();
 
         // .NET에서 지원하는 인코딩 공급자를 가져와서 등록 (없으면 euc-kr을 못불러와서 패치 파일 목록 받아올 때 한글이 깨짐)
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-        if(true == isTest) {
-            //테섭
-            path_main = ConfigManager.getConfig("client_path_test_1");
-            name_client_2 = ConfigManager.getConfig("client_path_test_2");
-            if(name_client_2 != "") { name_client_2 = name_client_2.Substring(name_client_2.LastIndexOf('\\') + 1); }
-            name_client_3 = ConfigManager.getConfig("client_path_test_3");
-            if(name_client_3 != "") { name_client_3 = name_client_3.Substring(name_client_3.LastIndexOf('\\') + 1); }
-            url_info = url_test_info;
-            url_patch = url_test_patch;
-            url_vsn = url_test_vsn;
-            server = Server.Test;
-        } else {
-            //본섭
-            path_main = ConfigManager.getConfig("client_path_1");
-            name_client_2 = ConfigManager.getConfig("client_path_2");
-            if(name_client_2 != "") { name_client_2 = name_client_2.Substring(name_client_2.LastIndexOf('\\') + 1); }
-            name_client_3 = ConfigManager.getConfig("client_path_3");
-            if(name_client_3 != "") { name_client_3 = name_client_3.Substring(name_client_3.LastIndexOf('\\') + 1); }
-            url_info = url_main_info;
-            url_patch = url_main_patch;
-            url_vsn = url_main_vsn;
-            server = Server.Main;
-        }
+        this.server = server;
+        serverName = (server == Server.Main) ? "Gersang_Server" : (server == Server.Test) ? "Test_Server" : "RnD_Server";
+        url_info = $@"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/{serverName}/Client_info_File/"; // + 버전(1001, 32006... etc)
+        url_patch = $@"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/{serverName}/Client_Patch_File/"; // + "{경로}/{파일명.확장자}"
+        url_vsn = $@"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/{serverName}/Client_Patch_File/Online/vsn.dat.gsz";
+
+        path_main = ConfigManager.GetConfig($"client_path_{Opt}1");
+        name_client_2 = ConfigManager.GetConfig($"client_path_{Opt}2");
+        name_client_3 = ConfigManager.GetConfig($"client_path_{Opt}3");
+
+        if(name_client_2 != "") name_client_2 = name_client_2.Substring(name_client_2.LastIndexOf('\\') + 1);
+        if(name_client_3 != "") name_client_3 = name_client_3.Substring(name_client_3.LastIndexOf('\\') + 1);
 
         version_current = VersionChecker.GetCurrentVersion(this, path_main);
         version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
@@ -120,13 +99,13 @@ public partial class Form_Patcher : MaterialForm {
         };
 
         if(name_client_2 != "") {
-            pathInfo = new DirectoryInfo(ConfigManager.getConfig((server == Server.Main) ? "client_path_2" : "client_path_test_2") + "\\char");
+            pathInfo = new DirectoryInfo(name_client_2 + "\\char");
             check(pathInfo);
             if(!flag) return;
         }
 
         if(name_client_3 != "") {
-            pathInfo = new DirectoryInfo(ConfigManager.getConfig((server == Server.Main) ? "client_path_3" : "client_path_test_3") + "\\char");
+            pathInfo = new DirectoryInfo(name_client_3 + "\\char");
             check(pathInfo);
             if(!flag) return;
         }
@@ -189,7 +168,7 @@ public partial class Form_Patcher : MaterialForm {
         Logger.Log("패치 파일 다운로드 시작");
         ProgressChanged(this, new ProgressChangedEventArgs(10, $"다운로드 중... (파일 개수 : {list_patchFile.Count})"));
         bool isSuccess = DownloadAll(list_patchFile);
-        if (!isSuccess)
+        if(!isSuccess)
         {
             Logger.Log("패치 파일 다운로드 실패로 인한 패치 종료");
             MessageBox.Show(this, "패치 파일 다운로드에 실패하였습니다.\n문의 또는 로그를 확인 바랍니다.", "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Information);

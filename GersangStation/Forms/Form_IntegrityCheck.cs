@@ -33,7 +33,7 @@ public partial class Form_IntegrityCheck : MaterialForm {
 
 
     private void Form_IntegrityCheck_Load(object sender, EventArgs e) {
-        textBox_clientPath.Text = ConfigManager.getConfig("client_path_1");
+        textBox_clientPath.Text = ConfigManager.GetConfig("client_path_1");
     }
 
     private void materialButton_findPath_Click(object sender, EventArgs e) {

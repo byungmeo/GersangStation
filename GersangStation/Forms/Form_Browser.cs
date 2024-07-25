@@ -63,11 +63,11 @@ public partial class Form_Browser : Form {
     }
 
     private void button_saveShortcut_Click(object sender, EventArgs e) {
-        string[] titles = ConfigManager.getConfig("shortcut_name").Split(';');
+        string[] titles = ConfigManager.GetConfig("shortcut_name").Split(';');
         string[] slot_title = new string[titles.Length];
         string[] slot_link = new string[4];
         for(int i = 0; i < titles.Length; i++) slot_title[i] = titles[i];
-        for(int i = 1; i <= 4; i++) { slot_link[i-1] = ConfigManager.getConfig("shortcut_" + i); }
+        for(int i = 1; i <= 4; i++) { slot_link[i-1] = ConfigManager.GetConfig("shortcut_" + i); }
 
         Form form_saveShortcut = new Form() {
             TopMost = true,
@@ -124,11 +124,11 @@ public partial class Form_Browser : Form {
             } else {
                 label.Tag = textBox_title.Text;
                 string link = addressBar.Text;
-                ConfigManager.setConfig(key, link);
+                ConfigManager.SetConfig(key, link);
                 StringBuilder sb = new StringBuilder();
                 foreach (Label l in label_current) sb.Append(l.Tag.ToString() + ';');
                 sb.Remove(sb.Length - 1, 1);
-                ConfigManager.setConfig("shortcut_name", sb.ToString());
+                ConfigManager.SetConfig("shortcut_name", sb.ToString());
                 this.Close();
             }
         };

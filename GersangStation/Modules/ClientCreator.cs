@@ -107,7 +107,7 @@ internal class ClientCreator {
     public static bool CreateClient(Form owner, string orgPath, string name2, string name3) {
         string orgOnlinePath = orgPath + "\\Online";
 
-        if (false == Directory.Exists(orgPath)) {
+        if(false == Directory.Exists(orgPath)) {
             owner.BeginInvoke(() => {
                 MessageBox.Show(owner, 
                     "경로를 찾을 수 없습니다.", 
@@ -117,7 +117,7 @@ internal class ClientCreator {
             return false;
         }
 
-        if (false == IsValidDrive(owner, orgPath)) return false;
+        if(false == IsValidDrive(owner, orgPath)) return false;
         Trace.WriteLine("드라이브 유효성 검사 완료");
 
         if(true == IsSymbolic(owner, orgPath, true)) return false;
@@ -125,10 +125,10 @@ internal class ClientCreator {
 
         // 거상 폴더 내 파일을 복사하는 Action 정의
         Action<string> copy = (path) => {
-            foreach (string eachFilePath in Directory.GetFiles(orgPath)) {
+            foreach(string eachFilePath in Directory.GetFiles(orgPath)) {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
                 string extension = Path.GetExtension(eachFilePath); // '.' 포함
-                if (extension == ".tmp" || extension == ".bmp" || extension == ".dmp") continue;
+                if(extension == ".tmp" || extension == ".bmp" || extension == ".dmp") continue;
                 Trace.WriteLine("COPY : " + eachFilePath + " -> " + path + fileName);
                 File.Copy(eachFilePath, path + fileName, true);
             }
@@ -136,12 +136,12 @@ internal class ClientCreator {
 
         // 거상 폴더 내 폴더 심볼릭링크 생성 (XIGNCODE, Online는 별도 복사 또는 생성)
         Action<string> symbolic = (path) => {
-            foreach (string eachDirPath in Directory.GetDirectories(orgPath)) {
+            foreach(string eachDirPath in Directory.GetDirectories(orgPath)) {
                 string? dirName = new DirectoryInfo(eachDirPath).Name;
-                if (dirName == "XIGNCODE" || dirName == "Online") continue;
+                if(dirName == "XIGNCODE" || dirName == "Online") continue;
                 string linkPath = path + '\\' + dirName;
                 Trace.WriteLine("SYMLINK_DIR" + linkPath + ", " + eachDirPath);
-                if (Directory.Exists(linkPath)) { Directory.Delete(linkPath); }
+                if(Directory.Exists(linkPath)) { Directory.Delete(linkPath); }
                 Directory.CreateSymbolicLink(linkPath, eachDirPath);
             }
 
@@ -151,15 +151,15 @@ internal class ClientCreator {
 
             // Online 폴더 생성
             string onlinePath = path + "\\Online";
-            if (true == Directory.Exists(onlinePath)) {
-                if (true == File.GetAttributes(onlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(onlinePath); };
+            if(true == Directory.Exists(onlinePath)) {
+                if(true == File.GetAttributes(onlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(onlinePath); };
             }
             Directory.CreateDirectory(onlinePath);
 
             // Online 폴더 내 파일 심볼릭링크 생성 (KeySetting.dat , PetSetting.dat은 없을 경우에만 복사)
-            foreach (string eachFilePath in Directory.GetFiles(orgOnlinePath)) {
+            foreach(string eachFilePath in Directory.GetFiles(orgOnlinePath)) {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
-                if (fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg" || fileName == "\\CombineInfo.txt") {
+                if(fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg" || fileName == "\\CombineInfo.txt") {
                     if(File.Exists(onlinePath + fileName)) {
                         if(File.GetAttributes(onlinePath + fileName).HasFlag(FileAttributes.ReparsePoint)) { 
                             // 설정 파일들이 이미 심볼릭 링크일 경우 삭제하고 복사합니다.
@@ -179,17 +179,17 @@ internal class ClientCreator {
             }
 
             //Online 폴더 내 폴더 심볼릭링크 생성
-            foreach (string eachDirPath in Directory.GetDirectories(orgOnlinePath)) {
+            foreach(string eachDirPath in Directory.GetDirectories(orgOnlinePath)) {
                 string? dirName = new DirectoryInfo(eachDirPath).Name;
                 string linkPath = onlinePath + '\\' + dirName;
                 Trace.WriteLine("SYMLINK_DIR : " + eachDirPath + " -> " + linkPath);
-                if (Directory.Exists(linkPath)) { Directory.Delete(linkPath, true); }
+                if(Directory.Exists(linkPath)) { Directory.Delete(linkPath, true); }
                 Directory.CreateSymbolicLink(linkPath, eachDirPath);
             }
         };
 
         // 2클라 생성
-        if (name2 != "") {
+        if(name2 != "") {
             string secondPath = orgPath + "\\..\\" + name2;
             if(false == IsSymbolic(owner, secondPath, false)) return false;
             Directory.CreateDirectory(secondPath); // 거상 폴더 생성
@@ -198,7 +198,7 @@ internal class ClientCreator {
         }
 
         // 3클라 생성
-        if (name3 != "") {
+        if(name3 != "") {
             string thirdPath = orgPath + "\\..\\" + name3;
             if(false == IsSymbolic(owner, thirdPath, false)) return false;
             Directory.CreateDirectory(thirdPath); // 거상 폴더 생성
@@ -211,12 +211,11 @@ internal class ClientCreator {
     }
 
     //private로 바꿀 것
-    private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
-    {
+    private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs) {
         // Get the subdirectories for the specified directory.
         DirectoryInfo dir = new DirectoryInfo(sourceDirName);
 
-        if (!dir.Exists) {
+        if(!dir.Exists) {
             throw new DirectoryNotFoundException(
                 "Source directory does not exist or could not be found: "
                 + sourceDirName);
@@ -229,14 +228,14 @@ internal class ClientCreator {
 
         // Get the files in the directory and copy them to the new location.
         FileInfo[] files = dir.GetFiles();
-        foreach (FileInfo file in files) {
+        foreach(FileInfo file in files) {
             string tempPath = Path.Combine(destDirName, file.Name);
             file.CopyTo(tempPath, true);
         }
 
         // If copying subdirectories, copy them and their contents to new location.
-        if (copySubDirs) {
-            foreach (DirectoryInfo subdir in dirs)
+        if(copySubDirs) {
+            foreach(DirectoryInfo subdir in dirs)
             {
                 string tempPath = Path.Combine(destDirName, subdir.Name);
                 DirectoryCopy(subdir.FullName, tempPath, copySubDirs);

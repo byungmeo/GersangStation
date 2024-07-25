@@ -26,16 +26,14 @@
         ///  Required method for Designer support - do not modify
         ///  the contents of this method with the code editor.
         /// </summary>
-        private void InitializeComponent()
-        {
+        private void InitializeComponent() {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             materialTabControl1 = new MaterialSkin.Controls.MaterialTabControl();
             tabPage_home = new TabPage();
+            comboBox_selectServer = new ComboBox();
             linkLabel_announcement = new LinkLabel();
             pictureBox2 = new PictureBox();
-            label2 = new Label();
-            materialCheckbox_testServer = new MaterialSkin.Controls.MaterialCheckbox();
             materialButton_start_3 = new MaterialSkin.Controls.MaterialButton();
             materialButton_start_2 = new MaterialSkin.Controls.MaterialButton();
             materialButton_shortcut_1 = new MaterialSkin.Controls.MaterialButton();
@@ -137,10 +135,9 @@
             // 
             tabPage_home.AutoScroll = true;
             tabPage_home.BackColor = Color.White;
+            tabPage_home.Controls.Add(comboBox_selectServer);
             tabPage_home.Controls.Add(linkLabel_announcement);
             tabPage_home.Controls.Add(pictureBox2);
-            tabPage_home.Controls.Add(label2);
-            tabPage_home.Controls.Add(materialCheckbox_testServer);
             tabPage_home.Controls.Add(materialButton_start_3);
             tabPage_home.Controls.Add(materialButton_start_2);
             tabPage_home.Controls.Add(materialButton_shortcut_1);
@@ -167,6 +164,19 @@
             tabPage_home.TabIndex = 0;
             tabPage_home.Text = "메인";
             // 
+            // comboBox_selectServer
+            // 
+            comboBox_selectServer.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboBox_selectServer.Font = new Font("맑은 고딕", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
+            comboBox_selectServer.Items.AddRange(new object[] { "본섭", "테섭", "천라" });
+            comboBox_selectServer.Location = new Point(212, 10);
+            comboBox_selectServer.MaxDropDownItems = 3;
+            comboBox_selectServer.Name = "comboBox_selectServer";
+            comboBox_selectServer.Size = new Size(62, 28);
+            comboBox_selectServer.TabIndex = 8;
+            comboBox_selectServer.TabStop = false;
+            comboBox_selectServer.SelectedIndexChanged += comboBox_selectServer_SelectedIndexChanged;
+            // 
             // linkLabel_announcement
             // 
             linkLabel_announcement.AutoSize = true;
@@ -186,33 +196,6 @@
             pictureBox2.SizeMode = PictureBoxSizeMode.AutoSize;
             pictureBox2.TabIndex = 39;
             pictureBox2.TabStop = false;
-            // 
-            // label2
-            // 
-            label2.AutoSize = true;
-            label2.Font = new Font("Microsoft Sans Serif", 14.25F, FontStyle.Bold, GraphicsUnit.Point);
-            label2.Location = new Point(240, 12);
-            label2.Name = "label2";
-            label2.Size = new Size(40, 24);
-            label2.TabIndex = 38;
-            label2.Text = "테섭";
-            // 
-            // materialCheckbox_testServer
-            // 
-            materialCheckbox_testServer.AutoSize = true;
-            materialCheckbox_testServer.Depth = 0;
-            materialCheckbox_testServer.Location = new Point(210, 6);
-            materialCheckbox_testServer.Margin = new Padding(0);
-            materialCheckbox_testServer.MouseLocation = new Point(-1, -1);
-            materialCheckbox_testServer.MouseState = MaterialSkin.MouseState.HOVER;
-            materialCheckbox_testServer.Name = "materialCheckbox_testServer";
-            materialCheckbox_testServer.ReadOnly = false;
-            materialCheckbox_testServer.Ripple = true;
-            materialCheckbox_testServer.Size = new Size(35, 37);
-            materialCheckbox_testServer.TabIndex = 37;
-            materialCheckbox_testServer.TabStop = false;
-            materialCheckbox_testServer.UseVisualStyleBackColor = true;
-            materialCheckbox_testServer.CheckedChanged += materialCheckbox_testServer_CheckedChanged;
             // 
             // materialButton_start_3
             // 
@@ -840,6 +823,7 @@
             linkLabel1.TabIndex = 19;
             linkLabel1.TabStop = true;
             linkLabel1.Text = "Created logo at LogoMakr.com/app";
+            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
             // 
             // materialButton_blog
             // 
@@ -1253,9 +1237,7 @@
         private MaterialSkin.Controls.MaterialButton materialButton_debugging;
         private MaterialSkin.Controls.MaterialButton materialButton_start_3;
         private MaterialSkin.Controls.MaterialButton materialButton_start_2;
-        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_testServer;
         private TabPage tabPage_help;
-        private Label label2;
         private ToolTip toolTip1;
         private Button button_tray;
         private NotifyIcon notifyIcon1;
@@ -1302,5 +1284,6 @@
         private CheckBox checkBox_onlyFirstClip;
         private PictureBox img_help_integrity;
         private LinkLabel linkLabel_clipInformation;
+        private ComboBox comboBox_selectServer;
     }
 }

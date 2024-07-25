@@ -2,25 +2,21 @@
 using MaterialSkin.Controls;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using static GersangStation.Form1;
 
-namespace GersangStation; 
+namespace GersangStation;
 public partial class Form_ClientSetting : MaterialForm {
-    bool isChanged = false;
+    private bool isChanged = false;
+    private Server server;
+    private string Opt => (server == Server.Main) ? "" : (server == Server.Test) ? "test_" : "rnd_";
 
-    public Form_ClientSetting() {
+    public Form_ClientSetting(Server server) {
         InitializeComponent();
+        this.server = server;
     }
 
     private void Form_ClientSetting_Load(object sender, EventArgs e) {
-        textBox_path_1.Text = ConfigManager.getConfig("client_path_1");
-        textBox_path_2.Text = ConfigManager.getConfig("client_path_2");
-        textBox_path_3.Text = ConfigManager.getConfig("client_path_3");
-
-        textBox_path_test_1.Text = ConfigManager.getConfig("client_path_test_1");
-        textBox_path_test_2.Text = ConfigManager.getConfig("client_path_test_2");
-        textBox_path_test_3.Text = ConfigManager.getConfig("client_path_test_3");
-
-        materialCheckbox_autoUpdate.Checked = bool.Parse(ConfigManager.getConfig("is_auto_update"));
+        comboBox_selectServer.SelectedIndex = (int)server;
     }
 
     private void materialButton_findPath_Click(object sender, EventArgs e) {
@@ -33,7 +29,9 @@ public partial class Form_ClientSetting : MaterialForm {
             isChanged = true;
         };
 
-        if(button.Equals(materialButton_findPath_1)) { selectDir(textBox_path_1); } else if(button.Equals(materialButton_findPath_2)) { selectDir(textBox_path_2); } else if(button.Equals(materialButton_findPath_3)) { selectDir(textBox_path_3); } else if(button.Equals(materialButton_findPath_test_1)) { selectDir(textBox_path_test_1); } else if(button.Equals(materialButton_findPath_test_2)) { selectDir(textBox_path_test_2); } else if(button.Equals(materialButton_findPath_test_3)) { selectDir(textBox_path_test_3); }
+        if(button.Equals(materialButton_findPath_1)) selectDir(textBox_path_1);
+        else if(button.Equals(materialButton_findPath_2)) selectDir(textBox_path_2);
+        else if(button.Equals(materialButton_findPath_3)) selectDir(textBox_path_3);
     }
 
     private void materialButton_save_Click(object sender, EventArgs e) {
@@ -42,53 +40,41 @@ public partial class Form_ClientSetting : MaterialForm {
     }
 
     private void Save() {
-        ConfigManager.setConfig("client_path_1", textBox_path_1.Text);
-        ConfigManager.setConfig("client_path_2", textBox_path_2.Text);
-        ConfigManager.setConfig("client_path_3", textBox_path_3.Text);
-
-        ConfigManager.setConfig("client_path_test_1", textBox_path_test_1.Text);
-        ConfigManager.setConfig("client_path_test_2", textBox_path_test_2.Text);
-        ConfigManager.setConfig("client_path_test_3", textBox_path_test_3.Text);
-
-        ConfigManager.setConfig("is_auto_update", materialCheckbox_autoUpdate.Checked.ToString());
-
+        ConfigManager.SetConfig($"client_path_{Opt}1", textBox_path_1.Text);
+        ConfigManager.SetConfig($"client_path_{Opt}2", textBox_path_2.Text);
+        ConfigManager.SetConfig($"client_path_{Opt}3", textBox_path_3.Text);
+        ConfigManager.SetConfig("is_auto_update", materialCheckbox_autoUpdate.Checked.ToString());
         isChanged = false;
     }
 
     private void materialButton_createClient_Click(object sender, EventArgs e) {
         MaterialButton button = (MaterialButton)sender;
 
-        string mainClientPathConfigKey = "";
-        string nameConfigKey = "";
-        string recommendName = "";
-        string path = "";
-        string mainClientPath = "";
-        TextBox obj_path_2;
-        TextBox obj_path_3;
+        string mainClientPathConfigKey;
+        string nameConfigKey;
+        string recommendName;
+        string path;
+        string mainClientPath;
+        TextBox textBoxPath2;
+        TextBox textBoxPath3;
 
-        if(button.Equals(materialButton_createClient)) {
-            mainClientPathConfigKey = "client_path_1";
-            nameConfigKey = "directory_name_client_";
-            recommendName = "권장 폴더명 : Gersang2, Gersang3";
-            mainClientPath = textBox_path_1.Text;
-            obj_path_2 = textBox_path_2;
-            obj_path_3 = textBox_path_3;
-        } else {
-            mainClientPathConfigKey = "client_path_test_1";
-            nameConfigKey = "directory_name_client_test_";
-            recommendName = "권장 폴더명 : GerTest2, GerTest3";
-            mainClientPath = textBox_path_test_1.Text;
-            obj_path_2 = textBox_path_test_2;
-            obj_path_3 = textBox_path_test_3;
-        }
+        mainClientPath = textBox_path_1.Text;
+        textBoxPath2 = textBox_path_2;
+        textBoxPath3 = textBox_path_3;
+        mainClientPathConfigKey = $"client_path_{Opt}1";
+        nameConfigKey = $"directory_name_client_{Opt}";
 
-        path = ConfigManager.getConfig(mainClientPathConfigKey);
+        if(server == Server.Main) recommendName = "권장 폴더명 : Gersang2, Gersang3";
+        else if(server == Server.Test) recommendName = "권장 폴더명 : GerTest2, GerTest3";
+        else recommendName = "권장 폴더명 : CheonRa2, CheonRa3";
+
+        path = ConfigManager.GetConfig(mainClientPathConfigKey);
 
         if(path != mainClientPath) {
             DialogResult dr = MessageBox.Show("현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
             if(dr == DialogResult.OK) {
                 Save();
-                path = ConfigManager.getConfig(mainClientPathConfigKey);
+                path = ConfigManager.GetConfig(mainClientPathConfigKey);
             }
         }
 
@@ -123,7 +109,7 @@ public partial class Form_ClientSetting : MaterialForm {
             UseAccent = false,
             Size = new Size(170, 50),
             Location = new Point(15, 40),
-            Text = ConfigManager.getConfig(nameConfigKey + '2')
+            Text = ConfigManager.GetConfig(nameConfigKey + '2')
         };
         dialog_name.Controls.Add(textBox_second);
 
@@ -133,7 +119,7 @@ public partial class Form_ClientSetting : MaterialForm {
             UseAccent = false,
             Size = new Size(170, 50),
             Location = new Point(15, 100),
-            Text = ConfigManager.getConfig(nameConfigKey + '3')
+            Text = ConfigManager.GetConfig(nameConfigKey + '3')
         };
         dialog_name.Controls.Add(textBox_third);
 
@@ -173,16 +159,16 @@ public partial class Form_ClientSetting : MaterialForm {
             secondName = textBox_second.Text;
             thirdName = textBox_third.Text;
 
-            ConfigManager.setConfig(nameConfigKey + '2', secondName);
-            ConfigManager.setConfig(nameConfigKey + '3', thirdName);
+            ConfigManager.SetConfig(nameConfigKey + '2', secondName);
+            ConfigManager.SetConfig(nameConfigKey + '3', thirdName);
 
             if(checkBox_apply.Checked) {
-                obj_path_2.Text = mainClientPath + "\\..\\" + secondName;
-                obj_path_3.Text = mainClientPath + "\\..\\" + thirdName;
+                textBoxPath2.Text = mainClientPath + "\\..\\" + secondName;
+                textBoxPath3.Text = mainClientPath + "\\..\\" + thirdName;
 
-                ConfigManager.setConfig("client_path_1", textBox_path_1.Text);
-                ConfigManager.setConfig("client_path_2", textBox_path_2.Text);
-                ConfigManager.setConfig("client_path_3", textBox_path_3.Text);
+                ConfigManager.SetConfig($"client_path_{Opt}1", textBox_path_1.Text);
+                ConfigManager.SetConfig($"client_path_{Opt}2", textBox_path_2.Text);
+                ConfigManager.SetConfig($"client_path_{Opt}3", textBox_path_3.Text);
             }
 
             dialog_name.DialogResult = DialogResult.OK;
@@ -198,55 +184,45 @@ public partial class Form_ClientSetting : MaterialForm {
         }
 
         try {
-            if(false == ClientCreator.CreateClient(this, path, secondName, thirdName)) return;
+            if(false == ClientCreator.CreateClient(this, path, secondName, thirdName))
+                return;
             MessageBox.Show(this, "다클라 생성을 완료하였습니다.\n다클라 폴더의 이름은 " + secondName + ", " + thirdName + " 입니다.", "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Information);
             Save();
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             Trace.WriteLine(ex.Message);
             MessageBox.Show(this, "다클라 생성중 오류가 발생한 것 같습니다. 문의해주세요.\n" + ex.StackTrace, "다클라 생성", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
     private void materialButton_patch_Click(object sender, EventArgs e) {
-        bool isTest = (sender.Equals(materialButton_patch_test)) ? true : false;
+        string mainClientPathConfigKey = $"client_path_{Opt}1";
+        string mainClientPath = textBox_path_1.Text;
 
-        string mainClientPathConfigKey;
-        string mainClientPath;
+        string path = ConfigManager.GetConfig(mainClientPathConfigKey);
 
-        if(isTest) {
-            mainClientPathConfigKey = "client_path_test_1";
-            mainClientPath = textBox_path_test_1.Text;
-
-        } else {
-            mainClientPathConfigKey = "client_path_1";
-            mainClientPath = textBox_path_1.Text;
-        }
-
-        string path = ConfigManager.getConfig(mainClientPathConfigKey);
-
-        if(path != mainClientPath) {
+        if (path != mainClientPath) {
             DialogResult dr = MessageBox.Show(this, "현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-            if(dr == DialogResult.OK) {
+            if (dr == DialogResult.OK) {
                 Save();
-                path = ConfigManager.getConfig(mainClientPathConfigKey);
+                path = ConfigManager.GetConfig(mainClientPathConfigKey);
             }
         }
 
-        if(path == "") {
+        if (path == "") {
             MessageBox.Show(this, "본클라 경로가 설정되지 않았습니다.", "패치 불가", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
         Form backgroundForm = Form1.InitBackgroundForm(this);
 
-        Form_Patcher form_Patcher = new Form_Patcher(isTest) {
+        Form_Patcher form_Patcher = new Form_Patcher(server) {
             Owner = this
         };
 
         try {
             backgroundForm.Show();
             form_Patcher.ShowDialog();
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             Trace.WriteLine(ex.StackTrace);
         } finally {
             backgroundForm.Dispose();
@@ -256,11 +232,21 @@ public partial class Form_ClientSetting : MaterialForm {
     private void Form_ClientSetting_FormClosing(object sender, FormClosingEventArgs e) {
         if(isChanged) {
             DialogResult dr = MessageBox.Show(this, "변경 사항을 저장 하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-            if(dr == DialogResult.OK) Save();
+            if (dr == DialogResult.OK)
+                Save();
         }
     }
 
     private void materialCheckbox_autoUpdate_CheckedChanged(object sender, EventArgs e) {
         isChanged = true;
+    }
+
+    private void comboBox_selectServer_SelectedIndexChanged(object sender, EventArgs e) {
+        ComboBox comboBox = (ComboBox)sender;
+        server = (Server)comboBox.SelectedIndex;
+        textBox_path_1.Text = ConfigManager.GetConfig($"client_path_{Opt}1");
+        textBox_path_2.Text = ConfigManager.GetConfig($"client_path_{Opt}2");
+        textBox_path_3.Text = ConfigManager.GetConfig($"client_path_{Opt}3");
+        materialCheckbox_autoUpdate.Checked = bool.Parse(ConfigManager.GetConfig("is_auto_update"));
     }
 }

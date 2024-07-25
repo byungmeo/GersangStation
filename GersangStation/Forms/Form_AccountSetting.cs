@@ -119,12 +119,12 @@ public partial class Form_AccountSetting : MaterialForm {
                     return;
                 }
 
-                if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
+                if (ConfigManager.GetConfig("account_list").Split(';').Contains(textBox_id.Text)) {
                     MessageBox.Show(dialog_addAccount, "이미 동일한 계정이 존재합니다.");
                     return;
                 }
 
-                if (ConfigManager.getKeyByValue(textBox_nickname.Text) != "") {
+                if (ConfigManager.GetKeyByValue(textBox_nickname.Text) != "") {
                     MessageBox.Show(dialog_addAccount, "이미 동일한 별명이 존재합니다.");
                     return;
                 }
@@ -140,36 +140,36 @@ public partial class Form_AccountSetting : MaterialForm {
                 //Trace.WriteLine("ShowDialog ID : " + id);
                 //Trace.WriteLine("ShowDialog PW : " + pw);
 
-                ConfigManager.addConfig(id, pw);
-                ConfigManager.addConfig(id + "_nickname", nickname);
-                ConfigManager.setConfig("account_list", ConfigManager.getConfig("account_list") + textBox_id.Text + ";");
+                ConfigManager.AddConfig(id, pw);
+                ConfigManager.AddConfig(id + "_nickname", nickname);
+                ConfigManager.SetConfig("account_list", ConfigManager.GetConfig("account_list") + textBox_id.Text + ";");
 
                 LoadListBox();
 
                 //SNS 로그인을 선택한 프리셋의 index를 1씩 증가 (계정이 추가되어서 뒤로 밀리니까)
                 //0번은 선택 없음, count - 2, 3, 4은 SNS 로그인 자리 (이미 하나가 추가되었으니까 -2 부터)
                 int count = materialListBox1.Count;
-                int[] preset1 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_1").Split(';'), int.Parse);
-                int[] preset2 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_2").Split(';'), int.Parse);
-                int[] preset3 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_3").Split(';'), int.Parse);
-                int[] preset4 = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_4").Split(';'), int.Parse);
+                int[] preset1 = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_1").Split(';'), int.Parse);
+                int[] preset2 = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_2").Split(';'), int.Parse);
+                int[] preset3 = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_3").Split(';'), int.Parse);
+                int[] preset4 = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_4").Split(';'), int.Parse);
                 int[][] preset_list = { preset1, preset2, preset3, preset4 };
                 foreach (int[] preset in preset_list) {
                     for(int i = 0; i < preset.Length; i++) {
                         if (preset[i] >= count - 4) preset[i]++;
                     }
                 }
-                ConfigManager.setConfig("current_comboBox_index_preset_1", String.Join(';', preset1));
-                ConfigManager.setConfig("current_comboBox_index_preset_2", String.Join(';', preset2));
-                ConfigManager.setConfig("current_comboBox_index_preset_3", String.Join(';', preset3));
-                ConfigManager.setConfig("current_comboBox_index_preset_4", String.Join(';', preset4));
+                ConfigManager.SetConfig("current_comboBox_index_preset_1", String.Join(';', preset1));
+                ConfigManager.SetConfig("current_comboBox_index_preset_2", String.Join(';', preset2));
+                ConfigManager.SetConfig("current_comboBox_index_preset_3", String.Join(';', preset3));
+                ConfigManager.SetConfig("current_comboBox_index_preset_4", String.Join(';', preset4));
             }
         } else {
             string original_id = materialListBox1.SelectedItem.Text;
             string original_nickname;
             if (original_id.Contains(" (") && original_id.Contains(")")) {
                 original_id = original_id.Substring(0, original_id.IndexOf(" "));
-                original_nickname = ConfigManager.getConfig(original_id + "_nickname");
+                original_nickname = ConfigManager.GetConfig(original_id + "_nickname");
             } else {
                 original_nickname = original_id;
             }
@@ -178,7 +178,7 @@ public partial class Form_AccountSetting : MaterialForm {
                 if (original_id == original_nickname) { checkBox_useNickname.Checked = false; }
                 else { checkBox_useNickname.Checked = true; }
                 textBox_id.Text = original_id;
-                textBox_pw.Text = EncryptionSupporter.Unprotect(ConfigManager.getConfig(original_id));
+                textBox_pw.Text = EncryptionSupporter.Unprotect(ConfigManager.GetConfig(original_id));
                 textBox_nickname.Text = original_nickname;
             };
 
@@ -201,14 +201,14 @@ public partial class Form_AccountSetting : MaterialForm {
                 }
 
                 if (original_id != textBox_id.Text) {
-                    if (ConfigManager.getConfig("account_list").Split(';').Contains(textBox_id.Text)) {
+                    if (ConfigManager.GetConfig("account_list").Split(';').Contains(textBox_id.Text)) {
                         MessageBox.Show(dialog_addAccount, "이미 동일한 계정이 존재합니다.");
                         return;
                     }
                 }
                 
                 if (original_nickname != textBox_nickname.Text) {
-                    if (ConfigManager.getKeyByValue(textBox_nickname.Text) != "") {
+                    if (ConfigManager.GetKeyByValue(textBox_nickname.Text) != "") {
                         MessageBox.Show(dialog_addAccount, "이미 동일한 별명이 존재합니다.");
                         return;
                     }
@@ -224,15 +224,15 @@ public partial class Form_AccountSetting : MaterialForm {
                 //Trace.WriteLine("ShowDialog ID : " + id);
                 //Trace.WriteLine("ShowDialog PW : " + pw);
 
-                ConfigManager.removeConfig(original_id); //기존 아이디,비번 삭제
-                ConfigManager.addConfig(id, pw); //새로운 아이디, 비번 등록
+                ConfigManager.RemoveConfig(original_id); //기존 아이디,비번 삭제
+                ConfigManager.AddConfig(id, pw); //새로운 아이디, 비번 등록
 
-                ConfigManager.removeConfig(original_id + "_nickname"); //기존 닉네임 삭제
-                ConfigManager.addConfig(id + "_nickname", nickname); //새로운 닉네임 등록
+                ConfigManager.RemoveConfig(original_id + "_nickname"); //기존 닉네임 삭제
+                ConfigManager.AddConfig(id + "_nickname", nickname); //새로운 닉네임 등록
 
-                string list = ConfigManager.getConfig("account_list");
+                string list = ConfigManager.GetConfig("account_list");
                 list = list.Replace(original_id, id);
-                ConfigManager.setConfig("account_list", list);
+                ConfigManager.SetConfig("account_list", list);
 
                 LoadListBox();
             }
@@ -246,23 +246,23 @@ public partial class Form_AccountSetting : MaterialForm {
         if (dr == DialogResult.No) { return; }
         if (materialListBox1.SelectedIndex == -1) { return; }
         int index = materialListBox1.SelectedIndex;
-        byte current_preset = Byte.Parse(ConfigManager.getConfig("current_preset"));
-        int[] temp = Array.ConvertAll(ConfigManager.getConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
+        byte current_preset = Byte.Parse(ConfigManager.GetConfig("current_preset"));
+        int[] temp = Array.ConvertAll(ConfigManager.GetConfig("current_comboBox_index_preset_" + current_preset).Split(';'), s => int.Parse(s));
         StringBuilder sb = new StringBuilder();
         foreach (var item in temp) {
             if (item > index) { sb.Append((item - 1).ToString() + ';'); } else { sb.Append(item.ToString() + ';'); }
         }
         sb.Remove(sb.Length - 1, 1);
-        ConfigManager.setConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
+        ConfigManager.SetConfig("current_comboBox_index_preset_" + current_preset, sb.ToString());
         string id = materialListBox1.SelectedItem.Text;
         if (id.Contains(" (") && id.Contains(")")) {
             id = id.Substring(0, id.IndexOf(" "));
         }
-        ConfigManager.removeConfig(id);
-        ConfigManager.removeConfig(id + "_nickname");
-        string account_list = ConfigManager.getConfig("account_list");
+        ConfigManager.RemoveConfig(id);
+        ConfigManager.RemoveConfig(id + "_nickname");
+        string account_list = ConfigManager.GetConfig("account_list");
         account_list = account_list.Remove(account_list.IndexOf(id), id.Length + 1);
-        ConfigManager.setConfig("account_list", account_list);
+        ConfigManager.SetConfig("account_list", account_list);
         materialListBox1.RemoveItemAt(index);
 
         LoadListBox();
@@ -270,11 +270,11 @@ public partial class Form_AccountSetting : MaterialForm {
 
     private void LoadListBox() {
         materialListBox1.Clear();
-        string[] accountList = ConfigManager.getConfig("account_list").Split(';');
+        string[] accountList = ConfigManager.GetConfig("account_list").Split(';');
         foreach (var item in accountList) {
             if (item == "") continue;
 
-            string nickname = ConfigManager.getConfig(item + "_nickname");
+            string nickname = ConfigManager.GetConfig(item + "_nickname");
             if (nickname == "" || nickname == item) { materialListBox1.AddItem(item); } 
             else { materialListBox1.AddItem(item + " (" + nickname + ")"); }
         }

@@ -27,11 +27,11 @@ internal static class Program {
 
         // 중복 실행인 경우 기존 프로세스를 찾아 창을 활성화 시킨다.
         if(processes.Length > 1) {
-            if (processes.Length > 2) return; // 이미 다른 프로세스가 일련의 작업 수행 중일 수 있음
+            if(processes.Length > 2) return; // 이미 다른 프로세스가 일련의 작업 수행 중일 수 있음
             // 기존 프로세스를 찾는다
             Process? other = null;
             foreach(var process in processes) {
-                if (process != current) {
+                if(process != current) {
                     other = process;
                     break;
                 }
@@ -40,7 +40,7 @@ internal static class Program {
 
             // MainWindowHandle이 Zero인 경우 Tray 모드라는 것을 의미한다 (Minimize & ShowInTaskbar = false 상태)
             // https://stackoverflow.com/questions/25961231/unhide-process-by-its-process-name
-            if (other.MainWindowHandle == IntPtr.Zero) { 
+            if(other.MainWindowHandle == IntPtr.Zero) { 
                 IntPtr handle = IntPtr.Zero;
                 int prcsId = 0;
                 do {

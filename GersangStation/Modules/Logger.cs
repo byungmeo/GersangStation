@@ -9,7 +9,7 @@ public static class Logger {
             if(!Directory.Exists(PATH)) Directory.CreateDirectory(PATH);
             using StreamWriter sw = new StreamWriter($"{PATH}/{FILE_NAME}", true, System.Text.Encoding.UTF8);
             sw.WriteLine($"[{DateTime.Now}] : {msg}");
-        } catch (Exception e) {
+        } catch(Exception e) {
             Trace.WriteLine(e.Message);
         }
     }
