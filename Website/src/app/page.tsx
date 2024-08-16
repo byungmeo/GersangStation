@@ -49,6 +49,10 @@ const QAList: {
   {
     filename: "4.IP차단문제.md",
     question: "해당IP는 로그인이 차단되었습니다.",
+  },
+  {
+    filename: "5.무반응문제.md",
+    question: "프로그램을 실행해도 아무 반응이 없습니다.",
   }
 ];
 
