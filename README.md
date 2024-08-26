@@ -4,6 +4,7 @@
 
 # 🚀 GersangStation
 거상 다클라 유저를 위한 종합 유틸리티 프로그램 입니다.<br><br>
+[다운로드](https://github.com/byungmeo/GersangStation/releases/latest)<br><br>
 ![image](https://user-images.githubusercontent.com/37506142/214721564-b6edc371-e54a-483f-a797-fdaee073cec2.png)
 
 # ✨ Features
