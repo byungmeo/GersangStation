@@ -12,7 +12,11 @@ public partial class Form_Patcher : MaterialForm {
     private const int NUM_RETRY = 15; // 모든 파일 다운로드 실패 시 다운로드 재시도 최대 횟수
 
     private string path_main;
+    private string path_client_2;
+    private string path_client_3;
+    [Obsolete]
     private string name_client_2;
+    [Obsolete]
     private string name_client_3;
     private string url_info;
     private string url_patch;
@@ -43,11 +47,11 @@ public partial class Form_Patcher : MaterialForm {
         url_vsn = $@"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/{serverName}/Client_Patch_File/Online/vsn.dat.gsz";
 
         path_main = ConfigManager.GetConfig($"client_path_{Opt}1");
-        name_client_2 = ConfigManager.GetConfig($"client_path_{Opt}2");
-        name_client_3 = ConfigManager.GetConfig($"client_path_{Opt}3");
+        path_client_2 = ConfigManager.GetConfig($"client_path_{Opt}2");
+        path_client_3 = ConfigManager.GetConfig($"client_path_{Opt}3");
 
-        if(name_client_2 != "") name_client_2 = name_client_2.Substring(name_client_2.LastIndexOf('\\') + 1);
-        if(name_client_3 != "") name_client_3 = name_client_3.Substring(name_client_3.LastIndexOf('\\') + 1);
+        //if(path_client_2 != "") name_client_2 = path_client_2.Substring(path_client_2.LastIndexOf('\\') + 1);
+        //if(path_client_3 != "") name_client_3 = path_client_3.Substring(path_client_3.LastIndexOf('\\') + 1);
 
         version_current = VersionChecker.GetCurrentVersion(this, path_main);
         version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
@@ -61,7 +65,7 @@ public partial class Form_Patcher : MaterialForm {
         textBox_currentVersion.Text = version_current;
         textBox_latestVersion.Text = version_latest;
 
-        if(name_client_2 == "" && name_client_3 == "") {
+        if(path_client_2 == "" && path_client_3 == "") {
             materialCheckbox_apply.Checked = false;
             materialCheckbox_apply.Enabled = false;
             toolTip1.Active = true;
@@ -87,28 +91,28 @@ public partial class Form_Patcher : MaterialForm {
             return;
         }
 
-        bool flag = true;
-        Action<DirectoryInfo> check = (pathInfo) => {
-            if(false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-                DialogResult dr = MessageBox.Show("복사-붙여넣기를 통해 다클 생성 시\n거상 스테이션으로 패치가 불가능합니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 다클라 생성 방식", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                if(dr == DialogResult.OK) {
-                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
-                }
-                flag = false;
-            }
-        };
+        //bool flag = true;
+        //Action<DirectoryInfo> check = (pathInfo) => {
+        //    if(false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
+        //        DialogResult dr = MessageBox.Show("복사-붙여넣기를 통해 다클 생성 시\n거상 스테이션으로 패치가 불가능합니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 다클라 생성 방식", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        //        if(dr == DialogResult.OK) {
+        //            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
+        //        }
+        //        flag = false;
+        //    }
+        //};
 
-        if(name_client_2 != "") {
-            pathInfo = new DirectoryInfo(name_client_2 + "\\char");
-            check(pathInfo);
-            if(!flag) return;
-        }
+        //if(name_client_2 != "") {
+        //    pathInfo = new DirectoryInfo(name_client_2 + "\\char");
+        //    check(pathInfo);
+        //    if(!flag) return;
+        //}
 
-        if(name_client_3 != "") {
-            pathInfo = new DirectoryInfo(name_client_3 + "\\char");
-            check(pathInfo);
-            if(!flag) return;
-        }
+        //if(name_client_3 != "") {
+        //    pathInfo = new DirectoryInfo(name_client_3 + "\\char");
+        //    check(pathInfo);
+        //    if(!flag) return;
+        //}
 
         int equal = 1;
         if(version_current == version_latest) {
@@ -176,16 +180,16 @@ public partial class Form_Patcher : MaterialForm {
             return; // 다운로드 실패 시 패치 적용하지 않음.
         }
 
-        Logger.Log("압축 해제 및 본클라 패치 파일 적용 시작");
+        Logger.Log("압축 해제 및 패치 파일 적용 시작");
         ProgressChanged(this, new ProgressChangedEventArgs(60, $"압축 해제 중..."));
-        ExtractAll(directory_file.FullName);
+        ExtractAll(directory_file.FullName, materialCheckbox_apply.Checked);
 
-        //다클라 패치 적용
-        if(materialCheckbox_apply.Checked) {
-            Logger.Log("다클라 패치 시작");
-            ProgressChanged(this, new ProgressChangedEventArgs(80, $"다클라 패치 적용 중..."));
-            ClientCreator.CreateClient(this, path_main, name_client_2, name_client_3);
-        }
+        ////다클라 패치 적용
+        //if(materialCheckbox_apply.Checked) {
+        //    Logger.Log("다클라 패치 시작");
+        //    ProgressChanged(this, new ProgressChangedEventArgs(80, $"다클라 패치 적용 중..."));
+        //    ClientCreator.CreateClient(this, path_main, name_client_2, name_client_3);
+        //}
 
         //패치 후 파일 삭제
         if(materialCheckbox_delete.Checked) {
@@ -265,15 +269,39 @@ public partial class Form_Patcher : MaterialForm {
         }
     }
 
-    public void ExtractAll(string patch_dir) {
+    public void ExtractAll(string patch_dir, bool withClients) {
         foreach(string file in Directory.EnumerateFiles(patch_dir, "*.*", SearchOption.AllDirectories)) {
-            string dest = path_main + file.Remove(0, patch_dir.Length);
-            dest = dest.Remove(dest.LastIndexOf('\\'));
-            Trace.WriteLine(file + " -> " + dest);
+            string dest1 = path_main + file.Remove(0, patch_dir.Length);
+            dest1 = dest1.Remove(dest1.LastIndexOf('\\'));
+            Trace.WriteLine(file + " -> " + dest1);
             try {
-                ZipFile.ExtractToDirectory(file, dest, true);
+                ZipFile.ExtractToDirectory(file, dest1, true);
             } catch(Exception ex) {
                 Logger.Log("압축 오류 발생 : " + file, ex);
+            }
+
+            if(withClients) {
+                if(path_client_2 != "") {
+                    string dest2 = path_client_2 + file.Remove(0, patch_dir.Length);
+                    dest2 = dest2.Remove(dest2.LastIndexOf('\\'));
+                    Trace.WriteLine(file + " -> " + dest2);
+                    try {
+                        ZipFile.ExtractToDirectory(file, dest2, true);
+                    } catch(Exception ex) {
+                        Logger.Log("압축 오류 발생 : " + file, ex);
+                    }
+                }
+                
+                if(path_client_3 != "") {
+                    string dest3 = path_client_3 + file.Remove(0, patch_dir.Length);
+                    dest3 = dest3.Remove(dest3.LastIndexOf('\\'));
+                    Trace.WriteLine(file + " -> " + dest3);
+                    try {
+                        ZipFile.ExtractToDirectory(file, dest3, true);
+                    } catch(Exception ex) {
+                        Logger.Log("압축 오류 발생 : " + file, ex);
+                    }
+                }
             }
         }
     }

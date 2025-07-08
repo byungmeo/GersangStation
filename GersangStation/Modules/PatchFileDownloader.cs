@@ -85,16 +85,39 @@ internal class PatchFileDownloader {
         }
     }
 
-    public void ExtractAll(string patch_dir, string main_dir) {
+    public void ExtractAll(string patch_dir, string main_dir, string client2_dir, string client3_dir, bool withClients) {
         foreach(string file in Directory.EnumerateFiles(patch_dir, "*.*", SearchOption.AllDirectories)) {
-            string dest = main_dir + file.Remove(0, patch_dir.Length);
-            dest = dest.Remove(dest.LastIndexOf('\\'));
-            Trace.WriteLine(file + " -> " + dest);
+            string dest1 = main_dir + file.Remove(0, patch_dir.Length);
+            dest1 = dest1.Remove(dest1.LastIndexOf('\\'));
+            Trace.WriteLine(file + " -> " + dest1);
             try {
-                ZipFile.ExtractToDirectory(file, dest, true);
+                ZipFile.ExtractToDirectory(file, dest1, true);
             } catch(Exception ex) {
-                Trace.WriteLine("압축 오류 발생 : " + file);
-                Trace.WriteLine(ex.StackTrace);
+                Logger.Log("압축 오류 발생 : " + file, ex);
+            }
+
+            if(withClients) {
+                if(client2_dir != "") {
+                    string dest2 = client2_dir + file.Remove(0, patch_dir.Length);
+                    dest2 = dest2.Remove(dest2.LastIndexOf('\\'));
+                    Trace.WriteLine(file + " -> " + dest2);
+                    try {
+                        ZipFile.ExtractToDirectory(file, dest2, true);
+                    } catch(Exception ex) {
+                        Logger.Log("압축 오류 발생 : " + file, ex);
+                    }
+                }
+
+                if(client3_dir != "") {
+                    string dest3 = client3_dir + file.Remove(0, patch_dir.Length);
+                    dest3 = dest3.Remove(dest3.LastIndexOf('\\'));
+                    Trace.WriteLine(file + " -> " + dest3);
+                    try {
+                        ZipFile.ExtractToDirectory(file, dest3, true);
+                    } catch(Exception ex) {
+                        Logger.Log("압축 오류 발생 : " + file, ex);
+                    }
+                }
             }
         }
     }

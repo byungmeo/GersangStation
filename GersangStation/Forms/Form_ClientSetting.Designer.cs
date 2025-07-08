@@ -36,10 +36,8 @@
             materialLabel4 = new MaterialSkin.Controls.MaterialLabel();
             materialLabel5 = new MaterialSkin.Controls.MaterialLabel();
             materialButton_patch = new MaterialSkin.Controls.MaterialButton();
-            materialButton_createClient = new MaterialSkin.Controls.MaterialButton();
             materialButton_save = new MaterialSkin.Controls.MaterialButton();
             comboBox_selectServer = new ComboBox();
-            label1 = new Label();
             SuspendLayout();
             // 
             // materialButton_findPath_3
@@ -137,7 +135,7 @@
             materialCheckbox_autoUpdate.Checked = true;
             materialCheckbox_autoUpdate.CheckState = CheckState.Checked;
             materialCheckbox_autoUpdate.Depth = 0;
-            materialCheckbox_autoUpdate.Location = new Point(48, 247);
+            materialCheckbox_autoUpdate.Location = new Point(48, 197);
             materialCheckbox_autoUpdate.Margin = new Padding(0);
             materialCheckbox_autoUpdate.MouseLocation = new Point(-1, -1);
             materialCheckbox_autoUpdate.MouseState = MaterialSkin.MouseState.HOVER;
@@ -210,39 +208,18 @@
             materialButton_patch.Depth = 0;
             materialButton_patch.HighEmphasis = true;
             materialButton_patch.Icon = null;
-            materialButton_patch.Location = new Point(368, 103);
+            materialButton_patch.Location = new Point(368, 117);
             materialButton_patch.Margin = new Padding(4, 6, 4, 6);
             materialButton_patch.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_patch.Name = "materialButton_patch";
             materialButton_patch.NoAccentTextColor = Color.Empty;
-            materialButton_patch.Size = new Size(75, 24);
+            materialButton_patch.Size = new Size(75, 53);
             materialButton_patch.TabIndex = 77;
             materialButton_patch.Text = "강제패치";
             materialButton_patch.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
             materialButton_patch.UseAccentColor = false;
             materialButton_patch.UseVisualStyleBackColor = true;
             materialButton_patch.Click += materialButton_patch_Click;
-            // 
-            // materialButton_createClient
-            // 
-            materialButton_createClient.AutoSize = false;
-            materialButton_createClient.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton_createClient.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton_createClient.Depth = 0;
-            materialButton_createClient.HighEmphasis = true;
-            materialButton_createClient.Icon = null;
-            materialButton_createClient.Location = new Point(368, 133);
-            materialButton_createClient.Margin = new Padding(4, 6, 4, 6);
-            materialButton_createClient.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton_createClient.Name = "materialButton_createClient";
-            materialButton_createClient.NoAccentTextColor = Color.Empty;
-            materialButton_createClient.Size = new Size(75, 52);
-            materialButton_createClient.TabIndex = 78;
-            materialButton_createClient.Text = "다클생성";
-            materialButton_createClient.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton_createClient.UseAccentColor = true;
-            materialButton_createClient.UseVisualStyleBackColor = true;
-            materialButton_createClient.Click += materialButton_createClient_Click;
             // 
             // materialButton_save
             // 
@@ -252,7 +229,7 @@
             materialButton_save.Depth = 0;
             materialButton_save.HighEmphasis = true;
             materialButton_save.Icon = Properties.Resources.save;
-            materialButton_save.Location = new Point(176, 295);
+            materialButton_save.Location = new Point(176, 245);
             materialButton_save.Margin = new Padding(4, 6, 4, 6);
             materialButton_save.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_save.Name = "materialButton_save";
@@ -280,27 +257,13 @@
             comboBox_selectServer.TabIndex = 83;
             comboBox_selectServer.SelectedIndexChanged += comboBox_selectServer_SelectedIndexChanged;
             // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Font = new Font("맑은 고딕", 9.75F, FontStyle.Bold, GraphicsUnit.Point);
-            label1.ForeColor = Color.Red;
-            label1.Location = new Point(54, 206);
-            label1.Name = "label1";
-            label1.Size = new Size(346, 34);
-            label1.TabIndex = 84;
-            label1.Text = "본클라는 반드시 원본 거상 폴더여야만 합니다!!\r\n다클라 생성기로 생성한 폴더는 본클라가 될 수 없습니다!";
-            label1.TextAlign = ContentAlignment.MiddleCenter;
-            // 
             // Form_ClientSetting
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(456, 342);
-            Controls.Add(label1);
+            ClientSize = new Size(456, 293);
             Controls.Add(comboBox_selectServer);
             Controls.Add(materialButton_save);
-            Controls.Add(materialButton_createClient);
             Controls.Add(materialButton_patch);
             Controls.Add(materialLabel5);
             Controls.Add(materialLabel4);
@@ -341,9 +304,7 @@
         private MaterialSkin.Controls.MaterialLabel materialLabel4;
         private MaterialSkin.Controls.MaterialLabel materialLabel5;
         private MaterialSkin.Controls.MaterialButton materialButton_patch;
-        private MaterialSkin.Controls.MaterialButton materialButton_createClient;
         private MaterialSkin.Controls.MaterialButton materialButton_save;
         private ComboBox comboBox_selectServer;
-        private Label label1;
     }
 }

@@ -616,6 +616,7 @@
             materialButton_integrity.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             materialButton_integrity.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
             materialButton_integrity.Depth = 0;
+            materialButton_integrity.Enabled = false;
             materialButton_integrity.HighEmphasis = true;
             materialButton_integrity.Icon = null;
             materialButton_integrity.Location = new Point(24, 192);

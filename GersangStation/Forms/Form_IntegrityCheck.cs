@@ -89,7 +89,7 @@ public partial class Form_IntegrityCheck : MaterialForm {
                     clientPath += @"\";
                 }
 
-                downloader.ExtractAll(Directory.GetCurrentDirectory() + @"\Temp\", clientPath);
+                downloader.ExtractAll(Directory.GetCurrentDirectory() + @"\Temp\", clientPath, "", "", false);
                 materialButton_start.Text = "완료";
                 materialButton_start.Enabled = false;
                 materialExpansionPanel1.Hide();

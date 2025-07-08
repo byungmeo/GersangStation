@@ -47,6 +47,7 @@ public partial class Form_ClientSetting : MaterialForm {
         isChanged = false;
     }
 
+    [Obsolete]
     private void materialButton_createClient_Click(object sender, EventArgs e) {
         MaterialButton button = (MaterialButton)sender;
 

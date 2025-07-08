@@ -1,7 +1,10 @@
 ﻿using System.Diagnostics;
 
 namespace GersangStation.Modules;
+
+[Obsolete]
 internal class ClientCreator {
+    [Obsolete]
     /// <summary>
     /// 다클라 생성이 가능한 경로(드라이브)인지 검사합니다.
     /// </summary>
@@ -56,6 +59,7 @@ internal class ClientCreator {
         }
     }
 
+    [Obsolete]
     /// <summary>
     /// <para>해당 다클라가 심볼릭 링크로 생성한 것인지 검증합니다.</para>
     /// <para>원본 클라이언트가 심볼릭 링크인지 판단하려면 <paramref name="isOrg"/>를 <see langword="true"/>로,</para>
@@ -103,6 +107,7 @@ internal class ClientCreator {
         }
     }
 
+    [Obsolete]
     //성공 여부를 반환합니다.
     public static bool CreateClient(Form owner, string orgPath, string name2, string name3) {
         string orgOnlinePath = orgPath + "\\Online";
@@ -210,7 +215,7 @@ internal class ClientCreator {
         return true;
     }
 
-    //private로 바꿀 것
+    [Obsolete]
     private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs) {
         // Get the subdirectories for the specified directory.
         DirectoryInfo dir = new DirectoryInfo(sourceDirName);
