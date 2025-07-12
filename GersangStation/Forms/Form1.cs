@@ -265,6 +265,13 @@ public partial class Form1 : MaterialForm {
             return;
         }
 
+        // 본인인증창 취소 (주민등록번호 파기로 인한 인증정보 없는 계정들 전용)
+        if(url.Contains("member/convert.gs")) {
+            Logger.Log($"Info - PASS member/convert.gs");
+            webView_main.CoreWebView2.Navigate(url_main);
+            return;
+        }
+
         // 휴대폰 본인인증 페이지라면, 본인인증 안내창 띄우기
         if(url.Contains("loginCertUp.gs")) {
             this.BeginInvoke(() => {
