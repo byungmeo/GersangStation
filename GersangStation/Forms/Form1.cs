@@ -212,7 +212,14 @@ public partial class Form1 : MaterialForm {
                     MessageBox.Show("OTP 코드를 입력하지 않았습니다.");
                 } else {
                     await webView_main.ExecuteScriptAsync("document.getElementById('GSotpNo').value = '" + otpCode + "'");
-                    await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
+
+                    // btn_Send.click과 연결된 otp.js 파일이 깨지는 경우 작동하지 않는 문제 발생으로 DEPRECATED
+                    // await webView_main.ExecuteScriptAsync("document.getElementById('btn_Send').click()");
+
+                    // otp.js의 동작은 btn_Send를 클릭했을 때 otpProc.gs로 POST 요청을 보내는 것인데.. 이미 frm이라는 form의 제출 동작으로 HTML에 정의되어 있다.
+                    // OTP 입력 후 엔터 버튼을 누르면 로그인이 되는 이유이기도 하다.
+                    // 결론적으로, 예기치 못하게 otp.js 파일이 깨지는 경우를 대비하기 위해 "otpProc.gs" 라는 action을 가진 form을 찾아 제출하는 것으로 바꾼 것이다.
+                    await webView_main.ExecuteScriptAsync("document.querySelector('form[action=\"otpProc.gs\"]').submit()");
                 }
             }
 
