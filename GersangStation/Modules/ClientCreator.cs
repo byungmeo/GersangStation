@@ -2,9 +2,7 @@
 
 namespace GersangStation.Modules;
 
-[Obsolete]
 internal class ClientCreator {
-    [Obsolete]
     /// <summary>
     /// 다클라 생성이 가능한 경로(드라이브)인지 검사합니다.
     /// </summary>
@@ -59,57 +57,95 @@ internal class ClientCreator {
         }
     }
 
-    [Obsolete]
     /// <summary>
-    /// <para>해당 다클라가 심볼릭 링크로 생성한 것인지 검증합니다.</para>
-    /// <para>원본 클라이언트가 심볼릭 링크인지 판단하려면 <paramref name="isOrg"/>를 <see langword="true"/>로,</para>
-    /// <para>다클라가 심볼릭 링크인지 판단하려면 <see langword="false"/>로 설정 하세요.</para>
+    /// <para>해당 거상 클라이언트 경로가 유효한지 판단합니다.</para>
+    /// <para>원본 클라이언트 경로라면 <paramref name="isOrg"/>를 <see langword="true"/>로,</para>
+    /// <para>다클라 경로라면 <see langword="false"/>로 설정 하세요.</para>
     /// </summary>
-    private static bool IsSymbolic(Form owner, string path, bool isOrg) {
+    public static bool IsValidPath(Form owner, string path, bool isOrg) {
         DirectoryInfo pathInfo = new DirectoryInfo(path + "\\char");
-        if(isOrg) {
-            if(pathInfo.Exists) {
-                if(true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-                    owner.BeginInvoke(() => {
-                        MessageBox.Show(owner,
-                            "본클라 경로가 올바르지 않습니다." +
-                            "\n다클 생성기로 생성한 클라이언트는 본클라가 될 수 없습니다.",
-                            "잘못된 본클라 경로",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    });
-                    return true;
-                }
-                return false;
-            } else {
+        if(false == Directory.Exists(path)) {
+            owner.BeginInvoke(() => {
+                MessageBox.Show(owner,
+                    "존재하지 않는 경로입니다." +
+                    $"\n{path}",
+                    $"잘못된 {(isOrg ? "본클라" : "다클라")} 경로",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            });
+            return false;
+        }
+
+        if(false == File.Exists(Path.Combine(path, "Gersang.exe"))) {
+            owner.BeginInvoke(() => {
+                MessageBox.Show(owner,
+                    "경로에 Gersang.exe 파일이 존재하지 않습니다." +
+                    "\n거상 클라이언트 경로가 맞는지 확인해주세요." +
+                    $"\n{path}",
+                    $"잘못된 {(isOrg ? "본클라" : "다클라")} 경로",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            });
+            return false;
+        }
+
+        bool useSymbolic = bool.Parse(ConfigManager.GetConfig("use_symbolic"));
+        bool isSymbolicClient = false;
+        foreach(string dirPath in Directory.GetDirectories(path)) {
+            var info = new DirectoryInfo(dirPath);
+
+            if(info.ResolveLinkTarget(false) != null) {
+                isSymbolicClient = true;
+                break;
+            }
+        }
+
+        // 본클라 경로가 symlink 방식으로 생성되었다면 유효하지 않음
+        if(isOrg && isSymbolicClient) {
+            owner.BeginInvoke(() => {
+                MessageBox.Show(owner,
+                    "본클라 경로가 올바르지 않습니다." +
+                    "\n다클 생성 기능을 통해 생성된 클라이언트는 본클라가 될 수 없습니다." +
+                    $"\n{path}",
+                    "잘못된 본클라 경로",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            });
+            return false;
+        }
+
+        if(!isOrg) { 
+            if(useSymbolic && !isSymbolicClient) {
+                // 심볼릭 다클 생성 방식을 사용하고 있는데 다클라 경로가 symlink 방식으로 생성된게 아니라면
                 owner.BeginInvoke(() => {
                     MessageBox.Show(owner,
-                        "본클라 경로가 올바르지 않습니다." +
-                        "\n거상 폴더가 맞는지 다시 확인해주세요.",
-                        "잘못된 본클라 경로",
+                        "지정된 경로의 클라이언트 생성 방식이 유효하지 않습니다." +
+                        "\n심볼릭 다클 생성 옵션이 활성화된 경우 프로그램 내 다클 생성 기능을 통해 생성하서야 합니다." +
+                        $"\n{path}",
+                        "잘못된 다클라 경로",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/60") { UseShellExecute = true });
                 });
-                return true; // true를 반환해야 다클 생성을 더 진행하지 않는다
+                return false;
             }
-        } else {
-            if(pathInfo.Exists) {
-                if(false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-                    owner.BeginInvoke(() => {
-                        MessageBox.Show(owner, 
-                            "이미 복사-붙여넣기로 생성한 다클라 폴더가 존재합니다.", 
-                            "다클라 생성(패치 적용) 불가", 
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
-                    });
-                    return false;
-                }
+
+            if(!useSymbolic && isSymbolicClient) {
+                // 다클라 생성 기능을 사용하지 않고 있는데 다클라 경로가 symlink 방식으로 생성되었다면
+                owner.BeginInvoke(() => {
+                    MessageBox.Show(owner,
+                        "지정된 경로의 클라이언트 생성 방식이 유효하지 않습니다." +
+                        "\n확인 버튼을 누른 뒤 나타나는 페이지를 참고해주세요." +
+                        $"\n{path}",
+                        "잘못된 다클라 경로",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/60") { UseShellExecute = true });
+                });
+                return false;
             }
-            return true; // 다클라 폴더는 존재하지 않아도 상관 없다.
         }
+
+        return true;
     }
 
-    [Obsolete]
     //성공 여부를 반환합니다.
-    public static bool CreateClient(Form owner, string orgPath, string name2, string name3) {
+    public static bool CreateClient(Form owner, string orgPath, string secondPath, string thirdPath) {
         string orgOnlinePath = orgPath + "\\Online";
 
         if(false == Directory.Exists(orgPath)) {
@@ -125,25 +161,27 @@ internal class ClientCreator {
         if(false == IsValidDrive(owner, orgPath)) return false;
         Trace.WriteLine("드라이브 유효성 검사 완료");
 
-        if(true == IsSymbolic(owner, orgPath, true)) return false;
+        if(false == IsValidPath(owner, orgPath, true)) return false;
         Trace.WriteLine("원본 클라 확인 완료");
 
-        // 거상 폴더 내 파일을 복사하는 Action 정의
-        Action<string> copy = (path) => {
+        // 거상 폴더 내 파일을 복사하는 로컬 함수
+        void copy(string path) {
             foreach(string eachFilePath in Directory.GetFiles(orgPath)) {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
                 string extension = Path.GetExtension(eachFilePath); // '.' 포함
-                if(extension == ".tmp" || extension == ".bmp" || extension == ".dmp") continue;
+                if(extension == ".tmp" || extension == ".bmp" || extension == ".dmp")
+                    continue;
                 Trace.WriteLine("COPY : " + eachFilePath + " -> " + path + fileName);
                 File.Copy(eachFilePath, path + fileName, true);
             }
-        };
+        }
 
-        // 거상 폴더 내 폴더 심볼릭링크 생성 (XIGNCODE, Online는 별도 복사 또는 생성)
-        Action<string> symbolic = (path) => {
+        // 거상 폴더 내 폴더 심볼릭링크 생성하는 로컬 함수 (XIGNCODE, Online는 별도 복사 또는 생성)
+        void symbolic(string path) {
             foreach(string eachDirPath in Directory.GetDirectories(orgPath)) {
                 string? dirName = new DirectoryInfo(eachDirPath).Name;
-                if(dirName == "XIGNCODE" || dirName == "Online") continue;
+                if(dirName == "XIGNCODE" || dirName == "Online")
+                    continue;
                 string linkPath = path + '\\' + dirName;
                 Trace.WriteLine("SYMLINK_DIR" + linkPath + ", " + eachDirPath);
                 if(Directory.Exists(linkPath)) { Directory.Delete(linkPath); }
@@ -157,7 +195,8 @@ internal class ClientCreator {
             // Online 폴더 생성
             string onlinePath = path + "\\Online";
             if(true == Directory.Exists(onlinePath)) {
-                if(true == File.GetAttributes(onlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(onlinePath); };
+                if(true == File.GetAttributes(onlinePath).HasFlag(FileAttributes.ReparsePoint)) { Directory.Delete(onlinePath); }
+                ;
             }
             Directory.CreateDirectory(onlinePath);
 
@@ -166,7 +205,7 @@ internal class ClientCreator {
                 string fileName = eachFilePath.Substring(eachFilePath.LastIndexOf('\\')); // \파일이름
                 if(fileName == "\\KeySetting.dat" || fileName == "\\PetSetting.dat" || fileName == "\\AKinteractive.cfg" || fileName == "\\CombineInfo.txt") {
                     if(File.Exists(onlinePath + fileName)) {
-                        if(File.GetAttributes(onlinePath + fileName).HasFlag(FileAttributes.ReparsePoint)) { 
+                        if(File.GetAttributes(onlinePath + fileName).HasFlag(FileAttributes.ReparsePoint)) {
                             // 설정 파일들이 이미 심볼릭 링크일 경우 삭제하고 복사합니다.
                             File.Delete(onlinePath + fileName);
                             Trace.WriteLine("COPY : " + eachFilePath + " -> " + onlinePath + fileName);
@@ -191,21 +230,21 @@ internal class ClientCreator {
                 if(Directory.Exists(linkPath)) { Directory.Delete(linkPath, true); }
                 Directory.CreateSymbolicLink(linkPath, eachDirPath);
             }
-        };
+        }
 
         // 2클라 생성
-        if(name2 != "") {
-            string secondPath = orgPath + "\\..\\" + name2;
-            if(false == IsSymbolic(owner, secondPath, false)) return false;
+        if(secondPath != "") {
+            if(Directory.Exists(secondPath) && false == IsValidPath(owner, secondPath, false))
+                return false;
             Directory.CreateDirectory(secondPath); // 거상 폴더 생성
             copy(secondPath); // 거상 폴더 내 파일 복사
             symbolic(secondPath);
         }
 
         // 3클라 생성
-        if(name3 != "") {
-            string thirdPath = orgPath + "\\..\\" + name3;
-            if(false == IsSymbolic(owner, thirdPath, false)) return false;
+        if(thirdPath != "") {
+            if(Directory.Exists(thirdPath) && false == IsValidPath(owner, thirdPath, false))
+                return false;
             Directory.CreateDirectory(thirdPath); // 거상 폴더 생성
             copy(thirdPath); // 거상 폴더 내 파일 복사
             symbolic(thirdPath);
@@ -215,7 +254,6 @@ internal class ClientCreator {
         return true;
     }
 
-    [Obsolete]
     private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs) {
         // Get the subdirectories for the specified directory.
         DirectoryInfo dir = new DirectoryInfo(sourceDirName);

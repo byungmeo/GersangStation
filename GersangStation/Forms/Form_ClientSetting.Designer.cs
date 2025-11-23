@@ -38,6 +38,8 @@
             materialButton_patch = new MaterialSkin.Controls.MaterialButton();
             materialButton_save = new MaterialSkin.Controls.MaterialButton();
             comboBox_selectServer = new ComboBox();
+            materialButton_createClient = new MaterialSkin.Controls.MaterialButton();
+            materialCheckbox_useSymbolic = new MaterialSkin.Controls.MaterialCheckbox();
             SuspendLayout();
             // 
             // materialButton_findPath_3
@@ -208,12 +210,12 @@
             materialButton_patch.Depth = 0;
             materialButton_patch.HighEmphasis = true;
             materialButton_patch.Icon = null;
-            materialButton_patch.Location = new Point(368, 117);
+            materialButton_patch.Location = new Point(364, 104);
             materialButton_patch.Margin = new Padding(4, 6, 4, 6);
             materialButton_patch.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_patch.Name = "materialButton_patch";
             materialButton_patch.NoAccentTextColor = Color.Empty;
-            materialButton_patch.Size = new Size(75, 53);
+            materialButton_patch.Size = new Size(75, 35);
             materialButton_patch.TabIndex = 77;
             materialButton_patch.Text = "강제패치";
             materialButton_patch.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
@@ -229,7 +231,7 @@
             materialButton_save.Depth = 0;
             materialButton_save.HighEmphasis = true;
             materialButton_save.Icon = Properties.Resources.save;
-            materialButton_save.Location = new Point(176, 245);
+            materialButton_save.Location = new Point(176, 277);
             materialButton_save.Margin = new Padding(4, 6, 4, 6);
             materialButton_save.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_save.Name = "materialButton_save";
@@ -257,11 +259,54 @@
             comboBox_selectServer.TabIndex = 83;
             comboBox_selectServer.SelectedIndexChanged += comboBox_selectServer_SelectedIndexChanged;
             // 
+            // materialButton_createClient
+            // 
+            materialButton_createClient.AutoSize = false;
+            materialButton_createClient.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_createClient.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_createClient.Depth = 0;
+            materialButton_createClient.Enabled = false;
+            materialButton_createClient.HighEmphasis = true;
+            materialButton_createClient.Icon = null;
+            materialButton_createClient.Location = new Point(364, 151);
+            materialButton_createClient.Margin = new Padding(4, 6, 4, 6);
+            materialButton_createClient.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_createClient.Name = "materialButton_createClient";
+            materialButton_createClient.NoAccentTextColor = Color.Empty;
+            materialButton_createClient.Size = new Size(75, 35);
+            materialButton_createClient.TabIndex = 84;
+            materialButton_createClient.Text = "다클생성";
+            materialButton_createClient.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_createClient.UseAccentColor = false;
+            materialButton_createClient.UseVisualStyleBackColor = true;
+            materialButton_createClient.Click += materialButton_createClient_Click;
+            // 
+            // materialCheckbox_useSymbolic
+            // 
+            materialCheckbox_useSymbolic.AutoSize = true;
+            materialCheckbox_useSymbolic.Checked = true;
+            materialCheckbox_useSymbolic.CheckState = CheckState.Checked;
+            materialCheckbox_useSymbolic.Depth = 0;
+            materialCheckbox_useSymbolic.Location = new Point(48, 234);
+            materialCheckbox_useSymbolic.Margin = new Padding(0);
+            materialCheckbox_useSymbolic.MouseLocation = new Point(-1, -1);
+            materialCheckbox_useSymbolic.MouseState = MaterialSkin.MouseState.HOVER;
+            materialCheckbox_useSymbolic.Name = "materialCheckbox_useSymbolic";
+            materialCheckbox_useSymbolic.ReadOnly = false;
+            materialCheckbox_useSymbolic.Ripple = true;
+            materialCheckbox_useSymbolic.Size = new Size(217, 37);
+            materialCheckbox_useSymbolic.TabIndex = 85;
+            materialCheckbox_useSymbolic.Text = "심볼릭 다클 생성 활성화 (권장)";
+            materialCheckbox_useSymbolic.UseVisualStyleBackColor = true;
+            materialCheckbox_useSymbolic.CheckedChanged += materialCheckbox_useSymbolic_CheckedChanged;
+            // 
             // Form_ClientSetting
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(456, 293);
+            ClientSize = new Size(456, 324);
+            Controls.Add(materialCheckbox_useSymbolic);
+            Controls.Add(materialButton_createClient);
             Controls.Add(comboBox_selectServer);
             Controls.Add(materialButton_save);
             Controls.Add(materialButton_patch);
@@ -306,5 +351,7 @@
         private MaterialSkin.Controls.MaterialButton materialButton_patch;
         private MaterialSkin.Controls.MaterialButton materialButton_save;
         private ComboBox comboBox_selectServer;
+        private MaterialSkin.Controls.MaterialButton materialButton_createClient;
+        private MaterialSkin.Controls.MaterialCheckbox materialCheckbox_useSymbolic;
     }
 }

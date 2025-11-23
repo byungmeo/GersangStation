@@ -96,7 +96,8 @@ internal class PatchFileDownloader {
                 Logger.Log("압축 오류 발생 : " + file, ex);
             }
 
-            if(withClients) {
+            bool useSymbolic = bool.Parse(ConfigManager.GetConfig("use_symbolic"));
+            if(!useSymbolic && withClients) {
                 if(client2_dir != "") {
                     string dest2 = client2_dir + file.Remove(0, patch_dir.Length);
                     dest2 = dest2.Remove(dest2.LastIndexOf('\\'));

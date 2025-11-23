@@ -14,10 +14,6 @@ public partial class Form_Patcher : MaterialForm {
     private string path_main;
     private string path_client_2;
     private string path_client_3;
-    [Obsolete]
-    private string name_client_2;
-    [Obsolete]
-    private string name_client_3;
     private string url_info;
     private string url_patch;
     private string url_vsn;
@@ -49,9 +45,6 @@ public partial class Form_Patcher : MaterialForm {
         path_main = ConfigManager.GetConfig($"client_path_{Opt}1");
         path_client_2 = ConfigManager.GetConfig($"client_path_{Opt}2");
         path_client_3 = ConfigManager.GetConfig($"client_path_{Opt}3");
-
-        //if(path_client_2 != "") name_client_2 = path_client_2.Substring(path_client_2.LastIndexOf('\\') + 1);
-        //if(path_client_3 != "") name_client_3 = path_client_3.Substring(path_client_3.LastIndexOf('\\') + 1);
 
         version_current = VersionChecker.GetCurrentVersion(this, path_main);
         version_latest = VersionChecker.GetLatestVersion(this, url_vsn);
@@ -85,34 +78,21 @@ public partial class Form_Patcher : MaterialForm {
             version_current = textBox_currentVersion.Text;
         }
 
-        DirectoryInfo pathInfo = new DirectoryInfo(path_main + "\\char");
-        if(true == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-            MessageBox.Show("잘못된 본클라 경로입니다. 다시 지정해주세요.\n원인 : 원본 폴더가 아닌 생성기로 생성된 폴더입니다.", "경로 인식 실패", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        if(false == ClientCreator.IsValidPath(this, path_main, true)) {
             return;
         }
 
-        //bool flag = true;
-        //Action<DirectoryInfo> check = (pathInfo) => {
-        //    if(false == pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint)) {
-        //        DialogResult dr = MessageBox.Show("복사-붙여넣기를 통해 다클 생성 시\n거상 스테이션으로 패치가 불가능합니다.\n확인 버튼을 누르면 열리는 홈페이지를 참고해주세요.", "잘못된 다클라 생성 방식", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        //        if(dr == DialogResult.OK) {
-        //            Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/8") { UseShellExecute = true });
-        //        }
-        //        flag = false;
-        //    }
-        //};
+        if(path_client_2 != "") {
+            bool isValid = ClientCreator.IsValidPath(this, path_client_2, false);
+            if(!isValid)
+                return;
+        }
 
-        //if(name_client_2 != "") {
-        //    pathInfo = new DirectoryInfo(name_client_2 + "\\char");
-        //    check(pathInfo);
-        //    if(!flag) return;
-        //}
-
-        //if(name_client_3 != "") {
-        //    pathInfo = new DirectoryInfo(name_client_3 + "\\char");
-        //    check(pathInfo);
-        //    if(!flag) return;
-        //}
+        if(path_client_3 != "") {
+            bool isValid = ClientCreator.IsValidPath(this, path_client_3, false);
+            if(!isValid)
+                return;
+        }
 
         int equal = 1;
         if(version_current == version_latest) {
@@ -184,12 +164,13 @@ public partial class Form_Patcher : MaterialForm {
         ProgressChanged(this, new ProgressChangedEventArgs(60, $"압축 해제 중..."));
         ExtractAll(directory_file.FullName, materialCheckbox_apply.Checked);
 
-        ////다클라 패치 적용
-        //if(materialCheckbox_apply.Checked) {
-        //    Logger.Log("다클라 패치 시작");
-        //    ProgressChanged(this, new ProgressChangedEventArgs(80, $"다클라 패치 적용 중..."));
-        //    ClientCreator.CreateClient(this, path_main, name_client_2, name_client_3);
-        //}
+        //다클라 패치 적용
+        bool useSymbolic = bool.Parse(ConfigManager.GetConfig("use_symbolic"));
+        if(materialCheckbox_apply.Checked && useSymbolic) {
+            Logger.Log("다클라 패치 시작");
+            ProgressChanged(this, new ProgressChangedEventArgs(80, $"다클라 패치 적용 중..."));
+            ClientCreator.CreateClient(this, path_main, path_client_2, path_client_3);
+        }
 
         //패치 후 파일 삭제
         if(materialCheckbox_delete.Checked) {
@@ -280,7 +261,8 @@ public partial class Form_Patcher : MaterialForm {
                 Logger.Log("압축 오류 발생 : " + file, ex);
             }
 
-            if(withClients) {
+            bool useSymbolic = bool.Parse(ConfigManager.GetConfig("use_symbolic"));
+            if(!useSymbolic && withClients) {
                 if(path_client_2 != "") {
                     string dest2 = path_client_2 + file.Remove(0, patch_dir.Length);
                     dest2 = dest2.Remove(dest2.LastIndexOf('\\'));

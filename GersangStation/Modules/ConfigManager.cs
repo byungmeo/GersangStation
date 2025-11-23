@@ -41,10 +41,11 @@ internal static class ConfigManager {
             { "use_clip_disable_hotkey", "True" }, // Alt 키 고정
             { "use_clip_toggle_hotkey", "False" },
             { "clip_toggle_hotkey", "122" }, // Keys::F11
-            { "use_clip_only_first", "False" }
+            { "use_clip_only_first", "False" },
+            { "use_symbolic", "True" }
         };
 
-        if(false == ExistsConfig()) {
+        if(false == ExistsConfigFile()) {
             string msg = "바탕화면에 바로가기를 생성하시겠습니까?";
             DialogResult dr = MessageBox.Show(msg, "바로가기 생성", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if(dr == DialogResult.Yes) {
@@ -111,7 +112,7 @@ internal static class ConfigManager {
         sb.AppendLine(@"<add key=""" + key + @""" value=""" + value + @""" />");
     }
 
-    private static bool ExistsConfig() {
+    private static bool ExistsConfigFile() {
         return System.IO.File.Exists(Application.StartupPath + @"\GersangStation.dll.config");
     }
 
