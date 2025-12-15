@@ -90,7 +90,10 @@ internal static class ConfigManager {
     private static void CheckKey(Dictionary<string, string> keyValuePairs) {
         foreach(var item in keyValuePairs) {
             KeyValueConfigurationElement element = configuration.AppSettings.Settings[item.Key];
-            if(element == null) { AddConfig(item.Key, item.Value); }
+            if(element == null)
+                AddConfig(item.Key, item.Value);
+            else if(item.Value != "" && element.Value == "")
+                SetConfig(item.Key, item.Value);
         }
     }
 

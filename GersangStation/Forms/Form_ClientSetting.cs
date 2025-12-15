@@ -17,8 +17,18 @@ public partial class Form_ClientSetting : MaterialForm {
 
     private void Form_ClientSetting_Load(object sender, EventArgs e) {
         comboBox_selectServer.SelectedIndex = (int)server;
-        materialCheckbox_autoUpdate.Checked = bool.Parse(ConfigManager.GetConfig("is_auto_update"));
-        materialCheckbox_useSymbolic.Checked = bool.Parse(ConfigManager.GetConfig("use_symbolic"));
+        string autoUpdateConfig = ConfigManager.GetConfig("is_auto_update");
+        string useSymbolicConfig = ConfigManager.GetConfig("use_symbolic");
+        if (string.IsNullOrEmpty(autoUpdateConfig)) {
+            autoUpdateConfig = "True";
+            ConfigManager.SetConfig("is_auto_update", "True");
+        }
+        if (string.IsNullOrEmpty(useSymbolicConfig)) { 
+            useSymbolicConfig = "True";
+            ConfigManager.SetConfig("use_symbolic", "True");
+        }
+        materialCheckbox_autoUpdate.Checked = bool.Parse(autoUpdateConfig);
+        materialCheckbox_useSymbolic.Checked = bool.Parse(useSymbolicConfig);
 
         materialButton_createClient.Enabled = materialCheckbox_useSymbolic.Checked;
     }
