@@ -384,10 +384,8 @@ public partial class Form1 : MaterialForm {
             LoadAnnouncements(r);
             LoadSponsors(r);
         } catch(Exception ex) {
-            linkLabel_announcement.Text = "공지사항을 불러오는데 실패하였습니다";
-            MessageBox.Show(this, "프로그램 업데이트 확인 도중 에러가 발생하였습니다.\n에러 메시지를 캡쳐하고, 문의 부탁드립니다.", "업데이트 확인 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            MessageBox.Show(this, "에러 메시지1 : \n" + ex.Message);
-            MessageBox.Show(this, "에러 메시지2 : \n" + ex.ToString());
+            linkLabel_announcement.Text = "공지사항 로딩 실패";
+            Logger.Log("GitHubClient 관련 에러 : ", ex);
             Trace.WriteLine(ex.Message);
         }
 #endif
