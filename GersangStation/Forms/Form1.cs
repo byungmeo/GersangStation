@@ -77,6 +77,27 @@ public partial class Form1 : MaterialForm {
     public Form1() {
         InitializeComponent();
 
+        // 0x8007139F 문제가 발생하지 않도록 문제 원인인 레지스트리값을 WebView2 로딩 전 삭제
+        string registryPath = @"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers";
+        try {
+            using(RegistryKey? key = Registry.CurrentUser.OpenSubKey(registryPath, true)) {
+                if(key != null) {
+                    string[] valueNames = key.GetValueNames();
+
+                    Trace.WriteLine("Deleting Webview2 AppCompatFlags...");
+                    foreach(string valueName in valueNames) {
+                        Trace.WriteLine($"valueName : {valueName}");
+                        if(valueName.IndexOf("msedgewebview2.exe", StringComparison.OrdinalIgnoreCase) >= 0) {
+                            Trace.WriteLine("Successful Delete Webview2 AppCompatFlags Registry Value!");
+                            key.DeleteValue(valueName);
+                        }
+                    }
+                }
+            }
+        } catch(Exception ex) {
+            Trace.WriteLine($"{ex.Message}");
+        }
+
         // Initialize MaterialSkinManager
         var materialSkinManager = MaterialSkinManager.Instance;
 
