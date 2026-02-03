@@ -126,6 +126,7 @@ public partial class Form1 : MaterialForm {
             };
             var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path, options: opt);
             await webView_main.EnsureCoreWebView2Async(env);
+            await webView_main.CoreWebView2.Profile.ClearBrowsingDataAsync();
         } catch(WebView2RuntimeNotFoundException ex) {
             DialogResult dr = MessageBox.Show("거상 스테이션 실행을 위해 WebView2 런타임 설치가 필요합니다.\n설치 하시겠습니까? (Microsoft 공식 다운로드 링크 접속)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if(dr == DialogResult.Yes) {
@@ -133,6 +134,8 @@ public partial class Form1 : MaterialForm {
             }
             System.Windows.Forms.Application.Exit();
             return;
+        } catch(Exception ex) {
+            Logger.Log("Form1_Load 중 예외 발생", ex);
         }
     }
 
