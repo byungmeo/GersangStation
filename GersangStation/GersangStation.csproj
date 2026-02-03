@@ -13,9 +13,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
-    <AssemblyVersion>1.6.2</AssemblyVersion>
-    <FileVersion>1.6.2</FileVersion>
-    <Copyright>Copyright © 2023 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
+    <AssemblyVersion>1.6.3</AssemblyVersion>
+    <FileVersion>1.6.3</FileVersion>
+    <Copyright>Copyright © 2026 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
     <Company>Byungmeo</Company>
     <Authors>Byungmeo</Authors>
     <RepositoryType>git</RepositoryType>
