@@ -34,6 +34,7 @@
             toolTip1 = new ToolTip(components);
             materialButton_startPatch = new MaterialSkin.Controls.MaterialButton();
             progressBar = new MaterialSkin.Controls.MaterialProgressBar();
+            linkLabel_qa = new LinkLabel();
             materialCard1.SuspendLayout();
             SuspendLayout();
             // 
@@ -142,7 +143,7 @@
             materialButton_startPatch.Depth = 0;
             materialButton_startPatch.HighEmphasis = true;
             materialButton_startPatch.Icon = null;
-            materialButton_startPatch.Location = new Point(16, 182);
+            materialButton_startPatch.Location = new Point(16, 209);
             materialButton_startPatch.Margin = new Padding(4, 6, 4, 6);
             materialButton_startPatch.MouseState = MaterialSkin.MouseState.HOVER;
             materialButton_startPatch.Name = "materialButton_startPatch";
@@ -158,17 +159,28 @@
             // progressBar
             // 
             progressBar.Depth = 0;
-            progressBar.Location = new Point(16, 176);
+            progressBar.Location = new Point(16, 203);
             progressBar.MouseState = MaterialSkin.MouseState.HOVER;
             progressBar.Name = "progressBar";
             progressBar.Size = new Size(336, 5);
             progressBar.TabIndex = 75;
             // 
+            // linkLabel_qa
+            // 
+            linkLabel_qa.Location = new Point(35, 177);
+            linkLabel_qa.Name = "linkLabel_qa";
+            linkLabel_qa.Size = new Size(298, 23);
+            linkLabel_qa.TabIndex = 108;
+            linkLabel_qa.TabStop = true;
+            linkLabel_qa.Text = "※ 똑똑하게 패치하는 방법 및 오류 발생 시 해결 방법";
+            linkLabel_qa.LinkClicked += linkLabel_qa_LinkClicked;
+            // 
             // Form_Patcher
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(365, 232);
+            ClientSize = new Size(365, 259);
+            Controls.Add(linkLabel_qa);
             Controls.Add(progressBar);
             Controls.Add(materialButton_startPatch);
             Controls.Add(materialCard1);
@@ -202,5 +214,6 @@
         private ToolTip toolTip1;
         private MaterialSkin.Controls.MaterialButton materialButton_startPatch;
         private MaterialSkin.Controls.MaterialProgressBar progressBar;
+        private LinkLabel linkLabel_qa;
     }
 }

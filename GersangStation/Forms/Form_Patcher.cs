@@ -152,8 +152,7 @@ public partial class Form_Patcher : MaterialForm {
         Logger.Log("패치 파일 다운로드 시작");
         ProgressChanged(this, new ProgressChangedEventArgs(10, $"다운로드 중... (파일 개수 : {list_patchFile.Count})"));
         bool isSuccess = DownloadAll(list_patchFile);
-        if(!isSuccess)
-        {
+        if(!isSuccess) {
             Logger.Log("패치 파일 다운로드 실패로 인한 패치 종료");
             MessageBox.Show(this, "패치 파일 다운로드에 실패하였습니다.\n문의 또는 로그를 확인 바랍니다.", "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Information);
             ProgressChanged(this, new ProgressChangedEventArgs(100, $"패치 실패"));
@@ -273,7 +272,7 @@ public partial class Form_Patcher : MaterialForm {
                         Logger.Log("압축 오류 발생 : " + file, ex);
                     }
                 }
-                
+
                 if(path_client_3 != "") {
                     string dest3 = path_client_3 + file.Remove(0, patch_dir.Length);
                     dest3 = dest3.Remove(dest3.LastIndexOf('\\'));
@@ -390,5 +389,9 @@ public partial class Form_Patcher : MaterialForm {
             DialogResult dr = MessageBox.Show("패치 중에는 중단할 수 없습니다.", "중단 불가", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             e.Cancel = true;
         }
+    }
+
+    private void linkLabel_qa_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
+        Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/73") { UseShellExecute = true });
     }
 }
