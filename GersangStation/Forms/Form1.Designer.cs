@@ -54,8 +54,6 @@
             radio_preset_1 = new MaterialSkin.Controls.MaterialRadioButton();
             tabPage_extension = new TabPage();
             linkLabel_clipInformation = new LinkLabel();
-            img_help_integrity = new PictureBox();
-            materialButton_integrity = new MaterialSkin.Controls.MaterialButton();
             checkBox_onlyFirstClip = new CheckBox();
             label1 = new Label();
             checkBox_clipDisableHotKey = new CheckBox();
@@ -104,7 +102,6 @@
             tabPage_home.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox2).BeginInit();
             tabPage_extension.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)img_help_integrity).BeginInit();
             ((System.ComponentModel.ISupportInitialize)img_help_clip).BeginInit();
             tabPage_settings.SuspendLayout();
             tabPage_help.SuspendLayout();
@@ -574,8 +571,6 @@
             // 
             tabPage_extension.BackColor = Color.White;
             tabPage_extension.Controls.Add(linkLabel_clipInformation);
-            tabPage_extension.Controls.Add(img_help_integrity);
-            tabPage_extension.Controls.Add(materialButton_integrity);
             tabPage_extension.Controls.Add(checkBox_onlyFirstClip);
             tabPage_extension.Controls.Add(label1);
             tabPage_extension.Controls.Add(checkBox_clipDisableHotKey);
@@ -600,37 +595,6 @@
             linkLabel_clipInformation.TabStop = true;
             linkLabel_clipInformation.Text = "사용방법";
             linkLabel_clipInformation.LinkClicked += linkLabel_clipInformation_LinkClicked;
-            // 
-            // img_help_integrity
-            // 
-            img_help_integrity.Image = (Image)resources.GetObject("img_help_integrity.Image");
-            img_help_integrity.Location = new Point(200, 200);
-            img_help_integrity.Name = "img_help_integrity";
-            img_help_integrity.Size = new Size(20, 20);
-            img_help_integrity.SizeMode = PictureBoxSizeMode.StretchImage;
-            img_help_integrity.TabIndex = 10;
-            img_help_integrity.TabStop = false;
-            // 
-            // materialButton_integrity
-            // 
-            materialButton_integrity.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            materialButton_integrity.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
-            materialButton_integrity.Depth = 0;
-            materialButton_integrity.Enabled = false;
-            materialButton_integrity.HighEmphasis = true;
-            materialButton_integrity.Icon = null;
-            materialButton_integrity.Location = new Point(24, 192);
-            materialButton_integrity.Margin = new Padding(4, 6, 4, 6);
-            materialButton_integrity.MouseState = MaterialSkin.MouseState.HOVER;
-            materialButton_integrity.Name = "materialButton_integrity";
-            materialButton_integrity.NoAccentTextColor = Color.Empty;
-            materialButton_integrity.Size = new Size(173, 36);
-            materialButton_integrity.TabIndex = 9;
-            materialButton_integrity.Text = "거상 무결성 확인 (BETA)";
-            materialButton_integrity.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
-            materialButton_integrity.UseAccentColor = false;
-            materialButton_integrity.UseVisualStyleBackColor = true;
-            materialButton_integrity.Click += materialButton_integrity_Click;
             // 
             // checkBox_onlyFirstClip
             // 
@@ -1202,7 +1166,6 @@
             ((System.ComponentModel.ISupportInitialize)pictureBox2).EndInit();
             tabPage_extension.ResumeLayout(false);
             tabPage_extension.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)img_help_integrity).EndInit();
             ((System.ComponentModel.ISupportInitialize)img_help_clip).EndInit();
             tabPage_settings.ResumeLayout(false);
             tabPage_help.ResumeLayout(false);
@@ -1281,9 +1244,7 @@
         private CheckBox checkBox_clipDisableHotKey;
         private CheckBox checkBox_clipToggleHotKey;
         private Label label1;
-        private MaterialSkin.Controls.MaterialButton materialButton_integrity;
         private CheckBox checkBox_onlyFirstClip;
-        private PictureBox img_help_integrity;
         private LinkLabel linkLabel_clipInformation;
         private ComboBox comboBox_selectServer;
     }

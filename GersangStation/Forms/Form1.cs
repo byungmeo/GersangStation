@@ -525,10 +525,6 @@ public partial class Form1 : MaterialForm {
             "창모드 환경에서 마우스 가두기를 하였음에도 마우스 커서가 밖으로 삐져나오는 현상을 개선합니다." +
             "\n\n※ 게임 내 마우스 가두기 기능을 OFF 하시고 사용하셔야 합니다." +
             "\n\n(기본값)F11: 마우스 가두기 ON, OFF\nAlt: 일시적으로 OFF");
-
-        toolTip1.SetToolTip(img_help_integrity,
-            "거상 설치 폴더에 손상되거나 누락된 파일이 있는지 확인합니다." +
-            "\n거상 실행 시 오류가 발생하는 경우 유용합니다.");
     }
 
     private void CheckAccount() {
@@ -912,10 +908,6 @@ public partial class Form1 : MaterialForm {
 
     private void linkLabel_clipInformation_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
         Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/37") { UseShellExecute = true });
-    }
-
-    private void materialButton_integrity_Click(object sender, EventArgs e) {
-        OpenIntegrityCheckDialog();
     }
     #endregion WinForm Component Event
 
@@ -1419,22 +1411,6 @@ public partial class Form1 : MaterialForm {
             backgroundForm.Show();
             dialog_accountSetting.ShowDialog();
             LoadAccountComboBox();
-        } catch(Exception ex) {
-            Trace.WriteLine(ex.StackTrace);
-        } finally {
-            backgroundForm.Dispose();
-        }
-    }
-    private void OpenIntegrityCheckDialog() {
-        Form backgroundForm = InitBackgroundForm(this);
-
-        Form_IntegrityCheck dialog_integrityCheck = new Form_IntegrityCheck() {
-            Owner = this
-        };
-
-        try {
-            backgroundForm.Show();
-            dialog_integrityCheck.ShowDialog();
         } catch(Exception ex) {
             Trace.WriteLine(ex.StackTrace);
         } finally {
