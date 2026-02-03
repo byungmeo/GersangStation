@@ -24,7 +24,7 @@ internal static class ConfigManager {
             { "client_path_rnd_1", "" },
             { "client_path_rnd_2", "" },
             { "client_path_rnd_3", "" },
-            { "shortcut_name", "거상홈페이지;홈페이지2;홈페이지3;홈페이지4;" },
+            { "shortcut_name", "거상공홈;미설정;미설정;미설정;" },
             { "shortcut_1", "https://www.gersang.co.kr/main/index.gs" },
             { "shortcut_2", "" },
             { "shortcut_3", "" },
