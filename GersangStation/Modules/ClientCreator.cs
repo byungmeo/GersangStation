@@ -63,6 +63,9 @@ internal class ClientCreator {
     /// <para>다클라 경로라면 <see langword="false"/>로 설정 하세요.</para>
     /// </summary>
     public static bool IsValidPath(Form owner, string path, bool isOrg) {
+        // 드라이브 유효성 검사
+        if(false == IsValidDrive(owner, path)) return false;
+
         DirectoryInfo pathInfo = new DirectoryInfo(path + "\\char");
         if(false == Directory.Exists(path)) {
             owner.BeginInvoke(() => {
@@ -92,9 +95,21 @@ internal class ClientCreator {
         foreach(string dirPath in Directory.GetDirectories(path)) {
             var info = new DirectoryInfo(dirPath);
 
-            if(info.ResolveLinkTarget(false) != null) {
-                isSymbolicClient = true;
-                break;
+            try {
+                if(info.ResolveLinkTarget(false) != null) {
+                    isSymbolicClient = true;
+                    break;
+                }
+            } catch(Exception ex) {
+                owner.BeginInvoke(() => {
+                    MessageBox.Show(owner,
+                        "지정된 경로가 올바른지 검사하던 중 오류가 발생하였습니다." +
+                        $"\n{path}" +
+                        $"\n오류 메시지 : {ex.Message}",
+                        "거상 클라이언트 경로 유효성 검사 실패",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Process.Start(new ProcessStartInfo("https://github.com/byungmeo/GersangStation/discussions/39") { UseShellExecute = true });
+                });
             }
         }
 
@@ -157,9 +172,6 @@ internal class ClientCreator {
             });
             return false;
         }
-
-        if(false == IsValidDrive(owner, orgPath)) return false;
-        Trace.WriteLine("드라이브 유효성 검사 완료");
 
         if(false == IsValidPath(owner, orgPath, true)) return false;
         Trace.WriteLine("원본 클라 확인 완료");
