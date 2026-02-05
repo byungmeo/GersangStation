@@ -20,9 +20,9 @@ jobs:
             console.log(`ℹ️ Event Type: ${context.eventName}`);
 
             const markerRegex = /<!--MARKER[\s\S]*?<!--MARKER_END-->/;
-            const markerStart = '<!--MARKER(v1.0)-->';
+            const markerStart = '<!--MARKER(v1.1)-->';
             const header = '# ⚠️이 버전은 최신 버전이 아닙니다.';
-            const content = '**[최신 버전 링크](https://github.com/byungmeo/GersangStation/releases/latest)**';
+            const content = '**[최신 버전 다운로드](https://github.com/byungmeo/GersangStation/releases/latest)**';
             const markerEnd = '<!--MARKER_END-->';
             const NEW_CONTENT_BLOCK = `${markerStart}\n${header}\n${content}\n${markerEnd}\n`;
 
