@@ -41,6 +41,18 @@ public sealed class PatchMetadataParseTest
         Assert.AreEqual(expectedVersion, decoded);
     }
 
+
+    [TestMethod]
+    public void DecodeLatestVersionFromVsnDat_ReadsActualSampleBytes()
+    {
+        // notepad++ 표기: "!{xFFxFF" -> 바이트: 0x21, 0x7B, 0xFF, 0xFF (little-endian)
+        byte[] bytes = [0x21, 0x7B, 0xFF, 0xFF];
+
+        int decoded = PatchPipeline.DecodeLatestVersionFromVsnDat(bytes);
+
+        Assert.AreEqual(34014, decoded);
+    }
+
     [TestMethod]
     public void DecodeLatestVersionFromVsnDat_Throws_WhenTooShort()
     {
