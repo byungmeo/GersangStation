@@ -1,4 +1,5 @@
 ﻿using Core.Patch;
+using SevenZipExtractor;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text;
 
@@ -43,14 +44,42 @@ public sealed class PatchMetadataParseTest
 
 
     [TestMethod]
-    public void DecodeLatestVersionFromVsnDat_ReadsActualSampleBytes()
+    public async Task DecodeLatestVersionFromVsnDat_FromRealServerVsnArchive()
     {
-        // notepad++ 표기: "!{xFFxFF" -> 바이트: 0x21, 0x7B, 0xFF, 0xFF (little-endian)
-        byte[] bytes = [0x21, 0x7B, 0xFF, 0xFF];
+        const string url = "https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/Client_Patch_File/Online/vsn.dat.gsz";
 
-        int decoded = PatchPipeline.DecodeLatestVersionFromVsnDat(bytes);
+        using var http = new HttpClient();
+        byte[] archiveBytes = await http.GetByteArrayAsync(url);
 
-        Assert.AreEqual(34014, decoded);
+        string root = Path.Combine(Path.GetTempPath(), "GersangStation_vsn_test_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            string archivePath = Path.Combine(root, "vsn.dat.gsz");
+            string extractRoot = Path.Combine(root, "extract");
+
+            await File.WriteAllBytesAsync(archivePath, archiveBytes);
+            Directory.CreateDirectory(extractRoot);
+
+            using (var archive = new ArchiveFile(archivePath))
+            {
+                archive.Extract(extractRoot, overwrite: true);
+            }
+
+            var files = Directory.EnumerateFiles(extractRoot, "*", SearchOption.AllDirectories).ToArray();
+            Assert.AreEqual(1, files.Length, "vsn.dat.gsz should contain exactly one file.");
+
+            byte[] vsnBytes = await File.ReadAllBytesAsync(files[0]);
+            int version = PatchPipeline.DecodeLatestVersionFromVsnDat(vsnBytes);
+
+            Assert.IsTrue(version > 0, $"decoded version should be positive. actual={version}");
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, recursive: true);
+        }
     }
 
     [TestMethod]
