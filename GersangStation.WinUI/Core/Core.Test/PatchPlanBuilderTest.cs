@@ -22,10 +22,10 @@ public sealed class PatchPlanBuilderTest
 
         static string[] MakeRow(string compressedFileName, string checksum, string relativeDir)
         {
-            var row = new string[4];
+            var row = new string[5];
             row[1] = compressedFileName;
-            row[2] = checksum;
             row[3] = relativeDir;
+            row[4] = checksum;
             return row;
         }
     }

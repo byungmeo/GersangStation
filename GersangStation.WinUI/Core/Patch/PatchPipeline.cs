@@ -1,10 +1,48 @@
 ﻿using SevenZipExtractor;
+using System.Net;
 using System.Security.Cryptography;
 
 namespace Core.Patch;
 
 public static class PatchPipeline
 {
+    /// <summary>
+    /// 서버 메타(vsn.dat.gsz + Client_info_File/{version})를 읽어
+    /// 다운로드/병합/압축해제 파이프라인을 실행한다.
+    /// </summary>
+    public static async Task RunPatchFromServerAsync(
+        int currentClientVersion,
+        Uri patchBaseUri,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        CancellationToken ct)
+    {
+        if (patchBaseUri is null) throw new ArgumentNullException(nameof(patchBaseUri));
+
+        // 메타 조회는 짧은 요청 위주라 기본 HttpClient로 분리
+        using var http = new HttpClient(new HttpClientHandler
+        {
+            AutomaticDecompression = DecompressionMethods.None
+        })
+        {
+            Timeout = TimeSpan.FromMinutes(5)
+        };
+
+        int latestServerVersion = await ResolveLatestServerVersionAsync(http, patchBaseUri, tempRoot, ct).ConfigureAwait(false);
+        var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, patchBaseUri, ct).ConfigureAwait(false);
+
+        await RunPatchAsync(
+            currentClientVersion: currentClientVersion,
+            latestServerVersion: latestServerVersion,
+            entriesByVersion: entriesByVersion,
+            patchBaseUri: patchBaseUri,
+            installRoot: installRoot,
+            tempRoot: tempRoot,
+            maxConcurrency: maxConcurrency,
+            ct: ct).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// 패치 파일 다운로드 + (버전 오름차순) 압축 해제 + 임시폴더 정리.
     ///
@@ -87,6 +125,101 @@ public static class PatchPipeline
         }
     }
 
+    public static int DecodeLatestVersionFromVsnDat(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length < sizeof(int))
+            throw new InvalidDataException("vsn.dat size is too small.");
+
+        int raw = BitConverter.ToInt32(bytes[..sizeof(int)]);
+        return -(raw + 1); // 1의 보수
+    }
+
+    public static List<string[]> ParseClientInfoRows(string content)
+    {
+        if (content is null) throw new ArgumentNullException(nameof(content));
+
+        var rows = new List<string[]>();
+
+        foreach (var line in content.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (line.StartsWith(';')) continue;
+            if (line.StartsWith('#')) continue;
+
+            var cols = line.Split('\t');
+            if (cols.Length < 4) continue;
+
+            rows.Add(cols);
+        }
+
+        return rows;
+    }
+
+    private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, Uri patchBaseUri, string tempRoot, CancellationToken ct)
+    {
+        string probeRoot = Path.Combine(tempRoot, "LatestVersionProbe");
+        Directory.CreateDirectory(probeRoot);
+
+        string archivePath = Path.Combine(probeRoot, "vsn.dat.gsz");
+        string extractRoot = Path.Combine(probeRoot, "extract");
+
+        var url = new Uri(patchBaseUri, "Client_Patch_File/Online/vsn.dat.gsz");
+
+        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        await using (var fs = File.Create(archivePath))
+        {
+            await response.Content.CopyToAsync(fs, ct).ConfigureAwait(false);
+        }
+
+        Directory.CreateDirectory(extractRoot);
+        using (var archive = new ArchiveFile(archivePath))
+        {
+            archive.Extract(extractRoot, overwrite: true);
+        }
+
+        string vsnPath = Directory.EnumerateFiles(extractRoot, "vsn.dat", SearchOption.AllDirectories).FirstOrDefault()
+            ?? throw new FileNotFoundException("Extracted vsn.dat not found.", extractRoot);
+
+        byte[] bytes = await File.ReadAllBytesAsync(vsnPath, ct).ConfigureAwait(false);
+        int latestVersion = DecodeLatestVersionFromVsnDat(bytes);
+
+        TryDeleteDirectory(probeRoot);
+        return latestVersion;
+    }
+
+    private static async Task<IReadOnlyDictionary<int, List<string[]>>> DownloadEntriesByVersionAsync(
+        HttpClient http,
+        int currentClientVersion,
+        int latestServerVersion,
+        Uri patchBaseUri,
+        CancellationToken ct)
+    {
+        var result = new Dictionary<int, List<string[]>>();
+
+        for (int version = currentClientVersion + 1; version <= latestServerVersion; version++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var url = new Uri(patchBaseUri, $"Client_info_File/{version}");
+            using var response = await http.GetAsync(url, ct).ConfigureAwait(false);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                continue;
+
+            response.EnsureSuccessStatusCode();
+            string text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+
+            var rows = ParseClientInfoRows(text);
+            if (rows.Count > 0)
+            {
+                result[version] = rows;
+            }
+        }
+
+        return result;
+    }
+
     private static void ExtractGsz(string archivePath, string installRoot, string relativeDir, string? expectedArchiveChecksum)
     {
         VerifyArchiveChecksum(archivePath, expectedArchiveChecksum);
@@ -143,6 +276,20 @@ public static class PatchPipeline
         }
 
         string normalizedExpected = NormalizeChecksum(expectedArchiveChecksum);
+
+        // 거상 메타의 ZIP File CheckSum은 10진수 CRC32인 경우가 있어 별도 처리
+        if (uint.TryParse(normalizedExpected, out uint expectedDecimalCrc32))
+        {
+            using var stream = File.OpenRead(archivePath);
+            uint actualCrc32 = ComputeCrc32(stream);
+            if (actualCrc32 != expectedDecimalCrc32)
+            {
+                throw new InvalidDataException(
+                    $"Archive checksum mismatch. file='{archivePath}', expected='{expectedDecimalCrc32}', actual='{actualCrc32}'");
+            }
+            return;
+        }
+
         string actual = ComputeArchiveChecksum(archivePath, normalizedExpected.Length);
 
         if (!string.Equals(actual, normalizedExpected, StringComparison.OrdinalIgnoreCase))
@@ -158,7 +305,7 @@ public static class PatchPipeline
 
         return checksumLength switch
         {
-            8 => ComputeCrc32Hex(stream),
+            8 => ComputeCrc32(stream).ToString("X8"),
             32 => Convert.ToHexString(MD5.HashData(stream)),
             40 => Convert.ToHexString(SHA1.HashData(stream)),
             64 => Convert.ToHexString(SHA256.HashData(stream)),
@@ -166,7 +313,7 @@ public static class PatchPipeline
         };
     }
 
-    private static string ComputeCrc32Hex(Stream stream)
+    private static uint ComputeCrc32(Stream stream)
     {
         // System.IO.Hashing 의존성을 피하기 위해 로컬 CRC32 구현 사용
         uint crc = 0xFFFFFFFF;
@@ -181,8 +328,7 @@ public static class PatchPipeline
             }
         }
 
-        crc ^= 0xFFFFFFFF;
-        return crc.ToString("X8");
+        return crc ^ 0xFFFFFFFF;
     }
 
     private static readonly uint[] Crc32Table =
