@@ -7,7 +7,7 @@ namespace Core.Test;
 public sealed class PatchPlanBuilderTest
 {
     [TestMethod]
-    public void BuildExtractPlan_StoresArchiveChecksum_FromRow6First()
+    public void BuildExtractPlan_StoresFirstEntryChecksum_FromRow6First()
     {
         IReadOnlyDictionary<int, List<string[]>> entriesByVersion = new Dictionary<int, List<string[]>>
         {
@@ -18,7 +18,7 @@ public sealed class PatchPlanBuilderTest
 
         Assert.AreEqual(1, plan.ByVersion.Count);
         var file = plan.ByVersion[34001].Single();
-        Assert.AreEqual("3993170318", file.ArchiveChecksum);
+        Assert.AreEqual("3993170318", file.FirstEntryChecksum);
 
         static string[] MakeRow(string compressedFileName, string row4, string row6, string relativeDir)
         {

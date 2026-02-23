@@ -96,7 +96,7 @@ public static class PatchPipeline
                 foreach (var f in kv.Value)
                 {
                     string gszPath = Path.Combine(tempRoot, version.ToString(), f.CompressedFileName);
-                    ExtractGsz(gszPath, installRoot, f.RelativeDir, f.ArchiveChecksum);
+                    ExtractGsz(gszPath, installRoot, f.RelativeDir, f.FirstEntryChecksum);
                 }
             }
 
@@ -260,10 +260,8 @@ public static class PatchPipeline
         return result;
     }
 
-    private static void ExtractGsz(string archivePath, string installRoot, string relativeDir, string? expectedArchiveChecksum)
+    private static void ExtractGsz(string archivePath, string installRoot, string relativeDir, string? expectedFirstEntryChecksum)
     {
-        VerifyArchiveChecksum(archivePath, expectedArchiveChecksum);
-
         // relativeDir가 "\Online\Sub\" 형태면 Path.Combine이 앞 "\" 때문에 무시될 수 있어서
         // installRoot + relativeDir를 "문자열 결합"으로 만든다.
         string rel = relativeDir.TrimStart('\\', '/');
@@ -276,6 +274,7 @@ public static class PatchPipeline
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] targetDir: {targetDir}");
 
         using var archive = new ArchiveFile(archivePath);
+        VerifyFirstEntryChecksum(archive, archivePath, expectedFirstEntryChecksum);
 
         // SevenZipExtractor는 Entries 컬렉션을 제공함 (파일명/디렉토리 포함)
         int total = 0;
@@ -307,25 +306,29 @@ public static class PatchPipeline
     }
 
 
-    private static void VerifyArchiveChecksum(string archivePath, string? expectedArchiveChecksum)
+    private static void VerifyFirstEntryChecksum(ArchiveFile archive, string archivePath, string? expectedFirstEntryChecksum)
     {
-        if (string.IsNullOrWhiteSpace(expectedArchiveChecksum))
-        {
-            // 서버 메타에 체크섬/CRC가 없는 경우는 기존 동작 유지
-            return;
-        }
-
-        using var archive = new ArchiveFile(archivePath);
         var firstFileEntry = archive.Entries.FirstOrDefault(e => !e.IsFolder)
             ?? throw new InvalidDataException($"Archive has no file entry. file='{archivePath}'");
 
-        string normalizedExpected = NormalizeChecksum(expectedArchiveChecksum);
         string actualDecimal = firstFileEntry.CRC.ToString();
         string actualHex = firstFileEntry.CRC.ToString("X8");
 
-        // 서버 메타는 10진수/16진수 모두 섞일 수 있어 둘 다 허용
-        if (!string.Equals(normalizedExpected, actualDecimal, StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(normalizedExpected, actualHex, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(expectedFirstEntryChecksum))
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[EXTRACT][CRC] entry='{firstFileEntry.FileName}', expected=(none), actualDec='{actualDecimal}', actualHex='{actualHex}', match=SKIP");
+            return;
+        }
+
+        string normalizedExpected = NormalizeChecksum(expectedFirstEntryChecksum);
+        bool isMatch = string.Equals(normalizedExpected, actualDecimal, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalizedExpected, actualHex, StringComparison.OrdinalIgnoreCase);
+
+        System.Diagnostics.Debug.WriteLine(
+            $"[EXTRACT][CRC] entry='{firstFileEntry.FileName}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}', match={isMatch}");
+
+        if (!isMatch)
         {
             throw new InvalidDataException(
                 $"Archive first-entry CRC mismatch. file='{archivePath}', entry='{firstFileEntry.FileName}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}'");
