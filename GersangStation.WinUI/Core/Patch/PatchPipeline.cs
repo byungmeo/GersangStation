@@ -157,6 +157,7 @@ public static class PatchPipeline
     private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, Uri patchBaseUri, string tempRoot, CancellationToken ct)
     {
         string probeRoot = Path.Combine(tempRoot, "LatestVersionProbe");
+        TryDeleteDirectory(probeRoot);
         Directory.CreateDirectory(probeRoot);
 
         string archivePath = Path.Combine(probeRoot, "vsn.dat.gsz");
@@ -181,6 +182,12 @@ public static class PatchPipeline
         string vsnPath = ResolveVsnDatPath(extractRoot);
 
         byte[] bytes = await File.ReadAllBytesAsync(vsnPath, ct).ConfigureAwait(false);
+        if (bytes.Length < sizeof(int))
+        {
+            throw new InvalidDataException(
+                $"Extracted vsn.dat size is invalid. path='{vsnPath}', size={bytes.Length}, archive='{archivePath}'");
+        }
+
         int latestVersion = DecodeLatestVersionFromVsnDat(bytes);
 
         TryDeleteDirectory(probeRoot);
@@ -194,22 +201,14 @@ public static class PatchPipeline
         if (files.Count == 0)
             throw new FileNotFoundException("No file extracted from vsn.dat.gsz.", extractRoot);
 
-        // 파일명 대소문자 차이를 허용해서 우선 탐색
-        string? exact = files.FirstOrDefault(path =>
-            string.Equals(Path.GetFileName(path), "vsn.dat", StringComparison.OrdinalIgnoreCase));
+        if (files.Count != 1)
+        {
+            // 규격상 vsn.dat.gsz에는 파일 1개만 있어야 하므로, 다르면 즉시 원인 노출
+            string details = string.Join(", ", files.Select(path => $"'{Path.GetFileName(path)}'({new FileInfo(path).Length} bytes)"));
+            throw new InvalidDataException($"Unexpected file count extracted from vsn.dat.gsz: count={files.Count}, files=[{details}]");
+        }
 
-        if (!string.IsNullOrWhiteSpace(exact))
-            return exact;
-
-        // 예외 케이스: 엔트리명이 달라진 경우 4바이트 이상 파일 중 가장 큰 파일을 후보로 사용
-        string? fallback = files
-            .OrderByDescending(path => new FileInfo(path).Length)
-            .FirstOrDefault(path => new FileInfo(path).Length >= sizeof(int));
-
-        if (!string.IsNullOrWhiteSpace(fallback))
-            return fallback;
-
-        throw new InvalidDataException($"vsn.dat candidate not found. extracted file count={files.Count}");
+        return files[0];
     }
 
     private static async Task<IReadOnlyDictionary<int, List<string[]>>> DownloadEntriesByVersionAsync(
