@@ -1,6 +1,7 @@
 ﻿using SevenZipExtractor;
 using System.Net;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace Core.Patch;
 
@@ -130,8 +131,24 @@ public static class PatchPipeline
         if (bytes.Length < sizeof(int))
             throw new InvalidDataException($"vsn.dat size is too small. size={bytes.Length}");
 
-        int raw = BitConverter.ToInt32(bytes[..sizeof(int)]);
-        return -(raw + 1); // 1의 보수
+        using var ms = new MemoryStream(bytes.ToArray(), writable: false);
+        return DecodeLatestVersionFromVsnDat(ms);
+    }
+
+    public static int DecodeLatestVersionFromVsnDat(Stream stream)
+    {
+        if (stream is null) throw new ArgumentNullException(nameof(stream));
+
+        using var br = new BinaryReader(stream, Encoding.Default, leaveOpen: true);
+        try
+        {
+            int raw = br.ReadInt32(); // BinaryReader 기본 동작: little-endian
+            return -(raw + 1); // 1의 보수
+        }
+        catch (EndOfStreamException ex)
+        {
+            throw new InvalidDataException("vsn.dat size is too small. need at least 4 bytes.", ex);
+        }
     }
 
     public static List<string[]> ParseClientInfoRows(string content)
@@ -181,14 +198,21 @@ public static class PatchPipeline
 
         string vsnPath = ResolveVsnDatPath(extractRoot);
 
-        byte[] bytes = await File.ReadAllBytesAsync(vsnPath, ct).ConfigureAwait(false);
-        if (bytes.Length < sizeof(int))
+        int latestVersion;
+        await using (var stream = File.OpenRead(vsnPath))
         {
-            throw new InvalidDataException(
-                $"Extracted vsn.dat size is invalid. path='{vsnPath}', size={bytes.Length}, archive='{archivePath}'");
+            try
+            {
+                latestVersion = DecodeLatestVersionFromVsnDat(stream);
+            }
+            catch (InvalidDataException ex)
+            {
+                byte[] dump = await File.ReadAllBytesAsync(vsnPath, ct).ConfigureAwait(false);
+                string hex = Convert.ToHexString(dump);
+                throw new InvalidDataException(
+                    $"Failed to decode vsn.dat. path='{vsnPath}', size={dump.Length}, hex='{hex}', archive='{archivePath}'", ex);
+            }
         }
-
-        int latestVersion = DecodeLatestVersionFromVsnDat(bytes);
 
         TryDeleteDirectory(probeRoot);
         return latestVersion;

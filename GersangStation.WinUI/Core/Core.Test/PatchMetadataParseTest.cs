@@ -43,6 +43,20 @@ public sealed class PatchMetadataParseTest
     }
 
 
+
+    [TestMethod]
+    public void DecodeLatestVersionFromVsnDat_Stream_MatchesLegacyCodePath()
+    {
+        const int expectedVersion = 34014;
+        int encoded = ~expectedVersion;
+        byte[] bytes = BitConverter.GetBytes(encoded);
+
+        using var ms = new MemoryStream(bytes, writable: false);
+        int decoded = PatchPipeline.DecodeLatestVersionFromVsnDat(ms);
+
+        Assert.AreEqual(expectedVersion, decoded);
+    }
+
     [TestMethod]
     public async Task DecodeLatestVersionFromVsnDat_FromRealServerVsnArchive()
     {
