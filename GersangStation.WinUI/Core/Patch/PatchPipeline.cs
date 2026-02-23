@@ -1,4 +1,6 @@
 ﻿using SevenZipExtractor;
+using System.IO.Hashing;
+using System.Security.Cryptography;
 
 namespace Core.Patch;
 
@@ -7,7 +9,7 @@ public static class PatchPipeline
     /// <summary>
     /// 패치 파일 다운로드 + (버전 오름차순) 압축 해제 + 임시폴더 정리.
     ///
-    /// ⚠️ 파싱(2번), 체크섬/CRC 검증은 여기서 구현하지 않는다.
+    /// ⚠️ 파싱(2번)은 여기서 구현하지 않는다.
     ///    - 파싱 결과(entriesByVersion)만 입력으로 받는다.
     /// </summary>
     public static async Task RunPatchAsync(
@@ -63,7 +65,7 @@ public static class PatchPipeline
                 foreach (var f in kv.Value)
                 {
                     string gszPath = Path.Combine(tempRoot, version.ToString(), f.CompressedFileName);
-                    ExtractGsz(gszPath, installRoot, f.RelativeDir);
+                    ExtractGsz(gszPath, installRoot, f.RelativeDir, f.ArchiveChecksum);
                 }
             }
 
@@ -86,8 +88,10 @@ public static class PatchPipeline
         }
     }
 
-    private static void ExtractGsz(string archivePath, string installRoot, string relativeDir)
+    private static void ExtractGsz(string archivePath, string installRoot, string relativeDir, string? expectedArchiveChecksum)
     {
+        VerifyArchiveChecksum(archivePath, expectedArchiveChecksum);
+
         // relativeDir가 "\Online\Sub\" 형태면 Path.Combine이 앞 "\" 때문에 무시될 수 있어서
         // installRoot + relativeDir를 "문자열 결합"으로 만든다.
         string rel = relativeDir.TrimStart('\\', '/');
@@ -128,6 +132,52 @@ public static class PatchPipeline
 
         // ---- LOG: 종료 ----
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][END] {archivePath}");
+    }
+
+
+    private static void VerifyArchiveChecksum(string archivePath, string? expectedArchiveChecksum)
+    {
+        if (string.IsNullOrWhiteSpace(expectedArchiveChecksum))
+        {
+            // 서버 메타에 아카이브 체크섬이 없는 경우는 기존 동작 유지
+            return;
+        }
+
+        string normalizedExpected = NormalizeChecksum(expectedArchiveChecksum);
+        string actual = ComputeArchiveChecksum(archivePath, normalizedExpected.Length);
+
+        if (!string.Equals(actual, normalizedExpected, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                $"Archive checksum mismatch. file='{archivePath}', expected='{normalizedExpected}', actual='{actual}'");
+        }
+    }
+
+    private static string ComputeArchiveChecksum(string filePath, int checksumLength)
+    {
+        using var stream = File.OpenRead(filePath);
+
+        return checksumLength switch
+        {
+            8 => ComputeCrc32Hex(stream),
+            32 => Convert.ToHexString(MD5.HashData(stream)),
+            40 => Convert.ToHexString(SHA1.HashData(stream)),
+            64 => Convert.ToHexString(SHA256.HashData(stream)),
+            _ => throw new InvalidDataException($"Unsupported checksum format(length={checksumLength}). file='{filePath}'")
+        };
+    }
+
+    private static string ComputeCrc32Hex(Stream stream)
+    {
+        Span<byte> hash = stackalloc byte[4];
+        Crc32.Hash(stream, hash);
+        return Convert.ToHexString(hash);
+    }
+
+    private static string NormalizeChecksum(string checksum)
+    {
+        var normalized = checksum.Trim().ToUpperInvariant();
+        return normalized.Replace("-", string.Empty);
     }
 
     private static void TryDeleteDirectory(string path)

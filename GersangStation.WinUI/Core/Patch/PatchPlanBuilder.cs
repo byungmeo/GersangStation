@@ -5,6 +5,7 @@ public static class PatchPlanBuilder_StringRows
     /// <summary>
     /// entriesByVersion[v]는 "row 배열" 리스트. (탭 split 결과)
     /// row[1] = compressed filename (*.gsz)
+    /// row[2] = compressed file checksum(아카이브 파일 체크섬, 없을 수 있음)
     /// row[3] = relative dir (항상 "\...\" 또는 "\" 형태)
     ///
     /// 중복 키 = row[3] + row[1]
@@ -30,6 +31,7 @@ public static class PatchPlanBuilder_StringRows
                 if (row[0] == ";EOF") break;
 
                 string comp = row[1];
+                string checksum = row.Length > 2 ? row[2] : string.Empty;
                 string relDir = row[3];
 
                 if (string.IsNullOrEmpty(relDir)) relDir = @"\";
@@ -40,7 +42,8 @@ public static class PatchPlanBuilder_StringRows
                 latestByKey[key] = new PatchFile(
                     SourceVersion: version,
                     RelativeDir: relDir,
-                    CompressedFileName: comp);
+                    CompressedFileName: comp,
+                    ArchiveChecksum: string.IsNullOrWhiteSpace(checksum) ? null : checksum.Trim());
             }
         }
 
