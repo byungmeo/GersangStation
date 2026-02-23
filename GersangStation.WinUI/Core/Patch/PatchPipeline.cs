@@ -11,7 +11,31 @@ public static class PatchPipeline
     /// 서버 메타(vsn.dat.gsz + Client_info_File/{version})를 읽어
     /// 다운로드/병합/압축해제 파이프라인을 실행한다.
     /// </summary>
-    public static async Task RunPatchFromServerAsync(
+    public static Task RunPatchFromServerAsync(
+        int currentClientVersion,
+        Uri patchBaseUri,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        CancellationToken ct)
+    {
+        return RunPatchAsync(
+            currentClientVersion: currentClientVersion,
+            patchBaseUri: patchBaseUri,
+            installRoot: installRoot,
+            tempRoot: tempRoot,
+            maxConcurrency: maxConcurrency,
+            ct: ct);
+    }
+
+    /// <summary>
+    /// 패치 파일 다운로드 + (버전 오름차순) 압축 해제 + 임시폴더 정리.
+    ///
+    /// 1) vsn.dat.gsz로 최신 버전 조회
+    /// 2) 현재+1..최신 버전의 Client_info_File 수집
+    /// 3) 이후 다운로드/압축해제 파이프라인 실행
+    /// </summary>
+    public static async Task RunPatchAsync(
         int currentClientVersion,
         Uri patchBaseUri,
         string installRoot,
@@ -20,6 +44,11 @@ public static class PatchPipeline
         CancellationToken ct)
     {
         if (patchBaseUri is null) throw new ArgumentNullException(nameof(patchBaseUri));
+        if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
+        if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
+        if (maxConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
+
+        Directory.CreateDirectory(tempRoot);
 
         // 메타 조회는 짧은 요청 위주라 기본 HttpClient로 분리
         using var http = new HttpClient(new HttpClientHandler
@@ -31,45 +60,10 @@ public static class PatchPipeline
         };
 
         int latestServerVersion = await ResolveLatestServerVersionAsync(http, patchBaseUri, tempRoot, ct).ConfigureAwait(false);
-        var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, patchBaseUri, ct).ConfigureAwait(false);
-
-        await RunPatchAsync(
-            currentClientVersion: currentClientVersion,
-            latestServerVersion: latestServerVersion,
-            entriesByVersion: entriesByVersion,
-            patchBaseUri: patchBaseUri,
-            installRoot: installRoot,
-            tempRoot: tempRoot,
-            maxConcurrency: maxConcurrency,
-            ct: ct).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// 패치 파일 다운로드 + (버전 오름차순) 압축 해제 + 임시폴더 정리.
-    ///
-    /// ⚠️ 파싱(2번)은 여기서 구현하지 않는다.
-    ///    - 파싱 결과(entriesByVersion)만 입력으로 받는다.
-    /// </summary>
-    public static async Task RunPatchAsync(
-        int currentClientVersion,
-        int latestServerVersion,
-        IReadOnlyDictionary<int, List<string[]>> entriesByVersion,
-        Uri patchBaseUri,
-        string installRoot,
-        string tempRoot,
-        int maxConcurrency,
-        CancellationToken ct)
-    {
-        if (entriesByVersion is null) throw new ArgumentNullException(nameof(entriesByVersion));
-        if (patchBaseUri is null) throw new ArgumentNullException(nameof(patchBaseUri));
-        if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
-        if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
-        if (maxConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
-
         if (latestServerVersion < currentClientVersion)
             return;
 
-        Directory.CreateDirectory(tempRoot);
+        var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, patchBaseUri, ct).ConfigureAwait(false);
 
         try
         {
