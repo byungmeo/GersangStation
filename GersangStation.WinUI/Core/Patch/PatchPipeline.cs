@@ -128,7 +128,7 @@ public static class PatchPipeline
     public static int DecodeLatestVersionFromVsnDat(ReadOnlySpan<byte> bytes)
     {
         if (bytes.Length < sizeof(int))
-            throw new InvalidDataException("vsn.dat size is too small.");
+            throw new InvalidDataException($"vsn.dat size is too small. size={bytes.Length}");
 
         int raw = BitConverter.ToInt32(bytes[..sizeof(int)]);
         return -(raw + 1); // 1의 보수
@@ -178,14 +178,38 @@ public static class PatchPipeline
             archive.Extract(extractRoot, overwrite: true);
         }
 
-        string vsnPath = Directory.EnumerateFiles(extractRoot, "vsn.dat", SearchOption.AllDirectories).FirstOrDefault()
-            ?? throw new FileNotFoundException("Extracted vsn.dat not found.", extractRoot);
+        string vsnPath = ResolveVsnDatPath(extractRoot);
 
         byte[] bytes = await File.ReadAllBytesAsync(vsnPath, ct).ConfigureAwait(false);
         int latestVersion = DecodeLatestVersionFromVsnDat(bytes);
 
         TryDeleteDirectory(probeRoot);
         return latestVersion;
+    }
+
+    private static string ResolveVsnDatPath(string extractRoot)
+    {
+        var files = Directory.EnumerateFiles(extractRoot, "*", SearchOption.AllDirectories).ToList();
+
+        if (files.Count == 0)
+            throw new FileNotFoundException("No file extracted from vsn.dat.gsz.", extractRoot);
+
+        // 파일명 대소문자 차이를 허용해서 우선 탐색
+        string? exact = files.FirstOrDefault(path =>
+            string.Equals(Path.GetFileName(path), "vsn.dat", StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(exact))
+            return exact;
+
+        // 예외 케이스: 엔트리명이 달라진 경우 4바이트 이상 파일 중 가장 큰 파일을 후보로 사용
+        string? fallback = files
+            .OrderByDescending(path => new FileInfo(path).Length)
+            .FirstOrDefault(path => new FileInfo(path).Length >= sizeof(int));
+
+        if (!string.IsNullOrWhiteSpace(fallback))
+            return fallback;
+
+        throw new InvalidDataException($"vsn.dat candidate not found. extracted file count={files.Count}");
     }
 
     private static async Task<IReadOnlyDictionary<int, List<string[]>>> DownloadEntriesByVersionAsync(
