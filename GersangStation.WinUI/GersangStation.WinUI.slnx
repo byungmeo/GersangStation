@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="Core/Core.csproj" />
+  <Project Path="Core/Core.Test/Core.Test.csproj" />
+  <Project Path="GersangStation/GersangStation.csproj">
+    <Platform Project="x64" />
+    <Deploy />
+  </Project>
+</Solution>

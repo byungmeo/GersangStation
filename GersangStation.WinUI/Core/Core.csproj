@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Core.Test\**" />
+    <EmbeddedResource Remove="Core.Test\**" />
+    <None Remove="Core.Test\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SevenZipExtractor" Version="1.0.19" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+</Project>
