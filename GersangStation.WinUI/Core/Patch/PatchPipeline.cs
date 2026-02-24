@@ -353,14 +353,7 @@ public static class PatchPipeline
 
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] entries: {total}");
 
-        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
-        {
-            entry.WriteToDirectory(targetDir, new SharpCompress.Common.ExtractionOptions
-            {
-                ExtractFullPath = true,
-                Overwrite = true
-            });
-        }
+        ExtractEntriesWithOverwrite(archive, targetDir);
 
         // ---- LOG: 종료 ----
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][END] {archivePath}");
@@ -403,6 +396,34 @@ public static class PatchPipeline
         return normalized.Replace("-", string.Empty);
     }
 
+    private static void ExtractEntriesWithOverwrite(IArchive archive, string destinationRoot)
+    {
+        string normalizedRoot = Path.GetFullPath(destinationRoot);
+        if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar))
+            normalizedRoot += Path.DirectorySeparatorChar;
+
+        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+        {
+            string relativePath = (entry.Key ?? string.Empty)
+                .Replace('\\', Path.DirectorySeparatorChar)
+                .Replace('/', Path.DirectorySeparatorChar);
+
+            string destinationPath = Path.GetFullPath(Path.Combine(normalizedRoot, relativePath));
+
+            // 압축 경로 탈출(zip slip) 방지
+            if (!destinationPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException($"Archive entry has invalid path. entry='{entry.Key}', root='{destinationRoot}'");
+
+            string? destinationDir = Path.GetDirectoryName(destinationPath);
+            if (!string.IsNullOrEmpty(destinationDir))
+                Directory.CreateDirectory(destinationDir);
+
+            using var sourceStream = entry.OpenEntryStream();
+            using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+            sourceStream.CopyTo(destinationStream);
+        }
+    }
+
     private static async Task ExtractArchiveToDirectoryWithRetryAsync(
         string archivePath,
         string extractRoot,
@@ -427,14 +448,7 @@ public static class PatchPipeline
                 }
 
                 using var archive = ArchiveFactory.OpenArchive(archivePath);
-                foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
-                {
-                    entry.WriteToDirectory(extractRoot, new SharpCompress.Common.ExtractionOptions
-                    {
-                        ExtractFullPath = true,
-                        Overwrite = true
-                    });
-                }
+                ExtractEntriesWithOverwrite(archive, extractRoot);
 
                 return;
             }

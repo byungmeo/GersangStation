@@ -28,14 +28,7 @@ public sealed class PatchMetadataParseTest
 
             using (var archive = ArchiveFactory.OpenArchive(archivePath))
             {
-                foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
-                {
-                    entry.WriteToDirectory(extractRoot, new SharpCompress.Common.ExtractionOptions
-                    {
-                        ExtractFullPath = true,
-                        Overwrite = true
-                    });
-                }
+                archive.WriteToDirectory(extractRoot);
             }
 
             var files = Directory.EnumerateFiles(extractRoot, "*", SearchOption.AllDirectories).ToArray();
