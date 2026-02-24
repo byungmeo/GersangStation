@@ -7,6 +7,30 @@ namespace Core.Patch;
 public static class PatchPipeline
 {
     /// <summary>
+    /// <see cref="CancellationToken"/>을 모르는 호출자를 위한 간편 오버로드입니다.
+    /// 내부적으로 <see cref="CancellationToken.None"/>을 사용합니다.
+    /// </summary>
+    public static Task RunPatchFromServerAsync(
+        int currentClientVersion,
+        Uri patchBaseUri,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        int maxExtractRetryCount,
+        bool cleanupTemp = true)
+    {
+        return RunPatchFromServerAsync(
+            currentClientVersion,
+            patchBaseUri,
+            installRoot,
+            tempRoot,
+            maxConcurrency,
+            maxExtractRetryCount,
+            CancellationToken.None,
+            cleanupTemp);
+    }
+
+    /// <summary>
     /// 서버 메타(vsn.dat.gsz + Client_info_File/{version})를 읽어
     /// 다운로드/병합/압축해제 파이프라인을 실행한다.
     /// </summary>
@@ -32,7 +56,34 @@ public static class PatchPipeline
     }
 
     /// <summary>
+    /// <see cref="CancellationToken"/>을 모르는 호출자를 위한 간편 오버로드입니다.
+    /// 내부적으로 <see cref="CancellationToken.None"/>을 사용합니다.
+    /// </summary>
+    public static Task RunPatchAsync(
+        int currentClientVersion,
+        Uri patchBaseUri,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        int maxExtractRetryCount,
+        bool cleanupTemp = true)
+    {
+        return RunPatchAsync(
+            currentClientVersion,
+            patchBaseUri,
+            installRoot,
+            tempRoot,
+            maxConcurrency,
+            maxExtractRetryCount,
+            CancellationToken.None,
+            cleanupTemp);
+    }
+
+    /// <summary>
     /// 패치 파일 다운로드 + (버전 오름차순) 압축 해제 + 임시폴더 정리.
+    ///
+    /// <para>CancellationToken은 "중간에 멈추고 싶을 때" 전달하는 취소 신호입니다.</para>
+    /// <para>취소를 쓰지 않으면 간편 오버로드(토큰 없는 메서드)를 사용해도 됩니다.</para>
     ///
     /// 1) vsn.dat.gsz로 최신 버전 조회
     /// 2) 현재+1..최신 버전의 Client_info_File 수집
@@ -78,7 +129,7 @@ public static class PatchPipeline
             // -----------------------------------------------------------------
             // 3) 최신 우선 병합 + 5) 버전 오름차순 해제용 ExtractPlan 생성
             // -----------------------------------------------------------------
-            var plan = PatchPlanBuilder_StringRows.BuildExtractPlan(entriesByVersion);
+            var plan = PatchPlanBuilder.BuildExtractPlan(entriesByVersion);
 
             ct.ThrowIfCancellationRequested();
 
