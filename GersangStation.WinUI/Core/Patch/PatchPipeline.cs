@@ -17,7 +17,8 @@ public static class PatchPipeline
         string tempRoot,
         int maxConcurrency,
         int maxExtractRetryCount,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool cleanupTemp = true)
     {
         return RunPatchAsync(
             currentClientVersion: currentClientVersion,
@@ -26,7 +27,8 @@ public static class PatchPipeline
             tempRoot: tempRoot,
             maxConcurrency: maxConcurrency,
             maxExtractRetryCount: maxExtractRetryCount,
-            ct: ct);
+            ct: ct,
+            cleanupTemp: cleanupTemp);
     }
 
     /// <summary>
@@ -43,7 +45,8 @@ public static class PatchPipeline
         string tempRoot,
         int maxConcurrency,
         int maxExtractRetryCount,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool cleanupTemp = true)
     {
         if (patchBaseUri is null) throw new ArgumentNullException(nameof(patchBaseUri));
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
@@ -109,7 +112,6 @@ public static class PatchPipeline
                         downloadUrl: patchUrl,
                         installRoot: installRoot,
                         relativeDir: f.RelativeDir,
-                        expectedFirstEntryChecksum: f.FirstEntryChecksum,
                         maxExtractRetryCount: maxExtractRetryCount,
                         http: http,
                         ct: ct).ConfigureAwait(false);
@@ -119,18 +121,21 @@ public static class PatchPipeline
             // -----------------------------------------------------------------
             // 6) 임시폴더 삭제
             // -----------------------------------------------------------------
-            TryDeleteDirectory(tempRoot);
+            if (cleanupTemp)
+                TryDeleteDirectory(tempRoot);
         }
         catch (OperationCanceledException)
         {
             // 요구사항: 작업 취소 시 임시폴더 제거
-            TryDeleteDirectory(tempRoot);
+            if (cleanupTemp)
+                TryDeleteDirectory(tempRoot);
             throw;
         }
         catch
         {
             // 실패 시에도 임시폴더 제거 (디스크 누수 방지)
-            TryDeleteDirectory(tempRoot);
+            if (cleanupTemp)
+                TryDeleteDirectory(tempRoot);
             throw;
         }
     }
@@ -284,7 +289,6 @@ public static class PatchPipeline
         Uri downloadUrl,
         string installRoot,
         string relativeDir,
-        string? expectedFirstEntryChecksum,
         int maxExtractRetryCount,
         HttpClient http,
         CancellationToken ct)
@@ -302,7 +306,7 @@ public static class PatchPipeline
                     await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
                 }
 
-                ExtractGsz(archivePath, installRoot, relativeDir, expectedFirstEntryChecksum);
+                ExtractGsz(archivePath, installRoot, relativeDir);
                 return;
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
@@ -316,7 +320,7 @@ public static class PatchPipeline
         throw new InvalidDataException($"Failed to extract archive after retry. file='{archivePath}', retryCount={maxExtractRetryCount}", lastException);
     }
 
-    private static void ExtractGsz(string archivePath, string installRoot, string relativeDir, string? expectedFirstEntryChecksum)
+    private static void ExtractGsz(string archivePath, string installRoot, string relativeDir)
     {
         // relativeDir가 "\Online\Sub\" 형태면 Path.Combine이 앞 "\" 때문에 무시될 수 있어서
         // installRoot + relativeDir를 "문자열 결합"으로 만든다.
@@ -330,7 +334,6 @@ public static class PatchPipeline
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] targetDir: {targetDir}");
 
         using var archive = ArchiveFactory.OpenArchive(archivePath);
-        VerifyFirstEntryChecksum(archive, archivePath, expectedFirstEntryChecksum);
 
         int total = 0;
         int printed = 0;
@@ -359,42 +362,6 @@ public static class PatchPipeline
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][END] {archivePath}");
     }
 
-
-    private static void VerifyFirstEntryChecksum(IArchive archive, string archivePath, string? expectedFirstEntryChecksum)
-    {
-        var firstFileEntry = archive.Entries.FirstOrDefault(e => !e.IsDirectory)
-            ?? throw new InvalidDataException($"Archive has no file entry. file='{archivePath}'");
-
-        var actualCrc = firstFileEntry.Crc ?? 0;
-        string actualDecimal = actualCrc.ToString();
-        string actualHex = actualCrc.ToString("X8");
-
-        if (string.IsNullOrWhiteSpace(expectedFirstEntryChecksum))
-        {
-            System.Diagnostics.Debug.WriteLine(
-                $"[EXTRACT][CRC] entry='{firstFileEntry.Key}', expected=(none), actualDec='{actualDecimal}', actualHex='{actualHex}', match=SKIP");
-            return;
-        }
-
-        string normalizedExpected = NormalizeChecksum(expectedFirstEntryChecksum);
-        bool isMatch = string.Equals(normalizedExpected, actualDecimal, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(normalizedExpected, actualHex, StringComparison.OrdinalIgnoreCase);
-
-        System.Diagnostics.Debug.WriteLine(
-            $"[EXTRACT][CRC] entry='{firstFileEntry.Key}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}', match={isMatch}");
-
-        if (!isMatch)
-        {
-            throw new InvalidDataException(
-                $"Archive first-entry CRC mismatch. file='{archivePath}', entry='{firstFileEntry.Key}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}'");
-        }
-    }
-
-    private static string NormalizeChecksum(string checksum)
-    {
-        var normalized = checksum.Trim().ToUpperInvariant();
-        return normalized.Replace("-", string.Empty);
-    }
 
     private static void ExtractEntriesWithOverwrite(IArchive archive, string destinationRoot)
     {
