@@ -1,6 +1,9 @@
 ﻿namespace Core.Patch;
 
-public static class PatchPlanBuilder_StringRows
+/// <summary>
+/// Client_info_File의 문자열 행(탭 분리 컬럼)을 <see cref="PatchExtractPlan"/>으로 변환합니다.
+/// </summary>
+public static class PatchPlanBuilder
 {
     /// <summary>
     /// entriesByVersion[v]는 "row 배열" 리스트. (탭 split 결과)
@@ -60,4 +63,15 @@ public static class PatchPlanBuilder_StringRows
 
         return plan;
     }
+}
+
+/// <summary>
+/// 기존 호출 코드 호환용 타입.
+/// 신규 코드는 <see cref="PatchPlanBuilder"/>를 사용하세요.
+/// </summary>
+public static class PatchPlanBuilder_StringRows
+{
+    public static PatchExtractPlan BuildExtractPlan(
+        IReadOnlyDictionary<int, List<string[]>> entriesByVersion)
+        => PatchPlanBuilder.BuildExtractPlan(entriesByVersion);
 }

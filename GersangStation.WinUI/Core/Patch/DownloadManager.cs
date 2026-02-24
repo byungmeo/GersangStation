@@ -85,6 +85,9 @@ public sealed class DownloadManager : IAsyncDisposable
         return tcs.Task;
     }
 
+    /// <summary>
+    /// 간편 오버로드: 취소 제어가 필요 없을 때 사용합니다.
+    /// </summary>
     public Task EnqueueAsync(
         Uri url,
         string destinationPath,
