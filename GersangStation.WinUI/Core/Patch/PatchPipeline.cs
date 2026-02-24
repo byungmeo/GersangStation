@@ -1,4 +1,4 @@
-﻿using SevenZipExtractor;
+﻿using SharpCompress.Archives;
 using System.Net;
 using System.Text;
 
@@ -16,6 +16,7 @@ public static class PatchPipeline
         string installRoot,
         string tempRoot,
         int maxConcurrency,
+        int maxExtractRetryCount,
         CancellationToken ct)
     {
         return RunPatchAsync(
@@ -24,6 +25,7 @@ public static class PatchPipeline
             installRoot: installRoot,
             tempRoot: tempRoot,
             maxConcurrency: maxConcurrency,
+            maxExtractRetryCount: maxExtractRetryCount,
             ct: ct);
     }
 
@@ -40,12 +42,14 @@ public static class PatchPipeline
         string installRoot,
         string tempRoot,
         int maxConcurrency,
+        int maxExtractRetryCount,
         CancellationToken ct)
     {
         if (patchBaseUri is null) throw new ArgumentNullException(nameof(patchBaseUri));
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
         if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
         if (maxConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
+        if (maxExtractRetryCount < 0) throw new ArgumentOutOfRangeException(nameof(maxExtractRetryCount));
 
         Directory.CreateDirectory(tempRoot);
 
@@ -58,7 +62,7 @@ public static class PatchPipeline
             Timeout = TimeSpan.FromMinutes(5)
         };
 
-        int latestServerVersion = await ResolveLatestServerVersionAsync(http, patchBaseUri, tempRoot, ct).ConfigureAwait(false);
+        int latestServerVersion = await ResolveLatestServerVersionAsync(http, patchBaseUri, tempRoot, maxExtractRetryCount, ct).ConfigureAwait(false);
         if (latestServerVersion < currentClientVersion)
             return;
 
@@ -95,8 +99,20 @@ public static class PatchPipeline
                 int version = kv.Key;
                 foreach (var f in kv.Value)
                 {
+                    ct.ThrowIfCancellationRequested();
+
                     string gszPath = Path.Combine(tempRoot, version.ToString(), f.CompressedFileName);
-                    ExtractGsz(gszPath, installRoot, f.RelativeDir, f.FirstEntryChecksum);
+                    Uri patchUrl = PatchDownloaderStage.BuildPatchUrl(patchBaseUri, f.RelativeDir, f.CompressedFileName);
+
+                    await ExtractWithRetryAsync(
+                        archivePath: gszPath,
+                        downloadUrl: patchUrl,
+                        installRoot: installRoot,
+                        relativeDir: f.RelativeDir,
+                        expectedFirstEntryChecksum: f.FirstEntryChecksum,
+                        maxExtractRetryCount: maxExtractRetryCount,
+                        http: http,
+                        ct: ct).ConfigureAwait(false);
                 }
             }
 
@@ -164,7 +180,7 @@ public static class PatchPipeline
         return rows;
     }
 
-    private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, Uri patchBaseUri, string tempRoot, CancellationToken ct)
+    private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, Uri patchBaseUri, string tempRoot, int maxExtractRetryCount, CancellationToken ct)
     {
         string probeRoot = Path.Combine(tempRoot, "LatestVersionProbe");
         TryDeleteDirectory(probeRoot);
@@ -184,10 +200,13 @@ public static class PatchPipeline
         }
 
         Directory.CreateDirectory(extractRoot);
-        using (var archive = new ArchiveFile(archivePath))
-        {
-            archive.Extract(extractRoot, overwrite: true);
-        }
+        await ExtractArchiveToDirectoryWithRetryAsync(
+            archivePath: archivePath,
+            extractRoot: extractRoot,
+            downloadUrl: url,
+            maxExtractRetryCount: maxExtractRetryCount,
+            http: http,
+            ct: ct).ConfigureAwait(false);
 
         string vsnPath = ResolveVsnDatPath(extractRoot);
 
@@ -260,6 +279,43 @@ public static class PatchPipeline
         return result;
     }
 
+    private static async Task ExtractWithRetryAsync(
+        string archivePath,
+        Uri downloadUrl,
+        string installRoot,
+        string relativeDir,
+        string? expectedFirstEntryChecksum,
+        int maxExtractRetryCount,
+        HttpClient http,
+        CancellationToken ct)
+    {
+        Exception? lastException = null;
+
+        for (int attempt = 0; attempt <= maxExtractRetryCount; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (attempt > 0)
+                {
+                    await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
+                }
+
+                ExtractGsz(archivePath, installRoot, relativeDir, expectedFirstEntryChecksum);
+                return;
+            }
+            catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
+            {
+                lastException = ex;
+                if (attempt == maxExtractRetryCount)
+                    break;
+            }
+        }
+
+        throw new InvalidDataException($"Failed to extract archive after retry. file='{archivePath}', retryCount={maxExtractRetryCount}", lastException);
+    }
+
     private static void ExtractGsz(string archivePath, string installRoot, string relativeDir, string? expectedFirstEntryChecksum)
     {
         // relativeDir가 "\Online\Sub\" 형태면 Path.Combine이 앞 "\" 때문에 무시될 수 있어서
@@ -273,10 +329,9 @@ public static class PatchPipeline
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][BEGIN] {archivePath}");
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] targetDir: {targetDir}");
 
-        using var archive = new ArchiveFile(archivePath);
+        using var archive = ArchiveFactory.Open(archivePath);
         VerifyFirstEntryChecksum(archive, archivePath, expectedFirstEntryChecksum);
 
-        // SevenZipExtractor는 Entries 컬렉션을 제공함 (파일명/디렉토리 포함)
         int total = 0;
         int printed = 0;
         const int MaxPrint = 200;
@@ -288,7 +343,7 @@ public static class PatchPipeline
             // 너무 길어지면 앞쪽만 출력
             if (printed < MaxPrint)
             {
-                System.Diagnostics.Debug.WriteLine($"  - [{e.CRC}] {e.FileName}");
+                System.Diagnostics.Debug.WriteLine($"  - [{e.Crc}] {e.Key}");
                 printed++;
             }
         }
@@ -298,26 +353,33 @@ public static class PatchPipeline
 
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] entries: {total}");
 
-        // ---- 실제 해제 ----
-        archive.Extract(targetDir, overwrite: true);
+        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+        {
+            entry.WriteToDirectory(targetDir, new SharpCompress.Common.ExtractionOptions
+            {
+                ExtractFullPath = true,
+                Overwrite = true
+            });
+        }
 
         // ---- LOG: 종료 ----
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][END] {archivePath}");
     }
 
 
-    private static void VerifyFirstEntryChecksum(ArchiveFile archive, string archivePath, string? expectedFirstEntryChecksum)
+    private static void VerifyFirstEntryChecksum(IArchive archive, string archivePath, string? expectedFirstEntryChecksum)
     {
-        var firstFileEntry = archive.Entries.FirstOrDefault(e => !e.IsFolder)
+        var firstFileEntry = archive.Entries.FirstOrDefault(e => !e.IsDirectory)
             ?? throw new InvalidDataException($"Archive has no file entry. file='{archivePath}'");
 
-        string actualDecimal = firstFileEntry.CRC.ToString();
-        string actualHex = firstFileEntry.CRC.ToString("X8");
+        var actualCrc = firstFileEntry.Crc ?? 0;
+        string actualDecimal = actualCrc.ToString();
+        string actualHex = actualCrc.ToString("X8");
 
         if (string.IsNullOrWhiteSpace(expectedFirstEntryChecksum))
         {
             System.Diagnostics.Debug.WriteLine(
-                $"[EXTRACT][CRC] entry='{firstFileEntry.FileName}', expected=(none), actualDec='{actualDecimal}', actualHex='{actualHex}', match=SKIP");
+                $"[EXTRACT][CRC] entry='{firstFileEntry.Key}', expected=(none), actualDec='{actualDecimal}', actualHex='{actualHex}', match=SKIP");
             return;
         }
 
@@ -326,12 +388,12 @@ public static class PatchPipeline
             || string.Equals(normalizedExpected, actualHex, StringComparison.OrdinalIgnoreCase);
 
         System.Diagnostics.Debug.WriteLine(
-            $"[EXTRACT][CRC] entry='{firstFileEntry.FileName}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}', match={isMatch}");
+            $"[EXTRACT][CRC] entry='{firstFileEntry.Key}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}', match={isMatch}");
 
         if (!isMatch)
         {
             throw new InvalidDataException(
-                $"Archive first-entry CRC mismatch. file='{archivePath}', entry='{firstFileEntry.FileName}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}'");
+                $"Archive first-entry CRC mismatch. file='{archivePath}', entry='{firstFileEntry.Key}', expected='{normalizedExpected}', actualDec='{actualDecimal}', actualHex='{actualHex}'");
         }
     }
 
@@ -339,6 +401,64 @@ public static class PatchPipeline
     {
         var normalized = checksum.Trim().ToUpperInvariant();
         return normalized.Replace("-", string.Empty);
+    }
+
+    private static async Task ExtractArchiveToDirectoryWithRetryAsync(
+        string archivePath,
+        string extractRoot,
+        Uri downloadUrl,
+        int maxExtractRetryCount,
+        HttpClient http,
+        CancellationToken ct)
+    {
+        Exception? lastException = null;
+
+        for (int attempt = 0; attempt <= maxExtractRetryCount; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+            TryDeleteDirectory(extractRoot);
+            Directory.CreateDirectory(extractRoot);
+
+            try
+            {
+                if (attempt > 0)
+                {
+                    await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
+                }
+
+                using var archive = ArchiveFactory.Open(archivePath);
+                foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+                {
+                    entry.WriteToDirectory(extractRoot, new SharpCompress.Common.ExtractionOptions
+                    {
+                        ExtractFullPath = true,
+                        Overwrite = true
+                    });
+                }
+
+                return;
+            }
+            catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
+            {
+                lastException = ex;
+                if (attempt == maxExtractRetryCount)
+                    break;
+            }
+        }
+
+        throw new InvalidDataException($"Failed to extract metadata archive after retry. file='{archivePath}', retryCount={maxExtractRetryCount}", lastException);
+    }
+
+    private static async Task RedownloadArchiveAsync(HttpClient http, Uri downloadUrl, string archivePath, CancellationToken ct)
+    {
+        using var response = await http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        if (File.Exists(archivePath))
+            File.Delete(archivePath);
+
+        await using var fs = File.Create(archivePath);
+        await response.Content.CopyToAsync(fs, ct).ConfigureAwait(false);
     }
 
     private static void TryDeleteDirectory(string path)

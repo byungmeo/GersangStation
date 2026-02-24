@@ -1,5 +1,4 @@
-﻿using SevenZipExtractor;
-using System.Net;
+﻿using System.Net;
 
 namespace Core.Patch;
 
@@ -58,9 +57,7 @@ public static class PatchDownloaderStage
                     // URL: .../Client_Patch_File/{경로}/{파일명}
                     // patchBaseUri = .../Gersang/Patch/Gersang_Server 라고 두면:
                     // => {patchBaseUri}/Client_Patch_File/...
-                    var url = new Uri(
-                        patchBaseUri,
-                        $"Client_Patch_File/{TrimSlashes(f.RelativeDir)}/{f.CompressedFileName}");
+                    var url = BuildPatchUrl(patchBaseUri, f.RelativeDir, f.CompressedFileName);
 
                     string dest = Path.Combine(versionDir, f.CompressedFileName);
                     string temp = dest + ".crdownload";
@@ -86,9 +83,6 @@ public static class PatchDownloaderStage
         }
     }
 
-    private static string TrimSlashes(string s)
-        => s.Trim().TrimStart('/').TrimEnd('/');
-
     private static void TryDeleteDirectory(string path)
     {
         try
@@ -101,7 +95,7 @@ public static class PatchDownloaderStage
             // best-effort
         }
     }
-    private static Uri BuildPatchUrl(Uri patchBaseUri, string relativeDir, string compressedFileName)
+    internal static Uri BuildPatchUrl(Uri patchBaseUri, string relativeDir, string compressedFileName)
     {
         // relativeDir: "\Online\Sub\" -> "Online/Sub/"
         string rel = relativeDir.Replace('\\', '/').Trim('/');

@@ -1,5 +1,5 @@
 ﻿using Core.Patch;
-using SevenZipExtractor;
+using SharpCompress.Archives;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Core.Test;
@@ -26,9 +26,16 @@ public sealed class PatchMetadataParseTest
             await File.WriteAllBytesAsync(archivePath, archiveBytes);
             Directory.CreateDirectory(extractRoot);
 
-            using (var archive = new ArchiveFile(archivePath))
+            using (var archive = ArchiveFactory.Open(archivePath))
             {
-                archive.Extract(extractRoot, overwrite: true);
+                foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+                {
+                    entry.WriteToDirectory(extractRoot, new SharpCompress.Common.ExtractionOptions
+                    {
+                        ExtractFullPath = true,
+                        Overwrite = true
+                    });
+                }
             }
 
             var files = Directory.EnumerateFiles(extractRoot, "*", SearchOption.AllDirectories).ToArray();

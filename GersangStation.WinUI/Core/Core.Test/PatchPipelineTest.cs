@@ -36,6 +36,7 @@ public sealed class PatchPipelineTest
                 installRoot: installRoot,
                 tempRoot: tempPatchRoot,
                 maxConcurrency: 2,
+                maxExtractRetryCount: 2,
                 ct: CancellationToken.None);
         }
         catch (Exception ex)
