@@ -26,7 +26,7 @@ public sealed class PatchMetadataParseTest
             await File.WriteAllBytesAsync(archivePath, archiveBytes);
             Directory.CreateDirectory(extractRoot);
 
-            using (var archive = ArchiveFactory.Open(archivePath))
+            using (var archive = ArchiveFactory.OpenArchive(archivePath))
             {
                 foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
                 {

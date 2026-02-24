@@ -329,7 +329,7 @@ public static class PatchPipeline
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][BEGIN] {archivePath}");
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] targetDir: {targetDir}");
 
-        using var archive = ArchiveFactory.Open(archivePath);
+        using var archive = ArchiveFactory.OpenArchive(archivePath);
         VerifyFirstEntryChecksum(archive, archivePath, expectedFirstEntryChecksum);
 
         int total = 0;
@@ -426,7 +426,7 @@ public static class PatchPipeline
                     await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
                 }
 
-                using var archive = ArchiveFactory.Open(archivePath);
+                using var archive = ArchiveFactory.OpenArchive(archivePath);
                 foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
                 {
                     entry.WriteToDirectory(extractRoot, new SharpCompress.Common.ExtractionOptions
