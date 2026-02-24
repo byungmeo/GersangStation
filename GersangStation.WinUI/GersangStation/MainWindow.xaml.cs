@@ -1,31 +1,52 @@
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+namespace GersangStation;
 
-namespace GersangStation
+/// <summary>
+/// An empty window that can be used on its own or navigated to within a Frame.
+/// </summary>
+public sealed partial class MainWindow : Window
 {
-    /// <summary>
-    /// An empty window that can be used on its own or navigated to within a Frame.
-    /// </summary>
-    public sealed partial class MainWindow : Window
+    private WebViewManager? _webviewManager;
+
+    public MainWindow()
     {
-        public MainWindow()
+        InitializeComponent();
+
+        Closed += OnClosed;
+
+        _webviewManager = new WebViewManager(webview: WebView);
+    }
+
+    private void OnClosed(object sender, WindowEventArgs args)
+    {
+        _webviewManager?.Dispose();
+        _webviewManager = null;
+    }
+
+    private void Button_WebPreview_Back_Click(object sender, RoutedEventArgs e)
+    {
+        if (_webviewManager is not null && _webviewManager.CanGoBack)
         {
-            InitializeComponent();
+            _webviewManager.GoBack();
         }
+    }
+
+    private void Button_WebPreview_Forward_Click(object sender, RoutedEventArgs e)
+    {
+        if (_webviewManager is not null && _webviewManager.CanGoForward)
+        {
+            _webviewManager.GoForward();
+        }
+    }
+
+    private void Button_WebPreview_Refresh_Click(object sender, RoutedEventArgs e)
+    {
+        _webviewManager?.Refresh();
+    }
+
+    private void Button_WebPreview_Home_Click(object sender, RoutedEventArgs e)
+    {
+        _webviewManager?.GoHome();
     }
 }
