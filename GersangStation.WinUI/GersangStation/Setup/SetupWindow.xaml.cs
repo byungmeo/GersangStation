@@ -1,3 +1,4 @@
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
@@ -23,6 +24,7 @@ public sealed partial class SetupWindow : Window
 
     // ✅ 현재 페이지의 PropertyChanged 구독 관리
     private INotifyPropertyChanged? _currentNotify;
+    private bool _allowForceClose;
 
     public SetupWindow()
     {
@@ -31,6 +33,7 @@ public sealed partial class SetupWindow : Window
         SetupFlowState.Reset();
 
         Frame_SetupStep.Navigated += Frame_SetupStep_Navigated;
+        AppWindow.Closing += OnAppWindowClosing;
 
         NavigateToStep(SetupStep.Welcome, isForward: true);
     }
@@ -60,6 +63,7 @@ public sealed partial class SetupWindow : Window
         // ✅ 공통 버튼에 영향 있는 값만 갱신
         if (e.PropertyName == nameof(ISetupStepPage.CanGoNext) ||
             e.PropertyName == nameof(ISetupStepPage.CanSkip) ||
+            e.PropertyName == nameof(IBusySetupStepPage.IsBusy) ||
             string.IsNullOrEmpty(e.PropertyName))
         {
             UpdateStepActionButtons();
@@ -132,15 +136,18 @@ public sealed partial class SetupWindow : Window
     {
         if (Frame_SetupStep.Content is ISetupStepPage stepPage)
         {
-            Button_Next.IsEnabled = stepPage.CanGoNext;
-            Button_Skip.IsEnabled = stepPage.CanSkip;
+            bool isBusy = stepPage is IBusySetupStepPage busyStepPage && busyStepPage.IsBusy;
+
+            Button_Back.IsEnabled = _currentStep != SetupStep.Welcome && !isBusy;
+            Button_Next.IsEnabled = stepPage.CanGoNext && !isBusy;
+            Button_Skip.IsEnabled = stepPage.CanSkip && !isBusy;
+            return;
         }
-        else
-        {
-            // 인터페이스 미구현 페이지 대비 기본값
-            Button_Next.IsEnabled = true;
-            Button_Skip.IsEnabled = Button_Skip.Visibility == Visibility.Visible;
-        }
+
+        // 인터페이스 미구현 페이지 대비 기본값
+        Button_Back.IsEnabled = _currentStep != SetupStep.Welcome;
+        Button_Next.IsEnabled = true;
+        Button_Skip.IsEnabled = Button_Skip.Visibility == Visibility.Visible;
     }
 
     private void Button_Back_Click(object sender, RoutedEventArgs e)
@@ -230,4 +237,30 @@ public sealed partial class SetupWindow : Window
                 throw new ArgumentOutOfRangeException();
         }
     }
+
+    private async void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_allowForceClose)
+            return;
+
+        if (Frame_SetupStep.Content is not IBusySetupStepPage busyStepPage || !busyStepPage.IsBusy)
+            return;
+
+        // WinUI AppWindowClosingEventArgs는 deferral을 제공하지 않으므로,
+        // 먼저 종료를 취소한 뒤 사용자 확인 결과에 따라 명시적으로 Close()를 다시 호출합니다.
+        args.Cancel = true;
+
+        bool cancelled = await busyStepPage.ConfirmCancelBusyWorkAsync(
+            title: "프로그램 종료",
+            message: "현재 다운로드/압축 해제가 진행 중입니다. 정말 프로그램을 종료하시겠습니까?",
+            primaryButtonText: "종료",
+            closeButtonText: "취소");
+
+        if (cancelled)
+        {
+            _allowForceClose = true;
+            this.Close();
+        }
+    }
+
 }

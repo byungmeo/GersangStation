@@ -1,4 +1,5 @@
 using Core;
+using Core.Extractor;
 using Core.Patch;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
@@ -16,7 +17,7 @@ using Windows.System;
 
 namespace GersangStation.Setup;
 
-public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPropertyChanged
+public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetupStepPage, INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged(string name) =>
@@ -149,11 +150,18 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
             OnPropertyChanged(nameof(IsInstallingClient));
             OnPropertyChanged(nameof(IsInstallButtonVisible));
             OnPropertyChanged(nameof(IsInstallProgressVisible));
+            OnPropertyChanged(nameof(IsInstallIdle));
+            OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(CanConfirmAllAndIdle));
+            NotifyInstallComputed();
+            NotifyStarterComputed();
         }
     }
 
     public bool IsInstallButtonVisible => !IsInstallingClient;
     public bool IsInstallProgressVisible => IsInstallingClient;
+    public bool IsInstallIdle => !IsInstallingClient;
+    public bool IsBusy => IsInstallingClient;
 
     private double _installProgressPercent;
     public double InstallProgressPercent
@@ -210,6 +218,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
 
     // 하단 "확정" 버튼: 유효하지만 아직 확정되지 않은 상태에서만 활성화
     public bool CanConfirmAll => _installValid && _starterValid && !_isConfirmed;
+    public bool CanConfirmAllAndIdle => CanConfirmAll && IsInstallIdle;
 
     public Visibility InstallSuggestVisibility =>
         _installValid ? Visibility.Collapsed : Visibility.Visible;
@@ -226,6 +235,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
     public SetupGameStepPage()
     {
         InitializeComponent();
+        Unloaded += OnPageUnloaded;
         _ = InitAsync();
     }
 
@@ -349,7 +359,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
             _installClientCts?.Dispose();
             _installClientCts = new CancellationTokenSource();
 
-            var progress = new Progress<DownloadProgress>(p =>
+            var downloadProgress = new Progress<DownloadProgress>(p =>
             {
                 long received = p.BytesReceived;
                 long total = p.TotalBytes ?? 0;
@@ -366,10 +376,25 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
                 }
             });
 
+            var extractionProgress = new Progress<ExtractionProgress>(p =>
+            {
+                InstallProgressPercent = Math.Clamp(p.Percentage, 0, 100);
+
+                string processedText = p.TotalEntries is > 0
+                    ? $"{p.ProcessedEntries}/{p.TotalEntries}"
+                    : p.ProcessedEntries.ToString();
+
+                if (!string.IsNullOrWhiteSpace(p.CurrentEntry))
+                    InstallProgressText = $"압축 해제 중... {processedText} - {p.CurrentEntry}";
+                else
+                    InstallProgressText = $"압축 해제 중... {processedText}";
+            });
+
             await PatchClientApi.InstallFullClientAsync(
                 installRoot: installRoot,
                 tempRoot: tempRoot,
-                progress: progress,
+                progress: downloadProgress,
+                extractionProgress: extractionProgress,
                 ct: _installClientCts.Token);
 
             InstallProgressPercent = 100;
@@ -390,6 +415,56 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
         {
             IsInstallingClient = false;
             button.IsEnabled = true;
+        }
+    }
+
+
+    private async void OnCancelInstallButtonClicked(object sender, RoutedEventArgs e)
+    {
+        await ConfirmCancelBusyWorkAsync(
+            title: "설치 취소",
+            message: "현재 다운로드 또는 압축 해제가 진행 중입니다. 정말 취소하시겠습니까?",
+            primaryButtonText: "예",
+            closeButtonText: "아니요");
+    }
+
+    public async Task<bool> ConfirmCancelBusyWorkAsync(string title, string message, string primaryButtonText, string closeButtonText)
+    {
+        if (!IsInstallingClient || _installClientCts is null)
+            return false;
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = title,
+            Content = message,
+            PrimaryButtonText = primaryButtonText,
+            CloseButtonText = closeButtonText,
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary)
+            return false;
+
+        Debug.WriteLine("[InstallFullClient] User confirmed cancellation request.");
+        _installClientCts.Cancel();
+        return true;
+    }
+
+    private void OnPageUnloaded(object sender, RoutedEventArgs e)
+    {
+        // 예기치 않은 종료/페이지 교체 시에도 진행 중 작업을 안전하게 취소합니다.
+        if (_installClientCts is null)
+            return;
+
+        try
+        {
+            _installClientCts.Cancel();
+        }
+        catch
+        {
+            // best-effort
         }
     }
 
@@ -513,6 +588,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
     private void NotifyInstallComputed()
     {
         OnPropertyChanged(nameof(CanConfirmAll));
+        OnPropertyChanged(nameof(CanConfirmAllAndIdle));
         OnPropertyChanged(nameof(CanGoNext));
         OnPropertyChanged(nameof(CanSkip));
         OnPropertyChanged(nameof(InstallSuggestVisibility));
@@ -596,6 +672,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
     private void NotifyStarterComputed()
     {
         OnPropertyChanged(nameof(CanConfirmAll));
+        OnPropertyChanged(nameof(CanConfirmAllAndIdle));
         OnPropertyChanged(nameof(CanGoNext));
         OnPropertyChanged(nameof(CanSkip));
         OnPropertyChanged(nameof(NextHintText));
@@ -605,6 +682,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
     private void RecomputeCommon()
     {
         OnPropertyChanged(nameof(CanConfirmAll));
+        OnPropertyChanged(nameof(CanConfirmAllAndIdle));
         OnPropertyChanged(nameof(CanGoNext));
         OnPropertyChanged(nameof(CanSkip));
         OnPropertyChanged(nameof(NextHintText));

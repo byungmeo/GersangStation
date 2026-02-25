@@ -58,20 +58,23 @@
                                 BorderBrush="{x:Bind InstallBorderBrush, Mode=OneWay}"
                                 BorderThickness="{x:Bind InstallBorderThickness, Mode=OneWay}"
                                 PlaceholderText="예: C:\AKInteractive\Gersang\"
-                                Text="{x:Bind InstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                Text="{x:Bind InstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
 
                             <Button
                                 Grid.Column="1"
                                 MinHeight="40"
                                 VerticalAlignment="Center"
                                 Click="OnPickInstallFolder"
-                                Content="직접 선택" />
+                                Content="직접 선택"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
                             <Button
                                 Grid.Column="2"
                                 MinHeight="40"
                                 VerticalAlignment="Center"
                                 Click="OnAutoDetectInstall"
-                                Content="경로 자동 탐색" />
+                                Content="경로 자동 탐색"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
                         </Grid>
 
                         <!--  부가 정보는 아래 라인으로 분리 (버튼 높낮이 깨짐 방지)  -->
@@ -88,16 +91,31 @@
                                 x:Name="InstallClientButton"
                                 x:Load="{x:Bind IsInstallButtonVisible, Mode=OneWay}"
                                 Click="OnInstallButtonClicked"
-                                Content="설치" />
+                                Content="설치"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
 
                             <StackPanel
                                 x:Name="InstallClientProgressPanel"
                                 x:Load="{x:Bind IsInstallProgressVisible, Mode=OneWay}"
                                 Spacing="6">
-                                <ProgressBar
-                                    Height="8"
-                                    Maximum="100"
-                                    Value="{x:Bind InstallProgressPercent, Mode=OneWay}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <ProgressBar
+                                        Grid.Column="0"
+                                        Height="8"
+                                        Maximum="100"
+                                        Value="{x:Bind InstallProgressPercent, Mode=OneWay}" />
+
+                                    <Button
+                                        Grid.Column="1"
+                                        Click="OnCancelInstallButtonClicked"
+                                        Content="취소"
+                                        Style="{StaticResource SubtleButtonStyle}" />
+                                </Grid>
                                 <TextBlock Opacity="0.75" Text="{x:Bind InstallProgressText, Mode=OneWay}" TextWrapping="Wrap" />
                                 <TextBlock Opacity="0.75" Text="{x:Bind InstallRemainingCapacityText, Mode=OneWay}" TextWrapping="Wrap" />
                             </StackPanel>
@@ -128,20 +146,23 @@
                                 BorderBrush="{x:Bind StarterBorderBrush, Mode=OneWay}"
                                 BorderThickness="{x:Bind StarterBorderThickness, Mode=OneWay}"
                                 PlaceholderText="예: C:\Program Files (x86)\Gersang Starter"
-                                Text="{x:Bind StarterPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                Text="{x:Bind StarterPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
 
                             <Button
                                 Grid.Column="1"
                                 MinHeight="40"
                                 VerticalAlignment="Center"
                                 Click="OnPickStarterFolder"
-                                Content="직접 선택" />
+                                Content="직접 선택"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
                             <Button
                                 Grid.Column="2"
                                 MinHeight="40"
                                 VerticalAlignment="Center"
                                 Click="OnAutoDetectStarter"
-                                Content="경로 자동 탐색" />
+                                Content="경로 자동 탐색"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
                         </Grid>
 
                         <TextBlock
@@ -152,7 +173,7 @@
                         <StackPanel Spacing="6" Visibility="{x:Bind StarterSuggestVisibility, Mode=OneWay}">
                             <TextBlock Opacity="0.7" Text="게임 스타터를 아직 설치하지 않으셨나요?" />
                             <TextBlock Opacity="0.7" Text="설치를 마치신 후 경로를 다시 탐색해주세요." />
-                            <Button Click="OnStarterInstallButtonClicked" Content="설치" />
+                            <Button Click="OnStarterInstallButtonClicked" Content="설치" IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -187,7 +208,7 @@
                     MinHeight="42"
                     Click="OnConfirmAll"
                     Content="확정"
-                    IsEnabled="{x:Bind CanConfirmAll, Mode=OneWay}"
+                    IsEnabled="{x:Bind CanConfirmAllAndIdle, Mode=OneWay}"
                     Style="{ThemeResource AccentButtonStyle}" />
             </Grid>
         </Border>
