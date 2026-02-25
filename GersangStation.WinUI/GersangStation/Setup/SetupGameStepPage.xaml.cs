@@ -355,7 +355,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
             if (string.IsNullOrWhiteSpace(selectedRoot))
                 return;
 
-            string installRoot = selectedRoot.Trim();
+            string installRoot = Path.GetFullPath(selectedRoot.Trim());
 
             UpdateRemainingCapacityText(installRoot);
 

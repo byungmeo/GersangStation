@@ -116,9 +116,16 @@ public static class PatchClientApi
     {
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
 
+        installRoot = Path.GetFullPath(installRoot.Trim());
         Directory.CreateDirectory(installRoot);
 
-        string archivePath = Path.Combine(installRoot, "Gersang_Install.7z");
+        string archivePath = Path.GetFullPath(Path.Combine(installRoot, "Gersang_Install.7z"));
+        string normalizedRoot = installRoot.EndsWith(Path.DirectorySeparatorChar)
+            ? installRoot
+            : installRoot + Path.DirectorySeparatorChar;
+
+        if (!archivePath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"Archive path resolved outside installRoot. installRoot='{installRoot}', archivePath='{archivePath}'");
 
         using var http = new HttpClient(new HttpClientHandler
         {
