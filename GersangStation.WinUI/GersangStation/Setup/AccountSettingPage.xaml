@@ -1,0 +1,56 @@
+<Page
+    x:Class="GersangStation.Setup.AccountSettingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:setup="using:GersangStation.Setup"
+    d:DataContext="{d:DesignInstance Type=setup:AccountSettingPage}"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Padding="16" Spacing="16">
+            <TextBlock Opacity="0.8" Text="선택 단계입니다. 계정은 나중에 추가할 수 있고, 필요 없으면 건너뛰어도 됩니다." TextWrapping="Wrap" />
+
+            <ItemsControl ItemsSource="{x:Bind Accounts, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnSpacing="8" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox
+                                Grid.Column="0"
+                                MinHeight="40"
+                                PlaceholderText="아이디"
+                                Text="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                TextChanged="OnAccountIdChanged" />
+
+                            <PasswordBox
+                                Grid.Column="1"
+                                MinHeight="40"
+                                PlaceholderText="비밀번호"
+                                PasswordChanged="OnAccountPasswordChanged" />
+
+                            <Button
+                                Grid.Column="2"
+                                MinHeight="40"
+                                Click="OnRemoveAccount"
+                                Content="삭제" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button
+                HorizontalAlignment="Left"
+                Click="OnAddAccount"
+                Content="계정 추가" />
+
+            <TextBlock Opacity="0.75" Text="{x:Bind NextHintText, Mode=OneWay}" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

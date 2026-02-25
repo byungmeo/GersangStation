@@ -14,6 +14,8 @@ public sealed partial class SetupWindow : Window
     {
         Welcome = 0,
         PathSelect = 1,
+        MultiClient = 2,
+        AccountSetting = 3,
     }
 
     private SetupStep _currentStep = SetupStep.Welcome;
@@ -24,6 +26,8 @@ public sealed partial class SetupWindow : Window
     public SetupWindow()
     {
         InitializeComponent();
+
+        SetupFlowState.Reset();
 
         Frame_SetupStep.Navigated += Frame_SetupStep_Navigated;
 
@@ -69,6 +73,8 @@ public sealed partial class SetupWindow : Window
         {
             SetupStep.Welcome => typeof(WelcomeStepPage),
             SetupStep.PathSelect => typeof(SetupGameStepPage),
+            SetupStep.MultiClient => typeof(MultiClientStepPage),
+            SetupStep.AccountSetting => typeof(AccountSettingPage),
             _ => throw new ArgumentOutOfRangeException(nameof(step), step, null)
         };
 
@@ -102,6 +108,20 @@ public sealed partial class SetupWindow : Window
                 Button_Next.Content = "다음";
                 break;
 
+            case SetupStep.MultiClient:
+                TextBlock_StepTitle.Text = "다클 폴더명 설정 (선택)";
+                Button_Back.IsEnabled = true;
+                Button_Skip.Visibility = Visibility.Visible;
+                Button_Next.Content = "다음";
+                break;
+
+            case SetupStep.AccountSetting:
+                TextBlock_StepTitle.Text = "계정 설정 (선택)";
+                Button_Back.IsEnabled = true;
+                Button_Skip.Visibility = Visibility.Visible;
+                Button_Next.Content = "완료";
+                break;
+
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -131,6 +151,14 @@ public sealed partial class SetupWindow : Window
 
             case SetupStep.PathSelect:
                 NavigateToStep(SetupStep.Welcome, isForward: false);
+                return;
+
+            case SetupStep.MultiClient:
+                NavigateToStep(SetupStep.PathSelect, isForward: false);
+                return;
+
+            case SetupStep.AccountSetting:
+                NavigateToStep(SetupStep.MultiClient, isForward: false);
                 return;
 
             default:
@@ -175,6 +203,20 @@ public sealed partial class SetupWindow : Window
                 return;
 
             case SetupStep.PathSelect:
+                if (SetupFlowState.ShouldAutoSkipMultiClient)
+                {
+                    SetupCompleted?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+
+                NavigateToStep(SetupStep.MultiClient, isForward: true);
+                return;
+
+            case SetupStep.MultiClient:
+                NavigateToStep(SetupStep.AccountSetting, isForward: true);
+                return;
+
+            case SetupStep.AccountSetting:
                 SetupCompleted?.Invoke(this, EventArgs.Empty);
                 return;
 
