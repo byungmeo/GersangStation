@@ -168,9 +168,18 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
         _ = InitAsync();
     }
 
-    public bool OnNext() => true;
+    public bool OnNext()
+    {
+        SetupFlowState.InstallPath = InstallPath;
+        SetupFlowState.ShouldAutoSkipMultiClient = false;
+        return true;
+    }
 
-    public void OnSkip() { }
+    public void OnSkip()
+    {
+        SetupFlowState.InstallPath = InstallPath;
+        SetupFlowState.ShouldAutoSkipMultiClient = true;
+    }
 
     private async Task InitAsync()
     {
