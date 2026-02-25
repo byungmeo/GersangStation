@@ -1,4 +1,5 @@
 using Core.Extractor;
+using System.Diagnostics;
 using System.Net;
 
 namespace Core.Patch;
@@ -140,6 +141,7 @@ public static class PatchClientApi
         string tempRoot,
         IProgress<DownloadProgress>? progress = null,
         IProgress<ExtractionProgress>? extractionProgress = null,
+        bool skipDownloadIfArchiveExists = true,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
@@ -159,12 +161,25 @@ public static class PatchClientApi
         };
 
         var downloader = new Downloader(http);
-        await downloader.DownloadAsync(
-            FullClientUri,
-            archivePath,
-            new DownloadOptions(Overwrite: true),
-            progress: progress,
-            ct: ct).ConfigureAwait(false);
+
+        try
+        {
+            await downloader.DownloadAsync(
+                FullClientUri,
+                archivePath,
+                new DownloadOptions(Overwrite: false),
+                progress: progress,
+                ct: ct).ConfigureAwait(false);
+
+            Debug.WriteLine($"[InstallFullClient] Download complete: {archivePath}");
+        }
+        catch (IOException ex) when (skipDownloadIfArchiveExists &&
+                                     File.Exists(archivePath) &&
+                                     ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+        {
+            Debug.WriteLine($"[InstallFullClient] Archive already exists. Skip download and extract directly: {archivePath}");
+            Debug.WriteLine($"[InstallFullClient] Skip reason: {ex.Message}");
+        }
 
         await Extractor.ExtractAsync(archivePath, installRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
     }
