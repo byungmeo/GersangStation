@@ -246,26 +246,20 @@ public sealed partial class SetupWindow : Window
         if (Frame_SetupStep.Content is not IBusySetupStepPage busyStepPage || !busyStepPage.IsBusy)
             return;
 
+        // WinUI AppWindowClosingEventArgs는 deferral을 제공하지 않으므로,
+        // 먼저 종료를 취소한 뒤 사용자 확인 결과에 따라 명시적으로 Close()를 다시 호출합니다.
         args.Cancel = true;
-        var deferral = args.GetDeferral();
 
-        try
-        {
-            bool cancelled = await busyStepPage.ConfirmCancelBusyWorkAsync(
-                title: "프로그램 종료",
-                message: "현재 다운로드/압축 해제가 진행 중입니다. 정말 프로그램을 종료하시겠습니까?",
-                primaryButtonText: "종료",
-                closeButtonText: "취소");
+        bool cancelled = await busyStepPage.ConfirmCancelBusyWorkAsync(
+            title: "프로그램 종료",
+            message: "현재 다운로드/압축 해제가 진행 중입니다. 정말 프로그램을 종료하시겠습니까?",
+            primaryButtonText: "종료",
+            closeButtonText: "취소");
 
-            if (cancelled)
-            {
-                _allowForceClose = true;
-                this.Close();
-            }
-        }
-        finally
+        if (cancelled)
         {
-            deferral.Complete();
+            _allowForceClose = true;
+            this.Close();
         }
     }
 
