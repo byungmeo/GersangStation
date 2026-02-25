@@ -8,57 +8,76 @@
     d:DataContext="{d:DesignInstance Type=setup:AccountSettingPage}"
     mc:Ignorable="d">
 
-    <ScrollViewer>
-        <StackPanel Padding="16" Spacing="16">
-            <TextBlock Opacity="0.8" Text="선택 단계입니다. 계정은 나중에 추가할 수 있고, 필요 없으면 건너뛰어도 됩니다." TextWrapping="Wrap" />
+    <Grid>
+        <ContentPresenter
+            x:Name="CheckingHost"
+            x:Load="{x:Bind IsSaving, Mode=OneWay}">
+            <StackPanel Padding="16" Spacing="12">
+                <TextBlock FontSize="20" Text="계정 저장 중이에요" />
+                <ProgressBar Width="260" IsIndeterminate="True" />
+                <TextBlock Opacity="0.7" Text="계정 정보를 안전하게 저장하고 있어요." />
+            </StackPanel>
+        </ContentPresenter>
 
-            <ItemsControl ItemsSource="{x:Bind Accounts, Mode=OneWay}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Grid ColumnSpacing="8" Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="2*" />
-                                <ColumnDefinition Width="2*" />
-                                <ColumnDefinition Width="2*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+        <ContentPresenter
+            x:Name="EditHost"
+            x:Load="{x:Bind IsEdit, Mode=OneWay}">
+            <ScrollViewer>
+                <StackPanel Padding="16" Spacing="16">
+                    <TextBlock Opacity="0.8" Text="선택 단계입니다. 계정은 나중에 추가할 수 있고, 필요 없으면 건너뛰어도 됩니다." TextWrapping="Wrap" />
 
-                            <TextBox
-                                Grid.Column="0"
-                                MinHeight="40"
-                                PlaceholderText="아이디"
-                                Text="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                TextChanged="OnAccountIdChanged" />
+                    <ItemsControl ItemsSource="{x:Bind Accounts, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnSpacing="8" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                            <PasswordBox
-                                Grid.Column="1"
-                                MinHeight="40"
-                                PlaceholderText="비밀번호"
-                                PasswordChanged="OnAccountPasswordChanged" />
+                                    <TextBox
+                                        Grid.Column="0"
+                                        MinHeight="40"
+                                        IsEnabled="{Binding CanEdit}"
+                                        PlaceholderText="아이디"
+                                        Text="{Binding Id, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        TextChanged="OnAccountIdChanged" />
 
-                            <TextBox
-                                Grid.Column="2"
-                                MinHeight="40"
-                                PlaceholderText="별명 (선택)"
-                                Text="{Binding Nickname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                TextChanged="OnAccountNicknameChanged" />
+                                    <PasswordBox
+                                        Grid.Column="1"
+                                        MinHeight="40"
+                                        IsEnabled="{Binding CanEdit}"
+                                        PlaceholderText="비밀번호"
+                                        PasswordChanged="OnAccountPasswordChanged" />
 
-                            <Button
-                                Grid.Column="3"
-                                MinHeight="40"
-                                Click="OnRemoveAccount"
-                                Content="삭제" />
-                        </Grid>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                                    <TextBox
+                                        Grid.Column="2"
+                                        MinHeight="40"
+                                        IsEnabled="{Binding CanEdit}"
+                                        PlaceholderText="별명 (선택)"
+                                        Text="{Binding Nickname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        TextChanged="OnAccountNicknameChanged" />
 
-            <Button
-                HorizontalAlignment="Left"
-                Click="OnAddAccount"
-                Content="계정 추가" />
+                                    <Button
+                                        Grid.Column="3"
+                                        MinHeight="40"
+                                        Click="OnRemoveAccount"
+                                        Content="삭제" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
-            <TextBlock Opacity="0.75" Text="{x:Bind NextHintText, Mode=OneWay}" TextWrapping="Wrap" />
-        </StackPanel>
-    </ScrollViewer>
+                    <Button
+                        HorizontalAlignment="Left"
+                        Click="OnAddAccount"
+                        Content="계정 추가" />
+
+                    <TextBlock Opacity="0.75" Text="{x:Bind NextHintText, Mode=OneWay}" TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+        </ContentPresenter>
+    </Grid>
 </Page>

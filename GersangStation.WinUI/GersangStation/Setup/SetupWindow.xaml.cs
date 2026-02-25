@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 
 namespace GersangStation.Setup;
 
@@ -179,14 +180,19 @@ public sealed partial class SetupWindow : Window
         HandleNext();
     }
 
-    private void Button_Next_Click(object sender, RoutedEventArgs e)
+    private async void Button_Next_Click(object sender, RoutedEventArgs e)
     {
         if (Frame_SetupStep.Content is ISetupStepPage stepPage)
         {
             if (!stepPage.CanGoNext)
                 return;
 
-            bool canProceed = stepPage.OnNext();
+            bool canProceed;
+            if (stepPage is IAsyncSetupStepPage asyncStepPage)
+                canProceed = await asyncStepPage.OnNextAsync();
+            else
+                canProceed = stepPage.OnNext();
+
             if (!canProceed)
                 return;
         }
