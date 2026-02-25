@@ -110,6 +110,7 @@ public static class PatchClientApi
     public static async Task InstallFullClientAsync(
         string installRoot,
         string tempRoot,
+        IProgress<DownloadProgress>? progress = null,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
@@ -133,7 +134,7 @@ public static class PatchClientApi
             FullClientUri,
             archivePath,
             new DownloadOptions(Overwrite: true),
-            progress: null,
+            progress: progress,
             ct: ct).ConfigureAwait(false);
 
         using var archive = ArchiveFactory.OpenArchive(archivePath);
