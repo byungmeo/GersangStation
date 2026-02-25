@@ -1,0 +1,40 @@
+<Page
+    x:Class="GersangStation.Setup.MultiClientStepPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:setup="using:GersangStation.Setup"
+    d:DataContext="{d:DesignInstance Type=setup:MultiClientStepPage}"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Padding="16" Spacing="20">
+            <TextBlock Opacity="0.8" Text="선택 단계입니다. 필요하지 않다면 건너뛰기를 눌러 넘어갈 수 있어요." TextWrapping="Wrap" />
+
+            <StackPanel Spacing="8">
+                <TextBlock Opacity="0.8" Text="다클 폴더명 1" />
+                <TextBox
+                    MinHeight="40"
+                    BorderBrush="{x:Bind Folder1BorderBrush, Mode=OneWay}"
+                    BorderThickness="{x:Bind Folder1BorderThickness, Mode=OneWay}"
+                    PlaceholderText="예: QWE"
+                    Text="{x:Bind MultiClientFolderName1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Opacity="0.75" Text="{x:Bind Folder1Description, Mode=OneWay}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Opacity="0.8" Text="다클 폴더명 2" />
+                <TextBox
+                    MinHeight="40"
+                    BorderBrush="{x:Bind Folder2BorderBrush, Mode=OneWay}"
+                    BorderThickness="{x:Bind Folder2BorderThickness, Mode=OneWay}"
+                    PlaceholderText="예: QWE"
+                    Text="{x:Bind MultiClientFolderName2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Opacity="0.75" Text="{x:Bind Folder2Description, Mode=OneWay}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <TextBlock Opacity="0.75" Text="{x:Bind NextHintText, Mode=OneWay}" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
