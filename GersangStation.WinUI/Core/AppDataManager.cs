@@ -1,9 +1,8 @@
-﻿using System;
-using Windows.Storage;
+﻿using Windows.Storage;
 
-namespace GersangStation;
+namespace Core;
 
-internal static class AppDataManager
+public static class AppDataManager
 {
     private const string KeySetupCompleted = "SetupCompleted";
 
