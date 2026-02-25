@@ -22,6 +22,7 @@
                 TextWrapping="Wrap" />
 
             <HyperlinkButton
+                x:Name="IncompatibleHelpLink"
                 x:Load="{x:Bind ShowIncompatibleHelp, Mode=OneWay}"
                 Click="OnHelpLinkClicked"
                 Content="도움말 링크(준비중)" />
@@ -31,7 +32,7 @@
                 IsChecked="{x:Bind UseFastMultiClient, Mode=TwoWay}"
                 IsEnabled="{x:Bind IsFastOptionEditable, Mode=OneWay}" />
 
-            <StackPanel x:Load="{x:Bind IsManualMode, Mode=OneWay}" Spacing="8">
+            <StackPanel x:Name="ManualModePanel" x:Load="{x:Bind IsManualMode, Mode=OneWay}" Spacing="8">
                 <RadioButton
                     Content="이미 다클라를 생성했습니다."
                     GroupName="ManualMode"
@@ -42,7 +43,7 @@
                     IsChecked="{x:Bind IsManualWantCreate, Mode=TwoWay}" />
             </StackPanel>
 
-            <StackPanel x:Load="{x:Bind ShowManualCreateNameInputs, Mode=OneWay}" Spacing="12">
+            <StackPanel x:Name="ManualCreateNameInputsPanel" x:Load="{x:Bind ShowManualCreateNameInputs, Mode=OneWay}" Spacing="12">
                 <Grid ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*" />
@@ -100,7 +101,7 @@
                 </Grid>
             </StackPanel>
 
-            <StackPanel x:Load="{x:Bind ShowManualCreatedInputs, Mode=OneWay}" Spacing="12">
+            <StackPanel x:Name="ManualCreatedInputsPanel" x:Load="{x:Bind ShowManualCreatedInputs, Mode=OneWay}" Spacing="12">
                 <TextBlock Opacity="0.8" Text="기존 2클라 경로" />
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
