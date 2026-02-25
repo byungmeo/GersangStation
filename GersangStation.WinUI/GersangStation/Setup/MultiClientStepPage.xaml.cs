@@ -28,7 +28,9 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         {
             if (_multiClientFolderName1 == value) return;
             _multiClientFolderName1 = value;
+            // 두 입력은 상호 제약(서로 달라야 함)이 있어서 같이 재검증합니다.
             RecomputeFolder1();
+            RecomputeFolder2();
             RecomputeCommon();
             OnPropertyChanged(nameof(MultiClientFolderName1));
         }
@@ -42,6 +44,8 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         {
             if (_multiClientFolderName2 == value) return;
             _multiClientFolderName2 = value;
+            // 두 입력은 상호 제약(서로 달라야 함)이 있어서 같이 재검증합니다.
+            RecomputeFolder1();
             RecomputeFolder2();
             RecomputeCommon();
             OnPropertyChanged(nameof(MultiClientFolderName2));
@@ -121,7 +125,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
 
     private void RecomputeFolder1()
     {
-        ComputeFolderValidation(MultiClientFolderName1, out _folder1Valid, out string description);
+        ComputeFolderValidation(MultiClientFolderName1, MultiClientFolderName2, out _folder1Valid, out string description);
 
         Folder1Description = description;
         Folder1BorderBrush = _folder1Valid ? BrushValid : BrushInvalid;
@@ -130,7 +134,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
 
     private void RecomputeFolder2()
     {
-        ComputeFolderValidation(MultiClientFolderName2, out _folder2Valid, out string description);
+        ComputeFolderValidation(MultiClientFolderName2, MultiClientFolderName1, out _folder2Valid, out string description);
 
         Folder2Description = description;
         Folder2BorderBrush = _folder2Valid ? BrushValid : BrushInvalid;
@@ -145,7 +149,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         StateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void ComputeFolderValidation(string input, out bool isValid, out string description)
+    private void ComputeFolderValidation(string input, string otherInput, out bool isValid, out string description)
     {
         string folderName = (input ?? "").Trim();
 
@@ -160,6 +164,15 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         {
             isValid = false;
             description = "❌ 폴더명으로 사용할 수 없는 문자 또는 형식이에요.";
+            return;
+        }
+
+        string otherFolderName = (otherInput ?? "").Trim();
+        if (!string.IsNullOrWhiteSpace(otherFolderName) &&
+            string.Equals(folderName, otherFolderName, StringComparison.OrdinalIgnoreCase))
+        {
+            isValid = false;
+            description = "❌ 2클라/3클라 폴더명은 서로 같으면 안돼요.";
             return;
         }
 

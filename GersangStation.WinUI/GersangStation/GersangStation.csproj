@@ -61,6 +61,11 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <Page Update="Setup\AccountSettingPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
     <Page Update="SetupWindow\BlankPage1.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
