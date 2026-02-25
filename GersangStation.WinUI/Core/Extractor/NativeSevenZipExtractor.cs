@@ -142,9 +142,19 @@ public sealed class NativeSevenZipExtractor : IExtractor
             return null;
         }
 
-        foreach (string line in stdout.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        var lines = stdout
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        const int tailLineCount = 5;
+        int startIndex = Math.Max(0, lines.Length - tailLineCount);
+
+        Debug.WriteLine($"[7ZA][LIST][TAIL] totalLines={lines.Length}, checkingLast={lines.Length - startIndex}");
+
+        // 전체 출력 전부를 파싱하지 않고, 마지막 몇 줄만 검사합니다.
+        for (int i = lines.Length - 1; i >= startIndex; i--)
         {
-            Debug.WriteLine($"[7ZA][LIST][OUT] {line}");
+            string line = lines[i];
+            Debug.WriteLine($"[7ZA][LIST][TAIL][OUT] {line}");
 
             var match = ListingSummaryRegex.Match(line);
             if (!match.Success)
@@ -166,7 +176,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
             return files + folders;
         }
 
-        Debug.WriteLine("[7ZA][LIST][PARSED] summary not found.");
+        Debug.WriteLine("[7ZA][LIST][PARSED] summary not found in tail lines.");
         return null;
     }
 
