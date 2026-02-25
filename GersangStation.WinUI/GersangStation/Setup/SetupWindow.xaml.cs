@@ -28,6 +28,9 @@ public sealed partial class SetupWindow : Window
     private INotifyPropertyChanged? _currentNotify;
     private bool _allowForceClose;
 
+    // ✅ 다음/뒤로/건너뛰기 연타로 스텝이 2번 이동하는 상황 방지용 잠금
+    private bool _isStepTransitionInProgress;
+
     public SetupWindow()
     {
         InitializeComponent();
@@ -43,6 +46,8 @@ public sealed partial class SetupWindow : Window
 
     private void Frame_Step_Navigated(object sender, NavigationEventArgs e)
     {
+        EndStepTransition();
+
         // ✅ 이전 페이지 구독 해제
         if (_currentNotify != null)
         {
@@ -73,6 +78,25 @@ public sealed partial class SetupWindow : Window
 
     private static bool IsFullscreenStep(SetupStep step) =>
         step is SetupStep.Intro or SetupStep.Outro;
+
+    private bool TryBeginStepTransition()
+    {
+        if (_isStepTransitionInProgress)
+            return false;
+
+        _isStepTransitionInProgress = true;
+        UpdateStepActionButtons();
+        return true;
+    }
+
+    private void EndStepTransition()
+    {
+        if (!_isStepTransitionInProgress)
+            return;
+
+        _isStepTransitionInProgress = false;
+        UpdateStepActionButtons();
+    }
 
     private void StepPage_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -190,110 +214,156 @@ public sealed partial class SetupWindow : Window
         {
             bool isBusy = stepPage is IBusySetupStepPage busyStepPage && busyStepPage.IsBusy;
 
-            Button_Back.IsEnabled = _currentStep != SetupStep.Welcome && !isBusy;
-            Button_Next.IsEnabled = stepPage.CanGoNext && !isBusy;
-            Button_Skip.IsEnabled = stepPage.CanSkip && !isBusy;
+            // 사용자의 Next 가능 조건(stepPage.CanGoNext/CanSkip)은 그대로 존중하고,
+            // 전환 중일 때만 일시적으로 클릭을 잠가 더블클릭/연타를 막습니다.
+            bool canClick = !isBusy && !_isStepTransitionInProgress;
+            Button_Back.IsEnabled = _currentStep != SetupStep.Welcome && canClick;
+            Button_Next.IsEnabled = stepPage.CanGoNext && canClick;
+            Button_Skip.IsEnabled = stepPage.CanSkip && canClick;
             return;
         }
 
         // 인터페이스 미구현 페이지 대비 기본값
-        Button_Back.IsEnabled = _currentStep != SetupStep.Welcome;
-        Button_Next.IsEnabled = true;
-        Button_Skip.IsEnabled = Button_Skip.Visibility == Visibility.Visible;
+        bool canUseFallback = !_isStepTransitionInProgress;
+        Button_Back.IsEnabled = _currentStep != SetupStep.Welcome && canUseFallback;
+        Button_Next.IsEnabled = canUseFallback;
+        Button_Skip.IsEnabled = Button_Skip.Visibility == Visibility.Visible && canUseFallback;
     }
 
     private void Button_Back_Click(object sender, RoutedEventArgs e)
     {
-        switch (_currentStep)
+        if (!TryBeginStepTransition())
+            return;
+
+        bool keepTransitionLock = false;
+
+        try
         {
-            case SetupStep.Intro:
-            case SetupStep.Outro:
-            case SetupStep.Welcome:
-                return;
+            switch (_currentStep)
+            {
+                case SetupStep.Intro:
+                case SetupStep.Outro:
+                case SetupStep.Welcome:
+                    return;
 
-            case SetupStep.PathSelect:
-                NavigateToStep(SetupStep.Welcome, isForward: false);
-                return;
+                case SetupStep.PathSelect:
+                    NavigateToStep(SetupStep.Welcome, isForward: false);
+                    keepTransitionLock = true;
+                    return;
 
-            case SetupStep.MultiClient:
-                NavigateToStep(SetupStep.PathSelect, isForward: false);
-                return;
+                case SetupStep.MultiClient:
+                    NavigateToStep(SetupStep.PathSelect, isForward: false);
+                    keepTransitionLock = true;
+                    return;
 
-            case SetupStep.AccountSetting:
-                NavigateToStep(SetupStep.MultiClient, isForward: false);
-                return;
+                case SetupStep.AccountSetting:
+                    NavigateToStep(SetupStep.MultiClient, isForward: false);
+                    keepTransitionLock = true;
+                    return;
 
-            default:
-                throw new ArgumentOutOfRangeException();
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        finally
+        {
+            if (!keepTransitionLock)
+                EndStepTransition();
         }
     }
 
     private void Button_Skip_Click(object sender, RoutedEventArgs e)
     {
-        if (GetActiveStepContent() is ISetupStepPage stepPage)
+        if (!TryBeginStepTransition())
+            return;
+
+        bool keepTransitionLock = false;
+
+        try
         {
-            if (!stepPage.CanSkip)
-                return;
+            if (GetActiveStepContent() is ISetupStepPage stepPage)
+            {
+                if (!stepPage.CanSkip)
+                    return;
 
-            stepPage.OnSkip();
+                stepPage.OnSkip();
+            }
+
+            keepTransitionLock = HandleNext();
         }
-
-        HandleNext();
+        finally
+        {
+            if (!keepTransitionLock)
+                EndStepTransition();
+        }
     }
 
     private async void Button_Next_Click(object sender, RoutedEventArgs e)
     {
-        if (GetActiveStepContent() is ISetupStepPage stepPage)
+        if (!TryBeginStepTransition())
+            return;
+
+        bool keepTransitionLock = false;
+
+        try
         {
-            if (!stepPage.CanGoNext)
-                return;
+            if (GetActiveStepContent() is ISetupStepPage stepPage)
+            {
+                if (!stepPage.CanGoNext)
+                    return;
 
-            bool canProceed;
-            if (stepPage is IAsyncSetupStepPage asyncStepPage)
-                canProceed = await asyncStepPage.OnNextAsync();
-            else
-                canProceed = stepPage.OnNext();
+                bool canProceed;
+                if (stepPage is IAsyncSetupStepPage asyncStepPage)
+                    canProceed = await asyncStepPage.OnNextAsync();
+                else
+                    canProceed = stepPage.OnNext();
 
-            if (!canProceed)
-                return;
+                if (!canProceed)
+                    return;
+            }
+
+            keepTransitionLock = HandleNext();
         }
-
-        HandleNext();
+        finally
+        {
+            if (!keepTransitionLock)
+                EndStepTransition();
+        }
     }
 
-    private void HandleNext()
+    private bool HandleNext()
     {
         switch (_currentStep)
         {
             case SetupStep.Intro:
                 NavigateToStep(SetupStep.Welcome, isForward: true);
-                return;
+                return true;
 
             case SetupStep.Welcome:
                 NavigateToStep(SetupStep.PathSelect, isForward: true);
-                return;
+                return true;
 
             case SetupStep.PathSelect:
                 if (SetupFlowState.ShouldAutoSkipMultiClient)
                 {
                     NavigateToStep(SetupStep.Outro, isForward: true, parameter: "모든 설정을 마쳤습니다!");
-                    return;
+                    return true;
                 }
 
                 NavigateToStep(SetupStep.MultiClient, isForward: true);
-                return;
+                return true;
 
             case SetupStep.MultiClient:
                 NavigateToStep(SetupStep.AccountSetting, isForward: true);
-                return;
+                return true;
 
             case SetupStep.AccountSetting:
                 NavigateToStep(SetupStep.Outro, isForward: true, parameter: "모든 설정을 마쳤습니다!");
-                return;
+                return true;
 
             case SetupStep.Outro:
                 SetupCompleted?.Invoke(this, EventArgs.Empty);
-                return;
+                return false;
 
             default:
                 throw new ArgumentOutOfRangeException();
@@ -310,7 +380,19 @@ public sealed partial class SetupWindow : Window
         if (!ReferenceEquals(GetActiveStepContent(), pageContent))
             return;
 
-        HandleNext();
+        if (!TryBeginStepTransition())
+            return;
+
+        bool keepTransitionLock = false;
+        try
+        {
+            keepTransitionLock = HandleNext();
+        }
+        finally
+        {
+            if (!keepTransitionLock)
+                EndStepTransition();
+        }
     }
 
     private async void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
