@@ -1,3 +1,4 @@
+using Core;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -187,7 +188,18 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
 
         var sw = Stopwatch.StartNew();
 
-        InstallPath = ReadInstallPathFromRegistry() ?? "";
+        string savedInstallPath = AppDataManager.LoadInstallPath();
+        if (!string.IsNullOrWhiteSpace(savedInstallPath))
+        {
+            InstallPath = savedInstallPath;
+            if (!_installValid)
+                InstallPath = ReadInstallPathFromRegistry() ?? "";
+        }
+        else
+        {
+            InstallPath = ReadInstallPathFromRegistry() ?? "";
+        }
+
         StarterPath = ReadStarterFolderFromRegistry() ?? "";
 
         int remain = 1000 - (int)sw.ElapsedMilliseconds;
@@ -263,6 +275,9 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
         if (_isConfirmed) return;
 
         _isConfirmed = true;
+
+        // 확정 시 InstallPath만 LocalFolder 파일에 저장합니다.
+        AppDataManager.SaveInstallPath(InstallPath.Trim());
 
         // 확정 표현(테두리 두께) 업데이트
         RecomputeInstall();
