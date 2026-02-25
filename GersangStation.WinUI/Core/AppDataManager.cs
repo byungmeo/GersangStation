@@ -114,11 +114,15 @@ public static class AppDataManager
 
         try
         {
-            StorageFile file = folder
-                .GetFileAsync(fileName)
+            // 파일이 없을 수 있는 일반 흐름에서는 예외를 만들지 않도록 TryGetItemAsync를 사용합니다.
+            IStorageItem? item = folder
+                .TryGetItemAsync(fileName)
                 .AsTask()
                 .GetAwaiter()
                 .GetResult();
+
+            if (item is not StorageFile file)
+                return null;
 
             return FileIO.ReadTextAsync(file)
                 .AsTask()
