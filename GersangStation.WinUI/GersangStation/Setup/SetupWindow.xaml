@@ -8,50 +8,60 @@
     Title="GersangStation - 초기 설정"
     mc:Ignorable="d">
 
-    <Grid Padding="24" RowDefinitions="Auto,*,Auto">
-        <!--  헤더  -->
-        <Grid Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock
-                x:Name="TextBlock_StepTitle"
-                FontSize="20"
-                FontWeight="SemiBold"
-                Text="초기 설정" />
-        </Grid>
-
-        <!--  스텝 컨텐츠  -->
-        <Border
-            Grid.Row="1"
-            Padding="20"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="12">
-            <Frame x:Name="Frame_SetupStep" />
-        </Border>
-
-        <!--  하단 공통 버튼  -->
+    <Grid>
         <Grid
-            Grid.Row="2"
-            Margin="0,16,0,0"
-            ColumnDefinitions="Auto,*,Auto,Auto">
-            <Button
-                x:Name="Button_Back"
-                Grid.Column="0"
-                Click="Button_Back_Click"
-                Content="뒤로"
-                IsEnabled="False" />
+            x:Name="Grid_SetupShell"
+            Padding="24"
+            RowDefinitions="Auto,*,Auto">
+            <!--  헤더  -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <TextBlock
+                    x:Name="TextBlock_StepTitle"
+                    FontSize="20"
+                    FontWeight="SemiBold"
+                    Text="초기 설정" />
+            </Grid>
 
-            <Button
-                x:Name="Button_Skip"
-                Grid.Column="2"
-                Margin="0,0,8,0"
-                Click="Button_Skip_Click"
-                Content="건너뛰기" />
+            <!--  스텝 컨텐츠  -->
+            <Border
+                Grid.Row="1"
+                Padding="20"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
+                <Frame x:Name="Frame_SetupStep" />
+            </Border>
 
-            <Button
-                x:Name="Button_Next"
-                Grid.Column="3"
-                Click="Button_Next_Click"
-                Content="다음" />
+            <!--  하단 공통 버튼  -->
+            <Grid
+                Grid.Row="2"
+                Margin="0,16,0,0"
+                ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button
+                    x:Name="Button_Back"
+                    Grid.Column="0"
+                    Click="Button_Back_Click"
+                    Content="뒤로"
+                    IsEnabled="False" />
+
+                <Button
+                    x:Name="Button_Skip"
+                    Grid.Column="2"
+                    Margin="0,0,8,0"
+                    Click="Button_Skip_Click"
+                    Content="건너뛰기" />
+
+                <Button
+                    x:Name="Button_Next"
+                    Grid.Column="3"
+                    Click="Button_Next_Click"
+                    Content="다음" />
+            </Grid>
         </Grid>
+
+        <!-- Intro/Outro는 SetupWindow 전체를 덮는 오버레이로 표시합니다. -->
+        <Frame
+            x:Name="Frame_FullscreenStep"
+            Visibility="Collapsed" />
     </Grid>
 </Window>

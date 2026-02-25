@@ -34,13 +34,14 @@ public sealed partial class SetupWindow : Window
 
         SetupFlowState.Reset();
 
-        Frame_SetupStep.Navigated += Frame_SetupStep_Navigated;
+        Frame_SetupStep.Navigated += Frame_Step_Navigated;
+        Frame_FullscreenStep.Navigated += Frame_Step_Navigated;
         AppWindow.Closing += OnAppWindowClosing;
 
         NavigateToStep(SetupStep.Intro, isForward: true, parameter: "환영합니다!");
     }
 
-    private void Frame_SetupStep_Navigated(object sender, NavigationEventArgs e)
+    private void Frame_Step_Navigated(object sender, NavigationEventArgs e)
     {
         // ✅ 이전 페이지 구독 해제
         if (_currentNotify != null)
@@ -50,7 +51,7 @@ public sealed partial class SetupWindow : Window
         }
 
         // ✅ 새 페이지 구독
-        if (Frame_SetupStep.Content is INotifyPropertyChanged npc)
+        if (GetActiveStepContent() is INotifyPropertyChanged npc)
         {
             _currentNotify = npc;
             _currentNotify.PropertyChanged += StepPage_PropertyChanged;
@@ -61,6 +62,17 @@ public sealed partial class SetupWindow : Window
 
         _ = TryAutoAdvanceStepAsync(e.Content);
     }
+
+    private object? GetActiveStepContent()
+    {
+        if (_currentStep is SetupStep.Intro or SetupStep.Outro)
+            return Frame_FullscreenStep.Content;
+
+        return Frame_SetupStep.Content;
+    }
+
+    private static bool IsFullscreenStep(SetupStep step) =>
+        step is SetupStep.Intro or SetupStep.Outro;
 
     private void StepPage_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -96,20 +108,31 @@ public sealed partial class SetupWindow : Window
                 Effect = SlideNavigationTransitionEffect.FromLeft
             };
 
-        Frame_SetupStep.Navigate(pageType, parameter, transition);
+        if (IsFullscreenStep(step))
+            Frame_FullscreenStep.Navigate(pageType, parameter, transition);
+        else
+            Frame_SetupStep.Navigate(pageType, parameter, transition);
 
         UpdateShellUi();
     }
 
     private void UpdateShellUi()
     {
+        if (IsFullscreenStep(_currentStep))
+        {
+            Grid_SetupShell.Visibility = Visibility.Collapsed;
+            Frame_FullscreenStep.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            Grid_SetupShell.Visibility = Visibility.Visible;
+            Frame_FullscreenStep.Visibility = Visibility.Collapsed;
+        }
+
         switch (_currentStep)
         {
             case SetupStep.Intro:
-                TextBlock_StepTitle.Text = "";
-                Button_Back.Visibility = Visibility.Collapsed;
-                Button_Skip.Visibility = Visibility.Collapsed;
-                Button_Next.Visibility = Visibility.Collapsed;
+            case SetupStep.Outro:
                 break;
 
             case SetupStep.Welcome:
@@ -148,13 +171,6 @@ public sealed partial class SetupWindow : Window
                 Button_Next.Content = "완료";
                 break;
 
-            case SetupStep.Outro:
-                TextBlock_StepTitle.Text = "";
-                Button_Back.Visibility = Visibility.Collapsed;
-                Button_Skip.Visibility = Visibility.Collapsed;
-                Button_Next.Visibility = Visibility.Collapsed;
-                break;
-
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -170,7 +186,7 @@ public sealed partial class SetupWindow : Window
             return;
         }
 
-        if (Frame_SetupStep.Content is ISetupStepPage stepPage)
+        if (GetActiveStepContent() is ISetupStepPage stepPage)
         {
             bool isBusy = stepPage is IBusySetupStepPage busyStepPage && busyStepPage.IsBusy;
 
@@ -214,7 +230,7 @@ public sealed partial class SetupWindow : Window
 
     private void Button_Skip_Click(object sender, RoutedEventArgs e)
     {
-        if (Frame_SetupStep.Content is ISetupStepPage stepPage)
+        if (GetActiveStepContent() is ISetupStepPage stepPage)
         {
             if (!stepPage.CanSkip)
                 return;
@@ -227,7 +243,7 @@ public sealed partial class SetupWindow : Window
 
     private async void Button_Next_Click(object sender, RoutedEventArgs e)
     {
-        if (Frame_SetupStep.Content is ISetupStepPage stepPage)
+        if (GetActiveStepContent() is ISetupStepPage stepPage)
         {
             if (!stepPage.CanGoNext)
                 return;
@@ -291,7 +307,7 @@ public sealed partial class SetupWindow : Window
 
         await autoAdvanceStepPage.WaitForCompletionAsync();
 
-        if (!ReferenceEquals(Frame_SetupStep.Content, pageContent))
+        if (!ReferenceEquals(GetActiveStepContent(), pageContent))
             return;
 
         HandleNext();
@@ -302,7 +318,7 @@ public sealed partial class SetupWindow : Window
         if (_allowForceClose)
             return;
 
-        if (Frame_SetupStep.Content is not IBusySetupStepPage busyStepPage || !busyStepPage.IsBusy)
+        if (GetActiveStepContent() is not IBusySetupStepPage busyStepPage || !busyStepPage.IsBusy)
             return;
 
         // WinUI AppWindowClosingEventArgs는 deferral을 제공하지 않으므로,
@@ -321,5 +337,4 @@ public sealed partial class SetupWindow : Window
             this.Close();
         }
     }
-
 }
