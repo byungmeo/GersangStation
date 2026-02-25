@@ -194,6 +194,10 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
 
     private CancellationTokenSource? _installClientCts;
 
+    private const double DownloadPhaseWeight = 80.0;
+    private const double ExtractPhaseWeight = 20.0;
+
+
     // ---- 결과 ----
     private bool _installValid;
     private bool _starterValid;
@@ -313,12 +317,28 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
     // ---- 자동 검사 ----
     private void OnAutoDetectInstall(object sender, RoutedEventArgs e)
     {
-        InstallPath = ReadInstallPathFromRegistry() ?? "";
+        string detected = ReadInstallPathFromRegistry() ?? "";
+        if (string.Equals(InstallPath, detected, StringComparison.Ordinal))
+        {
+            RecomputeInstall();
+            RecomputeCommon();
+            return;
+        }
+
+        InstallPath = detected;
     }
 
     private void OnAutoDetectStarter(object sender, RoutedEventArgs e)
     {
-        StarterPath = ReadStarterFolderFromRegistry() ?? "";
+        string detected = ReadStarterFolderFromRegistry() ?? "";
+        if (string.Equals(StarterPath, detected, StringComparison.Ordinal))
+        {
+            RecomputeStarter();
+            RecomputeCommon();
+            return;
+        }
+
+        StarterPath = detected;
     }
 
     private async void OnInstallButtonClicked(object sender, RoutedEventArgs e)
@@ -336,10 +356,8 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
                 return;
 
             string installRoot = selectedRoot.Trim();
-            string parentRoot = Directory.GetParent(installRoot)?.FullName ?? installRoot;
-            string tempRoot = Path.Combine(parentRoot, ".gersang-install-temp");
 
-            UpdateRemainingCapacityText(parentRoot);
+            UpdateRemainingCapacityText(installRoot);
 
             IsInstallingClient = true;
             InstallProgressPercent = 0;
@@ -349,26 +367,46 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
             _installClientCts?.Dispose();
             _installClientCts = new CancellationTokenSource();
 
-            var progress = new Progress<DownloadProgress>(p =>
+            var progress = new Progress<InstallClientProgress>(p =>
             {
-                long received = p.BytesReceived;
-                long total = p.TotalBytes ?? 0;
-
-                if (total > 0)
+                if (p.Phase == InstallClientPhase.Downloading)
                 {
-                    InstallProgressPercent = Math.Clamp(received * 100.0 / total, 0, 100);
-                    InstallProgressText = $"다운로드 중... {FormatBytes(received)} / {FormatBytes(total)}";
+                    long received = p.BytesReceived;
+                    long total = p.TotalBytes ?? 0;
+
+                    if (total > 0)
+                    {
+                        double downloadPercent = Math.Clamp(received * 100.0 / total, 0, 100);
+                        InstallProgressPercent = downloadPercent * DownloadPhaseWeight / 100.0;
+                        InstallProgressText = $"다운로드 중... {FormatBytes(received)} / {FormatBytes(total)}";
+                    }
+                    else
+                    {
+                        InstallProgressPercent = 0;
+                        InstallProgressText = $"다운로드 중... {FormatBytes(received)}";
+                    }
                 }
                 else
                 {
-                    InstallProgressPercent = 0;
-                    InstallProgressText = $"다운로드 중... {FormatBytes(received)}";
+                    long extracted = p.BytesExtracted;
+                    long total = p.TotalBytes ?? 0;
+
+                    if (total > 0)
+                    {
+                        double extractPercent = Math.Clamp(extracted * 100.0 / total, 0, 100);
+                        InstallProgressPercent = DownloadPhaseWeight + (extractPercent * ExtractPhaseWeight / 100.0);
+                        InstallProgressText = $"압축 푸는 중... {FormatBytes(extracted)} / {FormatBytes(total)}";
+                    }
+                    else
+                    {
+                        InstallProgressPercent = DownloadPhaseWeight;
+                        InstallProgressText = "압축 푸는 중...";
+                    }
                 }
             });
 
             await PatchClientApi.InstallFullClientAsync(
                 installRoot: installRoot,
-                tempRoot: tempRoot,
                 progress: progress,
                 ct: _installClientCts.Token);
 
@@ -376,7 +414,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
             InstallProgressText = "설치가 완료됐어요.";
 
             InstallPath = installRoot;
-            UpdateRemainingCapacityText(parentRoot);
+            UpdateRemainingCapacityText(installRoot);
         }
         catch (OperationCanceledException)
         {
@@ -391,6 +429,12 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
             IsInstallingClient = false;
             button.IsEnabled = true;
         }
+    }
+
+    private void OnCancelInstallButtonClicked(object sender, RoutedEventArgs e)
+    {
+        _installClientCts?.Cancel();
+        InstallProgressText = "취소 중...";
     }
 
     private async void OnStarterInstallButtonClicked(object sender, RoutedEventArgs e)

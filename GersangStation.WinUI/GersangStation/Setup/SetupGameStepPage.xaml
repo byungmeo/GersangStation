@@ -94,10 +94,23 @@
                                 x:Name="InstallClientProgressPanel"
                                 x:Load="{x:Bind IsInstallProgressVisible, Mode=OneWay}"
                                 Spacing="6">
-                                <ProgressBar
-                                    Height="8"
-                                    Maximum="100"
-                                    Value="{x:Bind InstallProgressPercent, Mode=OneWay}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <ProgressBar
+                                        Grid.Column="0"
+                                        Height="8"
+                                        Maximum="100"
+                                        Value="{x:Bind InstallProgressPercent, Mode=OneWay}" />
+                                    <Button
+                                        Grid.Column="1"
+                                        MinWidth="32"
+                                        MinHeight="24"
+                                        Click="OnCancelInstallButtonClicked"
+                                        Content="✕" />
+                                </Grid>
                                 <TextBlock Opacity="0.75" Text="{x:Bind InstallProgressText, Mode=OneWay}" TextWrapping="Wrap" />
                                 <TextBlock Opacity="0.75" Text="{x:Bind InstallRemainingCapacityText, Mode=OneWay}" TextWrapping="Wrap" />
                             </StackPanel>

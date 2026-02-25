@@ -109,17 +109,14 @@ public static class PatchClientApi
     /// </summary>
     public static async Task InstallFullClientAsync(
         string installRoot,
-        string tempRoot,
-        IProgress<DownloadProgress>? progress = null,
+        IProgress<InstallClientProgress>? progress = null,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
-        if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
 
-        Directory.CreateDirectory(tempRoot);
         Directory.CreateDirectory(installRoot);
 
-        string archivePath = Path.Combine(tempRoot, "Gersang_Install.7z");
+        string archivePath = Path.Combine(installRoot, "Gersang_Install.7z");
 
         using var http = new HttpClient(new HttpClientHandler
         {
@@ -134,21 +131,38 @@ public static class PatchClientApi
             FullClientUri,
             archivePath,
             new DownloadOptions(Overwrite: true),
-            progress: progress,
+            progress: progress is null ? null : new Progress<DownloadProgress>(p =>
+            {
+                progress.Report(new InstallClientProgress(
+                    InstallClientPhase.Downloading,
+                    p.BytesReceived,
+                    p.TotalBytes,
+                    0,
+                    p.BytesPerSecond));
+            }),
             ct: ct).ConfigureAwait(false);
 
         using var archive = ArchiveFactory.OpenArchive(archivePath);
-        ExtractEntriesWithOverwrite(archive, installRoot);
+        ExtractEntriesWithOverwrite(archive, installRoot, progress, ct);
     }
 
-    private static void ExtractEntriesWithOverwrite(IArchive archive, string destinationRoot)
+    private static void ExtractEntriesWithOverwrite(
+        IArchive archive,
+        string destinationRoot,
+        IProgress<InstallClientProgress>? progress,
+        CancellationToken ct)
     {
         string normalizedRoot = Path.GetFullPath(destinationRoot);
         if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar))
             normalizedRoot += Path.DirectorySeparatorChar;
 
+        long totalBytes = archive.Entries.Where(e => !e.IsDirectory).Sum(e => e.Size);
+        long extractedBytes = 0;
+
         foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
         {
+            ct.ThrowIfCancellationRequested();
+
             string relativePath = (entry.Key ?? string.Empty)
                 .Replace('\\', Path.DirectorySeparatorChar)
                 .Replace('/', Path.DirectorySeparatorChar);
@@ -162,9 +176,20 @@ public static class PatchClientApi
             if (!string.IsNullOrEmpty(destinationDir))
                 Directory.CreateDirectory(destinationDir);
 
-            using var sourceStream = entry.OpenEntryStream();
-            using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            sourceStream.CopyTo(destinationStream);
+            entry.WriteToFile(destinationPath, new SharpCompress.Common.ExtractionOptions
+            {
+                ExtractFullPath = false,
+                Overwrite = true,
+                PreserveFileTime = true
+            });
+
+            extractedBytes += entry.Size;
+            progress?.Report(new InstallClientProgress(
+                InstallClientPhase.Extracting,
+                0,
+                totalBytes,
+                extractedBytes,
+                null));
         }
     }
 
@@ -185,3 +210,16 @@ public static class PatchClientApi
         };
     }
 }
+
+public enum InstallClientPhase
+{
+    Downloading,
+    Extracting
+}
+
+public sealed record InstallClientProgress(
+    InstallClientPhase Phase,
+    long BytesReceived,
+    long? TotalBytes,
+    long BytesExtracted,
+    double? BytesPerSecond);
