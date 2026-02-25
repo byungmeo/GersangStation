@@ -175,23 +175,38 @@ public static class PatchClientApi
 
         var downloader = new Downloader(http);
 
-        if (archiveExists && skipDownloadIfArchiveExists)
+        try
         {
-            Debug.WriteLine($"[InstallFullClient] Archive already exists. Skip download and extract directly: {archivePath}");
+            if (archiveExists && skipDownloadIfArchiveExists)
+            {
+                Debug.WriteLine($"[InstallFullClient] Archive already exists. Skip download and extract directly: {archivePath}");
+            }
+            else
+            {
+                await downloader.DownloadAsync(
+                    FullClientUri,
+                    archivePath,
+                    new DownloadOptions(Overwrite: !skipDownloadIfArchiveExists),
+                    progress: progress,
+                    ct: ct).ConfigureAwait(false);
+
+                Debug.WriteLine($"[InstallFullClient] Download complete: {archivePath}");
+            }
+
+            await Extractor.ExtractAsync(archivePath, actualInstallRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
         }
-        else
+        finally
         {
-            await downloader.DownloadAsync(
-                FullClientUri,
-                archivePath,
-                new DownloadOptions(Overwrite: !skipDownloadIfArchiveExists),
-                progress: progress,
-                ct: ct).ConfigureAwait(false);
-
-            Debug.WriteLine($"[InstallFullClient] Download complete: {archivePath}");
+            try
+            {
+                if (File.Exists(archivePath))
+                    File.Delete(archivePath);
+            }
+            catch
+            {
+                // best-effort
+            }
         }
-
-        await Extractor.ExtractAsync(archivePath, actualInstallRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
     }
 
     private static void EnsureClientInstallRootConfigured()
