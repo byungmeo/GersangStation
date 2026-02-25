@@ -188,7 +188,8 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
 
         var sw = Stopwatch.StartNew();
 
-        string savedInstallPath = AppDataManager.LoadInstallPath();
+        var clientSettings = AppDataManager.LoadClientSettings();
+        string savedInstallPath = clientSettings.InstallPath;
         if (!string.IsNullOrWhiteSpace(savedInstallPath))
         {
             InstallPath = savedInstallPath;

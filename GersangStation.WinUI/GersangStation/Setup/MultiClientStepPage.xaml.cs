@@ -1,3 +1,4 @@
+using Core;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -112,6 +113,12 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     {
         InitializeComponent();
 
+        var clientSettings = AppDataManager.LoadClientSettings();
+        if (!string.IsNullOrWhiteSpace(clientSettings.MultiClientFolderName2))
+            _multiClientFolderName1 = clientSettings.MultiClientFolderName2;
+        if (!string.IsNullOrWhiteSpace(clientSettings.MultiClientFolderName3))
+            _multiClientFolderName2 = clientSettings.MultiClientFolderName3;
+
         _expectedFolderName = ExtractLastFolderName(SetupFlowState.InstallPath);
 
         RecomputeFolder1();
@@ -119,7 +126,18 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         RecomputeCommon();
     }
 
-    public bool OnNext() => true;
+    public bool OnNext()
+    {
+        // 멀티클라 단계 완료 시 설치 경로 + 2/3클라 폴더명을 한 파일에 함께 저장합니다.
+        AppDataManager.SaveClientSettings(new AppDataManager.ClientSettingsProfile
+        {
+            InstallPath = SetupFlowState.InstallPath?.Trim() ?? "",
+            MultiClientFolderName2 = MultiClientFolderName1.Trim(),
+            MultiClientFolderName3 = MultiClientFolderName2.Trim()
+        });
+
+        return true;
+    }
 
     public void OnSkip() { }
 
