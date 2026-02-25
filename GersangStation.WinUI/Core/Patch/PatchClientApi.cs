@@ -1,6 +1,7 @@
 ﻿using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Readers;
+using System.Diagnostics;
 using System.Net;
 
 namespace Core.Patch;
@@ -16,6 +17,10 @@ public static class PatchClientApi
 
     public const string ReadMeSuffix = "Client_Readme/readme.txt";
     public const string LatestVersionArchiveSuffix = "Client_Patch_File/Online/vsn.dat.gsz";
+
+    private const string FullClientInstallFolderName = "Gersang";
+    private static readonly TimeSpan ExtractProgressReportInterval = TimeSpan.FromMilliseconds(200);
+    private const long ExtractProgressReportByteStep = 8L * 1024 * 1024;
 
     private static string? _clientInstallRoot;
 
@@ -106,6 +111,20 @@ public static class PatchClientApi
         return await http.GetStringAsync(new Uri(PatchBaseUri, ReadMeSuffix), ct).ConfigureAwait(false);
     }
 
+    public static string ResolveFullClientInstallRoot(string selectedRoot)
+    {
+        if (string.IsNullOrWhiteSpace(selectedRoot))
+            throw new ArgumentException("selectedRoot is required.", nameof(selectedRoot));
+
+        string normalizedSelectedRoot = Path.GetFullPath(selectedRoot.Trim());
+
+        string leafName = Path.GetFileName(normalizedSelectedRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        if (string.Equals(leafName, FullClientInstallFolderName, StringComparison.OrdinalIgnoreCase))
+            return normalizedSelectedRoot;
+
+        return Path.Combine(normalizedSelectedRoot, FullClientInstallFolderName);
+    }
+
     /// <summary>
     /// FullClient를 내려받아 지정한 설치 경로로 압축 해제합니다.
     /// </summary>
@@ -116,7 +135,7 @@ public static class PatchClientApi
     {
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
 
-        installRoot = Path.GetFullPath(installRoot.Trim());
+        installRoot = ResolveFullClientInstallRoot(installRoot);
         Directory.CreateDirectory(installRoot);
 
         string archivePath = Path.GetFullPath(Path.Combine(installRoot, "Gersang_Install.7z"));
@@ -152,8 +171,11 @@ public static class PatchClientApi
             ct: ct).ConfigureAwait(false);
 
         var perEntryProgress = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        var extractProgressSync = new object();
         long extractedBytes = 0;
         long totalExtractBytes = 0;
+        long bytesAtLastReport = 0;
+        var extractProgressWatch = Stopwatch.StartNew();
 
         var readerOptions = ReaderOptions.ForOwnedFile with
         {
@@ -163,27 +185,39 @@ public static class PatchClientApi
             Progress = progress is null ? null : new Progress<ProgressReport>(report =>
             {
                 // 라이브러리 진행률(report)은 엔트리별로 보고될 수 있어 누적치로 변환합니다.
-                string key = report.EntryPath ?? string.Empty;
-                long current = Math.Max(0, report.BytesTransferred);
-                long previous = perEntryProgress.TryGetValue(key, out long value) ? value : 0;
-                if (current <= previous)
-                    return;
+                lock (extractProgressSync)
+                {
+                    string key = report.EntryPath ?? string.Empty;
+                    long current = Math.Max(0, report.BytesTransferred);
+                    long previous = perEntryProgress.TryGetValue(key, out long value) ? value : 0;
+                    if (current <= previous)
+                        return;
 
-                extractedBytes += current - previous;
-                perEntryProgress[key] = current;
+                    extractedBytes += current - previous;
+                    perEntryProgress[key] = current;
 
-                progress.Report(new InstallClientProgress(
-                    InstallClientPhase.Extracting,
-                    0,
-                    totalExtractBytes,
-                    Math.Min(extractedBytes, totalExtractBytes),
-                    null));
+                    long sinceLastReportBytes = extractedBytes - bytesAtLastReport;
+                    bool intervalElapsed = extractProgressWatch.Elapsed >= ExtractProgressReportInterval;
+                    if (!intervalElapsed && sinceLastReportBytes < ExtractProgressReportByteStep)
+                        return;
+
+                    bytesAtLastReport = extractedBytes;
+                    extractProgressWatch.Restart();
+
+                    progress.Report(new InstallClientProgress(
+                        InstallClientPhase.Extracting,
+                        0,
+                        totalExtractBytes,
+                        Math.Min(extractedBytes, totalExtractBytes),
+                        null));
+                }
             })
         };
 
         await using var archive = await ArchiveFactory.OpenAsyncArchive(archivePath, readerOptions, ct).ConfigureAwait(false);
         totalExtractBytes = await archive.TotalUncompressedSizeAsync().ConfigureAwait(false);
 
+        // 7z/solid 아카이브는 라이브러리 내부 순차 해제가 가장 빠른 경로입니다.
         await archive.WriteToDirectoryAsync(installRoot, cancellationToken: ct).ConfigureAwait(false);
 
         progress?.Report(new InstallClientProgress(

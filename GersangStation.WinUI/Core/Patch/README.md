@@ -33,6 +33,7 @@ string readMeText = await PatchClientApi.DownloadReadMeAsync();
 - `PatchAsync(currentClientVersion)`
 - `DownloadReadMeAsync()`
 - `InstallFullClientAsync(installRoot, progress?)` (비동기 `WriteToDirectoryAsync` 기반, 7z/solid 아카이브는 내부 순차 해제 최적화 사용)
+- FullClient 설치는 사용자가 고른 루트 아래 `Gersang` 폴더를 설치 루트로 사용합니다. (예: `C:\A\B\C` 선택 시 `C:\A\B\C\Gersang`)
 
 ### 최소 호출 흐름
 
