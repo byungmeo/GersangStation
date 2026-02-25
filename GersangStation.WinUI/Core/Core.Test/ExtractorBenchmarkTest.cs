@@ -6,14 +6,10 @@ namespace Core.Test;
 [TestClass]
 public sealed class ExtractorBenchmarkTest
 {
-    [Ignore]
     [TestMethod]
     public async Task CompareExtractors_WithSingleArchivePath()
     {
-        string? archivePath = Environment.GetEnvironmentVariable("GERSANG_EXTRACT_BENCH_ARCHIVE_PATH");
-        if (string.IsNullOrWhiteSpace(archivePath))
-            Assert.Inconclusive("Set GERSANG_EXTRACT_BENCH_ARCHIVE_PATH to run benchmark.");
-
+        const string archivePath = @"E:\Projects\dotnet\GersangStation\GersangStation.WinUI\Core\Core.Test\bin\Debug\net8.0-windows10.0.19041.0\Temp\Gersang_Install.7z";
         Assert.IsTrue(File.Exists(archivePath), $"Archive file not found: {archivePath}");
 
         var extractors = new IExtractor[]
@@ -37,7 +33,7 @@ public sealed class ExtractorBenchmarkTest
 
                 try
                 {
-                    await extractor.ExtractAsync(archivePath!, destination, progress: null, ct: CancellationToken.None);
+                    await extractor.ExtractAsync(archivePath, destination, progress: null, ct: CancellationToken.None);
                     sw.Stop();
 
                     int fileCount = Directory.EnumerateFiles(destination, "*", SearchOption.AllDirectories).Count();

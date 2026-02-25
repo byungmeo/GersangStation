@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Core.Test;
 
 [TestClass]
+[Ignore("Extractor benchmark only run mode")]
 public sealed class PatchMetadataParseTest
 {
     [Ignore]

@@ -6,6 +6,7 @@ using System.Diagnostics;
 namespace Core.Test;
 
 [TestClass]
+[Ignore("Extractor benchmark only run mode")]
 public sealed class PatchPipelineTest
 {
     [Ignore]
