@@ -9,9 +9,7 @@
     mc:Ignorable="d">
 
     <Grid>
-        <ContentPresenter
-            x:Name="CheckingHost"
-            x:Load="{x:Bind IsSaving, Mode=OneWay}">
+        <ContentPresenter x:Name="CheckingHost" x:Load="{x:Bind IsSaving, Mode=OneWay}">
             <StackPanel Padding="16" Spacing="12">
                 <TextBlock FontSize="20" Text="계정 저장 중이에요" />
                 <ProgressBar Width="260" IsIndeterminate="True" />
@@ -19,17 +17,18 @@
             </StackPanel>
         </ContentPresenter>
 
-        <ContentPresenter
-            x:Name="EditHost"
-            x:Load="{x:Bind IsEdit, Mode=OneWay}">
+        <ContentPresenter x:Name="EditHost" x:Load="{x:Bind IsEdit, Mode=OneWay}">
             <ScrollViewer>
                 <StackPanel Padding="16" Spacing="16">
-                    <TextBlock Opacity="0.8" Text="선택 단계입니다. 계정은 나중에 추가할 수 있고, 필요 없으면 건너뛰어도 됩니다." TextWrapping="Wrap" />
+                    <TextBlock
+                        Opacity="0.8"
+                        Text="선택 단계입니다. 계정은 나중에 추가할 수 있고, 필요 없으면 건너뛰어도 됩니다."
+                        TextWrapping="Wrap" />
 
                     <ItemsControl ItemsSource="{x:Bind Accounts, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid ColumnSpacing="8" Margin="0,0,0,8">
+                                <Grid Margin="0,0,0,8" ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="2*" />
                                         <ColumnDefinition Width="2*" />
@@ -49,8 +48,8 @@
                                         Grid.Column="1"
                                         MinHeight="40"
                                         IsEnabled="{Binding CanEdit}"
-                                        PlaceholderText="비밀번호"
-                                        PasswordChanged="OnAccountPasswordChanged" />
+                                        PasswordChanged="OnAccountPasswordChanged"
+                                        PlaceholderText="비밀번호" />
 
                                     <TextBox
                                         Grid.Column="2"
@@ -75,7 +74,10 @@
                         Click="OnAddAccount"
                         Content="계정 추가" />
 
-                    <TextBlock Opacity="0.75" Text="{x:Bind NextHintText, Mode=OneWay}" TextWrapping="Wrap" />
+                    <TextBlock
+                        Opacity="0.75"
+                        Text="{x:Bind NextHintText, Mode=OneWay}"
+                        TextWrapping="Wrap" />
                 </StackPanel>
             </ScrollViewer>
         </ContentPresenter>

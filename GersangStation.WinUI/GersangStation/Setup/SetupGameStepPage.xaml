@@ -57,9 +57,9 @@
                                 VerticalAlignment="Center"
                                 BorderBrush="{x:Bind InstallBorderBrush, Mode=OneWay}"
                                 BorderThickness="{x:Bind InstallBorderThickness, Mode=OneWay}"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}"
                                 PlaceholderText="예: C:\AKInteractive\Gersang\"
-                                Text="{x:Bind InstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
+                                Text="{x:Bind InstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                             <Button
                                 Grid.Column="1"
@@ -116,16 +116,22 @@
                                         Content="취소"
                                         Style="{StaticResource SubtleButtonStyle}" />
                                 </Grid>
-                                <TextBlock Opacity="0.75" Text="{x:Bind InstallProgressText, Mode=OneWay}" TextWrapping="Wrap" />
-                                <TextBlock Opacity="0.75" Text="{x:Bind InstallRemainingCapacityText, Mode=OneWay}" TextWrapping="Wrap" />
+                                <TextBlock
+                                    Opacity="0.75"
+                                    Text="{x:Bind InstallProgressText, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
+                                <TextBlock
+                                    Opacity="0.75"
+                                    Text="{x:Bind InstallRemainingCapacityText, Mode=OneWay}"
+                                    TextWrapping="Wrap" />
                             </StackPanel>
 
                             <TextBlock
-                                Opacity="0.75"
                                 Foreground="IndianRed"
-                                Visibility="{x:Bind InstallFailureVisibility, Mode=OneWay}"
+                                Opacity="0.75"
                                 Text="{x:Bind InstallFailureReason, Mode=OneWay}"
-                                TextWrapping="Wrap" />
+                                TextWrapping="Wrap"
+                                Visibility="{x:Bind InstallFailureVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </StackPanel>
 
@@ -145,9 +151,9 @@
                                 VerticalAlignment="Center"
                                 BorderBrush="{x:Bind StarterBorderBrush, Mode=OneWay}"
                                 BorderThickness="{x:Bind StarterBorderThickness, Mode=OneWay}"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}"
                                 PlaceholderText="예: C:\Program Files (x86)\Gersang Starter"
-                                Text="{x:Bind StarterPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
+                                Text="{x:Bind StarterPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                             <Button
                                 Grid.Column="1"
@@ -173,7 +179,10 @@
                         <StackPanel Spacing="6" Visibility="{x:Bind StarterSuggestVisibility, Mode=OneWay}">
                             <TextBlock Opacity="0.7" Text="게임 스타터를 아직 설치하지 않으셨나요?" />
                             <TextBlock Opacity="0.7" Text="설치를 마치신 후 경로를 다시 탐색해주세요." />
-                            <Button Click="OnStarterInstallButtonClicked" Content="설치" IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
+                            <Button
+                                Click="OnStarterInstallButtonClicked"
+                                Content="설치"
+                                IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>

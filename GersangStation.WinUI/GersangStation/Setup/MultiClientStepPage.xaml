@@ -26,7 +26,10 @@
                     IsChecked="{x:Bind IsMultiClientFeatureDisabled, Mode=TwoWay}" />
             </StackPanel>
 
-            <StackPanel x:Name="MultiClientFeaturePanel" x:Load="{x:Bind ShowMultiClientFeatureOptions, Mode=OneWay}" Spacing="16">
+            <StackPanel
+                x:Name="MultiClientFeaturePanel"
+                x:Load="{x:Bind ShowMultiClientFeatureOptions, Mode=OneWay}"
+                Spacing="16">
                 <TextBlock Text="{x:Bind DriveFormatText, Mode=OneWay}" TextWrapping="Wrap" />
                 <TextBlock
                     Foreground="{x:Bind DriveCompatibilityBrush, Mode=OneWay}"
@@ -44,7 +47,10 @@
                     IsChecked="{x:Bind UseFastMultiClient, Mode=TwoWay}"
                     IsEnabled="{x:Bind IsFastOptionEditable, Mode=OneWay}" />
 
-                <StackPanel x:Name="ManualModePanel" x:Load="{x:Bind IsManualMode, Mode=OneWay}" Spacing="8">
+                <StackPanel
+                    x:Name="ManualModePanel"
+                    x:Load="{x:Bind IsManualMode, Mode=OneWay}"
+                    Spacing="8">
                     <RadioButton
                         Content="이미 다클라를 생성했습니다."
                         GroupName="ManualMode"
@@ -55,7 +61,10 @@
                         IsChecked="{x:Bind IsManualWantCreate, Mode=TwoWay}" />
                 </StackPanel>
 
-                <StackPanel x:Name="ManualCreateNameInputsPanel" x:Load="{x:Bind ShowManualCreateNameInputs, Mode=OneWay}" Spacing="12">
+                <StackPanel
+                    x:Name="ManualCreateNameInputsPanel"
+                    x:Load="{x:Bind ShowManualCreateNameInputs, Mode=OneWay}"
+                    Spacing="12">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*" />
@@ -78,9 +87,7 @@
 
                         <StackPanel Grid.Column="1" Spacing="8">
                             <TextBlock Opacity="0.8" Text="예상 경로" />
-                            <TextBlock
-                                Text="{x:Bind Folder1PreviewPath, Mode=OneWay}"
-                                TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind Folder1PreviewPath, Mode=OneWay}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Grid>
 
@@ -106,14 +113,15 @@
 
                         <StackPanel Grid.Column="1" Spacing="8">
                             <TextBlock Opacity="0.8" Text="예상 경로" />
-                            <TextBlock
-                                Text="{x:Bind Folder2PreviewPath, Mode=OneWay}"
-                                TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind Folder2PreviewPath, Mode=OneWay}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
 
-                <StackPanel x:Name="ManualCreatedInputsPanel" x:Load="{x:Bind ShowManualCreatedInputs, Mode=OneWay}" Spacing="12">
+                <StackPanel
+                    x:Name="ManualCreatedInputsPanel"
+                    x:Load="{x:Bind ShowManualCreatedInputs, Mode=OneWay}"
+                    Spacing="12">
                     <TextBlock Opacity="0.8" Text="기존 2클라 경로" />
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
