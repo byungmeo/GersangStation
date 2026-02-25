@@ -25,10 +25,13 @@
             x:Name="CheckingHost"
             Grid.RowSpan="2"
             x:Load="{x:Bind IsChecking, Mode=OneWay}">
-            <StackPanel Padding="16" Spacing="12">
-                <TextBlock FontSize="20" Text="잠시만요 확인 중이에요" />
-                <ProgressBar Width="260" IsIndeterminate="True" />
-                <TextBlock Opacity="0.7" Text="경로 존재 여부와 유효성을 확인하고 있어요." />
+            <StackPanel
+                Padding="16"
+                Orientation="Vertical"
+                Spacing="12">
+                <TextBlock FontSize="20" Text="잠시만 기다려주세요." />
+                <ProgressBar IsIndeterminate="True" />
+                <TextBlock Opacity="0.7" Text="거상 및 스타터 설치 여부를 확인하고 있어요." />
             </StackPanel>
         </ContentPresenter>
 

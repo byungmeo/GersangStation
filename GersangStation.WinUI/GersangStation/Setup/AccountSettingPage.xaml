@@ -10,9 +10,12 @@
 
     <Grid>
         <ContentPresenter x:Name="CheckingHost" x:Load="{x:Bind IsSaving, Mode=OneWay}">
-            <StackPanel Padding="16" Spacing="12">
-                <TextBlock FontSize="20" Text="계정 저장 중이에요" />
-                <ProgressBar Width="260" IsIndeterminate="True" />
+            <StackPanel
+                Padding="16"
+                Orientation="Vertical"
+                Spacing="12">
+                <TextBlock FontSize="20" Text="잠시만 기다려주세요." />
+                <ProgressBar IsIndeterminate="True" />
                 <TextBlock Opacity="0.7" Text="계정 정보를 안전하게 저장하고 있어요." />
             </StackPanel>
         </ContentPresenter>

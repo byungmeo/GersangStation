@@ -107,14 +107,14 @@ public sealed partial class SetupWindow : Window
                 break;
 
             case SetupStep.PathSelect:
-                TextBlock_StepTitle.Text = "거상 설치 위치 확인";
+                TextBlock_StepTitle.Text = "거상 설치 확인";
                 Button_Back.IsEnabled = true;
                 Button_Skip.Visibility = Visibility.Visible;
                 Button_Next.Content = "다음";
                 break;
 
             case SetupStep.MultiClient:
-                TextBlock_StepTitle.Text = "다클 폴더명 설정 (선택)";
+                TextBlock_StepTitle.Text = "다클라 생성 (선택)";
                 Button_Back.IsEnabled = true;
                 Button_Skip.Visibility = Visibility.Visible;
                 Button_Next.Content = "다음";
