@@ -1,4 +1,5 @@
-﻿using SharpCompress.Archives;
+using SharpCompress.Archives;
+using Core.Extractor;
 using System.Net;
 
 namespace Core.Patch;
@@ -9,6 +10,8 @@ namespace Core.Patch;
 /// </summary>
 public static class PatchClientApi
 {
+    private static readonly IExtractor LegacyExtractor = new SharpCompressExtractor();
+
     public static readonly Uri PatchBaseUri = new("https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/");
     public static readonly Uri FullClientUri = new("http://ak-gersangkr.xcache.kinxcdn.com/FullClient/Gersang_Install.7z");
 
@@ -137,35 +140,7 @@ public static class PatchClientApi
             progress: progress,
             ct: ct).ConfigureAwait(false);
 
-        using var archive = ArchiveFactory.OpenArchive(archivePath);
-        ExtractEntriesWithOverwrite(archive, installRoot);
-    }
-
-    private static void ExtractEntriesWithOverwrite(IArchive archive, string destinationRoot)
-    {
-        string normalizedRoot = Path.GetFullPath(destinationRoot);
-        if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar))
-            normalizedRoot += Path.DirectorySeparatorChar;
-
-        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
-        {
-            string relativePath = (entry.Key ?? string.Empty)
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar);
-
-            string destinationPath = Path.GetFullPath(Path.Combine(normalizedRoot, relativePath));
-
-            if (!destinationPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException($"Archive entry has invalid path. entry='{entry.Key}', root='{destinationRoot}'");
-
-            string? destinationDir = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrEmpty(destinationDir))
-                Directory.CreateDirectory(destinationDir);
-
-            using var sourceStream = entry.OpenEntryStream();
-            using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            sourceStream.CopyTo(destinationStream);
-        }
+        await LegacyExtractor.ExtractAsync(archivePath, installRoot, ct: ct).ConfigureAwait(false);
     }
 
     private static void EnsureClientInstallRootConfigured()
