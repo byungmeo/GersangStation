@@ -1,4 +1,5 @@
 using Core.Extractor;
+using Microsoft.Win32;
 using System.Diagnostics;
 using System.Net;
 
@@ -194,6 +195,7 @@ public static class PatchClientApi
             }
 
             await Extractor.ExtractAsync(archivePath, actualInstallRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
+            SaveInstallPathToRegistry(actualInstallRoot);
         }
         finally
         {
@@ -224,5 +226,11 @@ public static class PatchClientApi
         {
             Timeout = timeout
         };
+    }
+
+    private static void SaveInstallPathToRegistry(string installRoot)
+    {
+        using RegistryKey? key = Registry.CurrentUser.CreateSubKey(@"Software\JOYON\Gersang\Korean", writable: true);
+        key?.SetValue("InstallPath", installRoot, RegistryValueKind.String);
     }
 }
