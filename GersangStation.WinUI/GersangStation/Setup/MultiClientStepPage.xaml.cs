@@ -170,10 +170,10 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
             return;
         }
 
-        if (!string.Equals(folderName, _expectedFolderName, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(folderName, _expectedFolderName, StringComparison.OrdinalIgnoreCase))
         {
             isValid = false;
-            description = $"❌ 설치 경로의 마지막 폴더명 '{_expectedFolderName}' 과 일치해야 해요.";
+            description = $"❌ 설치 경로의 마지막 폴더명 '{_expectedFolderName}' 과 같으면 안돼요.";
             return;
         }
 
