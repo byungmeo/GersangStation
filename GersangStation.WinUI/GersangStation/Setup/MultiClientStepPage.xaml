@@ -8,7 +8,9 @@
     d:DataContext="{d:DesignInstance Type=setup:MultiClientStepPage}"
     mc:Ignorable="d">
 
-    <ScrollViewer>
+    <Grid>
+        <ContentPresenter x:Name="EditHost" x:Load="{x:Bind IsEdit, Mode=OneWay}">
+            <ScrollViewer>
         <StackPanel Padding="16" Spacing="16">
             <TextBlock
                 Opacity="0.8"
@@ -177,5 +179,14 @@
                 Text="{x:Bind NextHintText, Mode=OneWay}"
                 TextWrapping="Wrap" />
         </StackPanel>
-    </ScrollViewer>
+            </ScrollViewer>
+        </ContentPresenter>
+
+        <ContentPresenter x:Name="SavingTransitionHost" x:Load="{x:Bind IsSavingTransition, Mode=OneWay}">
+            <setup:BusyOverlay
+                IsIndeterminate="True"
+                Message="설정 정보를 저장 중입니다."
+                Title="잠시만 기다려주세요." />
+        </ContentPresenter>
+    </Grid>
 </Page>

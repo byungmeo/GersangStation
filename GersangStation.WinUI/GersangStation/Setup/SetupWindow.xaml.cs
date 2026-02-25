@@ -28,9 +28,6 @@ public sealed partial class SetupWindow : Window
     private INotifyPropertyChanged? _currentNotify;
     private bool _allowForceClose;
 
-    // ✅ PathSelect/MultiClient 다음 단계 진입 시 잠깐 저장 오버레이를 노출합니다.
-    private bool _isTransitionSaving;
-
     public SetupWindow()
     {
         InitializeComponent();
@@ -124,13 +121,11 @@ public sealed partial class SetupWindow : Window
         if (IsFullscreenStep(_currentStep))
         {
             Grid_SetupShell.Visibility = Visibility.Collapsed;
-            Grid_TransitionSavingHost.Visibility = Visibility.Collapsed;
             Frame_FullscreenStep.Visibility = Visibility.Visible;
         }
         else
         {
             Grid_SetupShell.Visibility = Visibility.Visible;
-            Grid_TransitionSavingHost.Visibility = _isTransitionSaving ? Visibility.Visible : Visibility.Collapsed;
             Frame_FullscreenStep.Visibility = Visibility.Collapsed;
         }
 
@@ -194,19 +189,17 @@ public sealed partial class SetupWindow : Window
         if (GetActiveStepContent() is ISetupStepPage stepPage)
         {
             bool isBusy = stepPage is IBusySetupStepPage busyStepPage && busyStepPage.IsBusy;
-            bool canUseActionButtons = !isBusy && !_isTransitionSaving;
 
-            Button_Back.IsEnabled = _currentStep != SetupStep.Welcome && canUseActionButtons;
-            Button_Next.IsEnabled = stepPage.CanGoNext && canUseActionButtons;
-            Button_Skip.IsEnabled = stepPage.CanSkip && canUseActionButtons;
+            Button_Back.IsEnabled = _currentStep != SetupStep.Welcome && !isBusy;
+            Button_Next.IsEnabled = stepPage.CanGoNext && !isBusy;
+            Button_Skip.IsEnabled = stepPage.CanSkip && !isBusy;
             return;
         }
 
         // 인터페이스 미구현 페이지 대비 기본값
-        bool canUseFallbackButtons = !_isTransitionSaving;
-        Button_Back.IsEnabled = _currentStep != SetupStep.Welcome && canUseFallbackButtons;
-        Button_Next.IsEnabled = canUseFallbackButtons;
-        Button_Skip.IsEnabled = Button_Skip.Visibility == Visibility.Visible && canUseFallbackButtons;
+        Button_Back.IsEnabled = _currentStep != SetupStep.Welcome;
+        Button_Next.IsEnabled = true;
+        Button_Skip.IsEnabled = Button_Skip.Visibility == Visibility.Visible;
     }
 
     private void Button_Back_Click(object sender, RoutedEventArgs e)
@@ -235,7 +228,7 @@ public sealed partial class SetupWindow : Window
         }
     }
 
-    private async void Button_Skip_Click(object sender, RoutedEventArgs e)
+    private void Button_Skip_Click(object sender, RoutedEventArgs e)
     {
         if (GetActiveStepContent() is ISetupStepPage stepPage)
         {
@@ -245,7 +238,7 @@ public sealed partial class SetupWindow : Window
             stepPage.OnSkip();
         }
 
-        await HandleNextAsync();
+        HandleNext();
     }
 
     private async void Button_Next_Click(object sender, RoutedEventArgs e)
@@ -265,30 +258,10 @@ public sealed partial class SetupWindow : Window
                 return;
         }
 
-        await HandleNextAsync();
+        HandleNext();
     }
 
-    private async Task ShowSavingOverlayWhileNavigatingAsync(SetupStep targetStep, object? parameter = null)
-    {
-        _isTransitionSaving = true;
-        UpdateShellUi();
-        UpdateStepActionButtons();
-
-        try
-        {
-            // 최소 노출 시간을 둬서 사용자에게 현재 단계 저장 동작이 진행 중임을 보여줍니다.
-            await Task.Delay(250);
-            NavigateToStep(targetStep, isForward: true, parameter);
-        }
-        finally
-        {
-            _isTransitionSaving = false;
-            UpdateShellUi();
-            UpdateStepActionButtons();
-        }
-    }
-
-    private async Task HandleNextAsync()
+    private void HandleNext()
     {
         switch (_currentStep)
         {
@@ -303,15 +276,15 @@ public sealed partial class SetupWindow : Window
             case SetupStep.PathSelect:
                 if (SetupFlowState.ShouldAutoSkipMultiClient)
                 {
-                    await ShowSavingOverlayWhileNavigatingAsync(SetupStep.Outro, parameter: "모든 설정을 마쳤습니다!");
+                    NavigateToStep(SetupStep.Outro, isForward: true, parameter: "모든 설정을 마쳤습니다!");
                     return;
                 }
 
-                await ShowSavingOverlayWhileNavigatingAsync(SetupStep.MultiClient);
+                NavigateToStep(SetupStep.MultiClient, isForward: true);
                 return;
 
             case SetupStep.MultiClient:
-                await ShowSavingOverlayWhileNavigatingAsync(SetupStep.AccountSetting);
+                NavigateToStep(SetupStep.AccountSetting, isForward: true);
                 return;
 
             case SetupStep.AccountSetting:
@@ -337,7 +310,7 @@ public sealed partial class SetupWindow : Window
         if (!ReferenceEquals(GetActiveStepContent(), pageContent))
             return;
 
-        await HandleNextAsync();
+        HandleNext();
     }
 
     private async void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)

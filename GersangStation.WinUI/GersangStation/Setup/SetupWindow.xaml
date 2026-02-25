@@ -59,22 +59,6 @@
             </Grid>
         </Grid>
 
-        <Grid
-            x:Name="Grid_TransitionSavingHost"
-            Background="#66000000"
-            Visibility="Collapsed">
-            <Border
-                Margin="24"
-                Padding="20"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Center"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
-                <local:BusyOverlay Message="설정 정보를 저장 중입니다." />
-            </Border>
-        </Grid>
-
         <!-- Intro/Outro는 SetupWindow 전체를 덮는 오버레이로 표시합니다. -->
         <Frame
             x:Name="Frame_FullscreenStep"

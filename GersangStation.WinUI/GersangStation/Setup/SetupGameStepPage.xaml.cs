@@ -17,7 +17,7 @@ using Windows.System;
 
 namespace GersangStation.Setup;
 
-public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetupStepPage, INotifyPropertyChanged
+public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetupStepPage, IBusySetupStepPage, INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged(string name) =>
@@ -88,6 +88,19 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetup
 
     public bool IsChecking => State == UiState.Checking;
     public bool IsEdit => State == UiState.Edit;
+
+    private bool _isSavingTransition;
+    public bool IsSavingTransition
+    {
+        get => _isSavingTransition;
+        private set
+        {
+            if (_isSavingTransition == value) return;
+            _isSavingTransition = value;
+            OnPropertyChanged(nameof(IsSavingTransition));
+            RecomputeCommon();
+        }
+    }
 
     // ---- 입력 ----
     private string _installPath = "";
@@ -211,10 +224,10 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetup
 
     // ✅ CanGoNext 로직 변경:
     // "확정"은 트리거 역할만, 실제 Next는 (둘다 유효 && 확정됨)
-    public bool CanGoNext => _isConfirmed && _installValid && _starterValid;
+    public bool CanGoNext => !IsSavingTransition && _isConfirmed && _installValid && _starterValid;
 
     // ✅ 확정 상태에서는 스킵 비활성화
-    public bool CanSkip => !CanGoNext;
+    public bool CanSkip => !IsSavingTransition && !CanGoNext;
 
     // 하단 "확정" 버튼: 유효하지만 아직 확정되지 않은 상태에서만 활성화
     public bool CanConfirmAll => _installValid && _starterValid && !_isConfirmed;
@@ -244,6 +257,21 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetup
         SetupFlowState.InstallPath = InstallPath;
         SetupFlowState.ShouldAutoSkipMultiClient = false;
         return true;
+    }
+
+    public async Task<bool> OnNextAsync()
+    {
+        IsSavingTransition = true;
+
+        try
+        {
+            await Task.Delay(250);
+            return OnNext();
+        }
+        finally
+        {
+            IsSavingTransition = false;
+        }
     }
 
     public void OnSkip()
