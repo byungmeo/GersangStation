@@ -18,10 +18,9 @@ public sealed class ExtractorBenchmarkTest
 
         var extractors = new IExtractor[]
         {
-            new SharpCompressExtractor(),
             new ZipFileExtractor(),
             new SevenZipExtractorAdapter(),
-            new SevenZipCommandLineExtractor()
+            new NativeSevenZipExtractor()
         };
 
         string benchmarkRoot = Path.Combine(Path.GetTempPath(), "GersangStation", "ExtractorBenchmark", Guid.NewGuid().ToString("N"));

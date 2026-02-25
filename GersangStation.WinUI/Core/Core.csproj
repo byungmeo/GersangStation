@@ -14,9 +14,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="7-Zip.CommandLine" Version="18.1.0" />
     <PackageReference Include="SevenZipExtractor" Version="1.0.19" />
     <PackageReference Include="SharpCompress" Version="0.46.2" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <None Include="Extractor\7zip\7z.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('Extractor\7zip\7z.dll')" />
+    <None Include="Extractor\7zip\README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
