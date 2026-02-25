@@ -10,31 +10,43 @@
 
     <ScrollViewer>
         <StackPanel Padding="16" Spacing="20">
-            <TextBlock Opacity="0.8" Text="선택 단계입니다. 필요하지 않다면 건너뛰기를 눌러 넘어갈 수 있어요." TextWrapping="Wrap" />
+            <TextBlock
+                Opacity="0.8"
+                Text="선택 단계입니다. 필요하지 않다면 건너뛰기를 눌러 넘어갈 수 있어요."
+                TextWrapping="Wrap" />
 
             <StackPanel Spacing="8">
-                <TextBlock Opacity="0.8" Text="다클 폴더명 1" />
+                <TextBlock Opacity="0.8" Text="2클라 폴더명" />
                 <TextBox
                     MinHeight="40"
                     BorderBrush="{x:Bind Folder1BorderBrush, Mode=OneWay}"
                     BorderThickness="{x:Bind Folder1BorderThickness, Mode=OneWay}"
-                    PlaceholderText="예: QWE"
+                    PlaceholderText="예: Gersang2"
                     Text="{x:Bind MultiClientFolderName1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Opacity="0.75" Text="{x:Bind Folder1Description, Mode=OneWay}" TextWrapping="Wrap" />
+                <TextBlock
+                    Opacity="0.75"
+                    Text="{x:Bind Folder1Description, Mode=OneWay}"
+                    TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel Spacing="8">
-                <TextBlock Opacity="0.8" Text="다클 폴더명 2" />
+                <TextBlock Opacity="0.8" Text="3클라 폴더명" />
                 <TextBox
                     MinHeight="40"
                     BorderBrush="{x:Bind Folder2BorderBrush, Mode=OneWay}"
                     BorderThickness="{x:Bind Folder2BorderThickness, Mode=OneWay}"
-                    PlaceholderText="예: QWE"
+                    PlaceholderText="예: Gersang3"
                     Text="{x:Bind MultiClientFolderName2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Opacity="0.75" Text="{x:Bind Folder2Description, Mode=OneWay}" TextWrapping="Wrap" />
+                <TextBlock
+                    Opacity="0.75"
+                    Text="{x:Bind Folder2Description, Mode=OneWay}"
+                    TextWrapping="Wrap" />
             </StackPanel>
 
-            <TextBlock Opacity="0.75" Text="{x:Bind NextHintText, Mode=OneWay}" TextWrapping="Wrap" />
+            <TextBlock
+                Opacity="0.75"
+                Text="{x:Bind NextHintText, Mode=OneWay}"
+                TextWrapping="Wrap" />
         </StackPanel>
     </ScrollViewer>
 </Page>

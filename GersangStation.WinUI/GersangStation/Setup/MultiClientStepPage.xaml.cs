@@ -20,7 +20,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
 
     private string _expectedFolderName = "";
 
-    private string _multiClientFolderName1 = "";
+    private string _multiClientFolderName1 = "Gersang2";
     public string MultiClientFolderName1
     {
         get => _multiClientFolderName1;
@@ -34,7 +34,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         }
     }
 
-    private string _multiClientFolderName2 = "";
+    private string _multiClientFolderName2 = "Gersang3";
     public string MultiClientFolderName2
     {
         get => _multiClientFolderName2;
