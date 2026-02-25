@@ -75,6 +75,10 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
         if (GetValidationErrorMessage() is not null)
             return false;
 
+        List<AccountEntry> importedAccounts = Accounts
+            .Where(a => a.IsImported)
+            .ToList();
+
         List<AccountEntry> newCompletedAccounts = Accounts
             .Where(a => !a.IsImported && IsCompletedAccount(a))
             .ToList();
@@ -85,7 +89,7 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
 
         try
         {
-            await Task.Run(() => SaveAccounts(newCompletedAccounts));
+            await Task.Run(() => SaveAccounts(importedAccounts, newCompletedAccounts));
 
             int remain = 1500 - (int)sw.ElapsedMilliseconds;
             if (remain > 0)
@@ -216,11 +220,27 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
             AddAccount();
     }
 
-    private void SaveAccounts(IReadOnlyList<AccountEntry> completedAccounts)
+    private void SaveAccounts(IReadOnlyList<AccountEntry> importedAccounts, IReadOnlyList<AccountEntry> completedNewAccounts)
     {
-        var accountProfiles = new List<AppDataManager.AccountProfile>(completedAccounts.Count);
+        var accountProfiles = new List<AppDataManager.AccountProfile>(importedAccounts.Count + completedNewAccounts.Count);
 
-        foreach (AccountEntry account in completedAccounts)
+        foreach (AccountEntry account in importedAccounts)
+        {
+            string id = account.Id.Trim();
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
+
+            string nickname = account.Nickname.Trim();
+            string finalNickname = string.IsNullOrWhiteSpace(nickname) ? id : nickname;
+
+            accountProfiles.Add(new AppDataManager.AccountProfile
+            {
+                Id = id,
+                Nickname = finalNickname
+            });
+        }
+
+        foreach (AccountEntry account in completedNewAccounts)
         {
             string id = account.Id.Trim();
             string nickname = account.Nickname.Trim();
@@ -238,7 +258,7 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
             PasswordVaultHelper.Save(id, account.Password);
         }
 
-        // 불러온 계정은 제외하고, 이번에 입력한 계정만 LocalFolder에 저장합니다.
+        // 불러온 계정 + 이번에 입력한 계정을 함께 LocalFolder에 저장합니다.
         AppDataManager.SaveAccounts(accountProfiles);
     }
 
