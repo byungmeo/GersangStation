@@ -15,7 +15,7 @@ public interface IExtractor
 
 public sealed record ExtractionProgress(
     string ExtractorName,
-    string? CurrentEntry,
+    int Percentage,
     int ProcessedEntries,
     int? TotalEntries,
-    double? Percentage = null);
+    string? CurrentEntry);
