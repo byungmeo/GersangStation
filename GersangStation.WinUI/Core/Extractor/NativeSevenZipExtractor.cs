@@ -30,7 +30,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (string.IsNullOrWhiteSpace(destinationRoot)) throw new ArgumentException("destinationRoot is required.", nameof(destinationRoot));
 
         Directory.CreateDirectory(destinationRoot);
-        string normalizedRoot = SharpCompressExtractor.NormalizeRoot(destinationRoot);
+        string normalizedRoot = NormalizeRoot(destinationRoot);
 
         using var archive = new ArchiveFile(archivePath);
         var entries = archive.Entries.Where(entry => !entry.IsFolder).ToList();
@@ -40,10 +40,10 @@ public sealed class NativeSevenZipExtractor : IExtractor
         {
             ct.ThrowIfCancellationRequested();
 
-            string relativePath = SharpCompressExtractor.NormalizeRelativePath(entry.FileName);
+            string relativePath = NormalizeRelativePath(entry.FileName);
             string destinationPath = Path.GetFullPath(Path.Combine(normalizedRoot, relativePath));
 
-            SharpCompressExtractor.EnsurePathInRoot(normalizedRoot, destinationPath, entry.FileName, destinationRoot);
+            EnsurePathInRoot(normalizedRoot, destinationPath, entry.FileName, destinationRoot);
 
             string? destinationDir = Path.GetDirectoryName(destinationPath);
             if (!string.IsNullOrEmpty(destinationDir))
@@ -56,6 +56,26 @@ public sealed class NativeSevenZipExtractor : IExtractor
         }
 
         return Task.CompletedTask;
+    }
+
+    private static string NormalizeRoot(string destinationRoot)
+    {
+        string normalizedRoot = Path.GetFullPath(destinationRoot);
+        if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar))
+            normalizedRoot += Path.DirectorySeparatorChar;
+
+        return normalizedRoot;
+    }
+
+    private static string NormalizeRelativePath(string? key)
+        => (key ?? string.Empty)
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+
+    private static void EnsurePathInRoot(string normalizedRoot, string destinationPath, string entryName, string destinationRoot)
+    {
+        if (!destinationPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"Archive entry has invalid path. entry='{entryName}', root='{destinationRoot}'");
     }
 
     private static string ResolveLibraryPath(string? explicitPath)
