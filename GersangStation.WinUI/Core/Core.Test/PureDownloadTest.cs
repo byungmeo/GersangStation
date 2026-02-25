@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 
 [TestClass]
+[Ignore("Extractor benchmark only run mode")]
 public class PureDownloadTests {
     public TestContext TestContext { get; set; }
 

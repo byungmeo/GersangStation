@@ -4,6 +4,7 @@ namespace Core.Test;
 
 [DoNotParallelize]
 [TestClass]
+[Ignore("Extractor benchmark only run mode")]
 public class PasswordVaultHelperTest
 {
     private const string TestUser = "TestUser_AutoLogin";

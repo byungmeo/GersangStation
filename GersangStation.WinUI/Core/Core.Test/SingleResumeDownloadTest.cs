@@ -12,6 +12,7 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 [TestClass]
+[Ignore("Extractor benchmark only run mode")]
 public class SingleResumeDownloadTests {
     private const string DownloadUrl = "http://ak-gersangkr.xcache.kinxcdn.com/FullClient/Gersang_Install.7z";
 

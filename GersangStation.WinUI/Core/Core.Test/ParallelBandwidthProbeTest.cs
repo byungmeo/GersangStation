@@ -105,6 +105,7 @@ TOTAL throughput (wall 기준): 58.54 MB/s
 */
 
 [TestClass]
+[Ignore("Extractor benchmark only run mode")]
 public partial class ParallelBandwidthProbeTests
 {
     private static readonly Uri[] PatchUrls =

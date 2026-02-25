@@ -1,4 +1,4 @@
-﻿using SharpCompress.Archives;
+﻿using Core.Extractor;
 using System.Net;
 using System.Text;
 
@@ -6,6 +6,8 @@ namespace Core.Patch;
 
 public static class PatchPipeline
 {
+    private static readonly IExtractor Extractor = new NativeSevenZipExtractor();
+
     /// <summary>
     /// <see cref="CancellationToken"/>을 모르는 호출자를 위한 간편 오버로드입니다.
     /// 내부적으로 <see cref="CancellationToken.None"/>을 사용합니다.
@@ -357,7 +359,7 @@ public static class PatchPipeline
                     await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
                 }
 
-                ExtractGsz(archivePath, installRoot, relativeDir);
+                await ExtractGszAsync(archivePath, installRoot, relativeDir, ct).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
@@ -371,7 +373,7 @@ public static class PatchPipeline
         throw new InvalidDataException($"Failed to extract archive after retry. file='{archivePath}', retryCount={maxExtractRetryCount}", lastException);
     }
 
-    private static void ExtractGsz(string archivePath, string installRoot, string relativeDir)
+    private static async Task ExtractGszAsync(string archivePath, string installRoot, string relativeDir, CancellationToken ct)
     {
         // relativeDir가 "\Online\Sub\" 형태면 Path.Combine이 앞 "\" 때문에 무시될 수 있어서
         // installRoot + relativeDir를 "문자열 결합"으로 만든다.
@@ -380,67 +382,14 @@ public static class PatchPipeline
 
         Directory.CreateDirectory(targetDir);
 
-        // ---- LOG: 시작 + 아카이브 내부 파일 목록 ----
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][BEGIN] {archivePath}");
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] targetDir: {targetDir}");
 
-        using var archive = ArchiveFactory.OpenArchive(archivePath);
+        await Extractor.ExtractAsync(archivePath, targetDir, ct: ct).ConfigureAwait(false);
 
-        int total = 0;
-        int printed = 0;
-        const int MaxPrint = 200;
-
-        foreach (var e in archive.Entries)
-        {
-            total++;
-
-            // 너무 길어지면 앞쪽만 출력
-            if (printed < MaxPrint)
-            {
-                System.Diagnostics.Debug.WriteLine($"  - [{e.Crc}] {e.Key}");
-                printed++;
-            }
-        }
-
-        if (total > MaxPrint)
-            System.Diagnostics.Debug.WriteLine($"  ... ({total - MaxPrint} more)");
-
-        System.Diagnostics.Debug.WriteLine($"[EXTRACT] entries: {total}");
-
-        ExtractEntriesWithOverwrite(archive, targetDir);
-
-        // ---- LOG: 종료 ----
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][END] {archivePath}");
     }
 
-
-    private static void ExtractEntriesWithOverwrite(IArchive archive, string destinationRoot)
-    {
-        string normalizedRoot = Path.GetFullPath(destinationRoot);
-        if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar))
-            normalizedRoot += Path.DirectorySeparatorChar;
-
-        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
-        {
-            string relativePath = (entry.Key ?? string.Empty)
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar);
-
-            string destinationPath = Path.GetFullPath(Path.Combine(normalizedRoot, relativePath));
-
-            // 압축 경로 탈출(zip slip) 방지
-            if (!destinationPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException($"Archive entry has invalid path. entry='{entry.Key}', root='{destinationRoot}'");
-
-            string? destinationDir = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrEmpty(destinationDir))
-                Directory.CreateDirectory(destinationDir);
-
-            using var sourceStream = entry.OpenEntryStream();
-            using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            sourceStream.CopyTo(destinationStream);
-        }
-    }
 
     private static async Task ExtractArchiveToDirectoryWithRetryAsync(
         string archivePath,
@@ -465,8 +414,7 @@ public static class PatchPipeline
                     await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
                 }
 
-                using var archive = ArchiveFactory.OpenArchive(archivePath);
-                ExtractEntriesWithOverwrite(archive, extractRoot);
+                await Extractor.ExtractAsync(archivePath, extractRoot, ct: ct).ConfigureAwait(false);
 
                 return;
             }
