@@ -1,0 +1,48 @@
+<Page
+    x:Class="GersangStation.Setup.WelcomeStepPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:setup="using:GersangStation.Setup"
+    d:DataContext="{d:DesignInstance Type=setup:SetupGameStepPage}"
+    mc:Ignorable="d">
+
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.Transitions>
+            <TransitionCollection>
+                <EntranceThemeTransition />
+            </TransitionCollection>
+        </Grid.Transitions>
+
+        <TextBlock
+            Grid.Row="0"
+            FontSize="24"
+            FontWeight="SemiBold"
+            Text="거상 스테이션을 처음 사용하시네요." />
+
+        <TextBlock
+            Grid.Row="1"
+            Opacity="0.85"
+            Text="몇 단계만 진행하면 바로 사용할 수 있어요." />
+
+        <Border
+            Grid.Row="2"
+            Margin="0,8,0,0"
+            Padding="16"
+            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+            CornerRadius="10">
+            <StackPanel Spacing="8">
+                <TextBlock FontWeight="SemiBold" Text="이 과정에서 진행할 항목" />
+                <TextBlock Text="• 거상 설치 위치 확인" />
+                <TextBlock Text="• 기본 옵션 설정" />
+                <TextBlock Text="• (선택) 편의 기능 설정" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>
