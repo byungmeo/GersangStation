@@ -384,7 +384,8 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
 
         if (!_useMultiClientFeature)
         {
-            AppDataManager.SaveUseSymbol(false);
+            // 미사용 선택 시에도 드라이브 호환성(빠른 다클라 생성 가능 여부) 기준값을 저장합니다.
+            AppDataManager.SaveUseSymbol(IsDriveCompatible);
             AppDataManager.SaveClientSettings(new AppDataManager.ClientSettingsProfile
             {
                 InstallPath = installPath,
