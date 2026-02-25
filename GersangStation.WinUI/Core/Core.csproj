@@ -14,11 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SharpCompress" Version="0.46.2" />
-  </ItemGroup>
-
-
-  <ItemGroup>
     <None Include="Extractor\7zip\7za.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('Extractor\7zip\7za.dll')" />
     <None Include="Extractor\7zip\README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
