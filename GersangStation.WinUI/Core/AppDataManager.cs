@@ -6,8 +6,9 @@ namespace Core;
 public static class AppDataManager
 {
     private const string KeySetupCompleted = "SetupCompleted";
+    private const string KeyUseSymbol = "useSymbol";
     private const string AccountsFileName = "accounts.json";
-    private const string InstallPathFileName = "install-path.json";
+    private const string ClientSettingsFileName = "client-settings.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,9 +21,11 @@ public static class AppDataManager
         public string Nickname { get; set; } = "";
     }
 
-    private sealed class InstallPathProfile
+    public sealed class ClientSettingsProfile
     {
         public string InstallPath { get; set; } = "";
+        public string Client2Path { get; set; } = "";
+        public string Client3Path { get; set; } = "";
     }
 
     public static bool IsSetupCompleted
@@ -30,6 +33,16 @@ public static class AppDataManager
         get => GetValue(KeySetupCompleted, false);
         set => SetValue(KeySetupCompleted, value);
     }
+
+    public static bool LoadUseSymbol()
+    {
+        if (LocalSettings.Values.TryGetValue(KeyUseSymbol, out object? value) && value is bool useSymbol)
+            return useSymbol;
+
+        return true;
+    }
+
+    public static void SaveUseSymbol(bool useSymbol) => SetValue(KeyUseSymbol, useSymbol);
 
     /// <summary>
     /// 계정 아이디/별명 목록을 LocalFolder(accounts.json)에 저장합니다.
@@ -62,34 +75,56 @@ public static class AppDataManager
     }
 
     /// <summary>
-    /// 설치 경로를 LocalFolder(install-path.json)에 저장합니다.
+    /// 클라이언트 설정을 LocalFolder(client-settings.json)에 저장합니다.
     /// </summary>
-    public static void SaveInstallPath(string installPath)
+    public static void SaveClientSettings(ClientSettingsProfile? settings)
     {
-        var payload = new InstallPathProfile { InstallPath = installPath ?? "" };
+        var payload = settings ?? new ClientSettingsProfile();
+        payload.InstallPath ??= "";
+        payload.Client2Path ??= "";
+        payload.Client3Path ??= "";
+
         string json = JsonSerializer.Serialize(payload, JsonOptions);
-        WriteTextToLocalFolder(InstallPathFileName, json);
+        WriteTextToLocalFolder(ClientSettingsFileName, json);
     }
 
     /// <summary>
-    /// LocalFolder(install-path.json)에서 설치 경로를 읽어옵니다.
+    /// LocalFolder(client-settings.json)에서 클라이언트 설정을 읽어옵니다.
     /// </summary>
-    public static string LoadInstallPath()
+    public static ClientSettingsProfile LoadClientSettings()
     {
-        string? json = ReadTextFromLocalFolder(InstallPathFileName);
+        string? json = ReadTextFromLocalFolder(ClientSettingsFileName);
         if (string.IsNullOrWhiteSpace(json))
-            return "";
+            return new ClientSettingsProfile();
 
         try
         {
-            var payload = JsonSerializer.Deserialize<InstallPathProfile>(json);
-            return payload?.InstallPath ?? "";
+            var payload = JsonSerializer.Deserialize<ClientSettingsProfile>(json) ?? new ClientSettingsProfile();
+            payload.InstallPath ??= "";
+            payload.Client2Path ??= "";
+            payload.Client3Path ??= "";
+            return payload;
         }
         catch
         {
-            return "";
+            return new ClientSettingsProfile();
         }
     }
+
+    /// <summary>
+    /// 설치 경로만 업데이트하고 나머지 클라이언트 설정은 유지합니다.
+    /// </summary>
+    public static void SaveInstallPath(string installPath)
+    {
+        var payload = LoadClientSettings();
+        payload.InstallPath = installPath ?? "";
+        SaveClientSettings(payload);
+    }
+
+    /// <summary>
+    /// 클라이언트 설정에서 설치 경로만 읽어옵니다.
+    /// </summary>
+    public static string LoadInstallPath() => LoadClientSettings().InstallPath;
 
     private static void WriteTextToLocalFolder(string fileName, string content)
     {

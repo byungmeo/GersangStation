@@ -1,4 +1,5 @@
 using Core;
+using Core.Patch;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -9,7 +10,9 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using Windows.System;
 
 namespace GersangStation.Setup;
 
@@ -134,6 +137,63 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
         }
     }
 
+
+    private bool _isInstallingClient;
+    public bool IsInstallingClient
+    {
+        get => _isInstallingClient;
+        private set
+        {
+            if (_isInstallingClient == value) return;
+            _isInstallingClient = value;
+            OnPropertyChanged(nameof(IsInstallingClient));
+            OnPropertyChanged(nameof(IsInstallButtonVisible));
+            OnPropertyChanged(nameof(IsInstallProgressVisible));
+        }
+    }
+
+    public bool IsInstallButtonVisible => !IsInstallingClient;
+    public bool IsInstallProgressVisible => IsInstallingClient;
+
+    private double _installProgressPercent;
+    public double InstallProgressPercent
+    {
+        get => _installProgressPercent;
+        private set { if (Math.Abs(_installProgressPercent - value) < 0.001) return; _installProgressPercent = value; OnPropertyChanged(nameof(InstallProgressPercent)); }
+    }
+
+    private string _installProgressText = "";
+    public string InstallProgressText
+    {
+        get => _installProgressText;
+        private set { if (_installProgressText == value) return; _installProgressText = value; OnPropertyChanged(nameof(InstallProgressText)); }
+    }
+
+    private string _installRemainingCapacityText = "";
+    public string InstallRemainingCapacityText
+    {
+        get => _installRemainingCapacityText;
+        private set { if (_installRemainingCapacityText == value) return; _installRemainingCapacityText = value; OnPropertyChanged(nameof(InstallRemainingCapacityText)); }
+    }
+
+    private string _installFailureReason = "";
+    public string InstallFailureReason
+    {
+        get => _installFailureReason;
+        private set
+        {
+            if (_installFailureReason == value) return;
+            _installFailureReason = value;
+            OnPropertyChanged(nameof(InstallFailureReason));
+            OnPropertyChanged(nameof(InstallFailureVisibility));
+        }
+    }
+
+    public Visibility InstallFailureVisibility =>
+        string.IsNullOrWhiteSpace(InstallFailureReason) ? Visibility.Collapsed : Visibility.Visible;
+
+    private CancellationTokenSource? _installClientCts;
+
     // ---- 결과 ----
     private bool _installValid;
     private bool _starterValid;
@@ -188,7 +248,8 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
 
         var sw = Stopwatch.StartNew();
 
-        string savedInstallPath = AppDataManager.LoadInstallPath();
+        var clientSettings = AppDataManager.LoadClientSettings();
+        string savedInstallPath = clientSettings.InstallPath;
         if (!string.IsNullOrWhiteSpace(savedInstallPath))
         {
             InstallPath = savedInstallPath;
@@ -260,12 +321,88 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
         StarterPath = ReadStarterFolderFromRegistry() ?? "";
     }
 
-    private void OnInstallButtonClicked(object sender, RoutedEventArgs e)
+    private async void OnInstallButtonClicked(object sender, RoutedEventArgs e)
     {
+        if (sender is not Button button) return;
+        if (IsInstallingClient) return;
+
+        button.IsEnabled = false;
+        InstallFailureReason = "";
+
+        try
+        {
+            string? selectedRoot = await PickFolderAsync(button);
+            if (string.IsNullOrWhiteSpace(selectedRoot))
+                return;
+
+            string installRoot = selectedRoot.Trim();
+            string parentRoot = Directory.GetParent(installRoot)?.FullName ?? installRoot;
+            string tempRoot = Path.Combine(parentRoot, ".gersang-install-temp");
+
+            UpdateRemainingCapacityText(parentRoot);
+
+            IsInstallingClient = true;
+            InstallProgressPercent = 0;
+            InstallProgressText = "다운로드 준비 중...";
+
+            _installClientCts?.Cancel();
+            _installClientCts?.Dispose();
+            _installClientCts = new CancellationTokenSource();
+
+            var progress = new Progress<DownloadProgress>(p =>
+            {
+                long received = p.BytesReceived;
+                long total = p.TotalBytes ?? 0;
+
+                if (total > 0)
+                {
+                    InstallProgressPercent = Math.Clamp(received * 100.0 / total, 0, 100);
+                    InstallProgressText = $"다운로드 중... {FormatBytes(received)} / {FormatBytes(total)}";
+                }
+                else
+                {
+                    InstallProgressPercent = 0;
+                    InstallProgressText = $"다운로드 중... {FormatBytes(received)}";
+                }
+            });
+
+            await PatchClientApi.InstallFullClientAsync(
+                installRoot: installRoot,
+                tempRoot: tempRoot,
+                progress: progress,
+                ct: _installClientCts.Token);
+
+            InstallProgressPercent = 100;
+            InstallProgressText = "설치가 완료됐어요.";
+
+            InstallPath = installRoot;
+            UpdateRemainingCapacityText(parentRoot);
+        }
+        catch (OperationCanceledException)
+        {
+            InstallFailureReason = "설치가 취소되었습니다.";
+        }
+        catch (Exception ex)
+        {
+            InstallFailureReason = $"설치 실패: {ex.Message}";
+        }
+        finally
+        {
+            IsInstallingClient = false;
+            button.IsEnabled = true;
+        }
     }
 
-    private void OnStarterInstallButtonClicked(object sender, RoutedEventArgs e)
+    private async void OnStarterInstallButtonClicked(object sender, RoutedEventArgs e)
     {
+        try
+        {
+            await Launcher.LaunchUriAsync(new Uri("https://www.gersang.co.kr/dataroom/client.gs"));
+        }
+        catch
+        {
+            // 브라우저 실행 실패 시에는 조용히 무시합니다.
+        }
     }
 
     // ---- 확정(단일) ----
@@ -475,6 +612,42 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
     }
 
     // ---- Registry ----
+
+    private void UpdateRemainingCapacityText(string anyPathInDrive)
+    {
+        try
+        {
+            string root = Path.GetPathRoot(anyPathInDrive) ?? "";
+            if (string.IsNullOrWhiteSpace(root))
+            {
+                InstallRemainingCapacityText = "";
+                return;
+            }
+
+            var drive = new DriveInfo(root);
+            InstallRemainingCapacityText = $"남은 용량: {FormatBytes(drive.AvailableFreeSpace)}";
+        }
+        catch
+        {
+            InstallRemainingCapacityText = "";
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double size = Math.Max(0, bytes);
+        int unit = 0;
+
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+
+        return $"{size:0.##} {units[unit]}";
+    }
+
     private static string? ReadInstallPathFromRegistry()
     {
         using RegistryKey? k = Registry.CurrentUser.OpenSubKey(@"Software\JOYON\Gersang\Korean", false);

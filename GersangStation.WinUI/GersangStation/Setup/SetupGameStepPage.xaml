@@ -83,7 +83,31 @@
                         <StackPanel Spacing="6" Visibility="{x:Bind InstallSuggestVisibility, Mode=OneWay}">
                             <TextBlock Opacity="0.7" Text="게임을 아직 설치하지 않으셨나요?" />
                             <TextBlock Opacity="0.7" Text="설치를 마치신 후 경로를 다시 탐색해주세요." />
-                            <Button Click="OnInstallButtonClicked" Content="설치" />
+
+                            <Button
+                                x:Name="InstallClientButton"
+                                x:Load="{x:Bind IsInstallButtonVisible, Mode=OneWay}"
+                                Click="OnInstallButtonClicked"
+                                Content="설치" />
+
+                            <StackPanel
+                                x:Name="InstallClientProgressPanel"
+                                x:Load="{x:Bind IsInstallProgressVisible, Mode=OneWay}"
+                                Spacing="6">
+                                <ProgressBar
+                                    Height="8"
+                                    Maximum="100"
+                                    Value="{x:Bind InstallProgressPercent, Mode=OneWay}" />
+                                <TextBlock Opacity="0.75" Text="{x:Bind InstallProgressText, Mode=OneWay}" TextWrapping="Wrap" />
+                                <TextBlock Opacity="0.75" Text="{x:Bind InstallRemainingCapacityText, Mode=OneWay}" TextWrapping="Wrap" />
+                            </StackPanel>
+
+                            <TextBlock
+                                Opacity="0.75"
+                                Foreground="IndianRed"
+                                Visibility="{x:Bind InstallFailureVisibility, Mode=OneWay}"
+                                Text="{x:Bind InstallFailureReason, Mode=OneWay}"
+                                TextWrapping="Wrap" />
                         </StackPanel>
                     </StackPanel>
 
