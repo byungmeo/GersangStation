@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Extractor\7zip\7za.exe">
+    <None Update="Include\7za.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

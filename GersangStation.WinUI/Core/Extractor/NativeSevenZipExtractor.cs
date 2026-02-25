@@ -5,7 +5,6 @@ namespace Core.Extractor;
 
 /// <summary>
 /// 7za 커맨드라인(7za.exe)을 사용해 압축을 풉니다.
-/// 7za.dll은 배포 시 동일 폴더에 두어 네이티브 의존성을 맞춥니다.
 /// </summary>
 public sealed class NativeSevenZipExtractor : IExtractor
 {
@@ -188,9 +187,8 @@ public sealed class NativeSevenZipExtractor : IExtractor
         string[] localCandidates =
         [
             Path.Combine(AppContext.BaseDirectory, "7za.exe"),
-            Path.Combine(AppContext.BaseDirectory, "7zip", "7za.exe"),
-            Path.Combine(AppContext.BaseDirectory, "Extractor", "7zip", "7za.exe"),
-            Path.Combine(AppContext.BaseDirectory, "Core", "Extractor", "7zip", "7za.exe"),
+            Path.Combine(AppContext.BaseDirectory, "Include", "7za.exe"),
+            Path.Combine(AppContext.BaseDirectory, "Core", "Include", "7za.exe"),
         ];
 
         foreach (var candidate in localCandidates)
