@@ -19,6 +19,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*" />
                                 <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="2*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
@@ -35,8 +36,15 @@
                                 PlaceholderText="비밀번호"
                                 PasswordChanged="OnAccountPasswordChanged" />
 
-                            <Button
+                            <TextBox
                                 Grid.Column="2"
+                                MinHeight="40"
+                                PlaceholderText="별명 (선택)"
+                                Text="{Binding Nickname, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                TextChanged="OnAccountNicknameChanged" />
+
+                            <Button
+                                Grid.Column="3"
                                 MinHeight="40"
                                 Click="OnRemoveAccount"
                                 Content="삭제" />

@@ -36,6 +36,9 @@ public static class PasswordVaultHelper
     {
         if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password)) return;
 
+        // 동일한 userName이 이미 있으면 덮어쓰기 위해 기존 항목을 먼저 삭제합니다.
+        Delete(userName);
+
         var credential = new PasswordCredential(ResourceName, userName, password);
         _vault.Add(credential);
     }
