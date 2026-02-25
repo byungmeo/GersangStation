@@ -139,6 +139,7 @@ public static class PatchClientApi
         string installRoot,
         string tempRoot,
         IProgress<DownloadProgress>? progress = null,
+        IProgress<ExtractionProgress>? extractionProgress = null,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
@@ -165,7 +166,7 @@ public static class PatchClientApi
             progress: progress,
             ct: ct).ConfigureAwait(false);
 
-        await Extractor.ExtractAsync(archivePath, installRoot, ct: ct).ConfigureAwait(false);
+        await Extractor.ExtractAsync(archivePath, installRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
     }
 
     private static void EnsureClientInstallRootConfigured()

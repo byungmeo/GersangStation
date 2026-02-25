@@ -1,4 +1,5 @@
 using Core;
+using Core.Extractor;
 using Core.Patch;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
@@ -349,7 +350,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
             _installClientCts?.Dispose();
             _installClientCts = new CancellationTokenSource();
 
-            var progress = new Progress<DownloadProgress>(p =>
+            var downloadProgress = new Progress<DownloadProgress>(p =>
             {
                 long received = p.BytesReceived;
                 long total = p.TotalBytes ?? 0;
@@ -366,10 +367,25 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
                 }
             });
 
+            var extractionProgress = new Progress<ExtractionProgress>(p =>
+            {
+                InstallProgressPercent = Math.Clamp(p.Percentage, 0, 100);
+
+                string processedText = p.TotalEntries is > 0
+                    ? $"{p.ProcessedEntries}/{p.TotalEntries}"
+                    : p.ProcessedEntries.ToString();
+
+                if (!string.IsNullOrWhiteSpace(p.CurrentEntry))
+                    InstallProgressText = $"압축 해제 중... {processedText} - {p.CurrentEntry}";
+                else
+                    InstallProgressText = $"압축 해제 중... {processedText}";
+            });
+
             await PatchClientApi.InstallFullClientAsync(
                 installRoot: installRoot,
                 tempRoot: tempRoot,
-                progress: progress,
+                progress: downloadProgress,
+                extractionProgress: extractionProgress,
                 ct: _installClientCts.Token);
 
             InstallProgressPercent = 100;

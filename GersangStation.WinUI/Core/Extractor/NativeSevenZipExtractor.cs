@@ -39,6 +39,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         Directory.CreateDirectory(destinationRoot);
 
         int? totalEntries = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
+        Debug.WriteLine($"[7ZA][LIST][PARSED] TotalEntries={totalEntries?.ToString() ?? "null"}");
 
         var psi = new ProcessStartInfo
         {
@@ -59,15 +60,24 @@ public sealed class NativeSevenZipExtractor : IExtractor
             Debug.WriteLine($"[7ZA][OUT] {args.Data}");
 
             var match = ExtractionProgressRegex.Match(args.Data);
-            if (!match.Success) return;
+            if (!match.Success)
+            {
+                Debug.WriteLine($"[7ZA][PROGRESS][SKIP] {args.Data}");
+                return;
+            }
 
-            if (!int.TryParse(match.Groups["percent"].Value, out int percent)) return;
+            if (!int.TryParse(match.Groups["percent"].Value, out int percent))
+            {
+                Debug.WriteLine($"[7ZA][PROGRESS][PARSE-FAIL] percent line={args.Data}");
+                return;
+            }
 
             int processedEntries = 0;
-            if (match.Groups["processed"].Success)
-                int.TryParse(match.Groups["processed"].Value, out processedEntries);
+            if (match.Groups["processed"].Success && !int.TryParse(match.Groups["processed"].Value, out processedEntries))
+                Debug.WriteLine($"[7ZA][PROGRESS][PARSE-FAIL] processed line={args.Data}");
 
             var currentEntry = match.Groups["entry"].Success ? match.Groups["entry"].Value : null;
+            Debug.WriteLine($"[7ZA][PROGRESS][PARSED] percent={percent}, processed={processedEntries}, entry={currentEntry ?? "(null)"}, total={totalEntries?.ToString() ?? "null"}");
             progress?.Report(new ExtractionProgress(Name, percent, processedEntries, totalEntries, currentEntry));
         };
 
@@ -102,6 +112,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (process.ExitCode != 0)
             throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}.");
 
+        Debug.WriteLine("[7ZA][PROGRESS][COMPLETE] exitCode=0");
         progress?.Report(new ExtractionProgress(Name, 100, totalEntries ?? 0, totalEntries, null));
     }
 
@@ -133,17 +144,29 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
         foreach (string line in stdout.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
+            Debug.WriteLine($"[7ZA][LIST][OUT] {line}");
+
             var match = ListingSummaryRegex.Match(line);
-            if (!match.Success) continue;
+            if (!match.Success)
+                continue;
 
             if (!int.TryParse(match.Groups["files"].Value, out int files))
+            {
+                Debug.WriteLine($"[7ZA][LIST][PARSE-FAIL] files line={line}");
                 continue;
-            if (!int.TryParse(match.Groups["folders"].Value, out int folders))
-                continue;
+            }
 
+            if (!int.TryParse(match.Groups["folders"].Value, out int folders))
+            {
+                Debug.WriteLine($"[7ZA][LIST][PARSE-FAIL] folders line={line}");
+                continue;
+            }
+
+            Debug.WriteLine($"[7ZA][LIST][PARSED] files={files}, folders={folders}, total={files + folders}");
             return files + folders;
         }
 
+        Debug.WriteLine("[7ZA][LIST][PARSED] summary not found.");
         return null;
     }
 
