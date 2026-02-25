@@ -138,19 +138,17 @@ public static class PatchClientApi
     /// </summary>
     public static async Task InstallFullClientAsync(
         string installRoot,
-        string tempRoot,
         IProgress<DownloadProgress>? progress = null,
         IProgress<ExtractionProgress>? extractionProgress = null,
         bool skipDownloadIfArchiveExists = true,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
-        if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
 
-        Directory.CreateDirectory(tempRoot);
         Directory.CreateDirectory(installRoot);
 
-        string archivePath = Path.Combine(tempRoot, "Gersang_Install.7z");
+        string archivePath = Path.Combine(installRoot, "Gersang_Install.7z");
+        bool archiveExists = File.Exists(archivePath);
 
         using var http = new HttpClient(new HttpClientHandler
         {
@@ -162,23 +160,20 @@ public static class PatchClientApi
 
         var downloader = new Downloader(http);
 
-        try
+        if (archiveExists && skipDownloadIfArchiveExists)
+        {
+            Debug.WriteLine($"[InstallFullClient] Archive already exists. Skip download and extract directly: {archivePath}");
+        }
+        else
         {
             await downloader.DownloadAsync(
                 FullClientUri,
                 archivePath,
-                new DownloadOptions(Overwrite: false),
+                new DownloadOptions(Overwrite: !skipDownloadIfArchiveExists),
                 progress: progress,
                 ct: ct).ConfigureAwait(false);
 
             Debug.WriteLine($"[InstallFullClient] Download complete: {archivePath}");
-        }
-        catch (IOException ex) when (skipDownloadIfArchiveExists &&
-                                     File.Exists(archivePath) &&
-                                     ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
-        {
-            Debug.WriteLine($"[InstallFullClient] Archive already exists. Skip download and extract directly: {archivePath}");
-            Debug.WriteLine($"[InstallFullClient] Skip reason: {ex.Message}");
         }
 
         await Extractor.ExtractAsync(archivePath, installRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
