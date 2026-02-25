@@ -1,4 +1,3 @@
-using SharpCompress.Archives;
 using Core.Extractor;
 using System.Net;
 
@@ -10,7 +9,7 @@ namespace Core.Patch;
 /// </summary>
 public static class PatchClientApi
 {
-    private static readonly IExtractor LegacyExtractor = new SharpCompressExtractor();
+    private static readonly IExtractor Extractor = new NativeSevenZipExtractor();
 
     public static readonly Uri PatchBaseUri = new("https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/");
     public static readonly Uri FullClientUri = new("http://ak-gersangkr.xcache.kinxcdn.com/FullClient/Gersang_Install.7z");
@@ -64,14 +63,40 @@ public static class PatchClientApi
         using var response = await http.GetAsync(new Uri(PatchBaseUri, LatestVersionArchiveSuffix), HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
-        await using var archiveStream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        using var archive = ArchiveFactory.OpenArchive(archiveStream);
+        string probeRoot = Path.Combine(Path.GetTempPath(), "GersangStation", "LatestVersion", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(probeRoot);
 
-        var entry = archive.Entries.FirstOrDefault(e => !e.IsDirectory)
-            ?? throw new InvalidDataException("No vsn.dat entry found in latest version archive.");
+        try
+        {
+            string archivePath = Path.Combine(probeRoot, "vsn.dat.gsz");
+            string extractRoot = Path.Combine(probeRoot, "extract");
 
-        using var entryStream = entry.OpenEntryStream();
-        return PatchPipeline.DecodeLatestVersionFromVsnDat(entryStream);
+            await using (var fs = File.Create(archivePath))
+            {
+                await response.Content.CopyToAsync(fs, ct).ConfigureAwait(false);
+            }
+
+            Directory.CreateDirectory(extractRoot);
+            await Extractor.ExtractAsync(archivePath, extractRoot, ct: ct).ConfigureAwait(false);
+
+            string vsnPath = Directory.EnumerateFiles(extractRoot, "*", SearchOption.AllDirectories).FirstOrDefault()
+                ?? throw new InvalidDataException("No vsn.dat entry found in latest version archive.");
+
+            await using var entryStream = File.OpenRead(vsnPath);
+            return PatchPipeline.DecodeLatestVersionFromVsnDat(entryStream);
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(probeRoot))
+                    Directory.Delete(probeRoot, recursive: true);
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
     }
 
     /// <summary>
@@ -140,7 +165,7 @@ public static class PatchClientApi
             progress: progress,
             ct: ct).ConfigureAwait(false);
 
-        await LegacyExtractor.ExtractAsync(archivePath, installRoot, ct: ct).ConfigureAwait(false);
+        await Extractor.ExtractAsync(archivePath, installRoot, ct: ct).ConfigureAwait(false);
     }
 
     private static void EnsureClientInstallRootConfigured()

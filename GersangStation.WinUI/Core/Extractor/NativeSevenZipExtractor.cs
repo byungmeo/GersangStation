@@ -35,7 +35,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         var psi = new ProcessStartInfo
         {
             FileName = _sevenZipExePath,
-            Arguments = $"x \"{archivePath}\" -o\"{destinationRoot}\" -y -bsp1",
+            Arguments = $"x \"{archivePath}\" -o\"{destinationRoot}\" -aoa -y -mmt=on -bsp1",
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -43,7 +43,27 @@ public sealed class NativeSevenZipExtractor : IExtractor
         };
 
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (string.IsNullOrWhiteSpace(args.Data)) return;
+
+            Debug.WriteLine($"[7ZA][OUT] {args.Data}");
+
+            var match = PercentageRegex.Match(args.Data);
+            if (match.Success && int.TryParse(match.Groups["percent"].Value, out int percent))
+                progress?.Report(new ExtractionProgress(Name, null, 0, null, percent));
+        };
+
+        process.ErrorDataReceived += (_, args) =>
+        {
+            if (string.IsNullOrWhiteSpace(args.Data)) return;
+            Debug.WriteLine($"[7ZA][ERR] {args.Data}");
+        };
+
         process.Start();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
 
         using var cancellationRegistration = ct.Register(() =>
         {
@@ -58,28 +78,13 @@ public sealed class NativeSevenZipExtractor : IExtractor
             }
         });
 
-        Task readStdOut = Task.Run(async () =>
-        {
-            while (!process.StandardOutput.EndOfStream)
-            {
-                string? line = await process.StandardOutput.ReadLineAsync(ct).ConfigureAwait(false);
-                if (line is null) continue;
-
-                var match = PercentageRegex.Match(line);
-                if (match.Success && int.TryParse(match.Groups["percent"].Value, out int percent))
-                    progress?.Report(new ExtractionProgress(Name, null, 0, null, percent));
-            }
-        }, ct);
-
-        string stdErr = await process.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
-
-        await Task.WhenAll(readStdOut, process.WaitForExitAsync(ct)).ConfigureAwait(false);
+        await process.WaitForExitAsync(ct).ConfigureAwait(false);
 
         if (ct.IsCancellationRequested)
             ct.ThrowIfCancellationRequested();
 
         if (process.ExitCode != 0)
-            throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}. stderr={stdErr}");
+            throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}.");
 
         progress?.Report(new ExtractionProgress(Name, null, 0, null, 100));
     }
@@ -105,7 +110,6 @@ public sealed class NativeSevenZipExtractor : IExtractor
                 return candidate;
         }
 
-        // PATH fallback
         if (CanRun("7za")) return "7za";
         if (CanRun("7z")) return "7z";
 

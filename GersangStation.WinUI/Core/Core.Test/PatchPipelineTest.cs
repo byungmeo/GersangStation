@@ -1,6 +1,6 @@
 ﻿using Core.Patch;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SharpCompress.Archives;
+using Core.Extractor;
 using System.Diagnostics;
 
 namespace Core.Test;
@@ -169,10 +169,8 @@ public sealed class PatchPipelineTest
         await File.WriteAllBytesAsync(archivePath, archiveBytes);
         Debug.WriteLine($"[TEST] vsn.dat.gsz size: {archiveBytes.Length} bytes");
 
-        using (var archive = ArchiveFactory.OpenArchive(archivePath))
-        {
-            archive.WriteToDirectory(extractRoot);
-        }
+        var extractor = new NativeSevenZipExtractor();
+        await extractor.ExtractAsync(archivePath, extractRoot, ct: CancellationToken.None);
 
         var files = Directory.EnumerateFiles(extractRoot, "*", SearchOption.AllDirectories).ToArray();
         Debug.WriteLine($"[TEST] extracted vsn files: {files.Length}");

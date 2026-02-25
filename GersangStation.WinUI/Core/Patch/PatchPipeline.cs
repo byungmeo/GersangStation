@@ -6,7 +6,7 @@ namespace Core.Patch;
 
 public static class PatchPipeline
 {
-    private static readonly IExtractor LegacyExtractor = new SharpCompressExtractor();
+    private static readonly IExtractor Extractor = new NativeSevenZipExtractor();
 
     /// <summary>
     /// <see cref="CancellationToken"/>을 모르는 호출자를 위한 간편 오버로드입니다.
@@ -385,7 +385,7 @@ public static class PatchPipeline
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][BEGIN] {archivePath}");
         System.Diagnostics.Debug.WriteLine($"[EXTRACT] targetDir: {targetDir}");
 
-        await LegacyExtractor.ExtractAsync(archivePath, targetDir, ct: ct).ConfigureAwait(false);
+        await Extractor.ExtractAsync(archivePath, targetDir, ct: ct).ConfigureAwait(false);
 
         System.Diagnostics.Debug.WriteLine($"[EXTRACT][END] {archivePath}");
     }
@@ -414,7 +414,7 @@ public static class PatchPipeline
                     await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
                 }
 
-                await LegacyExtractor.ExtractAsync(archivePath, extractRoot, ct: ct).ConfigureAwait(false);
+                await Extractor.ExtractAsync(archivePath, extractRoot, ct: ct).ConfigureAwait(false);
 
                 return;
             }

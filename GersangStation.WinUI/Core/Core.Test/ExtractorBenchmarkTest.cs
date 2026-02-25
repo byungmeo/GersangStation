@@ -15,46 +15,39 @@ public sealed class ExtractorBenchmarkTest
         Assert.IsTrue(File.Exists(archivePath), $"Archive file not found: {archivePath}");
         Directory.CreateDirectory(fixedExtractRoot);
 
-        var extractors = new IExtractor[]
+        var extractor = new NativeSevenZipExtractor();
+
+        // 요청사항: Temp\{Extractor식별자}\ 경로로 고정
+        string destination = Path.Combine(fixedExtractRoot, SanitizeName(extractor.Name));
+
+        if (Directory.Exists(destination))
+            Directory.Delete(destination, recursive: true);
+        Directory.CreateDirectory(destination);
+
+        var sw = Stopwatch.StartNew();
+
+        try
         {
-            new ZipFileExtractor(),
-            new NativeSevenZipExtractor()
-        };
+            await extractor.ExtractAsync(archivePath, destination, progress: null, ct: CancellationToken.None);
+            sw.Stop();
 
-        foreach (var extractor in extractors)
+            int fileCount = Directory.EnumerateFiles(destination, "*", SearchOption.AllDirectories).Count();
+            long totalBytes = Directory.EnumerateFiles(destination, "*", SearchOption.AllDirectories)
+                .Sum(path => new FileInfo(path).Length);
+
+            TestContext.WriteLine($"[BENCH][PASS] {extractor.Name}");
+            TestContext.WriteLine($"  - destination: {destination}");
+            TestContext.WriteLine($"  - elapsed    : {sw.Elapsed}");
+            TestContext.WriteLine($"  - files      : {fileCount}");
+            TestContext.WriteLine($"  - bytes      : {totalBytes}");
+        }
+        catch (Exception ex)
         {
-            // 요청사항: Temp\{Extractor식별자}\ 경로로 고정
-            string destination = Path.Combine(fixedExtractRoot, SanitizeName(extractor.Name));
-
-            if (Directory.Exists(destination))
-                Directory.Delete(destination, recursive: true);
-            Directory.CreateDirectory(destination);
-
-            var sw = Stopwatch.StartNew();
-
-            try
-            {
-                await extractor.ExtractAsync(archivePath, destination, progress: null, ct: CancellationToken.None);
-                sw.Stop();
-
-                int fileCount = Directory.EnumerateFiles(destination, "*", SearchOption.AllDirectories).Count();
-                long totalBytes = Directory.EnumerateFiles(destination, "*", SearchOption.AllDirectories)
-                    .Sum(path => new FileInfo(path).Length);
-
-                TestContext.WriteLine($"[BENCH][PASS] {extractor.Name}");
-                TestContext.WriteLine($"  - destination: {destination}");
-                TestContext.WriteLine($"  - elapsed    : {sw.Elapsed}");
-                TestContext.WriteLine($"  - files      : {fileCount}");
-                TestContext.WriteLine($"  - bytes      : {totalBytes}");
-            }
-            catch (Exception ex)
-            {
-                sw.Stop();
-                TestContext.WriteLine($"[BENCH][FAIL] {extractor.Name}");
-                TestContext.WriteLine($"  - destination: {destination}");
-                TestContext.WriteLine($"  - elapsed    : {sw.Elapsed}");
-                TestContext.WriteLine($"  - error      : {ex}");
-            }
+            sw.Stop();
+            TestContext.WriteLine($"[BENCH][FAIL] {extractor.Name}");
+            TestContext.WriteLine($"  - destination: {destination}");
+            TestContext.WriteLine($"  - elapsed    : {sw.Elapsed}");
+            TestContext.WriteLine($"  - error      : {ex}");
         }
     }
 

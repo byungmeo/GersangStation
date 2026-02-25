@@ -1,5 +1,5 @@
 ﻿using Core.Patch;
-using SharpCompress.Archives;
+using Core.Extractor;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Core.Test;
@@ -28,10 +28,8 @@ public sealed class PatchMetadataParseTest
             await File.WriteAllBytesAsync(archivePath, archiveBytes);
             Directory.CreateDirectory(extractRoot);
 
-            using (var archive = ArchiveFactory.OpenArchive(archivePath))
-            {
-                archive.WriteToDirectory(extractRoot);
-            }
+            var extractor = new NativeSevenZipExtractor();
+            await extractor.ExtractAsync(archivePath, extractRoot, ct: CancellationToken.None);
 
             var files = Directory.EnumerateFiles(extractRoot, "*", SearchOption.AllDirectories).ToArray();
             Assert.AreEqual(1, files.Length, "vsn.dat.gsz should contain exactly one file.");
