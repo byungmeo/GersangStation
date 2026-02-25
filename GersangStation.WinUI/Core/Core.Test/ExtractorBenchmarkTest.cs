@@ -15,7 +15,6 @@ public sealed class ExtractorBenchmarkTest
         var extractors = new IExtractor[]
         {
             new ZipFileExtractor(),
-            new SevenZipExtractorAdapter(),
             new NativeSevenZipExtractor()
         };
 

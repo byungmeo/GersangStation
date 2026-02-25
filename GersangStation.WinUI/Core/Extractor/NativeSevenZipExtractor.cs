@@ -1,26 +1,27 @@
-using System.Runtime.InteropServices;
-using SevenZipExtractor;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Core.Extractor;
 
 /// <summary>
-/// 저장소에 포함한 네이티브 7z.dll을 직접 로드해서 사용하는 압축 해제기.
+/// 7za 커맨드라인(7za.exe / 7z.exe)을 사용해 압축을 풉니다.
+/// 7za.dll은 배포 시 동일 폴더에 두어 네이티브 의존성을 맞춥니다.
 /// </summary>
 public sealed class NativeSevenZipExtractor : IExtractor
 {
-    private readonly string _libraryPath;
+    private static readonly Regex PercentageRegex = new(@"\b(?<percent>\d{1,3})%\b", RegexOptions.Compiled);
+    private readonly string _sevenZipExePath;
 
-    public NativeSevenZipExtractor(string? libraryPath = null)
+    public NativeSevenZipExtractor(string? sevenZipExePath = null)
     {
-        _libraryPath = ResolveLibraryPath(libraryPath);
-        NativeLibrary.Load(_libraryPath);
+        _sevenZipExePath = ResolveSevenZipExecutablePath(sevenZipExePath);
     }
 
-    public string Name => "Native 7-Zip (7z.dll)";
+    public string Name => "Native 7-Zip CLI (7za)";
 
     public bool CanHandle(string archivePath) => File.Exists(archivePath);
 
-    public Task ExtractAsync(
+    public async Task ExtractAsync(
         string archivePath,
         string destinationRoot,
         IProgress<ExtractionProgress>? progress = null,
@@ -30,71 +31,107 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (string.IsNullOrWhiteSpace(destinationRoot)) throw new ArgumentException("destinationRoot is required.", nameof(destinationRoot));
 
         Directory.CreateDirectory(destinationRoot);
-        string normalizedRoot = NormalizeRoot(destinationRoot);
 
-        using var archive = new ArchiveFile(archivePath);
-        var entries = archive.Entries.Where(entry => !entry.IsFolder).ToList();
-
-        int processed = 0;
-        foreach (var entry in entries)
+        var psi = new ProcessStartInfo
         {
+            FileName = _sevenZipExePath,
+            Arguments = $"x \"{archivePath}\" -o\"{destinationRoot}\" -y -bsp1",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        process.Start();
+
+        using var cancellationRegistration = ct.Register(() =>
+        {
+            try
+            {
+                if (!process.HasExited)
+                    process.Kill(entireProcessTree: true);
+            }
+            catch
+            {
+                // ignore kill race
+            }
+        });
+
+        Task readStdOut = Task.Run(async () =>
+        {
+            while (!process.StandardOutput.EndOfStream)
+            {
+                string? line = await process.StandardOutput.ReadLineAsync(ct).ConfigureAwait(false);
+                if (line is null) continue;
+
+                var match = PercentageRegex.Match(line);
+                if (match.Success && int.TryParse(match.Groups["percent"].Value, out int percent))
+                    progress?.Report(new ExtractionProgress(Name, null, 0, null, percent));
+            }
+        }, ct);
+
+        string stdErr = await process.StandardError.ReadToEndAsync(ct).ConfigureAwait(false);
+
+        await Task.WhenAll(readStdOut, process.WaitForExitAsync(ct)).ConfigureAwait(false);
+
+        if (ct.IsCancellationRequested)
             ct.ThrowIfCancellationRequested();
 
-            string relativePath = NormalizeRelativePath(entry.FileName);
-            string destinationPath = Path.GetFullPath(Path.Combine(normalizedRoot, relativePath));
+        if (process.ExitCode != 0)
+            throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}. stderr={stdErr}");
 
-            EnsurePathInRoot(normalizedRoot, destinationPath, entry.FileName, destinationRoot);
-
-            string? destinationDir = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrEmpty(destinationDir))
-                Directory.CreateDirectory(destinationDir);
-
-            entry.Extract(destinationPath);
-
-            processed++;
-            progress?.Report(new ExtractionProgress(Name, entry.FileName, processed, entries.Count));
-        }
-
-        return Task.CompletedTask;
+        progress?.Report(new ExtractionProgress(Name, null, 0, null, 100));
     }
 
-    private static string NormalizeRoot(string destinationRoot)
-    {
-        string normalizedRoot = Path.GetFullPath(destinationRoot);
-        if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar))
-            normalizedRoot += Path.DirectorySeparatorChar;
-
-        return normalizedRoot;
-    }
-
-    private static string NormalizeRelativePath(string? key)
-        => (key ?? string.Empty)
-            .Replace('\\', Path.DirectorySeparatorChar)
-            .Replace('/', Path.DirectorySeparatorChar);
-
-    private static void EnsurePathInRoot(string normalizedRoot, string destinationPath, string entryName, string destinationRoot)
-    {
-        if (!destinationPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException($"Archive entry has invalid path. entry='{entryName}', root='{destinationRoot}'");
-    }
-
-    private static string ResolveLibraryPath(string? explicitPath)
+    private static string ResolveSevenZipExecutablePath(string? explicitPath)
     {
         if (!string.IsNullOrWhiteSpace(explicitPath) && File.Exists(explicitPath))
             return explicitPath;
 
-        string[] candidates =
+        string[] localCandidates =
         [
-            Path.Combine(AppContext.BaseDirectory, "7z.dll"),
-            Path.Combine(AppContext.BaseDirectory, "7zip", "7z.dll"),
-            Path.Combine(AppContext.BaseDirectory, "Extractor", "7zip", "7z.dll"),
-            Path.Combine(AppContext.BaseDirectory, "Core", "Extractor", "7zip", "7z.dll")
+            Path.Combine(AppContext.BaseDirectory, "7za.exe"),
+            Path.Combine(AppContext.BaseDirectory, "7z.exe"),
+            Path.Combine(AppContext.BaseDirectory, "7zip", "7za.exe"),
+            Path.Combine(AppContext.BaseDirectory, "7zip", "7z.exe"),
+            Path.Combine(AppContext.BaseDirectory, "Core", "Extractor", "7zip", "7za.exe"),
+            Path.Combine(AppContext.BaseDirectory, "Core", "Extractor", "7zip", "7z.exe")
         ];
 
-        string? found = candidates.FirstOrDefault(File.Exists);
-        if (found is not null)
-            return found;
+        foreach (var candidate in localCandidates)
+        {
+            if (File.Exists(candidate))
+                return candidate;
+        }
 
-        throw new FileNotFoundException("7z.dll not found. Place it at Core/Extractor/7zip/7z.dll.");
+        // PATH fallback
+        if (CanRun("7za")) return "7za";
+        if (CanRun("7z")) return "7z";
+
+        throw new FileNotFoundException("7za.exe/7z.exe not found. Place executable next to Core/Extractor/7zip/7za.dll or install 7-Zip CLI in PATH.");
+    }
+
+    private static bool CanRun(string fileName)
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = "-h",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            });
+
+            process?.WaitForExit(1500);
+            return process is not null;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

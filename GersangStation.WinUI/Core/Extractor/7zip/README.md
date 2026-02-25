@@ -1,6 +1,7 @@
-# Native 7-Zip DLL
+# Native 7-Zip DLL/CLI
 
-`NativeSevenZipExtractor`는 이 폴더의 `7z.dll`을 우선 사용합니다.
+`NativeSevenZipExtractor`는 7-Zip 커맨드라인(7za/7z)으로 압축을 해제합니다.
 
-- expected path: `Core/Extractor/7zip/7z.dll`
-- 빌드 시 출력 폴더로 복사되어 런타임 로딩에 사용됩니다.
+- expected dll path: `Core/Extractor/7zip/7za.dll`
+- expected exe path (권장): `Core/Extractor/7zip/7za.exe`
+- exe가 없으면 PATH의 `7za` 또는 `7z`를 시도합니다.
