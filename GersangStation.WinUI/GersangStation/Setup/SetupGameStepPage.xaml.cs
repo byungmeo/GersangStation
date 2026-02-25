@@ -346,7 +346,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetup
                 return;
 
             string installRoot = selectedRoot.Trim();
-            string installRootWithGameFolder = installRoot;
+            string installRootWithGameFolder = PatchClientApi.NormalizeFullClientInstallRoot(installRoot);
             string parentRoot = Directory.GetParent(installRootWithGameFolder)?.FullName ?? installRootWithGameFolder;
             string archivePath = Path.Combine(installRootWithGameFolder, "Gersang_Install.7z");
             bool skipDownloadIfArchiveExists = false;
@@ -408,7 +408,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetup
             });
 
             await PatchClientApi.InstallFullClientAsync(
-                installRoot: installRootWithGameFolder,
+                installRoot: installRoot,
                 progress: downloadProgress,
                 extractionProgress: extractionProgress,
                 skipDownloadIfArchiveExists: skipDownloadIfArchiveExists,

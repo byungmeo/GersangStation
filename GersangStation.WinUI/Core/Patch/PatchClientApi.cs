@@ -136,6 +136,21 @@ public static class PatchClientApi
     /// <summary>
     /// FullClient를 내려받아 지정한 설치 경로로 압축 해제합니다.
     /// </summary>
+    public static string NormalizeFullClientInstallRoot(string installRoot)
+    {
+        if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
+
+        string trimmedRoot = Path.GetFullPath(installRoot.Trim())
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+        return string.Equals(Path.GetFileName(trimmedRoot), "Gersang", StringComparison.OrdinalIgnoreCase)
+            ? trimmedRoot
+            : Path.Combine(trimmedRoot, "Gersang");
+    }
+
+    /// <summary>
+    /// FullClient를 내려받아 지정한 설치 경로(\Gersang 하위)로 압축 해제합니다.
+    /// </summary>
     public static async Task InstallFullClientAsync(
         string installRoot,
         IProgress<DownloadProgress>? progress = null,
@@ -143,11 +158,11 @@ public static class PatchClientApi
         bool skipDownloadIfArchiveExists = true,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
+        string actualInstallRoot = NormalizeFullClientInstallRoot(installRoot);
 
-        Directory.CreateDirectory(installRoot);
+        Directory.CreateDirectory(actualInstallRoot);
 
-        string archivePath = Path.Combine(installRoot, "Gersang_Install.7z");
+        string archivePath = Path.Combine(actualInstallRoot, "Gersang_Install.7z");
         bool archiveExists = File.Exists(archivePath);
 
         using var http = new HttpClient(new HttpClientHandler
@@ -176,7 +191,7 @@ public static class PatchClientApi
             Debug.WriteLine($"[InstallFullClient] Download complete: {archivePath}");
         }
 
-        await Extractor.ExtractAsync(archivePath, installRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
+        await Extractor.ExtractAsync(archivePath, actualInstallRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
     }
 
     private static void EnsureClientInstallRootConfigured()

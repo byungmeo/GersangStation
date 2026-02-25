@@ -32,7 +32,7 @@ string readMeText = await PatchClientApi.DownloadReadMeAsync();
 - `GetLatestServerVersionAsync()`
 - `PatchAsync(currentClientVersion)`
 - `DownloadReadMeAsync()`
-- `InstallFullClientAsync(installRoot, ..., skipDownloadIfArchiveExists)`
+- `InstallFullClientAsync(installRoot, ..., skipDownloadIfArchiveExists) // installRoot 하위 Gersang 폴더를 실제 루트로 사용`
 
 ### 최소 호출 흐름
 
