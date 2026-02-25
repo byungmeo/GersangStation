@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Core.Extractor;
 
 /// <summary>
-/// 7za 커맨드라인(7za.exe / 7z.exe)을 사용해 압축을 풉니다.
+/// 7za 커맨드라인(7za.exe)을 사용해 압축을 풉니다.
 /// 7za.dll은 배포 시 동일 폴더에 두어 네이티브 의존성을 맞춥니다.
 /// </summary>
 public sealed class NativeSevenZipExtractor : IExtractor
@@ -97,45 +97,20 @@ public sealed class NativeSevenZipExtractor : IExtractor
         string[] localCandidates =
         [
             Path.Combine(AppContext.BaseDirectory, "7za.exe"),
-            Path.Combine(AppContext.BaseDirectory, "7z.exe"),
             Path.Combine(AppContext.BaseDirectory, "7zip", "7za.exe"),
-            Path.Combine(AppContext.BaseDirectory, "7zip", "7z.exe"),
+            Path.Combine(AppContext.BaseDirectory, "Extractor", "7zip", "7za.exe"),
             Path.Combine(AppContext.BaseDirectory, "Core", "Extractor", "7zip", "7za.exe"),
-            Path.Combine(AppContext.BaseDirectory, "Core", "Extractor", "7zip", "7z.exe")
         ];
 
         foreach (var candidate in localCandidates)
         {
             if (File.Exists(candidate))
-                return candidate;
-        }
-
-        if (CanRun("7za")) return "7za";
-        if (CanRun("7z")) return "7z";
-
-        throw new FileNotFoundException("7za.exe/7z.exe not found. Place executable next to Core/Extractor/7zip/7za.dll or install 7-Zip CLI in PATH.");
-    }
-
-    private static bool CanRun(string fileName)
-    {
-        try
-        {
-            using var process = Process.Start(new ProcessStartInfo
             {
-                FileName = fileName,
-                Arguments = "-h",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            });
+                Debug.WriteLine($"Resolved 7za.exe Path: {candidate}");
+                return candidate;
+            }
+        }
 
-            process?.WaitForExit(1500);
-            return process is not null;
-        }
-        catch
-        {
-            return false;
-        }
+        throw new FileNotFoundException("7za.exe not found.");
     }
 }

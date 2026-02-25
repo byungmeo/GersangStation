@@ -14,11 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Extractor\7zip\7za.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('Extractor\7zip\7za.dll')" />
-    <None Include="Extractor\7zip\README.md" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
 
