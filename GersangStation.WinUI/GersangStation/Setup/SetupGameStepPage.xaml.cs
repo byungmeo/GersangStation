@@ -346,8 +346,25 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetup
                 return;
 
             string installRoot = selectedRoot.Trim();
-            string parentRoot = Directory.GetParent(installRoot)?.FullName ?? installRoot;
-            string tempRoot = Path.Combine(parentRoot, ".gersang-install-temp");
+            string installRootWithGameFolder = installRoot;
+            string parentRoot = Directory.GetParent(installRootWithGameFolder)?.FullName ?? installRootWithGameFolder;
+            string archivePath = Path.Combine(installRootWithGameFolder, "Gersang_Install.7z");
+            bool skipDownloadIfArchiveExists = false;
+
+            if (File.Exists(archivePath))
+            {
+                var archiveExistsDialog = new ContentDialog
+                {
+                    XamlRoot = XamlRoot,
+                    Title = "이미 게임 압축파일이 존재합니다. 다시 다운로드 하시겠습니까?",
+                    PrimaryButtonText = "예",
+                    CloseButtonText = "건너뛰기",
+                    DefaultButton = ContentDialogButton.Close
+                };
+
+                ContentDialogResult dialogResult = await archiveExistsDialog.ShowAsync();
+                skipDownloadIfArchiveExists = dialogResult == ContentDialogResult.None;
+            }
 
             UpdateRemainingCapacityText(parentRoot);
 
@@ -391,16 +408,16 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IBusySetup
             });
 
             await PatchClientApi.InstallFullClientAsync(
-                installRoot: installRoot,
-                tempRoot: tempRoot,
+                installRoot: installRootWithGameFolder,
                 progress: downloadProgress,
                 extractionProgress: extractionProgress,
+                skipDownloadIfArchiveExists: skipDownloadIfArchiveExists,
                 ct: _installClientCts.Token);
 
             InstallProgressPercent = 100;
             InstallProgressText = "설치가 완료됐어요.";
 
-            InstallPath = installRoot;
+            InstallPath = installRootWithGameFolder;
             UpdateRemainingCapacityText(parentRoot);
         }
         catch (OperationCanceledException)
