@@ -1,6 +1,7 @@
-﻿using Microsoft.UI.Xaml;
+﻿using Core;
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
 using System;
-using Core;
 
 namespace GersangStation
 {
@@ -44,7 +45,7 @@ namespace GersangStation
             setupWindow.Closed += CurrentWindow_Closed;
 
             _window = setupWindow;
-            _window.Activate();
+            CenterAndActivateWindow(_window);
         }
 
         private void OpenMainWindow()
@@ -53,7 +54,21 @@ namespace GersangStation
             mainWindow.Closed += CurrentWindow_Closed;
 
             _window = mainWindow;
-            _window.Activate();
+            CenterAndActivateWindow(_window);
+        }
+
+        private static void CenterAndActivateWindow(Window window)
+        {
+            AppWindow appWindow = window.AppWindow;
+            var displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
+            if (displayArea is not null)
+            {
+                int centeredX = displayArea.WorkArea.X + (displayArea.WorkArea.Width - appWindow.Size.Width) / 2;
+                int centeredY = displayArea.WorkArea.Y + (displayArea.WorkArea.Height - appWindow.Size.Height) / 2;
+                appWindow.Move(new Windows.Graphics.PointInt32(centeredX, centeredY));
+            }
+
+            window.Activate();
         }
 
         private void SetupWindow_SetupCompleted(object? sender, EventArgs e)

@@ -10,14 +10,10 @@
 
     <Grid>
         <ContentPresenter x:Name="CheckingHost" x:Load="{x:Bind IsSaving, Mode=OneWay}">
-            <StackPanel
-                Padding="16"
-                Orientation="Vertical"
-                Spacing="12">
-                <TextBlock FontSize="20" Text="잠시만 기다려주세요." />
-                <ProgressBar IsIndeterminate="True" />
-                <TextBlock Opacity="0.7" Text="계정 정보를 안전하게 저장하고 있어요." />
-            </StackPanel>
+            <setup:BusyOverlay
+                IsIndeterminate="True"
+                Message="계정 정보를 안전하게 저장하고 있어요."
+                Title="잠시만 기다려주세요." />
         </ContentPresenter>
 
         <ContentPresenter x:Name="EditHost" x:Load="{x:Bind IsEdit, Mode=OneWay}">
