@@ -8,6 +8,7 @@ using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace GersangStation.Setup;
 
@@ -37,6 +38,37 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         private set { if (_isDriveCompatible == value) return; _isDriveCompatible = value; OnPropertyChanged(nameof(IsDriveCompatible)); }
     }
 
+    private bool _useMultiClientFeature = true;
+    public bool IsMultiClientFeatureEnabled
+    {
+        get => _useMultiClientFeature;
+        set
+        {
+            if (!value || _useMultiClientFeature) return;
+            _useMultiClientFeature = true;
+            OnPropertyChanged(nameof(IsMultiClientFeatureEnabled));
+            OnPropertyChanged(nameof(IsMultiClientFeatureDisabled));
+            OnPropertyChanged(nameof(ShowMultiClientFeatureOptions));
+            RecomputeCommon();
+        }
+    }
+
+    public bool IsMultiClientFeatureDisabled
+    {
+        get => !_useMultiClientFeature;
+        set
+        {
+            if (!value || !_useMultiClientFeature) return;
+            _useMultiClientFeature = false;
+            OnPropertyChanged(nameof(IsMultiClientFeatureEnabled));
+            OnPropertyChanged(nameof(IsMultiClientFeatureDisabled));
+            OnPropertyChanged(nameof(ShowMultiClientFeatureOptions));
+            RecomputeCommon();
+        }
+    }
+
+    public bool ShowMultiClientFeatureOptions => _useMultiClientFeature;
+
     private string _driveFormatText = "";
     public string DriveFormatText
     {
@@ -58,7 +90,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         private set { _driveCompatibilityBrush = value; OnPropertyChanged(nameof(DriveCompatibilityBrush)); }
     }
 
-    public bool ShowIncompatibleHelp => !IsDriveCompatible;
+    public bool ShowIncompatibleHelp => _useMultiClientFeature && !IsDriveCompatible;
 
     private bool _useFastMultiClient;
     public bool UseFastMultiClient
@@ -75,7 +107,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     }
 
     public bool IsFastOptionEditable => IsDriveCompatible;
-    public bool IsManualMode => !UseFastMultiClient;
+    public bool IsManualMode => _useMultiClientFeature && !UseFastMultiClient;
 
     private string _multiClientFolderName1 = "Gersang2";
     public string MultiClientFolderName1
@@ -196,7 +228,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     }
 
     public bool ShowManualCreatedInputs => IsManualMode && IsManualAlreadyCreated;
-    public bool ShowManualCreateNameInputs => UseFastMultiClient || (IsManualMode && IsManualWantCreate);
+    public bool ShowManualCreateNameInputs => _useMultiClientFeature && (UseFastMultiClient || (IsManualMode && IsManualWantCreate));
 
     private string _manualClient2Path = "";
     public string ManualClient2Path
@@ -261,13 +293,17 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     {
         get
         {
+            if (!_useMultiClientFeature)
+                return true;
+
             if (UseFastMultiClient)
                 return _folder1Valid && _folder2Valid;
 
             if (IsManualAlreadyCreated)
                 return _manualPath1Valid || _manualPath2Valid;
 
-            return _folder1Valid && _folder2Valid;
+            // "다클라를 생성하고 싶습니다" 선택 시에도 2개 중 1개만 유효해도 진행 가능하게 합니다.
+            return _folder1Valid || _folder2Valid;
         }
     }
 
@@ -277,6 +313,9 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     {
         get
         {
+            if (!_useMultiClientFeature)
+                return "✅ 다클라 기능을 사용하지 않도록 설정했어요. 다음으로 진행할 수 있어요.";
+
             if (UseFastMultiClient)
             {
                 return CanGoNext
@@ -292,8 +331,8 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
             }
 
             return CanGoNext
-                ? "✅ 생성할 폴더명이 유효해요."
-                : "생성할 2/3클라 폴더명을 유효하게 입력하면 완료 버튼이 활성화돼요.";
+                ? "✅ 생성할 경로가 준비됐어요."
+                : "생성할 2/3클라 폴더명 중 최소 1개를 유효하게 입력하면 완료 버튼이 활성화돼요.";
         }
     }
 
@@ -341,25 +380,44 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
 
     public bool OnNext()
     {
+        string installPath = SetupFlowState.InstallPath?.Trim() ?? "";
+
+        if (!_useMultiClientFeature)
+        {
+            AppDataManager.SaveUseSymbol(false);
+            AppDataManager.SaveClientSettings(new AppDataManager.ClientSettingsProfile
+            {
+                InstallPath = installPath,
+                Client2Path = "",
+                Client3Path = ""
+            });
+            return true;
+        }
+
         AppDataManager.SaveUseSymbol(UseFastMultiClient);
 
         string client2Path = "";
         string client3Path = "";
 
-        if (UseFastMultiClient || IsManualWantCreate)
+        if (UseFastMultiClient)
         {
             client2Path = Folder1PreviewPath;
             client3Path = Folder2PreviewPath;
         }
         else if (IsManualAlreadyCreated)
         {
-            client2Path = ManualClient2Path.Trim();
-            client3Path = ManualClient3Path.Trim();
+            client2Path = _manualPath1Valid ? ManualClient2Path.Trim() : "";
+            client3Path = _manualPath2Valid ? ManualClient3Path.Trim() : "";
+        }
+        else
+        {
+            client2Path = Folder1PreviewPath;
+            client3Path = Folder2PreviewPath;
         }
 
         AppDataManager.SaveClientSettings(new AppDataManager.ClientSettingsProfile
         {
-            InstallPath = SetupFlowState.InstallPath?.Trim() ?? "",
+            InstallPath = installPath,
             Client2Path = client2Path,
             Client3Path = client3Path
         });
@@ -411,7 +469,6 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     private void RecomputeFolder1()
     {
         ComputeFolderValidation(MultiClientFolderName1, MultiClientFolderName2, out _folder1Valid, out string description);
-
         Folder1Description = description;
         Folder1BorderBrush = _folder1Valid ? BrushValid : BrushInvalid;
         Folder1BorderThickness = new Thickness(_folder1Valid ? 2 : 1);
@@ -420,7 +477,6 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     private void RecomputeFolder2()
     {
         ComputeFolderValidation(MultiClientFolderName2, MultiClientFolderName1, out _folder2Valid, out string description);
-
         Folder2Description = description;
         Folder2BorderBrush = _folder2Valid ? BrushValid : BrushInvalid;
         Folder2BorderThickness = new Thickness(_folder2Valid ? 2 : 1);
@@ -457,6 +513,8 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     private void RecomputeCommon()
     {
         OnPropertyChanged(nameof(IsManualMode));
+        OnPropertyChanged(nameof(ShowMultiClientFeatureOptions));
+        OnPropertyChanged(nameof(ShowIncompatibleHelp));
         OnPropertyChanged(nameof(ShowManualCreatedInputs));
         OnPropertyChanged(nameof(ShowManualCreateNameInputs));
         OnPropertyChanged(nameof(CanGoNext));
@@ -650,7 +708,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         button.IsEnabled = true;
     }
 
-    private static async System.Threading.Tasks.Task<string?> PickFolderAsync(Button button)
+    private static async Task<string?> PickFolderAsync(Button button)
     {
         var picker = new FolderPicker(button.XamlRoot.ContentIslandEnvironment.AppWindowId)
         {
