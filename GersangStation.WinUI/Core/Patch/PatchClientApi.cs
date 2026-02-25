@@ -1,4 +1,6 @@
 ﻿using SharpCompress.Archives;
+using SharpCompress.Common;
+using SharpCompress.Readers;
 using System.Net;
 
 namespace Core.Patch;
@@ -142,65 +144,47 @@ public static class PatchClientApi
             }),
             ct: ct).ConfigureAwait(false);
 
-        using var archive = ArchiveFactory.OpenArchive(archivePath);
-        await ExtractEntriesWithOverwriteAsync(archive, installRoot, progress, ct).ConfigureAwait(false);
-    }
-
-    private static async Task ExtractEntriesWithOverwriteAsync(
-        IArchive archive,
-        string destinationRoot,
-        IProgress<InstallClientProgress>? progress,
-        CancellationToken ct)
-    {
-        string normalizedRoot = Path.GetFullPath(destinationRoot);
-        if (!normalizedRoot.EndsWith(Path.DirectorySeparatorChar))
-            normalizedRoot += Path.DirectorySeparatorChar;
-
-        long totalBytes = archive.Entries.Where(e => !e.IsDirectory).Sum(e => e.Size);
+        var perEntryProgress = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         long extractedBytes = 0;
+        long totalExtractBytes = 0;
 
-        foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
+        var readerOptions = ReaderOptions.ForOwnedFile with
         {
-            ct.ThrowIfCancellationRequested();
-
-            string relativePath = (entry.Key ?? string.Empty)
-                .Replace('\\', Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar);
-
-            string destinationPath = Path.GetFullPath(Path.Combine(normalizedRoot, relativePath));
-
-            if (!destinationPath.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException($"Archive entry has invalid path. entry='{entry.Key}', root='{destinationRoot}'");
-
-            string? destinationDir = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrEmpty(destinationDir))
-                Directory.CreateDirectory(destinationDir);
-
-            // Entry 단위 비동기 복사로 UI 취소 응답성과 진행률 체감을 높입니다.
-            await using var sourceStream = await entry.OpenEntryStreamAsync(ct).ConfigureAwait(false);
-            await using var destinationStream = new FileStream(
-                destinationPath,
-                FileMode.Create,
-                FileAccess.Write,
-                FileShare.None,
-                bufferSize: 1024 * 1024,
-                useAsync: true);
-
-            byte[] buffer = new byte[1024 * 1024];
-            int read;
-            while ((read = await sourceStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct).ConfigureAwait(false)) > 0)
+            Overwrite = true,
+            ExtractFullPath = true,
+            PreserveFileTime = true,
+            Progress = progress is null ? null : new Progress<ProgressReport>(report =>
             {
-                await destinationStream.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
-                extractedBytes += read;
+                // 라이브러리 진행률(report)은 엔트리별로 보고될 수 있어 누적치로 변환합니다.
+                string key = report.EntryPath ?? string.Empty;
+                long current = Math.Max(0, report.BytesTransferred);
+                long previous = perEntryProgress.TryGetValue(key, out long value) ? value : 0;
+                if (current <= previous)
+                    return;
 
-                progress?.Report(new InstallClientProgress(
+                extractedBytes += current - previous;
+                perEntryProgress[key] = current;
+
+                progress.Report(new InstallClientProgress(
                     InstallClientPhase.Extracting,
                     0,
-                    totalBytes,
-                    Math.Min(extractedBytes, totalBytes),
+                    totalExtractBytes,
+                    Math.Min(extractedBytes, totalExtractBytes),
                     null));
-            }
-        }
+            })
+        };
+
+        await using var archive = await ArchiveFactory.OpenAsyncArchive(archivePath, readerOptions, ct).ConfigureAwait(false);
+        totalExtractBytes = await archive.TotalUncompressedSizeAsync().ConfigureAwait(false);
+
+        await archive.WriteToDirectoryAsync(installRoot, cancellationToken: ct).ConfigureAwait(false);
+
+        progress?.Report(new InstallClientProgress(
+            InstallClientPhase.Extracting,
+            0,
+            totalExtractBytes,
+            totalExtractBytes,
+            null));
     }
 
     private static void EnsureClientInstallRootConfigured()

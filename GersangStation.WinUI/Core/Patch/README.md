@@ -32,7 +32,7 @@ string readMeText = await PatchClientApi.DownloadReadMeAsync();
 - `GetLatestServerVersionAsync()`
 - `PatchAsync(currentClientVersion)`
 - `DownloadReadMeAsync()`
-- `InstallFullClientAsync(installRoot, progress?)` (비동기(OpenEntryStreamAsync) 기반 다운로드/압축해제 진행률 보고)
+- `InstallFullClientAsync(installRoot, progress?)` (비동기 `WriteToDirectoryAsync` 기반, 7z/solid 아카이브는 내부 순차 해제 최적화 사용)
 
 ### 최소 호출 흐름
 
