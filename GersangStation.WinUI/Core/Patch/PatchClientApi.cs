@@ -143,10 +143,10 @@ public static class PatchClientApi
             ct: ct).ConfigureAwait(false);
 
         using var archive = ArchiveFactory.OpenArchive(archivePath);
-        ExtractEntriesWithOverwrite(archive, installRoot, progress, ct);
+        await ExtractEntriesWithOverwriteAsync(archive, installRoot, progress, ct).ConfigureAwait(false);
     }
 
-    private static void ExtractEntriesWithOverwrite(
+    private static async Task ExtractEntriesWithOverwriteAsync(
         IArchive archive,
         string destinationRoot,
         IProgress<InstallClientProgress>? progress,
@@ -176,20 +176,30 @@ public static class PatchClientApi
             if (!string.IsNullOrEmpty(destinationDir))
                 Directory.CreateDirectory(destinationDir);
 
-            entry.WriteToFile(destinationPath, new SharpCompress.Common.ExtractionOptions
-            {
-                ExtractFullPath = false,
-                Overwrite = true,
-                PreserveFileTime = true
-            });
+            // Entry 단위 비동기 복사로 UI 취소 응답성과 진행률 체감을 높입니다.
+            await using var sourceStream = await entry.OpenEntryStreamAsync(ct).ConfigureAwait(false);
+            await using var destinationStream = new FileStream(
+                destinationPath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 1024 * 1024,
+                useAsync: true);
 
-            extractedBytes += entry.Size;
-            progress?.Report(new InstallClientProgress(
-                InstallClientPhase.Extracting,
-                0,
-                totalBytes,
-                extractedBytes,
-                null));
+            byte[] buffer = new byte[1024 * 1024];
+            int read;
+            while ((read = await sourceStream.ReadAsync(buffer.AsMemory(0, buffer.Length), ct).ConfigureAwait(false)) > 0)
+            {
+                await destinationStream.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+                extractedBytes += read;
+
+                progress?.Report(new InstallClientProgress(
+                    InstallClientPhase.Extracting,
+                    0,
+                    totalBytes,
+                    Math.Min(extractedBytes, totalBytes),
+                    null));
+            }
         }
     }
 

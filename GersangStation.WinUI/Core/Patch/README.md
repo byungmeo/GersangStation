@@ -32,7 +32,7 @@ string readMeText = await PatchClientApi.DownloadReadMeAsync();
 - `GetLatestServerVersionAsync()`
 - `PatchAsync(currentClientVersion)`
 - `DownloadReadMeAsync()`
-- `InstallFullClientAsync(installRoot, progress?)`
+- `InstallFullClientAsync(installRoot, progress?)` (비동기(OpenEntryStreamAsync) 기반 다운로드/압축해제 진행률 보고)
 
 ### 최소 호출 흐름
 
