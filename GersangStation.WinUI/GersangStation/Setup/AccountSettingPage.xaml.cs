@@ -131,12 +131,59 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
 
     private void OnAccountIdChanged(object sender, TextChangedEventArgs e)
     {
+        if (sender is TextBox idTextBox)
+            UpdateNicknamePlaceholder(idTextBox);
+
         RecomputeCommon();
     }
 
     private void OnAccountNicknameChanged(object sender, TextChangedEventArgs e)
     {
+        if (sender is TextBox nicknameTextBox)
+            UpdateNicknamePlaceholderByNicknameBox(nicknameTextBox);
+
         RecomputeCommon();
+    }
+
+
+    private static void UpdateNicknamePlaceholder(TextBox idTextBox)
+    {
+        if (idTextBox.Parent is not Grid rowGrid)
+            return;
+
+        TextBox? nicknameTextBox = rowGrid.Children
+            .OfType<TextBox>()
+            .FirstOrDefault(tb => Grid.GetColumn(tb) == 2);
+
+        if (nicknameTextBox is null)
+            return;
+
+        string id = (idTextBox.Text ?? "").Trim();
+        bool hasNickname = !string.IsNullOrWhiteSpace(nicknameTextBox.Text);
+
+        nicknameTextBox.PlaceholderText = hasNickname
+            ? "별명 (선택)"
+            : (string.IsNullOrWhiteSpace(id) ? "별명 (선택)" : $"별명 (기본: {id})");
+    }
+
+    private static void UpdateNicknamePlaceholderByNicknameBox(TextBox nicknameTextBox)
+    {
+        if (nicknameTextBox.Parent is not Grid rowGrid)
+            return;
+
+        TextBox? idTextBox = rowGrid.Children
+            .OfType<TextBox>()
+            .FirstOrDefault(tb => Grid.GetColumn(tb) == 0);
+
+        if (idTextBox is null)
+            return;
+
+        string id = (idTextBox.Text ?? "").Trim();
+        bool hasNickname = !string.IsNullOrWhiteSpace(nicknameTextBox.Text);
+
+        nicknameTextBox.PlaceholderText = hasNickname
+            ? "별명 (선택)"
+            : (string.IsNullOrWhiteSpace(id) ? "별명 (선택)" : $"별명 (기본: {id})");
     }
 
     private void OnAccountPasswordChanged(object sender, RoutedEventArgs e)

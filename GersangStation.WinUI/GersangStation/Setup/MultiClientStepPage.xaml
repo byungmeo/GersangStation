@@ -9,37 +9,144 @@
     mc:Ignorable="d">
 
     <ScrollViewer>
-        <StackPanel Padding="16" Spacing="20">
+        <StackPanel Padding="16" Spacing="16">
             <TextBlock
                 Opacity="0.8"
                 Text="선택 단계입니다. 필요하지 않다면 건너뛰기를 눌러 넘어갈 수 있어요."
                 TextWrapping="Wrap" />
 
-            <StackPanel Spacing="8">
-                <TextBlock Opacity="0.8" Text="2클라 폴더명" />
-                <TextBox
-                    MinHeight="40"
-                    BorderBrush="{x:Bind Folder1BorderBrush, Mode=OneWay}"
-                    BorderThickness="{x:Bind Folder1BorderThickness, Mode=OneWay}"
-                    PlaceholderText="예: Gersang2"
-                    Text="{x:Bind MultiClientFolderName1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock
-                    Opacity="0.75"
-                    Text="{x:Bind Folder1Description, Mode=OneWay}"
-                    TextWrapping="Wrap" />
+            <TextBlock Text="{x:Bind DriveFormatText, Mode=OneWay}" TextWrapping="Wrap" />
+            <TextBlock
+                Foreground="{x:Bind DriveCompatibilityBrush, Mode=OneWay}"
+                Text="{x:Bind DriveCompatibilityText, Mode=OneWay}"
+                TextWrapping="Wrap" />
+
+            <HyperlinkButton
+                x:Load="{x:Bind ShowIncompatibleHelp, Mode=OneWay}"
+                Click="OnHelpLinkClicked"
+                Content="도움말 링크(준비중)" />
+
+            <CheckBox
+                Content="빠른 다클라 생성 기능 사용"
+                IsChecked="{x:Bind UseFastMultiClient, Mode=TwoWay}"
+                IsEnabled="{x:Bind IsFastOptionEditable, Mode=OneWay}" />
+
+            <StackPanel x:Load="{x:Bind IsManualMode, Mode=OneWay}" Spacing="8">
+                <RadioButton
+                    Content="이미 다클라를 생성했습니다."
+                    GroupName="ManualMode"
+                    IsChecked="{x:Bind IsManualAlreadyCreated, Mode=TwoWay}" />
+                <RadioButton
+                    Content="다클라를 생성하고 싶습니다"
+                    GroupName="ManualMode"
+                    IsChecked="{x:Bind IsManualWantCreate, Mode=TwoWay}" />
             </StackPanel>
 
-            <StackPanel Spacing="8">
-                <TextBlock Opacity="0.8" Text="3클라 폴더명" />
-                <TextBox
-                    MinHeight="40"
-                    BorderBrush="{x:Bind Folder2BorderBrush, Mode=OneWay}"
-                    BorderThickness="{x:Bind Folder2BorderThickness, Mode=OneWay}"
-                    PlaceholderText="예: Gersang3"
-                    Text="{x:Bind MultiClientFolderName2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <StackPanel x:Load="{x:Bind ShowManualCreateNameInputs, Mode=OneWay}" Spacing="12">
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="8">
+                        <TextBlock Opacity="0.8" Text="2클라 폴더명" />
+                        <TextBox
+                            MinHeight="40"
+                            BorderBrush="{x:Bind Folder1BorderBrush, Mode=OneWay}"
+                            BorderThickness="{x:Bind Folder1BorderThickness, Mode=OneWay}"
+                            PlaceholderText="예: Gersang2"
+                            Text="{x:Bind MultiClientFolderName1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock
+                            Opacity="0.75"
+                            Text="{x:Bind Folder1Description, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock Opacity="0.8" Text="예상 경로" />
+                        <TextBlock
+                            Text="{x:Bind Folder1PreviewPath, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="8">
+                        <TextBlock Opacity="0.8" Text="3클라 폴더명" />
+                        <TextBox
+                            MinHeight="40"
+                            BorderBrush="{x:Bind Folder2BorderBrush, Mode=OneWay}"
+                            BorderThickness="{x:Bind Folder2BorderThickness, Mode=OneWay}"
+                            PlaceholderText="예: Gersang3"
+                            Text="{x:Bind MultiClientFolderName2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock
+                            Opacity="0.75"
+                            Text="{x:Bind Folder2Description, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock Opacity="0.8" Text="예상 경로" />
+                        <TextBlock
+                            Text="{x:Bind Folder2PreviewPath, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <StackPanel x:Load="{x:Bind ShowManualCreatedInputs, Mode=OneWay}" Spacing="12">
+                <TextBlock Opacity="0.8" Text="기존 2클라 경로" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox
+                        Grid.Column="0"
+                        MinHeight="40"
+                        BorderBrush="{x:Bind ManualPath1BorderBrush, Mode=OneWay}"
+                        PlaceholderText="기존 2클라 설치 경로"
+                        Text="{x:Bind ManualClient2Path, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button
+                        Grid.Column="1"
+                        MinHeight="40"
+                        Click="OnPickClient2Path"
+                        Content="폴더 선택" />
+                </Grid>
                 <TextBlock
                     Opacity="0.75"
-                    Text="{x:Bind Folder2Description, Mode=OneWay}"
+                    Text="{x:Bind ManualPath1Description, Mode=OneWay}"
+                    TextWrapping="Wrap" />
+
+                <TextBlock Opacity="0.8" Text="기존 3클라 경로" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox
+                        Grid.Column="0"
+                        MinHeight="40"
+                        BorderBrush="{x:Bind ManualPath2BorderBrush, Mode=OneWay}"
+                        PlaceholderText="기존 3클라 설치 경로"
+                        Text="{x:Bind ManualClient3Path, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button
+                        Grid.Column="1"
+                        MinHeight="40"
+                        Click="OnPickClient3Path"
+                        Content="폴더 선택" />
+                </Grid>
+                <TextBlock
+                    Opacity="0.75"
+                    Text="{x:Bind ManualPath2Description, Mode=OneWay}"
                     TextWrapping="Wrap" />
             </StackPanel>
 

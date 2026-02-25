@@ -6,6 +6,7 @@ namespace Core;
 public static class AppDataManager
 {
     private const string KeySetupCompleted = "SetupCompleted";
+    private const string KeyUseSymbol = "useSymbol";
     private const string AccountsFileName = "accounts.json";
     private const string ClientSettingsFileName = "client-settings.json";
 
@@ -23,8 +24,8 @@ public static class AppDataManager
     public sealed class ClientSettingsProfile
     {
         public string InstallPath { get; set; } = "";
-        public string MultiClientFolderName2 { get; set; } = "Gersang2";
-        public string MultiClientFolderName3 { get; set; } = "Gersang3";
+        public string Client2Path { get; set; } = "";
+        public string Client3Path { get; set; } = "";
     }
 
     public static bool IsSetupCompleted
@@ -32,6 +33,16 @@ public static class AppDataManager
         get => GetValue(KeySetupCompleted, false);
         set => SetValue(KeySetupCompleted, value);
     }
+
+    public static bool LoadUseSymbol()
+    {
+        if (LocalSettings.Values.TryGetValue(KeyUseSymbol, out object? value) && value is bool useSymbol)
+            return useSymbol;
+
+        return true;
+    }
+
+    public static void SaveUseSymbol(bool useSymbol) => SetValue(KeyUseSymbol, useSymbol);
 
     /// <summary>
     /// 계정 아이디/별명 목록을 LocalFolder(accounts.json)에 저장합니다.
@@ -70,8 +81,8 @@ public static class AppDataManager
     {
         var payload = settings ?? new ClientSettingsProfile();
         payload.InstallPath ??= "";
-        payload.MultiClientFolderName2 ??= "Gersang2";
-        payload.MultiClientFolderName3 ??= "Gersang3";
+        payload.Client2Path ??= "";
+        payload.Client3Path ??= "";
 
         string json = JsonSerializer.Serialize(payload, JsonOptions);
         WriteTextToLocalFolder(ClientSettingsFileName, json);
@@ -90,8 +101,8 @@ public static class AppDataManager
         {
             var payload = JsonSerializer.Deserialize<ClientSettingsProfile>(json) ?? new ClientSettingsProfile();
             payload.InstallPath ??= "";
-            payload.MultiClientFolderName2 ??= "Gersang2";
-            payload.MultiClientFolderName3 ??= "Gersang3";
+            payload.Client2Path ??= "";
+            payload.Client3Path ??= "";
             return payload;
         }
         catch
