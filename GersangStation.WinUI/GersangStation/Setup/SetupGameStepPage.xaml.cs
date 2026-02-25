@@ -202,7 +202,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, INotifyPro
 
         StarterPath = ReadStarterFolderFromRegistry() ?? "";
 
-        int remain = 1000 - (int)sw.ElapsedMilliseconds;
+        int remain = 1500 - (int)sw.ElapsedMilliseconds;
         if (remain > 0)
             await Task.Delay(remain);
 
