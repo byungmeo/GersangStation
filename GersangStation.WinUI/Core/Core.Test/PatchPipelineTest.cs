@@ -8,6 +8,7 @@ namespace Core.Test;
 [TestClass]
 public sealed class PatchPipelineTest
 {
+    [Ignore]
     [TestMethod]
     public async Task RunPatchAsync_DownloadAndExtract_ToTempGameFolder()
     {

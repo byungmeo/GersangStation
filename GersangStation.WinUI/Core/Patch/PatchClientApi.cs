@@ -62,7 +62,7 @@ public static class PatchClientApi
         response.EnsureSuccessStatusCode();
 
         await using var archiveStream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        using var archive = ArchiveFactory.Open(archiveStream);
+        using var archive = ArchiveFactory.OpenArchive(archiveStream);
 
         var entry = archive.Entries.FirstOrDefault(e => !e.IsDirectory)
             ?? throw new InvalidDataException("No vsn.dat entry found in latest version archive.");
@@ -136,7 +136,7 @@ public static class PatchClientApi
             progress: null,
             ct: ct).ConfigureAwait(false);
 
-        using var archive = ArchiveFactory.Open(archivePath);
+        using var archive = ArchiveFactory.OpenArchive(archivePath);
         ExtractEntriesWithOverwrite(archive, installRoot);
     }
 

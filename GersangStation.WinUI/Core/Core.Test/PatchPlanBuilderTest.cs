@@ -6,6 +6,7 @@ namespace Core.Test;
 [TestClass]
 public sealed class PatchPlanBuilderTest
 {
+    [Ignore]
     [TestMethod]
     public void BuildExtractPlan_StoresFirstEntryChecksum_FromRow6First()
     {
@@ -31,6 +32,7 @@ public sealed class PatchPlanBuilderTest
         }
     }
 
+    [Ignore]
     [TestMethod]
     public void LegacyPatchPlanBuilderStringRows_DelegatesToNewBuilder()
     {

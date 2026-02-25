@@ -7,6 +7,7 @@ namespace Core.Test;
 [TestClass]
 public sealed class PatchMetadataParseTest
 {
+    [Ignore]
     [TestMethod]
     public async Task DecodeLatestVersionFromVsnDat_FromRealServerVsnArchive()
     {

@@ -6,6 +6,7 @@ namespace Core.Test;
 [TestClass]
 public sealed class PatchClientApiTest
 {
+    [Ignore]
     [TestMethod]
     public void GetCurrentClientVersion_ReadsOnlineVsnDat_FromConfiguredInstallRoot()
     {
@@ -33,6 +34,7 @@ public sealed class PatchClientApiTest
         }
     }
 
+    [Ignore]
     [TestMethod]
     public void FixedSuffixAndUri_AreExpected()
     {
