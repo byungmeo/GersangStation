@@ -188,8 +188,15 @@ public static class PatchClientApi
     /// </summary>
     public static async Task<IEnumerable<PatchNote>> DownloadRecentPatchNotesAsync(int takeCount = 5, CancellationToken ct = default)
     {
-        string readMe = await DownloadReadMeAsync(ct).ConfigureAwait(false);
-        return ParseRecentPatchNotes(readMe, takeCount);
+        try
+        {
+            string readMe = await DownloadReadMeAsync(ct).ConfigureAwait(false);
+            return ParseRecentPatchNotes(readMe, takeCount);
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     /// <summary>
