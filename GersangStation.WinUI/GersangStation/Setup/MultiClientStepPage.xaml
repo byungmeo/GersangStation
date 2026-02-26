@@ -183,10 +183,14 @@
         </ContentPresenter>
 
         <ContentPresenter x:Name="SavingTransitionHost" x:Load="{x:Bind IsSavingTransition, Mode=OneWay}">
-            <setup:BusyOverlay
-                IsIndeterminate="True"
-                Message="설정 정보를 저장 중입니다."
-                Title="잠시만 기다려주세요." />
+            <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+                <setup:BusyOverlay
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    IsIndeterminate="True"
+                    Message="설정 정보를 저장 중입니다."
+                    Title="잠시만 기다려주세요." />
+            </Grid>
         </ContentPresenter>
     </Grid>
 </Page>

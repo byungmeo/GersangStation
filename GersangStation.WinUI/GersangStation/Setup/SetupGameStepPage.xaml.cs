@@ -87,7 +87,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
     }
 
     public bool IsChecking => State == UiState.Checking;
-    public bool IsEdit => State == UiState.Edit;
+    public bool IsEdit => State == UiState.Edit && !IsSavingTransition;
 
     private bool _isSavingTransition;
     public bool IsSavingTransition
@@ -98,6 +98,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
             if (_isSavingTransition == value) return;
             _isSavingTransition = value;
             OnPropertyChanged(nameof(IsSavingTransition));
+            OnPropertyChanged(nameof(IsEdit));
             RecomputeCommon();
         }
     }
