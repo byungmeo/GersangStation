@@ -27,7 +27,7 @@ namespace GersangStation
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            Windows.Storage.ApplicationData.Current.LocalSettings.Values.Clear();
+            // Windows.Storage.ApplicationData.Current.LocalSettings.Values.Clear();
 
             if (AppDataManager.IsSetupCompleted)
             {

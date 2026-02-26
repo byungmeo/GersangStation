@@ -9,6 +9,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:Core.Models"
     d:DataContext="{d:DesignInstance Type=gersangstation:WebViewManager}"
+    Background="Transparent"
     NavigationCacheMode="Enabled"
     mc:Ignorable="d">
 
@@ -143,7 +144,8 @@
                 Grid.Row="4"
                 Grid.ColumnSpan="3"
                 Margin="35,0,35,0"
-                HorizontalAlignment="Stretch">
+                HorizontalAlignment="Stretch"
+                ColumnSpacing="5">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="100" />

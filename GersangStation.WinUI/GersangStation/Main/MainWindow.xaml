@@ -57,7 +57,10 @@
             <SelectorBarItem Icon="World" Text="브라우저" />
 
             <!--  플래너 바  -->
-            <SelectorBarItem Icon="Calendar" Text="플래너" />
+            <SelectorBarItem
+                Icon="Repair"
+                IsEnabled="False"
+                Text="준비 중..." />
         </SelectorBar>
 
         <!--  Frame  -->
