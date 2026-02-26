@@ -451,7 +451,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
 
         try
         {
-            await Task.Delay(250);
+            await Task.Delay(1000);
             return OnNext();
         }
         finally

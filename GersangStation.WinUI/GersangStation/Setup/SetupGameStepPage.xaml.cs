@@ -266,7 +266,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
 
         try
         {
-            await Task.Delay(250);
+            await Task.Delay(1000);
             return OnNext();
         }
         finally

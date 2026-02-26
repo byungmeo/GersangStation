@@ -11,9 +11,9 @@
     <Grid>
         <ContentPresenter x:Name="CheckingHost" x:Load="{x:Bind IsSaving, Mode=OneWay}">
             <setup:BusyOverlay
+                Title="잠시만 기다려주세요."
                 IsIndeterminate="True"
-                Message="계정 정보를 안전하게 저장하고 있어요."
-                Title="잠시만 기다려주세요." />
+                Message="계정 정보를 안전하게 저장하고 있어요." />
         </ContentPresenter>
 
         <ContentPresenter x:Name="EditHost" x:Load="{x:Bind IsEdit, Mode=OneWay}">

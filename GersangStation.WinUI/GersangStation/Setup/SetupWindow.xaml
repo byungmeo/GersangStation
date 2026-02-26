@@ -59,9 +59,7 @@
             </Grid>
         </Grid>
 
-        <!-- Intro/Outro는 SetupWindow 전체를 덮는 오버레이로 표시합니다. -->
-        <Frame
-            x:Name="Frame_FullscreenStep"
-            Visibility="Collapsed" />
+        <!--  Intro/Outro는 SetupWindow 전체를 덮는 오버레이로 표시합니다.  -->
+        <Frame x:Name="Frame_FullscreenStep" Visibility="Collapsed" />
     </Grid>
 </Window>

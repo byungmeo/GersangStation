@@ -26,9 +26,9 @@
             Grid.RowSpan="2"
             x:Load="{x:Bind IsChecking, Mode=OneWay}">
             <setup:BusyOverlay
+                Title="잠시만 기다려주세요."
                 IsIndeterminate="True"
-                Message="거상 및 스타터 설치 여부를 확인하고 있어요."
-                Title="잠시만 기다려주세요." />
+                Message="거상 및 스타터 설치 여부를 확인하고 있어요." />
         </ContentPresenter>
 
 
@@ -37,14 +37,10 @@
             x:Name="SavingTransitionHost"
             Grid.RowSpan="2"
             x:Load="{x:Bind IsSavingTransition, Mode=OneWay}">
-            <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-                <setup:BusyOverlay
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Center"
-                    IsIndeterminate="True"
-                    Message="설정 정보를 저장 중입니다."
-                    Title="잠시만 기다려주세요." />
-            </Grid>
+            <setup:BusyOverlay
+                Title="잠시만 기다려주세요."
+                IsIndeterminate="True"
+                Message="설정 정보를 저장 중입니다." />
         </ContentPresenter>
 
         <!--  Edit  -->
