@@ -50,7 +50,7 @@ namespace GersangStation
 
         private void OpenMainWindow()
         {
-            var mainWindow = new MainWindow();
+            var mainWindow = new Main.MainWindow();
             mainWindow.Closed += CurrentWindow_Closed;
 
             _window = mainWindow;
