@@ -20,6 +20,8 @@
 	<AppxBundleResourcesDirectoryCompilerFlags Condition="'$(AppxBundleResourcesDirectoryCompilerFlags)' == ''">/q ko-KR</AppxBundleResourcesDirectoryCompilerFlags>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Main\StationPage.xaml" />
+    <None Remove="Main\WebViewPage.xaml" />
     <None Remove="SetupWindow.xaml" />
     <None Remove="Setup\WelcomeStepPage.xaml" />
   </ItemGroup>
@@ -54,6 +56,11 @@
     <ProjectReference Include="..\Core\Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Page Update="Main\StationPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
     <Page Update="Setup\SetupGameStepPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -84,7 +91,9 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Main\" />
+    <Page Update="Main\WebViewPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
 
   <!--

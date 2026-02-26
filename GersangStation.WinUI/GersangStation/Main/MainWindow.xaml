@@ -14,101 +14,31 @@
     </Window.SystemBackdrop>
 
     <Grid>
-        <!--  TabView  -->
-        <TabView
-            x:Name="RootTabView"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            IsAddTabButtonVisible="False"
-            TabWidthMode="SizeToContent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <!--  메인 탭  -->
-            <TabViewItem Header="메인  " IsClosable="False">
-                <TabViewItem.IconSource>
-                    <SymbolIconSource Symbol="Home" />
-                </TabViewItem.IconSource>
-            </TabViewItem>
+        <!--  SelectorBar  -->
+        <SelectorBar
+            x:Name="MainSelectorBar"
+            Grid.Row="0"
+            SelectionChanged="MainSelectorBar_SelectionChanged">
 
-            <!--  웹뷰 탭  -->
-            <TabViewItem Header="웹뷰  " IsClosable="False">
-                <TabViewItem.IconSource>
-                    <SymbolIconSource Symbol="World" />
-                </TabViewItem.IconSource>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Button
-                            x:Name="Button_WebPreview_Back"
-                            Grid.Column="0"
-                            Width="40"
-                            Height="40"
-                            Click="Button_WebPreview_Back_Click"
-                            IsEnabled="{x:Bind _webviewManager.CanGoBack, Mode=OneWay}"
-                            Style="{StaticResource SubtleButtonStyle}">
-                            <Viewbox Margin="2,0,2,0" Stretch="Uniform">
-                                <SymbolIcon Symbol="Back" />
-                            </Viewbox>
-                        </Button>
-                        <Button
-                            x:Name="Button_WebPreview_Forward"
-                            Grid.Column="1"
-                            Width="40"
-                            Height="40"
-                            Click="Button_WebPreview_Forward_Click"
-                            IsEnabled="{x:Bind _webviewManager.CanGoForward, Mode=OneWay}"
-                            Style="{StaticResource SubtleButtonStyle}">
-                            <Viewbox Margin="2,0,2,0" Stretch="Uniform">
-                                <SymbolIcon Symbol="Forward" />
-                            </Viewbox>
-                        </Button>
-                        <Button
-                            x:Name="Button_WebPreview_Refresh"
-                            Grid.Column="2"
-                            Width="40"
-                            Height="40"
-                            Click="Button_WebPreview_Refresh_Click"
-                            Style="{StaticResource SubtleButtonStyle}">
-                            <Viewbox Margin="2,0,2,0" Stretch="Uniform">
-                                <SymbolIcon Symbol="Refresh" />
-                            </Viewbox>
-                        </Button>
-                        <Button
-                            x:Name="Button_WebPreview_Home"
-                            Grid.Column="3"
-                            Width="40"
-                            Height="40"
-                            Click="Button_WebPreview_Home_Click"
-                            Style="{StaticResource SubtleButtonStyle}">
-                            <Viewbox Margin="2,0,2,0" Stretch="Uniform">
-                                <SymbolIcon Symbol="Home" />
-                            </Viewbox>
-                        </Button>
-                        <TextBox
-                            Grid.Column="4"
-                            Margin="10,6,10,6"
-                            BorderBrush="LightGray"
-                            PlaceholderText="웹 주소 검색"
-                            Text="{x:Bind _webviewManager.CurrentSource, Mode=OneWay}" />
-                    </Grid>
+            <!--  메인 스테이션 바  -->
+            <SelectorBarItem
+                Icon="Home"
+                IsSelected="True"
+                Text="메인" />
 
-                    <WebView2
-                        x:Name="WebView"
-                        Grid.Row="1"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Visibility="Visible" />
-                </Grid>
-            </TabViewItem>
-        </TabView>
+            <!--  웹뷰 바  -->
+            <SelectorBarItem Icon="World" Text="웹뷰" />
+        </SelectorBar>
+
+        <!--  Frame  -->
+        <Frame
+            x:Name="ContentFrame"
+            Grid.Row="1"
+            IsNavigationStackEnabled="False" />
     </Grid>
 </Window>

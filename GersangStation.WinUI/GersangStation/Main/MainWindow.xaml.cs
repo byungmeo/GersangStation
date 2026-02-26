@@ -1,4 +1,6 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 
 namespace GersangStation.Main;
 
@@ -7,46 +9,47 @@ namespace GersangStation.Main;
 /// </summary>
 public sealed partial class MainWindow : Window
 {
-    private WebViewManager? _webviewManager;
+    private int previousSelectedIndex = 0;
 
     public MainWindow()
     {
         InitializeComponent();
 
-        Closed += OnClosed;
-
-        _webviewManager = new WebViewManager(webview: WebView);
+        // WebViewPage 초기화를 위해 강제로 Navigate 호출
+        ContentFrame.Navigate(typeof(WebViewPage));
+        ContentFrame.Navigate(typeof(StationPage));
     }
 
-    private void OnClosed(object sender, WindowEventArgs args)
+    private void MainSelectorBar_SelectionChanged(Microsoft.UI.Xaml.Controls.SelectorBar sender, Microsoft.UI.Xaml.Controls.SelectorBarSelectionChangedEventArgs args)
     {
-        _webviewManager?.Dispose();
-        _webviewManager = null;
-    }
+        SelectorBarItem selectedItem = sender.SelectedItem;
+        int currentSelectedIndex = sender.Items.IndexOf(selectedItem);
+        System.Type pageType;
 
-    private void Button_WebPreview_Back_Click(object sender, RoutedEventArgs e)
-    {
-        if (_webviewManager is not null && _webviewManager.CanGoBack)
+        switch (currentSelectedIndex)
         {
-            _webviewManager.GoBack();
+            case 0:
+                pageType = typeof(StationPage);
+                break;
+            //case 1:
+            //    pageType = typeof(WebViewPage);
+            //    break;
+            //case 2:
+            //    pageType = typeof(SamplePage3);
+            //    break;
+            //case 3:
+            //    pageType = typeof(SamplePage4);
+            //    break;
+            default:
+                pageType = typeof(WebViewPage);
+                break;
         }
-    }
 
-    private void Button_WebPreview_Forward_Click(object sender, RoutedEventArgs e)
-    {
-        if (_webviewManager is not null && _webviewManager.CanGoForward)
-        {
-            _webviewManager.GoForward();
-        }
-    }
+        var slideNavigationTransitionEffect = currentSelectedIndex - previousSelectedIndex > 0 ? SlideNavigationTransitionEffect.FromRight : SlideNavigationTransitionEffect.FromLeft;
 
-    private void Button_WebPreview_Refresh_Click(object sender, RoutedEventArgs e)
-    {
-        _webviewManager?.Refresh();
-    }
+        ContentFrame.Navigate(pageType, null, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
 
-    private void Button_WebPreview_Home_Click(object sender, RoutedEventArgs e)
-    {
-        _webviewManager?.GoHome();
+        previousSelectedIndex = currentSelectedIndex;
+
     }
 }
