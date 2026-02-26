@@ -1,0 +1,19 @@
+<Page
+    x:Class="GersangStation.Setup.IntroOutroStepPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <TextBlock
+            x:Name="MessageText"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="44"
+            FontWeight="Bold"
+            Opacity="0"
+            Text="환영합니다!" />
+    </Grid>
+</Page>

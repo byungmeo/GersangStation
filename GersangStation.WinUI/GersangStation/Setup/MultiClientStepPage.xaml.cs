@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace GersangStation.Setup;
 
-public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyPropertyChanged
+public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSetupStepPage, INotifyPropertyChanged
 {
     private enum ManualMode
     {
@@ -23,6 +23,22 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged(string name) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    public bool IsEdit => !IsSavingTransition;
+
+    private bool _isSavingTransition;
+    public bool IsSavingTransition
+    {
+        get => _isSavingTransition;
+        private set
+        {
+            if (_isSavingTransition == value) return;
+            _isSavingTransition = value;
+            OnPropertyChanged(nameof(IsSavingTransition));
+            OnPropertyChanged(nameof(IsEdit));
+            RecomputeCommon();
+        }
+    }
 
     private static readonly Brush BrushInvalid = new SolidColorBrush(Colors.IndianRed);
     private static readonly Brush BrushValid = new SolidColorBrush(Colors.SeaGreen);
@@ -293,6 +309,9 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
     {
         get
         {
+            if (IsSavingTransition)
+                return false;
+
             if (!_useMultiClientFeature)
                 return true;
 
@@ -307,7 +326,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         }
     }
 
-    public bool CanSkip => true;
+    public bool CanSkip => !IsSavingTransition;
 
     public string NextHintText
     {
@@ -424,6 +443,21 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, INotifyP
         });
 
         return true;
+    }
+
+    public async Task<bool> OnNextAsync()
+    {
+        IsSavingTransition = true;
+
+        try
+        {
+            await Task.Delay(1000);
+            return OnNext();
+        }
+        finally
+        {
+            IsSavingTransition = false;
+        }
     }
 
     public void OnSkip() { }

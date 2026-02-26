@@ -25,14 +25,22 @@
             x:Name="CheckingHost"
             Grid.RowSpan="2"
             x:Load="{x:Bind IsChecking, Mode=OneWay}">
-            <StackPanel
-                Padding="16"
-                Orientation="Vertical"
-                Spacing="12">
-                <TextBlock FontSize="20" Text="잠시만 기다려주세요." />
-                <ProgressBar IsIndeterminate="True" />
-                <TextBlock Opacity="0.7" Text="거상 및 스타터 설치 여부를 확인하고 있어요." />
-            </StackPanel>
+            <setup:BusyOverlay
+                Title="잠시만 기다려주세요."
+                IsIndeterminate="True"
+                Message="거상 및 스타터 설치 여부를 확인하고 있어요." />
+        </ContentPresenter>
+
+
+        <!--  SavingTransition  -->
+        <ContentPresenter
+            x:Name="SavingTransitionHost"
+            Grid.RowSpan="2"
+            x:Load="{x:Bind IsSavingTransition, Mode=OneWay}">
+            <setup:BusyOverlay
+                Title="잠시만 기다려주세요."
+                IsIndeterminate="True"
+                Message="설정 정보를 저장 중입니다." />
         </ContentPresenter>
 
         <!--  Edit  -->
