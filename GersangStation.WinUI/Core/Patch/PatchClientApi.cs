@@ -2,6 +2,7 @@ using Core.Extractor;
 using Microsoft.Win32;
 using System.Diagnostics;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace Core.Patch;
 
@@ -12,6 +13,7 @@ namespace Core.Patch;
 public static class PatchClientApi
 {
     private static readonly IExtractor Extractor = new NativeSevenZipExtractor();
+    private static readonly Regex PatchDateRegex = new(@"^\s*-(\d{4}\.\d{2}\.\d{2})-\s*$", RegexOptions.Multiline | RegexOptions.Compiled);
 
     public static readonly Uri PatchBaseUri = new("https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/");
     public static readonly Uri FullClientUri = new("http://ak-gersangkr.xcache.kinxcdn.com/FullClient/Gersang_Install.7z");
@@ -132,6 +134,62 @@ public static class PatchClientApi
     {
         using var http = CreateHttpClient(TimeSpan.FromMinutes(1));
         return await http.GetStringAsync(new Uri(PatchBaseUri, ReadMeSuffix), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// ReadMe 텍스트에서 최신 패치 노트를 파싱하여 반환합니다.
+    /// </summary>
+    public static IEnumerable<PatchNote> ParseRecentPatchNotes(string readMeText, int takeCount = 5)
+    {
+        if (string.IsNullOrWhiteSpace(readMeText))
+            return [];
+
+        if (takeCount <= 0)
+            return [];
+
+        MatchCollection matches = PatchDateRegex.Matches(readMeText);
+        if (matches.Count == 0)
+            return [];
+
+        var result = new List<PatchNote>(Math.Min(takeCount, matches.Count));
+
+        for (int i = 0; i < matches.Count && result.Count < takeCount; i++)
+        {
+            Match current = matches[i];
+            int bodyStart = current.Index + current.Length;
+            int bodyEnd = i + 1 < matches.Count ? matches[i + 1].Index : readMeText.Length;
+            string body = readMeText[bodyStart..bodyEnd].Trim();
+
+            if (string.IsNullOrWhiteSpace(body))
+                continue;
+
+            string[] lines = body
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (lines.Length == 0)
+                continue;
+
+            string title = lines[0];
+            string note = lines.Length > 1
+                ? string.Join(Environment.NewLine, lines[1..]).Trim()
+                : string.Empty;
+
+            result.Add(new PatchNote(
+                DateStr: current.Groups[1].Value,
+                Title: title,
+                Note: note));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 서버 ReadMe를 내려받아 최신 패치 노트를 파싱합니다.
+    /// </summary>
+    public static async Task<IEnumerable<PatchNote>> DownloadRecentPatchNotesAsync(int takeCount = 5, CancellationToken ct = default)
+    {
+        string readMe = await DownloadReadMeAsync(ct).ConfigureAwait(false);
+        return ParseRecentPatchNotes(readMe, takeCount);
     }
 
     /// <summary>
