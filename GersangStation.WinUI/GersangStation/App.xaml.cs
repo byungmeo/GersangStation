@@ -27,7 +27,7 @@ namespace GersangStation
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // Windows.Storage.ApplicationData.Current.LocalSettings.Values.Clear();
+            Windows.Storage.ApplicationData.Current.LocalSettings.Values.Clear();
 
             if (AppDataManager.IsSetupCompleted)
             {
@@ -67,6 +67,15 @@ namespace GersangStation
                 int centeredY = displayArea.WorkArea.Y + (displayArea.WorkArea.Height - appWindow.Size.Height) / 2;
                 appWindow.Move(new Windows.Graphics.PointInt32(centeredX, centeredY));
             }
+
+            if (appWindow.Presenter is OverlappedPresenter presenter)
+            {
+                presenter.IsResizable = false;          // 크기 조절 금지
+                presenter.IsMaximizable = false;        // 최대화 버튼 비활성
+            }
+
+            appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+            appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
 
             window.Activate();
         }

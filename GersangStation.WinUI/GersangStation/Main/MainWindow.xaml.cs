@@ -1,6 +1,9 @@
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using System;
 
 namespace GersangStation.Main;
 
@@ -14,6 +17,8 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
+        ExtendsContentIntoTitleBar = true;
 
         // WebViewPage 초기화를 위해 강제로 Navigate 호출
         ContentFrame.Navigate(typeof(WebViewPage));
@@ -50,6 +55,5 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(pageType, null, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
 
         previousSelectedIndex = currentSelectedIndex;
-
     }
 }

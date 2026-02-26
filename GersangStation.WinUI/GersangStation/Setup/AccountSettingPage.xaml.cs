@@ -1,4 +1,5 @@
 using Core;
+using Core.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -201,7 +202,7 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
 
     private void LoadSavedAccounts()
     {
-        IReadOnlyList<AppDataManager.AccountProfile> accounts = AppDataManager.LoadAccounts();
+        IReadOnlyList<Account> accounts = AppDataManager.LoadAccounts();
 
         foreach (var account in accounts)
         {
@@ -222,7 +223,7 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
 
     private void SaveAccounts(IReadOnlyList<AccountEntry> importedAccounts, IReadOnlyList<AccountEntry> completedNewAccounts)
     {
-        var accountProfiles = new List<AppDataManager.AccountProfile>(importedAccounts.Count + completedNewAccounts.Count);
+        var accountProfiles = new List<Account>(importedAccounts.Count + completedNewAccounts.Count);
 
         foreach (AccountEntry account in importedAccounts)
         {
@@ -233,11 +234,7 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
             string nickname = account.Nickname.Trim();
             string finalNickname = string.IsNullOrWhiteSpace(nickname) ? id : nickname;
 
-            accountProfiles.Add(new AppDataManager.AccountProfile
-            {
-                Id = id,
-                Nickname = finalNickname
-            });
+            accountProfiles.Add(new Account(id, finalNickname));
         }
 
         foreach (AccountEntry account in completedNewAccounts)
@@ -248,11 +245,7 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
             // 별명이 비어있으면 아이디를 별명으로 저장합니다.
             string finalNickname = string.IsNullOrWhiteSpace(nickname) ? id : nickname;
 
-            accountProfiles.Add(new AppDataManager.AccountProfile
-            {
-                Id = id,
-                Nickname = finalNickname
-            });
+            accountProfiles.Add(new Account(id, finalNickname));
 
             // 자격 증명은 PasswordVault에 저장(동일 아이디 존재 시 덮어쓰기)
             PasswordVaultHelper.Save(id, account.Password);

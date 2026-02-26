@@ -7,9 +7,228 @@
     xmlns:gersangstation="using:GersangStation"
     xmlns:local="using:GersangStation.Main"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Core.Models"
     d:DataContext="{d:DesignInstance Type=gersangstation:WebViewManager}"
-    NavigationCacheMode="Disabled"
+    NavigationCacheMode="Enabled"
     mc:Ignorable="d">
 
-    <Grid />
+    <Grid
+        Margin="20,0,20,20"
+        BorderBrush="Black"
+        BorderThickness="2">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="450" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Image
+            Grid.Row="0"
+            Grid.Column="0"
+            Source="/Assets/Square150x150Logo.png" />
+
+        <Grid
+            Grid.Row="1"
+            Grid.Column="0"
+            Margin="20,0,20,0"
+            BorderBrush="Red"
+            BorderThickness="1"
+            RowSpacing="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid
+                Grid.Row="2"
+                Grid.ColumnSpan="3"
+                BorderBrush="Yellow"
+                BorderThickness="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <RadioButtons
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="1"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    FlowDirection="LeftToRight"
+                    SelectedIndex="{x:Bind SelectedPreset, Mode=TwoWay}">
+
+                    <RadioButton
+                        Margin="0,0,0,5"
+                        Content="프리셋1"
+                        FlowDirection="RightToLeft" />
+                    <RadioButton
+                        Margin="0,0,0,5"
+                        Content="프리셋2"
+                        FlowDirection="RightToLeft" />
+                    <RadioButton
+                        Margin="0,0,0,5"
+                        Content="프리셋3"
+                        FlowDirection="RightToLeft" />
+                    <RadioButton
+                        Margin="0,0,0,5"
+                        Content="프리셋4"
+                        FlowDirection="RightToLeft" />
+                </RadioButtons>
+
+                <StackPanel
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    HorizontalAlignment="Center"
+                    Spacing="12">
+                    <ComboBox
+                        x:Name="ComboBox_Account1"
+                        Width="200"
+                        DisplayMemberPath="Nickname"
+                        ItemsSource="{x:Bind Accounts, Mode=OneTime}"
+                        PlaceholderText="선택하지 않음"
+                        SelectedValue="{x:Bind SelectedAccount1Id, Mode=TwoWay}"
+                        SelectedValuePath="Id">
+                        <ComboBox.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="1클라 계정" />
+                            </DataTemplate>
+                        </ComboBox.HeaderTemplate>
+                    </ComboBox>
+                    <ComboBox
+                        x:Name="ComboBox_Account2"
+                        Width="200"
+                        DisplayMemberPath="Nickname"
+                        ItemsSource="{x:Bind Accounts, Mode=OneTime}"
+                        PlaceholderText="선택하지 않음"
+                        SelectedValue="{x:Bind SelectedAccount2Id, Mode=TwoWay}"
+                        SelectedValuePath="Id">
+                        <ComboBox.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="2클라 계정" />
+                            </DataTemplate>
+                        </ComboBox.HeaderTemplate>
+                    </ComboBox>
+                    <ComboBox
+                        x:Name="ComboBox_Account3"
+                        Width="200"
+                        DisplayMemberPath="Nickname"
+                        ItemsSource="{x:Bind Accounts, Mode=OneTime}"
+                        PlaceholderText="선택하지 않음"
+                        SelectedValue="{x:Bind SelectedAccount3Id, Mode=TwoWay}"
+                        SelectedValuePath="Id">
+                        <ComboBox.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="3클라 계정" />
+                            </DataTemplate>
+                        </ComboBox.HeaderTemplate>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+
+            <Grid
+                Grid.Row="4"
+                Grid.ColumnSpan="3"
+                Margin="35,0,35,0"
+                HorizontalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="100" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ComboBox
+                    x:Name="ComboBox_Server"
+                    Grid.Row="0"
+                    Grid.ColumnSpan="3"
+                    Margin="0,0,0,5"
+                    HorizontalAlignment="Stretch"
+                    DisplayMemberPath="DisplayName"
+                    ItemsSource="{x:Bind models:GameServerHelper.ServerOptions, Mode=OneTime}"
+                    SelectedIndex="{x:Bind SelectedServerIndex, Mode=TwoWay}"
+                    SelectedValuePath="Server">
+                    <ComboBox.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="12" Text="거상 서버" />
+                        </DataTemplate>
+                    </ComboBox.HeaderTemplate>
+                </ComboBox>
+
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Content="1클라 실행" />
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Content="2클라 실행" />
+                <Button
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Content="3클라 실행" />
+
+                <StackPanel
+                    Grid.Row="2"
+                    Grid.ColumnSpan="3"
+                    Orientation="Horizontal">
+                    <TextBlock
+                        Height="20"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Text="설치 버전: v34000 | 최신 버전 v34012" />
+                    <Button VerticalAlignment="Center" Style="{StaticResource SubtleButtonStyle}">
+                        <Viewbox Width="12" Stretch="Uniform">
+                            <SymbolIcon Symbol="Refresh" />
+                        </Viewbox>
+                    </Button>
+                    <Button VerticalAlignment="Center" Style="{StaticResource DefaultButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox
+                                Width="12"
+                                Margin="0,0,4,0"
+                                Stretch="Uniform">
+                                <SymbolIcon Symbol="Setting" />
+                            </Viewbox>
+                            <TextBlock FontSize="12" Text="클라설정" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <Grid
+            Grid.RowSpan="2"
+            Grid.Column="1"
+            BorderBrush="Green"
+            BorderThickness="1">
+            <Image
+                Grid.Row="0"
+                Grid.Column="0"
+                Source="/Assets/Square150x150Logo.png" />
+        </Grid>
+    </Grid>
 </Page>

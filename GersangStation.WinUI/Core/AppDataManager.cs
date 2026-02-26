@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using Core.Models;
+using System.Text.Json;
 using Windows.Storage;
 
 namespace Core;
@@ -7,6 +8,8 @@ public static class AppDataManager
 {
     private const string KeySetupCompleted = "SetupCompleted";
     private const string KeyUseSymbol = "useSymbol";
+    private const string KeySelectedPreset = "SelectedPreset";
+    private const string KeySelectedServer = "SelectedServer";
     private const string AccountsFileName = "accounts.json";
     private const string ClientSettingsFileName = "client-settings.json";
 
@@ -15,49 +18,36 @@ public static class AppDataManager
         WriteIndented = true
     };
 
-    public sealed class AccountProfile
-    {
-        public string Id { get; set; } = "";
-        public string Nickname { get; set; } = "";
-    }
-
-    public sealed class ClientSettingsProfile
-    {
-        public string InstallPath { get; set; } = "";
-        public string Client2Path { get; set; } = "";
-        public string Client3Path { get; set; } = "";
-    }
-
+    #region LocalSettings Properties
     public static bool IsSetupCompleted
     {
-        get => GetValue(KeySetupCompleted, false);
-        set => SetValue(KeySetupCompleted, value);
+        get => GetLocalSetting(KeySetupCompleted, false);
+        set => SetLocalSetting(KeySetupCompleted, value);
     }
-
-    public static bool LoadUseSymbol()
+    public static bool UseSymbol
     {
-        if (LocalSettings.Values.TryGetValue(KeyUseSymbol, out object? value) && value is bool useSymbol)
-            return useSymbol;
-
-        return true;
+        get => GetLocalSetting(KeyUseSymbol, true);
+        set => SetLocalSetting(KeyUseSymbol, value);
     }
+    public static int SelectedPreset
+    {
+        get => GetLocalSetting(KeySelectedPreset, 0);
+        set => SetLocalSetting(KeySelectedPreset, value);
+    }
+    public static GameServer SelectedServer
+    {
+        get => (GameServer)GetLocalSetting(KeySelectedServer, (int)GameServer.Korea_Live);
+        set => SetLocalSetting(KeySelectedServer, (int)value);
+    }
+    #endregion
 
-    public static void SaveUseSymbol(bool useSymbol) => SetValue(KeyUseSymbol, useSymbol);
-
-    /// <summary>
-    /// 계정 아이디/별명 목록을 LocalFolder(accounts.json)에 저장합니다.
-    /// </summary>
-    public static void SaveAccounts(IEnumerable<AccountProfile> accounts)
+    public static void SaveAccounts(IEnumerable<Account> accounts)
     {
         var list = accounts?.ToList() ?? [];
         string json = JsonSerializer.Serialize(list, JsonOptions);
         WriteTextToLocalFolder(AccountsFileName, json);
     }
-
-    /// <summary>
-    /// LocalFolder(accounts.json)에서 계정 아이디/별명 목록을 읽어옵니다.
-    /// </summary>
-    public static IReadOnlyList<AccountProfile> LoadAccounts()
+    public static IReadOnlyList<Account> LoadAccounts()
     {
         string? json = ReadTextFromLocalFolder(AccountsFileName);
         if (string.IsNullOrWhiteSpace(json))
@@ -65,7 +55,7 @@ public static class AppDataManager
 
         try
         {
-            var result = JsonSerializer.Deserialize<List<AccountProfile>>(json);
+            var result = JsonSerializer.Deserialize<List<Account>>(json);
             return result ?? [];
         }
         catch
@@ -74,56 +64,35 @@ public static class AppDataManager
         }
     }
 
-    /// <summary>
-    /// 클라이언트 설정을 LocalFolder(client-settings.json)에 저장합니다.
-    /// </summary>
-    public static void SaveClientSettings(ClientSettingsProfile? settings)
+    public static void SaveClientSettings(ClientSettings? settings)
     {
-        var payload = settings ?? new ClientSettingsProfile();
-        payload.InstallPath ??= "";
-        payload.Client2Path ??= "";
-        payload.Client3Path ??= "";
-
+        var payload = settings ?? new ClientSettings();
         string json = JsonSerializer.Serialize(payload, JsonOptions);
         WriteTextToLocalFolder(ClientSettingsFileName, json);
     }
-
-    /// <summary>
-    /// LocalFolder(client-settings.json)에서 클라이언트 설정을 읽어옵니다.
-    /// </summary>
-    public static ClientSettingsProfile LoadClientSettings()
+    public static ClientSettings LoadClientSettings()
     {
         string? json = ReadTextFromLocalFolder(ClientSettingsFileName);
         if (string.IsNullOrWhiteSpace(json))
-            return new ClientSettingsProfile();
+            return new ClientSettings();
 
         try
         {
-            var payload = JsonSerializer.Deserialize<ClientSettingsProfile>(json) ?? new ClientSettingsProfile();
-            payload.InstallPath ??= "";
-            payload.Client2Path ??= "";
-            payload.Client3Path ??= "";
+            var payload = JsonSerializer.Deserialize<ClientSettings>(json) ?? new ClientSettings();
             return payload;
         }
         catch
         {
-            return new ClientSettingsProfile();
+            return new ClientSettings();
         }
     }
 
-    /// <summary>
-    /// 설치 경로만 업데이트하고 나머지 클라이언트 설정은 유지합니다.
-    /// </summary>
     public static void SaveInstallPath(string installPath)
     {
         var payload = LoadClientSettings();
-        payload.InstallPath = installPath ?? "";
-        SaveClientSettings(payload);
+        ClientSettings updated = payload with { InstallPath = installPath ?? "" };
+        SaveClientSettings(updated);
     }
-
-    /// <summary>
-    /// 클라이언트 설정에서 설치 경로만 읽어옵니다.
-    /// </summary>
     public static string LoadInstallPath() => LoadClientSettings().InstallPath;
 
     private static void WriteTextToLocalFolder(string fileName, string content)
@@ -173,7 +142,7 @@ public static class AppDataManager
     private static ApplicationDataContainer LocalSettings
         => ApplicationData.Current.LocalSettings;
 
-    private static T GetValue<T>(string key, T defaultValue)
+    private static T GetLocalSetting<T>(string key, T defaultValue)
     {
         if (LocalSettings.Values.TryGetValue(key, out object? value) && value is T typed)
         {
@@ -182,7 +151,7 @@ public static class AppDataManager
         return defaultValue;
     }
 
-    private static void SetValue<T>(string key, T value)
+    private static void SetLocalSetting<T>(string key, T value)
     {
         ValidateSupportedLocalSettingsType(key, value);
         LocalSettings.Values[key] = value;

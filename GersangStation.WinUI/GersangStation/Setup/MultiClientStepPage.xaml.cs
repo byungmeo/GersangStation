@@ -1,4 +1,5 @@
 using Core;
+using Core.Models;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -381,7 +382,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
 
         ResolveDriveCompatibility(installPath);
 
-        bool savedUseSymbol = AppDataManager.LoadUseSymbol();
+        bool savedUseSymbol = AppDataManager.UseSymbol;
         _useFastMultiClient = IsDriveCompatible && savedUseSymbol;
 
         if (!string.IsNullOrWhiteSpace(_manualClient2Path) || !string.IsNullOrWhiteSpace(_manualClient3Path))
@@ -404,17 +405,12 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
         if (!_useMultiClientFeature)
         {
             // 미사용 선택 시에도 드라이브 호환성(빠른 다클라 생성 가능 여부) 기준값을 저장합니다.
-            AppDataManager.SaveUseSymbol(IsDriveCompatible);
-            AppDataManager.SaveClientSettings(new AppDataManager.ClientSettingsProfile
-            {
-                InstallPath = installPath,
-                Client2Path = "",
-                Client3Path = ""
-            });
+            AppDataManager.UseSymbol = IsDriveCompatible;
+            AppDataManager.SaveClientSettings(new ClientSettings(installPath, "", ""));
             return true;
         }
 
-        AppDataManager.SaveUseSymbol(UseFastMultiClient);
+        AppDataManager.UseSymbol = UseFastMultiClient;
 
         string client2Path = "";
         string client3Path = "";
@@ -435,12 +431,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
             client3Path = Folder2PreviewPath;
         }
 
-        AppDataManager.SaveClientSettings(new AppDataManager.ClientSettingsProfile
-        {
-            InstallPath = installPath,
-            Client2Path = client2Path,
-            Client3Path = client3Path
-        });
+        AppDataManager.SaveClientSettings(new ClientSettings(installPath, client2Path, client3Path));
 
         return true;
     }

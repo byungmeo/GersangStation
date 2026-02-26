@@ -14,15 +14,37 @@
     </Window.SystemBackdrop>
 
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
+        <StackPanel
+            Grid.Row="0"
+            Grid.Column="0"
+            Margin="17,0,10,0"
+            VerticalAlignment="Stretch"
+            Orientation="Horizontal">
+            <ImageIcon
+                Width="32"
+                Height="32"
+                Source="/Assets/Square44x44Logo.png" />
+            <TextBlock
+                Margin="10,0,0,0"
+                VerticalAlignment="Center"
+                Text="거상 스테이션" />
+        </StackPanel>
+
+
         <!--  SelectorBar  -->
         <SelectorBar
             x:Name="MainSelectorBar"
             Grid.Row="0"
+            Grid.Column="1"
             SelectionChanged="MainSelectorBar_SelectionChanged">
 
             <!--  메인 스테이션 바  -->
@@ -32,13 +54,17 @@
                 Text="메인" />
 
             <!--  웹뷰 바  -->
-            <SelectorBarItem Icon="World" Text="웹뷰" />
+            <SelectorBarItem Icon="World" Text="브라우저" />
+
+            <!--  플래너 바  -->
+            <SelectorBarItem Icon="Calendar" Text="플래너" />
         </SelectorBar>
 
         <!--  Frame  -->
         <Frame
             x:Name="ContentFrame"
             Grid.Row="1"
+            Grid.ColumnSpan="2"
             IsNavigationStackEnabled="False" />
     </Grid>
 </Window>
