@@ -1,9 +1,6 @@
-using Microsoft.UI;
-using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
-using System;
 
 namespace GersangStation.Main;
 
@@ -12,6 +9,8 @@ namespace GersangStation.Main;
 /// </summary>
 public sealed partial class MainWindow : Window
 {
+    public WebViewManager? WebViewManager { get; private set; }
+
     private int previousSelectedIndex = 0;
 
     public MainWindow()
@@ -21,8 +20,13 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
 
         // WebViewPage 초기화를 위해 강제로 Navigate 호출
-        ContentFrame.Navigate(typeof(WebViewPage));
+        ContentFrame.Navigate(typeof(WebViewPage), this);
         ContentFrame.Navigate(typeof(StationPage));
+    }
+
+    internal void RegisterWebViewManager(WebViewManager webviewManager)
+    {
+        WebViewManager = webviewManager;
     }
 
     private void MainSelectorBar_SelectionChanged(Microsoft.UI.Xaml.Controls.SelectorBar sender, Microsoft.UI.Xaml.Controls.SelectorBarSelectionChangedEventArgs args)

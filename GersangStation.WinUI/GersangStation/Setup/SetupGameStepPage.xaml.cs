@@ -293,14 +293,14 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
         {
             InstallPath = savedInstallPath;
             if (!_installValid)
-                InstallPath = ReadInstallPathFromRegistry() ?? "";
+                InstallPath = InstallPath = RegistryHelper.GetInstallPathFromRegistry(Core.Models.GameServer.Korea_Live) ?? "";
         }
         else
         {
-            InstallPath = ReadInstallPathFromRegistry() ?? "";
+            InstallPath = RegistryHelper.GetInstallPathFromRegistry(Core.Models.GameServer.Korea_Live) ?? "";
         }
 
-        StarterPath = ReadStarterFolderFromRegistry() ?? "";
+        StarterPath = RegistryHelper.GetGersangStarterPathFromRegistry() ?? "";
 
         int remain = 1500 - (int)sw.ElapsedMilliseconds;
         if (remain > 0)
@@ -311,6 +311,16 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
         RecomputeCommon();
 
         State = UiState.Edit;
+    }
+
+    private void OnAutoDetectInstallPath(object sender, RoutedEventArgs e)
+    {
+        InstallPath = RegistryHelper.GetInstallPathFromRegistry(Core.Models.GameServer.Korea_Live) ?? "";
+    }
+
+    private void OnAutoDetectStarter(object sender, RoutedEventArgs e)
+    {
+        StarterPath = RegistryHelper.GetGersangStarterPathFromRegistry() ?? "";
     }
 
     // ---- Picker ----
@@ -347,17 +357,6 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
 
         var folder = await picker.PickSingleFolderAsync();
         return folder?.Path;
-    }
-
-    // ---- 자동 검사 ----
-    private void OnAutoDetectInstall(object sender, RoutedEventArgs e)
-    {
-        InstallPath = ReadInstallPathFromRegistry() ?? "";
-    }
-
-    private void OnAutoDetectStarter(object sender, RoutedEventArgs e)
-    {
-        StarterPath = ReadStarterFolderFromRegistry() ?? "";
     }
 
     private async void OnInstallButtonClicked(object sender, RoutedEventArgs e)
@@ -770,39 +769,5 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
         }
 
         return $"{size:0.##} {units[unit]}";
-    }
-
-    private static string? ReadInstallPathFromRegistry()
-    {
-        using RegistryKey? k = Registry.CurrentUser.OpenSubKey(@"Software\JOYON\Gersang\Korean", false);
-        return k?.GetValue("InstallPath")?.ToString();
-    }
-
-    private static string? ReadStarterFolderFromRegistry()
-    {
-        using RegistryKey? k = Registry.ClassesRoot.OpenSubKey(@"Gersang\shell\open\command", false);
-        string? command = k?.GetValue("")?.ToString();
-        if (string.IsNullOrWhiteSpace(command)) return null;
-
-        string exePath = ExtractExePathFromCommand(command);
-        if (string.IsNullOrWhiteSpace(exePath)) return null;
-
-        try { return Path.GetDirectoryName(exePath); }
-        catch { return null; }
-    }
-
-    private static string ExtractExePathFromCommand(string command)
-    {
-        command = command.Trim();
-        if (command.Length == 0) return "";
-
-        if (command[0] == '"')
-        {
-            int end = command.IndexOf('"', 1);
-            return end > 1 ? command.Substring(1, end - 1) : "";
-        }
-
-        int space = command.IndexOf(' ');
-        return space > 0 ? command.Substring(0, space) : command;
     }
 }

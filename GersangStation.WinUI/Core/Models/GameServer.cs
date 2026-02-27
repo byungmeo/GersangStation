@@ -25,6 +25,22 @@ public class GameServerHelper
         GameServer.Korea_RnD
     ];
 
+    public static string GetGameStartParam(GameServer server) => server switch
+    {
+        GameServer.Korea_Live => "main",
+        GameServer.Korea_Test => "test",
+        GameServer.Korea_RnD => "inak",
+        _ => throw new ArgumentOutOfRangeException(nameof(server), server, null)
+    };
+
+    public static string GetInstallPathRegKey(GameServer server) => server switch
+    {
+        GameServer.Korea_Live => "InstallPath",
+        GameServer.Korea_Test => "TestPath",
+        GameServer.Korea_RnD => "RNDPath",
+        _ => throw new ArgumentOutOfRangeException(nameof(server), server, null)
+    };
+
     public static string GetReadMeUrl(GameServer server) => server switch
     {
         GameServer.Korea_Live => "https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/Client_Readme/readme.txt",

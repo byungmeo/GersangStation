@@ -83,7 +83,7 @@
                                 Grid.Column="2"
                                 MinHeight="40"
                                 VerticalAlignment="Center"
-                                Click="OnAutoDetectInstall"
+                                Click="OnAutoDetectInstallPath"
                                 Content="경로 자동 탐색"
                                 IsEnabled="{x:Bind IsInstallIdle, Mode=OneWay}" />
                         </Grid>

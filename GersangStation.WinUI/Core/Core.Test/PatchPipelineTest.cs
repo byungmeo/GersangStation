@@ -1,5 +1,4 @@
 ﻿using Core.Patch;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Core.Extractor;
 using System.Diagnostics;
 

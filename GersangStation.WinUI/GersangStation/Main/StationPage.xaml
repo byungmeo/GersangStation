@@ -175,22 +175,28 @@
                 </ComboBox>
 
                 <Button
+                    x:Name="Button_Client1_Execute"
                     Grid.Row="1"
                     Grid.Column="0"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
+                    Click="Button_Client1_Execute_Click"
                     Content="1클라 실행" />
                 <Button
+                    x:Name="Button_Client2_Execute"
                     Grid.Row="1"
                     Grid.Column="1"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
+                    Click="Button_Client2_Execute_Click"
                     Content="2클라 실행" />
                 <Button
+                    x:Name="Button_Client3_Execute"
                     Grid.Row="1"
                     Grid.Column="2"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
+                    Click="Button_Client3_Execute_Click"
                     Content="3클라 실행" />
 
                 <StackPanel

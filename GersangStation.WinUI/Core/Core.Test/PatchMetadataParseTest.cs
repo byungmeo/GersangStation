@@ -1,6 +1,5 @@
 ﻿using Core.Patch;
 using Core.Extractor;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Core.Test;
 

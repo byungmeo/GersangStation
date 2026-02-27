@@ -10,8 +10,8 @@ namespace GersangStation
     /// </summary>
     public partial class App : Application
     {
-        private Window? _window;
-        
+        public static Window? CurrentWindow { get; private set; }
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -44,8 +44,8 @@ namespace GersangStation
             setupWindow.SetupCompleted += SetupWindow_SetupCompleted;
             setupWindow.Closed += CurrentWindow_Closed;
 
-            _window = setupWindow;
-            CenterAndActivateWindow(_window);
+            CurrentWindow = setupWindow;
+            CenterAndActivateWindow(CurrentWindow);
         }
 
         private void OpenMainWindow()
@@ -53,8 +53,8 @@ namespace GersangStation
             var mainWindow = new Main.MainWindow();
             mainWindow.Closed += CurrentWindow_Closed;
 
-            _window = mainWindow;
-            CenterAndActivateWindow(_window);
+            CurrentWindow = mainWindow;
+            CenterAndActivateWindow(CurrentWindow);
         }
 
         private static void CenterAndActivateWindow(Window window)
@@ -97,9 +97,9 @@ namespace GersangStation
 
         private void CurrentWindow_Closed(object sender, WindowEventArgs args)
         {
-            if (ReferenceEquals(sender, _window))
+            if (ReferenceEquals(sender, CurrentWindow))
             {
-                _window = null;
+                CurrentWindow = null;
             }
         }
     }

@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using System;
 
 namespace GersangStation.Main
@@ -9,13 +10,25 @@ namespace GersangStation.Main
     /// </summary>
     public sealed partial class WebViewPage : Page, IDisposable
     {
+        bool _initialized = false;
         private WebViewManager? _webviewManager;
 
         public WebViewPage()
         {
             InitializeComponent();
+        }
 
-            _webviewManager = new WebViewManager(webview: WebView);
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            if (_initialized)
+                return;
+            _initialized = true;
+
+            if (e.Parameter is MainWindow window)
+            {
+                _webviewManager = new WebViewManager(webview: WebView, window) ?? throw new NullReferenceException();
+                window.RegisterWebViewManager(_webviewManager);
+            }
         }
 
         public void Dispose()

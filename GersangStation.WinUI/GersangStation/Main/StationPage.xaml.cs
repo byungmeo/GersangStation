@@ -3,6 +3,7 @@ using Core.Models;
 using Microsoft.UI.Xaml.Controls;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Windows.Storage;
@@ -15,9 +16,6 @@ namespace GersangStation.Main
     public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         private IReadOnlyList<Account> Accounts = AppDataManager.LoadAccounts();
-
-        private readonly ApplicationDataContainer _localSettings = ApplicationData.Current.LocalSettings;
-        private const string ServerSettingKey = "SelectedServerIndex";
 
         // SelectedServer Property
         private int _selectedServerIndex = (int)AppDataManager.SelectedServer;
@@ -104,5 +102,47 @@ namespace GersangStation.Main
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        private async void Button_Client1_Execute_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            string Id = (string)ComboBox_Account1.SelectedValue;
+            if (App.CurrentWindow is MainWindow window)
+            {
+                Debug.WriteLine("App.CurrentWindow is MainWindow window");
+                if (window.WebViewManager is not null)
+                {
+                    Debug.WriteLine("window.WebViewManager is not null");
+                    bool result = await window.WebViewManager.TryGameStart(Id, 0);
+                }
+            }
+        }
+
+        private async void Button_Client2_Execute_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            string Id = (string)ComboBox_Account2.SelectedValue;
+            if (App.CurrentWindow is MainWindow window)
+            {
+                Debug.WriteLine("App.CurrentWindow is MainWindow window");
+                if (window.WebViewManager is not null)
+                {
+                    Debug.WriteLine("window.WebViewManager is not null");
+                    bool result = await window.WebViewManager.TryGameStart(Id, 1);
+                }
+            }
+        }
+
+        private async void Button_Client3_Execute_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            string Id = (string)ComboBox_Account3.SelectedValue;
+            if (App.CurrentWindow is MainWindow window)
+            {
+                Debug.WriteLine("App.CurrentWindow is MainWindow window");
+                if (window.WebViewManager is not null)
+                {
+                    Debug.WriteLine("window.WebViewManager is not null");
+                    bool result = await window.WebViewManager.TryGameStart(Id, 2);
+                }
+            }
+        }
     }
 }

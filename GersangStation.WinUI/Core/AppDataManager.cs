@@ -36,8 +36,8 @@ public static class AppDataManager
     }
     public static GameServer SelectedServer
     {
-        get => (GameServer)GetLocalSetting(KeySelectedServer, (int)GameServer.Korea_Live);
-        set => SetLocalSetting(KeySelectedServer, (int)value);
+        get => GetLocalSetting(KeySelectedServer, GameServer.Korea_Live);
+        set => SetLocalSetting(KeySelectedServer, value);
     }
     #endregion
 
