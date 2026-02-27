@@ -1,4 +1,5 @@
 ﻿using Core.Models;
+using System.Diagnostics;
 using System.Text.Json;
 using Windows.Storage;
 
@@ -6,12 +7,13 @@ namespace Core;
 
 public static class AppDataManager
 {
-    private const string KeySetupCompleted = "SetupCompleted";
-    private const string KeyUseSymbol = "useSymbol";
-    private const string KeySelectedPreset = "SelectedPreset";
-    private const string KeySelectedServer = "SelectedServer";
+    private const string SetupCompleted_SettingKey = "SetupCompleted";
+    private const string UseSymbol_SettingKey = "useSymbol";
+    private const string SelectedPreset_SettingKey = "SelectedPreset";
+    private const string SelectedServer_SettingKey = "SelectedServer";
     private const string AccountsFileName = "accounts.json";
     private const string ClientSettingsFileName = "client-settings.json";
+    private const string PresetListFileName = "preset-list.json"; // LocalFolder 저장
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -21,23 +23,23 @@ public static class AppDataManager
     #region LocalSettings Properties
     public static bool IsSetupCompleted
     {
-        get => GetLocalSetting(KeySetupCompleted, false);
-        set => SetLocalSetting(KeySetupCompleted, value);
+        get => LoadLocalSetting(SetupCompleted_SettingKey, false);
+        set => SaveLocalSetting(SetupCompleted_SettingKey, value);
     }
     public static bool UseSymbol
     {
-        get => GetLocalSetting(KeyUseSymbol, true);
-        set => SetLocalSetting(KeyUseSymbol, value);
+        get => LoadLocalSetting(UseSymbol_SettingKey, true);
+        set => SaveLocalSetting(UseSymbol_SettingKey, value);
     }
     public static int SelectedPreset
     {
-        get => GetLocalSetting(KeySelectedPreset, 0);
-        set => SetLocalSetting(KeySelectedPreset, value);
+        get => LoadLocalSetting(SelectedPreset_SettingKey, 0);
+        set => SaveLocalSetting(SelectedPreset_SettingKey, value);
     }
     public static GameServer SelectedServer
     {
-        get => GetLocalSetting(KeySelectedServer, GameServer.Korea_Live);
-        set => SetLocalSetting(KeySelectedServer, value);
+        get => LoadLocalSetting(SelectedServer_SettingKey, GameServer.Korea_Live);
+        set => SaveLocalSetting(SelectedServer_SettingKey, value);
     }
     #endregion
 
@@ -47,6 +49,7 @@ public static class AppDataManager
         string json = JsonSerializer.Serialize(list, JsonOptions);
         WriteTextToLocalFolder(AccountsFileName, json);
     }
+
     public static IReadOnlyList<Account> LoadAccounts()
     {
         string? json = ReadTextFromLocalFolder(AccountsFileName);
@@ -70,6 +73,7 @@ public static class AppDataManager
         string json = JsonSerializer.Serialize(payload, JsonOptions);
         WriteTextToLocalFolder(ClientSettingsFileName, json);
     }
+
     public static ClientSettings LoadClientSettings()
     {
         string? json = ReadTextFromLocalFolder(ClientSettingsFileName);
@@ -93,19 +97,99 @@ public static class AppDataManager
         ClientSettings updated = payload with { InstallPath = installPath ?? "" };
         SaveClientSettings(updated);
     }
+
     public static string LoadInstallPath() => LoadClientSettings().InstallPath;
+
+    // -------------------------
+    // PresetContainer (LocalFolder)
+    // 정책:
+    // - ComboBox ItemSource = 모든 계정 목록
+    // - PresetContainer에 저장된 Id가 계정 목록에 없으면 "" 로 정규화(선택 안 함)
+    // - 정규화로 변경이 발생하면 즉시 SavePresetContainer()로 다시 저장
+    // -------------------------
+    public static void SavePresetList(PresetList presetList)
+    {
+        string json = JsonSerializer.Serialize(presetList, JsonOptions);
+        WriteTextToLocalFolder(PresetListFileName, json);
+    }
+
+    /// <summary>
+    /// PresetContainer를 불러오고, Accounts 기준으로 Id 유효성 검사 후
+    /// 없는 Id는 ""로 정규화합니다. 정규화로 변경이 발생하면 재저장합니다.
+    /// </summary>
+    public static PresetList LoadPresetList()
+    {
+        PresetList presetList;
+
+        string? json = ReadTextFromLocalFolder(PresetListFileName);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            presetList = new PresetList();
+            SavePresetList(presetList);
+            return presetList;
+        }
+
+        try
+        {
+            presetList = JsonSerializer.Deserialize<PresetList>(json) ?? new PresetList();
+        }
+        catch
+        {
+            presetList = new PresetList();
+            SavePresetList(presetList);
+            return presetList;
+        }
+
+        var accounts = LoadAccounts();
+        HashSet<string> validIds = accounts
+            .Select(a => a.Id ?? "")
+            .Where(id => id.Length != 0)
+            .ToHashSet(StringComparer.Ordinal);
+
+        bool changed = NormalizePresetIds(presetList, validIds);
+        if (changed)
+            SavePresetList(presetList);
+
+        return presetList;
+    }
+
+    private static bool NormalizePresetIds(PresetList presetList, HashSet<string> validIds)
+    {
+        bool changed = false;
+
+        // 전제: Presets = 4개, 각 preset = 3개
+        // container.Presets: PresetItem[4][3] 형태(또는 동등 구조)라고 가정
+        for (int p = 0; p < presetList.Presets.Length; p++)
+        {
+            var preset = presetList.Presets[p];
+            var items = preset.Items;
+            for (int i = 0; i < items.Length; i++)
+            {
+                PresetItem item = items[i] ?? new PresetItem();
+
+                // 정책: id가 없거나, 계정 목록에 없으면 ""로
+                if (item.Id.Length == 0 || !validIds.Contains(item.Id))
+                {
+                    item.Id = "";
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
 
     private static void WriteTextToLocalFolder(string fileName, string content)
     {
         StorageFolder folder = ApplicationData.Current.LocalFolder;
 
-        // StorageFolder API를 사용해 파일 생성/덮어쓰기를 처리합니다.
         StorageFile file = folder
             .CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting)
             .AsTask()
             .GetAwaiter()
             .GetResult();
 
+        Debug.WriteLine($"[AppDataManager] WriteTextToLocalFolder FileName: {fileName}, Content:\n{content}");
         FileIO.WriteTextAsync(file, content)
             .AsTask()
             .GetAwaiter()
@@ -118,7 +202,6 @@ public static class AppDataManager
 
         try
         {
-            // 파일이 없을 수 있는 일반 흐름에서는 예외를 만들지 않도록 TryGetItemAsync를 사용합니다.
             IStorageItem? item = folder
                 .TryGetItemAsync(fileName)
                 .AsTask()
@@ -142,7 +225,7 @@ public static class AppDataManager
     private static ApplicationDataContainer LocalSettings
         => ApplicationData.Current.LocalSettings;
 
-    private static T GetLocalSetting<T>(string key, T defaultValue)
+    private static T LoadLocalSetting<T>(string key, T defaultValue)
     {
         if (LocalSettings.Values.TryGetValue(key, out object? value) && value is T typed)
         {
@@ -151,7 +234,7 @@ public static class AppDataManager
         return defaultValue;
     }
 
-    private static void SetLocalSetting<T>(string key, T value)
+    private static void SaveLocalSetting<T>(string key, T value)
     {
         ValidateSupportedLocalSettingsType(key, value);
         LocalSettings.Values[key] = value;

@@ -2,6 +2,9 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using System;
+using System.Diagnostics;
+using Windows.ApplicationModel;
+using Windows.Storage;
 
 namespace GersangStation
 {
@@ -19,6 +22,8 @@ namespace GersangStation
         public App()
         {
             InitializeComponent();
+            Debug.WriteLine($"PFN: {Package.Current.Id.FamilyName}");
+            Debug.WriteLine($"LocalFolder Path: {ApplicationData.Current.LocalFolder.Path}");
         }
 
         /// <summary>

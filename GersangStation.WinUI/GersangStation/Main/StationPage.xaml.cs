@@ -27,7 +27,7 @@ namespace GersangStation.Main
                 if (_selectedServerIndex != value)
                 {
                     _selectedServerIndex = value;
-                    OnPropertyChanged(); // UI 업데이트 알림
+                    OnPropertyChanged(nameof(SelectedServerIndex)); // UI 업데이트 알림
                     AppDataManager.SelectedServer = (GameServer)value;
                 }
             }
@@ -43,47 +43,28 @@ namespace GersangStation.Main
                 if (_selectedPreset != value)
                 {
                     _selectedPreset = value;
-                    OnPropertyChanged(); // UI 업데이트 알림
                     AppDataManager.SelectedPreset = value;
+                    SelectedAccount1Id = PresetList.Presets[value].Items[0].Id;
+                    SelectedAccount2Id = PresetList.Presets[value].Items[1].Id;
+                    SelectedAccount3Id = PresetList.Presets[value].Items[2].Id;
+                    OnPropertyChanged(nameof(SelectedPreset));
+                    OnPropertyChanged(nameof(SelectedAccount1Id));
+                    OnPropertyChanged(nameof(SelectedAccount2Id));
+                    OnPropertyChanged(nameof(SelectedAccount3Id));
                 }
             }
         }
 
         // Key: "AccountPreset1" (프리셋 이름)
         // Value: ["id1", "id2", "id3"] (계정 ID 리스트)
-        private Dictionary<string, List<string>> _presets = new();
-        public void SavePresets()
+        private PresetList _presetList = AppDataManager.LoadPresetList();
+        public PresetList PresetList
         {
-            // 데이터를 JSON 문자열로 변환 (직렬화)
-            string json = JsonSerializer.Serialize(_presets);
-
-            // LocalSettings에 저장
-            var settings = ApplicationData.Current.LocalSettings;
-            settings.Values["AccountPresets"] = json;
-        }
-        public void LoadPresets()
-        {
-            var settings = ApplicationData.Current.LocalSettings;
-            string json = settings.Values["AccountPresets"] as string;
-
-            if (!string.IsNullOrEmpty(json))
+            get => _presetList;
+            set 
             {
-                // JSON을 다시 딕셔너리로 복구 (역직렬화)
-                _presets = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(json);
-            }
-        }
-        private void ApplyPreset(string presetName)
-        {
-            if (_presets.TryGetValue(presetName, out var ids) && ids.Count >= 3)
-            {
-                // 1, 2, 3클라 ID 속성에 순서대로 꽂아넣기
-                // (앞서 만든 AccId1, AccId2, AccId3 속성이 있다면 UI도 자동으로 바뀝니다)
-                SelectedAccount1Id = ids[0];
-                SelectedAccount2Id = ids[1];
-                SelectedAccount3Id = ids[2];
-
-                // UI 강제 갱신
-                this.Bindings.Update();
+                _presetList = value;
+                AppDataManager.SavePresetList(PresetList);
             }
         }
 
@@ -91,8 +72,19 @@ namespace GersangStation.Main
         public string SelectedAccount2Id { get => GetId(1); set => SetId(1, value); }
         public string SelectedAccount3Id { get => GetId(2); set => SetId(2, value); }
 
-        private string GetId(int i) => "1";
-        private void SetId(int i, string id) { }
+        private string GetId(int comboBoxIndex)
+        {
+            return _presetList.Presets[SelectedPreset].Items[comboBoxIndex].Id;
+        }
+
+        private void SetId(int comboBoxIndex, string selectedValue)
+        {
+            _presetList.Presets[SelectedPreset].Items[comboBoxIndex].Id = selectedValue;
+            AppDataManager.SavePresetList(_presetList);
+            OnPropertyChanged(nameof(SelectedAccount1Id));
+            OnPropertyChanged(nameof(SelectedAccount2Id));
+            OnPropertyChanged(nameof(SelectedAccount3Id));
+        }
 
         public StationPage()
         {
