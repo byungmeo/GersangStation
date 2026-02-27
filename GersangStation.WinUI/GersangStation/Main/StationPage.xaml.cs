@@ -79,11 +79,26 @@ namespace GersangStation.Main
 
         private void SetId(int comboBoxIndex, string selectedValue)
         {
+            selectedValue ??= string.Empty;
+
+            if (_presetList.Presets[SelectedPreset].Items[comboBoxIndex].Id == selectedValue)
+                return;
+
             _presetList.Presets[SelectedPreset].Items[comboBoxIndex].Id = selectedValue;
             AppDataManager.SavePresetList(_presetList);
-            OnPropertyChanged(nameof(SelectedAccount1Id));
-            OnPropertyChanged(nameof(SelectedAccount2Id));
-            OnPropertyChanged(nameof(SelectedAccount3Id));
+
+            switch (comboBoxIndex)
+            {
+                case 0:
+                    OnPropertyChanged(nameof(SelectedAccount1Id));
+                    break;
+                case 1:
+                    OnPropertyChanged(nameof(SelectedAccount2Id));
+                    break;
+                case 2:
+                    OnPropertyChanged(nameof(SelectedAccount3Id));
+                    break;
+            }
         }
 
         public StationPage()
