@@ -40,13 +40,14 @@ namespace GersangStation.Main
             get => _selectedPreset;
             set
             {
-                if (_selectedPreset != value)
+                int normalizedValue = NormalizePresetIndex(value);
+                if (_selectedPreset != normalizedValue)
                 {
-                    _selectedPreset = value;
-                    AppDataManager.SelectedPreset = value;
-                    SelectedAccount1Id = PresetList.Presets[value].Items[0].Id;
-                    SelectedAccount2Id = PresetList.Presets[value].Items[1].Id;
-                    SelectedAccount3Id = PresetList.Presets[value].Items[2].Id;
+                    _selectedPreset = normalizedValue;
+                    AppDataManager.SelectedPreset = normalizedValue;
+                    SelectedAccount1Id = PresetList.Presets[normalizedValue].Items[0].Id;
+                    SelectedAccount2Id = PresetList.Presets[normalizedValue].Items[1].Id;
+                    SelectedAccount3Id = PresetList.Presets[normalizedValue].Items[2].Id;
                     OnPropertyChanged(nameof(SelectedPreset));
                     OnPropertyChanged(nameof(SelectedAccount1Id));
                     OnPropertyChanged(nameof(SelectedAccount2Id));
@@ -101,8 +102,26 @@ namespace GersangStation.Main
             }
         }
 
+        private int NormalizePresetIndex(int value)
+        {
+            if (_presetList?.Presets is null || _presetList.Presets.Length == 0)
+                return 0;
+
+            if (value < 0)
+                return 0;
+
+            if (value >= _presetList.Presets.Length)
+                return _presetList.Presets.Length - 1;
+
+            return value;
+        }
+
         public StationPage()
         {
+            _selectedPreset = NormalizePresetIndex(_selectedPreset);
+            if (_selectedPreset != AppDataManager.SelectedPreset)
+                AppDataManager.SelectedPreset = _selectedPreset;
+
             InitializeComponent();
         }
 
