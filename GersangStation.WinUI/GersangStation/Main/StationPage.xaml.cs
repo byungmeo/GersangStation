@@ -5,8 +5,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text.Json;
-using Windows.Storage;
 
 namespace GersangStation.Main
 {
@@ -15,10 +13,12 @@ namespace GersangStation.Main
     /// </summary>
     public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
-        private IReadOnlyList<Account> Accounts = AppDataManager.LoadAccounts();
+        private bool _isInitializing = true;
+
+        public IReadOnlyList<Account> Accounts { get; private set; } = [];
 
         // SelectedServer Property
-        private int _selectedServerIndex = (int)AppDataManager.SelectedServer;
+        private int _selectedServerIndex;
         public int SelectedServerIndex
         {
             get => _selectedServerIndex;
@@ -28,25 +28,28 @@ namespace GersangStation.Main
                 {
                     _selectedServerIndex = value;
                     OnPropertyChanged(nameof(SelectedServerIndex)); // UI 업데이트 알림
-                    AppDataManager.SelectedServer = (GameServer)value;
+
+                    if (!_isInitializing)
+                        AppDataManager.SelectedServer = (GameServer)value;
                 }
             }
         }
 
         // SelectedPreset Property
-        private int _selectedPreset = AppDataManager.SelectedPreset;
+        private int _selectedPreset;
         public int SelectedPreset
         {
             get => _selectedPreset;
             set
             {
-                if (_selectedPreset != value)
+                int normalizedValue = NormalizePresetIndex(value);
+                if (_selectedPreset != normalizedValue)
                 {
-                    _selectedPreset = value;
-                    AppDataManager.SelectedPreset = value;
-                    SelectedAccount1Id = PresetList.Presets[value].Items[0].Id;
-                    SelectedAccount2Id = PresetList.Presets[value].Items[1].Id;
-                    SelectedAccount3Id = PresetList.Presets[value].Items[2].Id;
+                    _selectedPreset = normalizedValue;
+
+                    if (!_isInitializing)
+                        AppDataManager.SelectedPreset = normalizedValue;
+
                     OnPropertyChanged(nameof(SelectedPreset));
                     OnPropertyChanged(nameof(SelectedAccount1Id));
                     OnPropertyChanged(nameof(SelectedAccount2Id));
@@ -57,14 +60,16 @@ namespace GersangStation.Main
 
         // Key: "AccountPreset1" (프리셋 이름)
         // Value: ["id1", "id2", "id3"] (계정 ID 리스트)
-        private PresetList _presetList = AppDataManager.LoadPresetList();
+        private PresetList _presetList = new();
         public PresetList PresetList
         {
             get => _presetList;
-            set 
+            set
             {
                 _presetList = value;
-                AppDataManager.SavePresetList(PresetList);
+
+                if (!_isInitializing)
+                    AppDataManager.SavePresetList(PresetList);
             }
         }
 
@@ -74,21 +79,68 @@ namespace GersangStation.Main
 
         private string GetId(int comboBoxIndex)
         {
-            return _presetList.Presets[SelectedPreset].Items[comboBoxIndex].Id;
+            int presetIndex = NormalizePresetIndex(_selectedPreset);
+            return _presetList.Presets[presetIndex].Items[comboBoxIndex].Id;
         }
 
         private void SetId(int comboBoxIndex, string selectedValue)
         {
-            _presetList.Presets[SelectedPreset].Items[comboBoxIndex].Id = selectedValue;
-            AppDataManager.SavePresetList(_presetList);
-            OnPropertyChanged(nameof(SelectedAccount1Id));
-            OnPropertyChanged(nameof(SelectedAccount2Id));
-            OnPropertyChanged(nameof(SelectedAccount3Id));
+            selectedValue ??= string.Empty;
+
+            int presetIndex = NormalizePresetIndex(_selectedPreset);
+            if (_presetList.Presets[presetIndex].Items[comboBoxIndex].Id == selectedValue)
+                return;
+
+            _presetList.Presets[presetIndex].Items[comboBoxIndex].Id = selectedValue;
+            if (!_isInitializing)
+                AppDataManager.SavePresetList(_presetList);
+
+            switch (comboBoxIndex)
+            {
+                case 0:
+                    OnPropertyChanged(nameof(SelectedAccount1Id));
+                    break;
+                case 1:
+                    OnPropertyChanged(nameof(SelectedAccount2Id));
+                    break;
+                case 2:
+                    OnPropertyChanged(nameof(SelectedAccount3Id));
+                    break;
+            }
+        }
+
+        private int NormalizePresetIndex(int value)
+        {
+            if (_presetList?.Presets is null || _presetList.Presets.Length == 0)
+                return 0;
+
+            if (value < 0)
+                return 0;
+
+            if (value >= _presetList.Presets.Length)
+                return _presetList.Presets.Length - 1;
+
+            return value;
+        }
+
+        private void InitializeState()
+        {
+            // x:Bind가 동작하기 전에 바인딩 원본 상태를 먼저 확정합니다.
+            Accounts = AppDataManager.LoadAccounts();
+            _presetList = AppDataManager.LoadPresetList();
+
+            _selectedServerIndex = (int)AppDataManager.SelectedServer;
+            _selectedPreset = NormalizePresetIndex(AppDataManager.SelectedPreset);
+
+            if (_selectedPreset != AppDataManager.SelectedPreset)
+                AppDataManager.SelectedPreset = _selectedPreset;
         }
 
         public StationPage()
         {
+            InitializeState();
             InitializeComponent();
+            _isInitializing = false;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

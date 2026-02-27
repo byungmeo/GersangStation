@@ -146,11 +146,68 @@ public static class AppDataManager
             .Where(id => id.Length != 0)
             .ToHashSet(StringComparer.Ordinal);
 
-        bool changed = NormalizePresetIds(presetList, validIds);
+        bool changed = EnsurePresetListShape(presetList);
+        changed |= NormalizePresetIds(presetList, validIds);
         if (changed)
             SavePresetList(presetList);
 
         return presetList;
+    }
+
+    private static bool EnsurePresetListShape(PresetList presetList)
+    {
+        bool changed = false;
+
+        if (presetList.Presets is null || presetList.Presets.Length != 4)
+        {
+            Preset[] existing = presetList.Presets ?? [];
+            Preset[] normalized = new Preset[4];
+
+            for (int i = 0; i < normalized.Length; i++)
+                normalized[i] = i < existing.Length ? existing[i] ?? new Preset() : new Preset();
+
+            presetList.Presets = normalized;
+            changed = true;
+        }
+
+        for (int p = 0; p < presetList.Presets.Length; p++)
+        {
+            Preset preset = presetList.Presets[p] ?? new Preset();
+            if (presetList.Presets[p] is null)
+            {
+                presetList.Presets[p] = preset;
+                changed = true;
+            }
+
+            if (preset.Items is null || preset.Items.Length != 3)
+            {
+                PresetItem[] existingItems = preset.Items ?? [];
+                PresetItem[] normalizedItems = new PresetItem[3];
+
+                for (int i = 0; i < normalizedItems.Length; i++)
+                    normalizedItems[i] = i < existingItems.Length ? existingItems[i] ?? new PresetItem() : new PresetItem();
+
+                preset.Items = normalizedItems;
+                changed = true;
+            }
+
+            for (int i = 0; i < preset.Items.Length; i++)
+            {
+                if (preset.Items[i] is null)
+                {
+                    preset.Items[i] = new PresetItem();
+                    changed = true;
+                }
+
+                if (preset.Items[i].Id is null)
+                {
+                    preset.Items[i].Id = string.Empty;
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
     }
 
     private static bool NormalizePresetIds(PresetList presetList, HashSet<string> validIds)
@@ -166,6 +223,13 @@ public static class AppDataManager
             for (int i = 0; i < items.Length; i++)
             {
                 PresetItem item = items[i] ?? new PresetItem();
+                if (items[i] is null)
+                {
+                    items[i] = item;
+                    changed = true;
+                }
+
+                item.Id ??= string.Empty;
 
                 // 정책: id가 없거나, 계정 목록에 없으면 ""로
                 if (item.Id.Length == 0 || !validIds.Contains(item.Id))
