@@ -22,4 +22,12 @@ public static class DispatcherQueueExtensions
         });
         return tcs.Task;
     }
+
+    public static Task RunOrEnqueueAsync(this Microsoft.UI.Dispatching.DispatcherQueue queue, Func<Task> action)
+    {
+        if (queue.HasThreadAccess)
+            return action();
+
+        return queue.EnqueueAsync(action);
+    }
 }

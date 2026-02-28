@@ -516,6 +516,95 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         CanGoForward = sender.CanGoForward;
     }
 
+    private async Task ShowOtpDialogAsync()
+    {
+        var input = new TextBox
+        {
+            Text = "",
+            PlaceholderText = "OTP 코드를 입력해주세요."
+        };
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = _currentWindow.Content.XamlRoot,
+            Title = "거상 OTP 인증번호",
+            Content = input,
+            PrimaryButtonText = "확인",
+        };
+
+        var result = await dlg.ShowAsync();
+        if (result == ContentDialogResult.Primary)
+        {
+            await _webview.ExecuteScriptAsync(InputOtpScript(input.Text));
+            await _webview.ExecuteScriptAsync(SubmitOtpScript);
+        }
+    }
+
+    private async Task HandleScriptDialogAsync(CoreWebView2ScriptDialogOpeningEventArgs args)
+    {
+        switch (args.Kind)
+        {
+            case CoreWebView2ScriptDialogKind.Alert:
+                {
+                    var dlg = new ContentDialog
+                    {
+                        XamlRoot = _currentWindow.Content.XamlRoot,
+                        Title = "알림",
+                        Content = args.Message,
+                        CloseButtonText = "확인"
+                    };
+
+                    await dlg.ShowAsync();
+                    args.Accept();
+                    break;
+                }
+
+            case CoreWebView2ScriptDialogKind.Confirm:
+                {
+                    var dlg = new ContentDialog
+                    {
+                        XamlRoot = _currentWindow.Content.XamlRoot,
+                        Title = "확인",
+                        Content = args.Message,
+                        PrimaryButtonText = "확인",
+                        CloseButtonText = "취소"
+                    };
+
+                    var result = await dlg.ShowAsync();
+                    if (result == ContentDialogResult.Primary)
+                        args.Accept(); // true
+                                       // else: false (Accept 안함)
+                    break;
+                }
+
+            case CoreWebView2ScriptDialogKind.Prompt:
+                {
+                    var input = new TextBox
+                    {
+                        Text = args.DefaultText ?? "",
+                        PlaceholderText = ""
+                    };
+
+                    var dlg = new ContentDialog
+                    {
+                        XamlRoot = _currentWindow.Content.XamlRoot,
+                        Title = "입력",
+                        Content = input,
+                        PrimaryButtonText = "확인",
+                        CloseButtonText = "취소"
+                    };
+
+                    var result = await dlg.ShowAsync();
+                    if (result == ContentDialogResult.Primary)
+                    {
+                        args.ResultText = input.Text; // prompt 결과 문자열
+                        args.Accept();
+                    }
+                    break;
+                }
+        }
+    }
+
     private async void OnDOMContentLoaded(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs args)
     {
 #if DEBUGGING
@@ -528,29 +617,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         await UpdateLoginStateByCookieAsync();
         if (TryingLogin && _currentSource.Contains(Url_Gersang_Otp))
         {
-            await _webview!.DispatcherQueue.EnqueueAsync(async () =>
-            {
-                var input = new TextBox
-                {
-                    Text = "",
-                    PlaceholderText = "OTP 코드를 입력해주세요."
-                };
-
-                var dlg = new ContentDialog
-                {
-                    XamlRoot = _currentWindow.Content.XamlRoot,
-                    Title = "거상 OTP 인증번호",
-                    Content = input,
-                    PrimaryButtonText = "확인",
-                };
-
-                var result = await dlg.ShowAsync();
-                if (result == ContentDialogResult.Primary)
-                {
-                    await _webview.ExecuteScriptAsync(InputOtpScript(input.Text));
-                    await _webview.ExecuteScriptAsync(SubmitOtpScript);
-                }
-            });
+            await _webview!.DispatcherQueue.RunOrEnqueueAsync(ShowOtpDialogAsync);
         }
 
         IsBusy = false;
@@ -571,70 +638,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         try
         {
             // UI 스레드에서 ContentDialog 표시
-            await _webview!.DispatcherQueue.EnqueueAsync(async () =>
-            {
-                switch (args.Kind)
-                {
-                    case CoreWebView2ScriptDialogKind.Alert:
-                        {
-                            var dlg = new ContentDialog
-                            {
-                                XamlRoot = _currentWindow.Content.XamlRoot,
-                                Title = "알림",
-                                Content = args.Message,
-                                CloseButtonText = "확인"
-                            };
-
-                            await dlg.ShowAsync();
-                            args.Accept();
-                            break;
-                        }
-
-                    case CoreWebView2ScriptDialogKind.Confirm:
-                        {
-                            var dlg = new ContentDialog
-                            {
-                                XamlRoot = _currentWindow.Content.XamlRoot,
-                                Title = "확인",
-                                Content = args.Message,
-                                PrimaryButtonText = "확인",
-                                CloseButtonText = "취소"
-                            };
-
-                            var result = await dlg.ShowAsync();
-                            if (result == ContentDialogResult.Primary)
-                                args.Accept(); // true
-                                               // else: false (Accept 안함)
-                            break;
-                        }
-
-                    case CoreWebView2ScriptDialogKind.Prompt:
-                        {
-                            var input = new TextBox
-                            {
-                                Text = args.DefaultText ?? "",
-                                PlaceholderText = ""
-                            };
-
-                            var dlg = new ContentDialog
-                            {
-                                XamlRoot = _currentWindow.Content.XamlRoot,
-                                Title = "입력",
-                                Content = input,
-                                PrimaryButtonText = "확인",
-                                CloseButtonText = "취소"
-                            };
-
-                            var result = await dlg.ShowAsync();
-                            if (result == ContentDialogResult.Primary)
-                            {
-                                args.ResultText = input.Text; // prompt 결과 문자열
-                                args.Accept();
-                            }
-                            break;
-                        }
-                }
-            });
+            await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => HandleScriptDialogAsync(args));
         }
         finally
         {
