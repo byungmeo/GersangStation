@@ -518,25 +518,66 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private async Task ShowOtpDialogAsync()
     {
-        var input = new TextBox
+        var inputTextBox = new TextBox
         {
             Text = "",
-            PlaceholderText = "OTP 코드를 입력해주세요."
+            PlaceholderText = "OTP 코드 8자리를 입력해주세요."
+        };
+        var errorTextBox = new TextBlock
+        {
+            Visibility = Visibility.Collapsed
+        };
+        inputTextBox.BeforeTextChanging += (s, e) =>
+        {
+            foreach (char c in e.NewText)
+            {
+                if (c < '0' || c > '9')
+                {
+                    errorTextBox.Text = "숫자만 입력 가능합니다.";
+                    errorTextBox.Visibility = Visibility.Visible;
+                    e.Cancel = true;
+                    return;
+                }
+            }
+            errorTextBox.Visibility = Visibility.Collapsed;
         };
 
         var dlg = new ContentDialog
         {
             XamlRoot = _currentWindow.Content.XamlRoot,
             Title = "거상 OTP 인증번호",
-            Content = input,
+            Content = new StackPanel
+            {
+                Spacing = 8,
+                Children = { inputTextBox, errorTextBox }
+            },
             PrimaryButtonText = "확인",
+            CloseButtonText = "취소",
+            DefaultButton = ContentDialogButton.Primary
+        };
+        dlg.PrimaryButtonClick += (s, e) =>
+        {
+            string input = inputTextBox.Text;
+            bool invalid = string.IsNullOrEmpty(input) || input.Length != 8;
+            if (invalid)
+            {
+                errorTextBox.Text = "OTP 코드는 8자리입니다.";
+                errorTextBox.Visibility = Visibility.Visible;
+                e.Cancel = true;
+            }
         };
 
         var result = await dlg.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
-            await _webview.ExecuteScriptAsync(InputOtpScript(input.Text));
+            await _webview.ExecuteScriptAsync(InputOtpScript(inputTextBox.Text));
             await _webview.ExecuteScriptAsync(SubmitOtpScript);
+        } 
+        else
+        {
+            TryingLogin = false;
+            TryingGameStart = false;
+            _webview.NavigateToString(Url_Gersang_Main);
         }
     }
 
@@ -551,7 +592,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         XamlRoot = _currentWindow.Content.XamlRoot,
                         Title = "알림",
                         Content = args.Message,
-                        CloseButtonText = "확인"
+                        CloseButtonText = "확인",
+                        DefaultButton = ContentDialogButton.Close
                     };
 
                     await dlg.ShowAsync();
@@ -567,7 +609,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         Title = "확인",
                         Content = args.Message,
                         PrimaryButtonText = "확인",
-                        CloseButtonText = "취소"
+                        CloseButtonText = "취소",
+                        DefaultButton = ContentDialogButton.Primary
                     };
 
                     var result = await dlg.ShowAsync();
@@ -591,7 +634,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         Title = "입력",
                         Content = input,
                         PrimaryButtonText = "확인",
-                        CloseButtonText = "취소"
+                        CloseButtonText = "취소",
+                        DefaultButton = ContentDialogButton.Primary
                     };
 
                     var result = await dlg.ShowAsync();
@@ -620,6 +664,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             await _webview!.DispatcherQueue.RunOrEnqueueAsync(ShowOtpDialogAsync);
         }
 
+        // TODO: url.Contains("member/convert.gs")
+        // -> 메인 주소로 이동 (주민등록번호 파기로 인한 인증정보 없는 계정들 전용)
+
+        // TODO: url.Contains("loginCertUp.gs")
+        // -> 휴대폰 본인 인증 안내 및 브라우저탭으로 이동
+
         IsBusy = false;
     }
 
@@ -633,6 +683,14 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         Debug.WriteLine($"\t- ResultText: {args.ResultText}");
         Debug.WriteLine($"\t- Uri: {args.Uri}");
 #endif
+
+        // TODO: "아이디 또는 비밀번호 오류" 포함
+
+        // TODO: 해당IP는 로그인이 차단되었습니다. 고객센터에 문의하세요.
+        // -> 사용자에게 고객센터 문의 안내
+
+        // TODO: 5초 후에 재로그인 가능합니다.
+        // -> 아이디와 패스워드 재확인 후 재시도 안내 + 5초간 버튼 비활성화
 
         var deferral = args.GetDeferral();
         try
