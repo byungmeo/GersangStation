@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.SettingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main.Setting"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DataContext="{d:DesignInstance Type=local:SettingPage}"
+    mc:Ignorable="d">
+
+    <NavigationView
+        x:Name="SettingNavationView"
+        IsSettingsVisible="False"
+        IsTabStop="False"
+        PaneDisplayMode="Left"
+        SelectionChanged="SettingNavationView_SelectionChanged">
+        <NavigationView.MenuItems>
+            <NavigationViewItem
+                Content="계정"
+                Icon="People"
+                Tag="AccountSettingPage" />
+            <NavigationViewItem Content="클라이언트" Icon="Play">
+                <NavigationViewItem.MenuItems>
+                    <NavigationViewItem
+                        Content="경로 설정"
+                        Icon="Folder"
+                        Tag="InstallPathSettingPage" />
+                    <NavigationViewItem
+                        Content="패치"
+                        Icon="Download"
+                        Tag="GamePatchSettingPage" />
+                </NavigationViewItem.MenuItems>
+            </NavigationViewItem>
+            <NavigationViewItem
+                Content="브라우저"
+                Icon="World"
+                IsEnabled="False"
+                Tag="BrowserSettingPage" />
+            <NavigationViewItem
+                Content="알림"
+                Icon="Comment"
+                IsEnabled="False"
+                Tag="NotificationSettingPage" />
+            <NavigationViewItem
+                Content="모양"
+                Icon="View"
+                IsEnabled="False"
+                Tag="AppearanceSettingPage" />
+        </NavigationView.MenuItems>
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem
+                Content="고급 설정"
+                Icon="Setting"
+                IsEnabled="False"
+                Tag="AdvancedSettingPage" />
+            <NavigationViewItem
+                Content="도움말"
+                Icon="Help"
+                IsEnabled="False"
+                Tag="HelpPage" />
+            <NavigationViewItem
+                Content="후원"
+                Icon="Like"
+                IsEnabled="False"
+                Tag="SponsorPage" />
+            <NavigationViewItem IsEnabled="False" Tag="ProgramInfoPage">
+                <NavigationViewItem.Content>
+                    <StackPanel Orientation="Horizontal">
+                        <Image
+                            Width="17"
+                            Height="17"
+                            Source="/Assets/Square44x44Logo.png" />
+                        <TextBlock
+                            Margin="15,0,0,0"
+                            VerticalAlignment="Center"
+                            Text="프로그램 정보" />
+                    </StackPanel>
+                </NavigationViewItem.Content>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
+        <Frame x:Name="ContentFrame" />
+    </NavigationView>
+</Page>

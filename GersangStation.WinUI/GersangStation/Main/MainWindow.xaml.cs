@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
+using System.Diagnostics;
 
 namespace GersangStation.Main;
 
@@ -40,18 +41,17 @@ public sealed partial class MainWindow : Window
             case 0:
                 pageType = typeof(StationPage);
                 break;
-            //case 1:
-            //    pageType = typeof(WebViewPage);
-            //    break;
+            case 1:
+                pageType = typeof(WebViewPage);
+                break;
             //case 2:
             //    pageType = typeof(SamplePage3);
             //    break;
-            //case 3:
-            //    pageType = typeof(SamplePage4);
-            //    break;
-            default:
-                pageType = typeof(WebViewPage);
+            case 3:
+                pageType = typeof(Setting.SettingPage);
                 break;
+            default:
+                throw new System.Exception("invalid selectorbar selected index");
         }
 
         var slideNavigationTransitionEffect = currentSelectedIndex - previousSelectedIndex > 0 ? SlideNavigationTransitionEffect.FromRight : SlideNavigationTransitionEffect.FromLeft;

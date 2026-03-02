@@ -13,7 +13,7 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid>
+    <Grid x:Name="Root">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
@@ -23,6 +23,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
+        <!--  TitleBar Left Header  -->
         <StackPanel
             Grid.Row="0"
             Grid.Column="0"
@@ -38,7 +39,6 @@
                 VerticalAlignment="Center"
                 Text="거상 스테이션" />
         </StackPanel>
-
 
         <!--  SelectorBar  -->
         <SelectorBar
@@ -58,9 +58,12 @@
 
             <!--  플래너 바  -->
             <SelectorBarItem
-                Icon="Repair"
+                Icon="Calendar"
                 IsEnabled="False"
-                Text="준비 중..." />
+                Text="플래너" />
+
+            <!--  환경설정 바  -->
+            <SelectorBarItem Icon="Setting" Text="설정" />
         </SelectorBar>
 
         <!--  Frame  -->
