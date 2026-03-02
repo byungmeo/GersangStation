@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace GersangStation.Setup;
 
-public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSetupStepPage, INotifyPropertyChanged
+public sealed partial class AccountStepPage : Page, ISetupStepPage, IAsyncSetupStepPage, INotifyPropertyChanged
 {
     private enum UiState { Edit, Saving }
 
@@ -57,7 +57,7 @@ public sealed partial class AccountSettingPage : Page, ISetupStepPage, IAsyncSet
 
     public event EventHandler? StateChanged;
 
-    public AccountSettingPage()
+    public AccountStepPage()
     {
         InitializeComponent();
         LoadSavedAccounts();

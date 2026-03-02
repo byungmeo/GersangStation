@@ -96,7 +96,7 @@ public sealed partial class SetupWindow : Window
             SetupStep.Welcome => typeof(WelcomeStepPage),
             SetupStep.PathSelect => typeof(SetupGameStepPage),
             SetupStep.MultiClient => typeof(MultiClientStepPage),
-            SetupStep.AccountSetting => typeof(AccountSettingPage),
+            SetupStep.AccountSetting => typeof(AccountStepPage),
             SetupStep.Outro => typeof(IntroOutroStepPage),
             _ => throw new ArgumentOutOfRangeException(nameof(step), step, null)
         };

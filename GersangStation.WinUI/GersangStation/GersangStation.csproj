@@ -77,7 +77,7 @@
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Setup\AccountSettingPage.xaml">
+		<Page Update="Setup\AccountStepPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
