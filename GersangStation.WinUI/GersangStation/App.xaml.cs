@@ -64,6 +64,9 @@ namespace GersangStation
 
         private static void CenterAndActivateWindow(Window window)
         {
+            // 타이틀바 더블 클릭으로 인한 최대화 방지
+            window.PreventMaximizeOnTitleBarDoubleClick();
+
             AppWindow appWindow = window.AppWindow;
             var displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
             if (displayArea is not null)
@@ -73,10 +76,24 @@ namespace GersangStation
                 appWindow.Move(new Windows.Graphics.PointInt32(centeredX, centeredY));
             }
 
+            /*
+            HD:             1280 × 720
+            HD+:            1600 × 900
+            FHD (Full HD):  1920 × 1080
+            QHD (Quad HD):  2560 × 1440
+            4K UHD:         3840 × 2160
+            8K UHD:         7680 × 4320 
+            */
+            appWindow.Resize(new Windows.Graphics.SizeInt32(1600, 900));
+
+            appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
             if (appWindow.Presenter is OverlappedPresenter presenter)
             {
-                presenter.IsResizable = false;          // 크기 조절 금지
-                presenter.IsMaximizable = false;        // 최대화 버튼 비활성
+                presenter.PreferredMaximumWidth = 1600;
+                presenter.PreferredMaximumHeight = 900;
+                presenter.IsResizable = false;
+                presenter.IsMaximizable = false;
+                presenter.IsMinimizable = true;
             }
 
             appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
