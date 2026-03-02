@@ -50,7 +50,7 @@ public static class AppDataManager
         WriteTextToLocalFolder(AccountsFileName, json);
     }
 
-    public static IReadOnlyList<Account> LoadAccounts()
+    public static IList<Account> LoadAccounts()
     {
         string? json = ReadTextFromLocalFolder(AccountsFileName);
         if (string.IsNullOrWhiteSpace(json))

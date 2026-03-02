@@ -202,7 +202,7 @@ public sealed partial class AccountStepPage : Page, ISetupStepPage, IAsyncSetupS
 
     private void LoadSavedAccounts()
     {
-        IReadOnlyList<Account> accounts = AppDataManager.LoadAccounts();
+        IList<Account> accounts = AppDataManager.LoadAccounts();
 
         foreach (var account in accounts)
         {

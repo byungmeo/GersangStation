@@ -11,6 +11,8 @@
 
     <NavigationView
         x:Name="SettingNavationView"
+        IsBackButtonVisible="Collapsed"
+        IsPaneToggleButtonVisible="False"
         IsSettingsVisible="False"
         IsTabStop="False"
         PaneDisplayMode="Left"

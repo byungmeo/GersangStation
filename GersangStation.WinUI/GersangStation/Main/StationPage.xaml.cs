@@ -15,7 +15,7 @@ namespace GersangStation.Main
     {
         private bool _isInitializing = true;
 
-        public IReadOnlyList<Account> Accounts { get; private set; } = [];
+        public IList<Account> Accounts { get; private set; } = [];
 
         // SelectedServer Property
         private int _selectedServerIndex;

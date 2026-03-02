@@ -6,10 +6,152 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:GersangStation.Main.Setting"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Core.Models"
+    xmlns:sys="using:System"
     d:DataContext="{d:DesignInstance Type=local:AccountSettingPage}"
     mc:Ignorable="d">
 
-    <Grid>
-        <TextBlock Text="AccountSettingPage" />
+    <Page.Resources>
+        <CollectionViewSource x:Name="AccountsCVS" IsSourceGrouped="True" />
+
+        <DataTemplate x:Key="AccountListViewTemplate" x:DataType="models:Account">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Margin="12,6,0,0"
+                    HorizontalAlignment="Right"
+                    Text="아이디:" />
+                <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="12,0,0,6"
+                    HorizontalAlignment="Right"
+                    Text="별명:" />
+
+                <TextBlock
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Margin="12,6,0,0"
+                    x:Phase="1"
+                    Style="{ThemeResource BaseTextBlockStyle}"
+                    Text="{x:Bind Id}" />
+                <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Margin="12,0,0,6"
+                    x:Phase="2"
+                    Style="{ThemeResource BodyTextBlockStyle}"
+                    Text="{x:Bind Nickname}" />
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Margin="10,10,10,10" ColumnSpacing="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel
+                Grid.Row="0"
+                Orientation="Horizontal"
+                Spacing="5">
+                <Button
+                    x:Name="EditButton"
+                    Click="EditButton_Click"
+                    Content="수정"
+                    IsEnabled="{x:Bind Editable}" />
+                <Button
+                    x:Name="DeleteButton"
+                    Click="DeleteButton_Click"
+                    Content="삭제"
+                    IsEnabled="{x:Bind Deletable}" />
+            </StackPanel>
+            <ListView
+                x:Name="AccountListView"
+                Grid.Row="1"
+                VerticalAlignment="Top"
+                ItemTemplate="{StaticResource AccountListViewTemplate}"
+                ItemsSource="{x:Bind AccountsCVS.View, Mode=OneWay}"
+                SelectionChanged="AccountListView_SelectionChanged"
+                SelectionMode="Multiple">
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsStackPanel AreStickyGroupHeadersEnabled="True" />
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+                <ListView.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.HeaderTemplate>
+                            <DataTemplate x:DataType="models:AccountGroupInfoList">
+                                <Border AutomationProperties.AccessibilityView="Raw">
+                                    <TextBlock
+                                        AutomationProperties.AccessibilityView="Raw"
+                                        Style="{ThemeResource TitleTextBlockStyle}"
+                                        Text="{x:Bind Key}" />
+                                </Border>
+                            </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                    </GroupStyle>
+                </ListView.GroupStyle>
+            </ListView>
+        </Grid>
+
+        <Grid Grid.Column="1" RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBox Grid.Row="0" Header="아이디" />
+            <PasswordBox Grid.Row="1" Header="패스워드" />
+            <TextBox
+                Grid.Row="2"
+                Header="(선택) 닉네임"
+                PlaceholderText="예시) 상재, 장사, 생시, etc..." />
+            <TextBox
+                Grid.Row="3"
+                Header="(선택) 그룹 이름"
+                PlaceholderText="예시) 나, 동생, 1, 2, 3, etc..." />
+            <Button
+                x:Name="SaveButton"
+                Grid.Row="4"
+                Click="SaveButton_Click"
+                Content="저장"
+                Style="{StaticResource AccentButtonStyle}" />
+            <RichTextBlock
+                Grid.Row="5"
+                VerticalAlignment="Bottom"
+                FontStyle="Italic">
+                <Paragraph>
+                    본 프로그램은 비밀번호를 Windows 자격 증명 관리자를 통해 로컬에 저장하며, 운영체제의 보안 메커니즘에 의해 보호됩니다.
+                </Paragraph>
+                <Paragraph>또한, 계정 정보를 로컬을 제외한 개발자 서버 또는 제3자에게 별도로 제공 및 저장하지 않습니다.</Paragraph>
+                <Paragraph>예외로 자동 로그인을 위해 아이디 및 비밀번호가 거상 공식 홈페이지를 통해 전송될 수 있습니다.</Paragraph>
+                <Paragraph>
+                    <Hyperlink NavigateUri="https://cdn.storeedgefd.dsx.mp.microsoft.com/wus2/privacy-policy-storage/89348860/00014457469268396909/1152921505700581402/privacy_policy_f9fd3c87-ad00-4bb4-9c81-d5de0b962dae.txt">개인정보취급방침</Hyperlink>
+                    을 통해 자세한 정보를 확인하실 수 있습니다.</Paragraph>
+            </RichTextBlock>
+        </Grid>
     </Grid>
 </Page>
