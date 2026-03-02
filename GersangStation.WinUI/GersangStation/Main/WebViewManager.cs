@@ -670,6 +670,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         // TODO: url.Contains("loginCertUp.gs")
         // -> 휴대폰 본인 인증 안내 및 브라우저탭으로 이동
 
+        // TODO: url.Contains("pw_reset.gs")
+        // -> 필요하면 메인 주소로 이동 처리 (딱히 해야 할 이유는 없어보임)
+
         IsBusy = false;
     }
 
@@ -685,9 +688,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 #endif
 
         // TODO: "아이디 또는 비밀번호 오류" 포함
+        // -> 아이디와 패스워드 재확인 후 재시도 안내 + 5초간 버튼 비활성화
 
         // TODO: 해당IP는 로그인이 차단되었습니다. 고객센터에 문의하세요.
-        // -> 사용자에게 고객센터 문의 안내
+        // -> 사용자에게 고객센터 문의 안내 (또는 고객센터 페이지 이동 후 브라우저탭으로 전환)
 
         // TODO: 5초 후에 재로그인 가능합니다.
         // -> 아이디와 패스워드 재확인 후 재시도 안내 + 5초간 버튼 비활성화
