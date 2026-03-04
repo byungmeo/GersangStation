@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="GersangStation.Controls.ValidatedTextBox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Controls"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid RowSpacing="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <!--  Header  -->
+            <RowDefinition Height="Auto" />
+            <!--  InputRow  -->
+            <RowDefinition Height="Auto" />
+            <!--  Error  -->
+        </Grid.RowDefinitions>
+
+        <!--  Header  -->
+        <ContentPresenter
+            Grid.Row="0"
+            Content="{x:Bind Header, Mode=OneWay}"
+            Visibility="{x:Bind HeaderVisibility, Mode=OneWay}" />
+
+        <!--  InputRow  -->
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <!--  LeftContent  -->
+                <ColumnDefinition Width="*" />
+                <!--  TextBox  -->
+                <ColumnDefinition Width="Auto" />
+                <!--  RightContent  -->
+            </Grid.ColumnDefinitions>
+
+            <ContentPresenter
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                Content="{x:Bind InputRowLeftContent, Mode=OneWay}" />
+
+            <TextBox
+                x:Name="InnerTextBox"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                IsEnabled="{x:Bind InputIsEnabled, Mode=OneWay}"
+                PlaceholderText="{x:Bind PlaceholderText, Mode=OneWay}"
+                Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                TextChanged="InnerTextBox_TextChanged" />
+
+            <ContentPresenter
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Content="{x:Bind InputRowRightContent, Mode=OneWay}" />
+        </Grid>
+
+        <!--  Error  -->
+        <TextBlock
+            x:Name="ErrorTextBlock"
+            Grid.Row="2"
+            Text="{x:Bind ErrorText, Mode=OneWay}"
+            TextWrapping="Wrap"
+            Visibility="Collapsed" />
+    </Grid>
+</UserControl>

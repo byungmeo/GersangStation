@@ -11,11 +11,19 @@ public enum GameServer
 
 public class GameServerHelper
 {
+    public static string GetServerDisplayName(GameServer server) => server switch
+    {
+        GameServer.Korea_Live => "본섭",
+        GameServer.Korea_Test => "테섭",
+        GameServer.Korea_RnD => "천라섭",
+        _ => throw new ArgumentOutOfRangeException(nameof(server), server, null)
+    };
+
     public static List<GameServerOption> ServerOptions { get; } =
     [
-        new(GameServer.Korea_Live, "본섭"),
-        new(GameServer.Korea_Test, "테섭"),
-        new(GameServer.Korea_RnD, "천라섭")
+        new(GameServer.Korea_Live, GetServerDisplayName(GameServer.Korea_Live)),
+        new(GameServer.Korea_Test, GetServerDisplayName(GameServer.Korea_Test)),
+        new(GameServer.Korea_RnD, GetServerDisplayName(GameServer.Korea_RnD))
     ];
 
     public static List<GameServer> GameServers { get; } =
@@ -78,6 +86,22 @@ public class GameServerHelper
         GameServer.Korea_Live => $"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/Client_Patch_File/{relativePath}",
         GameServer.Korea_Test => $"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/Client_Patch_File/{relativePath}",
         GameServer.Korea_RnD => $"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/RnD_Server/Client_Patch_File/{relativePath}",
+        _ => throw new ArgumentOutOfRangeException(nameof(server), server, null)
+    };
+
+    public static string GetInstallPathPlaceholder(GameServer server) => server switch
+    {
+        GameServer.Korea_Live => @"C:\AKInteractive\Gersang",
+        GameServer.Korea_Test => @"C:\AKInteractive\GerTest",
+        GameServer.Korea_RnD => @"C:\AKInteractive\CheonRa",
+        _ => throw new ArgumentOutOfRangeException(nameof(server), server, null)
+    };
+
+    public static string GetServerFileName(GameServer server) => server switch
+    {
+        GameServer.Korea_Live => "GerSangKR.ini",
+        GameServer.Korea_Test => "GerSangKRTest.ini",
+        GameServer.Korea_RnD => "GerSangKRTest.ini", // 알아내야 함
         _ => throw new ArgumentOutOfRangeException(nameof(server), server, null)
     };
 }

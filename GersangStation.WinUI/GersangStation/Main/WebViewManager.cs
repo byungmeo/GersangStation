@@ -131,7 +131,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 throw new ArgumentOutOfRangeException(nameof(tryLoginResult), tryLoginResult, null);
         }
 
-        ClientSettings settings = AppDataManager.LoadClientSettings();
+        ClientSettings settings = AppDataManager.LoadServerClientSettings(AppDataManager.SelectedServer);
         string installPath = clientIndex switch
         {
             0 => settings.InstallPath,

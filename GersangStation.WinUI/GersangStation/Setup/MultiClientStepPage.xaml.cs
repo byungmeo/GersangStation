@@ -362,7 +362,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
     {
         InitializeComponent();
 
-        var clientSettings = AppDataManager.LoadClientSettings();
+        var clientSettings = AppDataManager.LoadServerClientSettings(GameServer.Korea_Live);
         string installPath = SetupFlowState.InstallPath?.Trim() ?? "";
 
         _expectedFolderName = ExtractLastFolderName(installPath);
@@ -406,7 +406,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
         {
             // 미사용 선택 시에도 드라이브 호환성(빠른 다클라 생성 가능 여부) 기준값을 저장합니다.
             AppDataManager.UseSymbol = IsDriveCompatible;
-            AppDataManager.SaveClientSettings(new ClientSettings(installPath, "", ""));
+            AppDataManager.SaveServerClientSettings(GameServer.Korea_Live, new ClientSettings() { InstallPath = installPath, UseSymbol = IsDriveCompatible });
             return true;
         }
 
@@ -431,8 +431,16 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
             client3Path = Folder2PreviewPath;
         }
 
-        AppDataManager.SaveClientSettings(new ClientSettings(installPath, client2Path, client3Path));
-
+        AppDataManager.SaveServerClientSettings(GameServer.Korea_Live, 
+            new ClientSettings() { 
+                InstallPath = installPath, 
+                UseMultiClient = true,
+                UseSymbol = IsDriveCompatible,
+                UseClient2 = true,
+                Client2Path = client2Path,
+                UseClient3 = true,
+                Client3Path = client3Path,
+            });
         return true;
     }
 
@@ -455,32 +463,15 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
 
     private void ResolveDriveCompatibility(string installPath)
     {
-        string format = "알 수 없음";
+        bool canUseSymbol = InstallPathHelper.CanUseSymbol(installPath, out string resolvedFormat);
 
-        try
-        {
-            string root = Path.GetPathRoot(installPath) ?? "";
-            if (!string.IsNullOrWhiteSpace(root))
-            {
-                var driveInfo = new DriveInfo(root);
-                format = driveInfo.DriveFormat;
-            }
-        }
-        catch
-        {
-            format = "알 수 없음";
-        }
+        DriveFormatText = $"현재 드라이브 포맷: {resolvedFormat}";
 
-        DriveFormatText = $"현재 드라이브 포맷: {format}";
-
-        bool compatible = string.Equals(format, "NTFS", StringComparison.OrdinalIgnoreCase) ||
-                          string.Equals(format, "UDF", StringComparison.OrdinalIgnoreCase);
-
-        IsDriveCompatible = compatible;
+        IsDriveCompatible = canUseSymbol;
         OnPropertyChanged(nameof(IsFastOptionEditable));
         OnPropertyChanged(nameof(ShowIncompatibleHelp));
 
-        if (compatible)
+        if (canUseSymbol)
         {
             DriveCompatibilityText = "✅ 빠른 다클라 생성 호환 드라이브입니다.";
             DriveCompatibilityBrush = BrushValid;

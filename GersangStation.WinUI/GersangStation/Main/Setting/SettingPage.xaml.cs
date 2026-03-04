@@ -1,11 +1,15 @@
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GersangStation.Main.Setting;
 
-public sealed partial class SettingPage : Page
+public sealed partial class SettingPage : Page, IConfirmLeave
 {
+    private object _previousSelectedItem;
+    private bool _suppressNavSelectionChanged = false;
+
     public static Dictionary<string, Type> PageDictionary { get; } = new Dictionary<string, Type>
     {
         {"GersangStation.Main.Setting.AccountSettingPage", typeof(GersangStation.Main.Setting.AccountSettingPage)},
@@ -23,11 +27,37 @@ public sealed partial class SettingPage : Page
     public SettingPage()
     {
         InitializeComponent();
+
+        _previousSelectedItem = SettingNavationView.SelectedItem;
     }
 
-    private void SettingNavationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    public async Task<bool> ConfirmLeaveAsync()
     {
-        var selectedItem = (Microsoft.UI.Xaml.Controls.NavigationViewItem)args.SelectedItem;
+        if (ContentFrame.Content is IConfirmLeave confirm)
+            return await confirm.ConfirmLeaveAsync();
+
+        return true;
+    }
+
+    private async void SettingNavationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        if(_suppressNavSelectionChanged)
+            return;
+
+        if (ContentFrame.Content is IConfirmLeave confirm)
+        {
+            bool canLeave = await confirm.ConfirmLeaveAsync();
+            if (!canLeave)
+            {
+                _suppressNavSelectionChanged = true;
+                sender.SelectedItem = _previousSelectedItem;
+                _suppressNavSelectionChanged = false;
+                return;
+            }
+        }
+
+        var selectedItem = (NavigationViewItem)args.SelectedItem;
+
         if (selectedItem != null)
         {
             string selectedItemTag = ((string)selectedItem.Tag);
@@ -35,6 +65,8 @@ public sealed partial class SettingPage : Page
             PageDictionary.TryGetValue(pageName, out Type? pageType);
             if (pageType is not null)
                 ContentFrame.Navigate(pageType);
+
+            _previousSelectedItem = selectedItem;
         }
     }
 }

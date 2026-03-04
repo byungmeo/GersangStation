@@ -1,6 +1,7 @@
 ﻿using Core.Models;
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Windows.Storage;
 
 namespace Core;
@@ -17,7 +18,8 @@ public static class AppDataManager
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        WriteIndented = true
+        WriteIndented = true,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     #region LocalSettings Properties
@@ -67,38 +69,43 @@ public static class AppDataManager
         }
     }
 
-    public static void SaveClientSettings(ClientSettings? settings)
-    {
-        var payload = settings ?? new ClientSettings();
-        string json = JsonSerializer.Serialize(payload, JsonOptions);
-        WriteTextToLocalFolder(ClientSettingsFileName, json);
-    }
-
-    public static ClientSettings LoadClientSettings()
+    private static AllServerClientSettings LoadAllServerClientSettings()
     {
         string? json = ReadTextFromLocalFolder(ClientSettingsFileName);
         if (string.IsNullOrWhiteSpace(json))
-            return new ClientSettings();
+            return new AllServerClientSettings();
 
         try
         {
-            var payload = JsonSerializer.Deserialize<ClientSettings>(json) ?? new ClientSettings();
-            return payload;
+            var result = JsonSerializer.Deserialize<AllServerClientSettings>(json, JsonOptions);
+            return result ?? new AllServerClientSettings();
         }
         catch
         {
-            return new ClientSettings();
+            return new AllServerClientSettings();
         }
     }
 
-    public static void SaveInstallPath(string installPath)
+    public static ClientSettings LoadServerClientSettings(GameServer server)
     {
-        var payload = LoadClientSettings();
-        ClientSettings updated = payload with { InstallPath = installPath ?? "" };
-        SaveClientSettings(updated);
+        var all = LoadAllServerClientSettings();
+        if (!all.Servers.TryGetValue(server, out var s))
+            return new ClientSettings();
+        return s;
     }
 
-    public static string LoadInstallPath() => LoadClientSettings().InstallPath;
+    private static void SaveAllServerClientSettings(AllServerClientSettings settings)
+    {
+        string json = JsonSerializer.Serialize(settings, JsonOptions);
+        WriteTextToLocalFolder(ClientSettingsFileName, json);
+    }
+
+    public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
+    {
+        var all = LoadAllServerClientSettings();
+        all.Servers[server] = settings;
+        SaveAllServerClientSettings(all);
+    }
 
     // -------------------------
     // PresetContainer (LocalFolder)

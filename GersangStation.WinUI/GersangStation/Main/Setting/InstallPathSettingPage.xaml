@@ -7,9 +7,29 @@
     xmlns:local="using:GersangStation.Main.Setting"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DataContext="{d:DesignInstance Type=local:InstallPathSettingPage}"
+    NavigationCacheMode="Disabled"
     mc:Ignorable="d">
 
     <Grid>
-        <TextBlock Text="InstallPathSettingPage" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <SelectorBar
+            x:Name="GameServerSelectorBar"
+            Grid.Row="0"
+            SelectionChanged="GameServerSelectorBar_SelectionChanged">
+            <SelectorBarItem
+                x:Name="SelectorBarItemPage1"
+                IsSelected="True"
+                Text="본섭" />
+            <SelectorBarItem x:Name="SelectorBarItemPage2" Text="테섭" />
+            <SelectorBarItem x:Name="SelectorBarItemPage3" Text="천라섭" />
+        </SelectorBar>
+
+        <Frame
+            x:Name="ContentFrame"
+            Grid.Row="1"
+            IsNavigationStackEnabled="False" />
     </Grid>
 </Page>

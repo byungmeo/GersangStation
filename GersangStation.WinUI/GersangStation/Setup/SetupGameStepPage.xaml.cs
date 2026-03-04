@@ -1,11 +1,11 @@
 using Core;
 using Core.Extractor;
+using Core.Models;
 using Core.Patch;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.Win32;
 using Microsoft.Windows.Storage.Pickers;
 using System;
 using System.ComponentModel;
@@ -287,7 +287,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
 
         var sw = Stopwatch.StartNew();
 
-        var clientSettings = AppDataManager.LoadClientSettings();
+        var clientSettings = AppDataManager.LoadServerClientSettings(GameServer.Korea_Live);
         string savedInstallPath = clientSettings.InstallPath;
         if (!string.IsNullOrWhiteSpace(savedInstallPath))
         {
@@ -534,7 +534,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
         _isConfirmed = true;
 
         // 확정 시 InstallPath만 LocalFolder 파일에 저장합니다.
-        AppDataManager.SaveInstallPath(InstallPath.Trim());
+        AppDataManager.SaveServerClientSettings(GameServer.Korea_Live, new ClientSettings() { InstallPath = InstallPath.Trim() });
 
         // 확정 표현(테두리 두께) 업데이트
         RecomputeInstall();
@@ -580,9 +580,9 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
         string charDir = Path.Combine(path, "char");
         if (Directory.Exists(charDir))
         {
-            if (IsSymlinkCheckSupported(path))
+            if (InstallPathHelper.CanUseSymbol(path, out _))
             {
-                if (IsReparsePointDirectory(charDir))
+                if (InstallPathHelper.IsSymbolDirectory(charDir))
                 {
                     // ✅ (...\Gersang3\ -> ...\Gersang\) 후보 검사
                     string? parent2 = null;
@@ -600,8 +600,8 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
                                 string candCharDir = Path.Combine(candidate, "char");
 
                                 if (!Directory.Exists(candCharDir) ||
-                                    !IsSymlinkCheckSupported(candidate) ||
-                                    !IsReparsePointDirectory(candCharDir))
+                                    !InstallPathHelper.CanUseSymbol(candidate, out _) ||
+                                    !InstallPathHelper.IsSymbolDirectory(candCharDir))
                                 {
                                     if (!string.Equals(InstallPath, candidate, StringComparison.OrdinalIgnoreCase))
                                     {
@@ -638,36 +638,6 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
         OnPropertyChanged(nameof(CanSkip));
         OnPropertyChanged(nameof(InstallSuggestVisibility));
         OnPropertyChanged(nameof(NextHintText));
-    }
-
-    private static bool IsSymlinkCheckSupported(string anyPathInDrive)
-    {
-        try
-        {
-            string root = Path.GetPathRoot(anyPathInDrive) ?? "";
-            if (root.Length == 0) return false;
-
-            var di = new DriveInfo(root);
-            string fmt = (di.DriveFormat ?? "").ToUpperInvariant();
-            return fmt == "NTFS" || fmt == "UDF";
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static bool IsReparsePointDirectory(string dirPath)
-    {
-        try
-        {
-            var di = new DirectoryInfo(dirPath);
-            return (di.Attributes & FileAttributes.ReparsePoint) != 0;
-        }
-        catch
-        {
-            return false;
-        }
     }
 
     // ---- 유효성: StarterPath ----

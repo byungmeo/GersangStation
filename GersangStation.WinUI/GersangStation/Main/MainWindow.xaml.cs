@@ -1,7 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
-using System.Diagnostics;
 
 namespace GersangStation.Main;
 
@@ -12,7 +11,9 @@ public sealed partial class MainWindow : Window
 {
     public WebViewManager? WebViewManager { get; private set; }
 
-    private int previousSelectedIndex = 0;
+    private bool _suppressNavSelectionChanged = false;
+    private int _previousSelectedIndex = 0;
+    private SelectorBarItem _previousSelectedItem;
 
     public MainWindow()
     {
@@ -23,6 +24,8 @@ public sealed partial class MainWindow : Window
         // WebViewPage 초기화를 위해 강제로 Navigate 호출
         ContentFrame.Navigate(typeof(WebViewPage), this);
         ContentFrame.Navigate(typeof(StationPage));
+
+        _previousSelectedItem = MainSelectorBar.SelectedItem;
     }
 
     internal void RegisterWebViewManager(WebViewManager webviewManager)
@@ -30,8 +33,23 @@ public sealed partial class MainWindow : Window
         WebViewManager = webviewManager;
     }
 
-    private void MainSelectorBar_SelectionChanged(Microsoft.UI.Xaml.Controls.SelectorBar sender, Microsoft.UI.Xaml.Controls.SelectorBarSelectionChangedEventArgs args)
+    private async void MainSelectorBar_SelectionChanged(Microsoft.UI.Xaml.Controls.SelectorBar sender, Microsoft.UI.Xaml.Controls.SelectorBarSelectionChangedEventArgs args)
     {
+        if (_suppressNavSelectionChanged)
+            return;
+
+        if (ContentFrame.Content is IConfirmLeave confirm)
+        {
+            bool canLeave = await confirm.ConfirmLeaveAsync();
+            if (!canLeave)
+            {
+                _suppressNavSelectionChanged = true;
+                sender.SelectedItem = _previousSelectedItem;
+                _suppressNavSelectionChanged = false;
+                return;
+            }
+        }
+
         SelectorBarItem selectedItem = sender.SelectedItem;
         int currentSelectedIndex = sender.Items.IndexOf(selectedItem);
         System.Type pageType;
@@ -54,10 +72,11 @@ public sealed partial class MainWindow : Window
                 throw new System.Exception("invalid selectorbar selected index");
         }
 
-        var slideNavigationTransitionEffect = currentSelectedIndex - previousSelectedIndex > 0 ? SlideNavigationTransitionEffect.FromRight : SlideNavigationTransitionEffect.FromLeft;
+        var slideNavigationTransitionEffect = currentSelectedIndex - _previousSelectedIndex > 0 ? SlideNavigationTransitionEffect.FromRight : SlideNavigationTransitionEffect.FromLeft;
 
         ContentFrame.Navigate(pageType, null, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
 
-        previousSelectedIndex = currentSelectedIndex;
+        _previousSelectedIndex = currentSelectedIndex;
+        _previousSelectedItem = sender.SelectedItem;
     }
 }

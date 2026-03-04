@@ -9,7 +9,7 @@ public class AccountGroupInfoList(IEnumerable<Account> items) : List<Account>(it
     public string Key { get; set; } = "";
 }
 
-public class Account(string id, string nickname = "", string groupName = "")
+public sealed class Account(string id, string nickname = "", string groupName = "")
 {
     [JsonPropertyName("Id")]
     public string Id { get; set; } = id;

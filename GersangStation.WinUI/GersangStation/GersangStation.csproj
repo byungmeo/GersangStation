@@ -20,6 +20,7 @@
 		<AppxBundleResourcesDirectoryCompilerFlags Condition="'$(AppxBundleResourcesDirectoryCompilerFlags)' == ''">/q ko-KR</AppxBundleResourcesDirectoryCompilerFlags>
 	</PropertyGroup>
 	<ItemGroup>
+		<None Remove="Controls\ValidatedTextBox.xaml" />
 		<None Remove="Main\Setting\AccountSettingPage.xaml" />
 		<None Remove="Main\Setting\GamePatchSettingPage.xaml" />
 		<None Remove="Main\Setting\InstallPathSettingPage.xaml" />
@@ -64,6 +65,11 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Core\Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Page Update="Main\Setting\ServerInstallPathSettingPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 	<ItemGroup>
 	  <Page Update="Main\Setting\GamePatchSettingPage.xaml">
@@ -134,6 +140,11 @@
 		<Page Update="Setup\WelcomeStepPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
+	</ItemGroup>
+	<ItemGroup>
+	  <Page Update="Controls\ValidatedTextBox.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 
 	<!--
