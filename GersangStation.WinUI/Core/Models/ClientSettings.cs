@@ -45,14 +45,6 @@ public sealed class ClientSettings : INotifyPropertyChanged
         set => SetProperty(ref _useClient2, value);
     }
 
-    [JsonIgnore] private string _client2Path = string.Empty;
-    [JsonPropertyName("Client2Path")]
-    public string Client2Path
-    {
-        get => _client2Path;
-        set => SetProperty(ref _client2Path, value);
-    }
-
     [JsonIgnore] private bool _useClient3 = false;
     [JsonPropertyName("UseClient3")]
     public bool UseClient3
@@ -61,13 +53,8 @@ public sealed class ClientSettings : INotifyPropertyChanged
         set => SetProperty(ref _useClient3, value);
     }
 
-    [JsonIgnore] private string _client3Path = string.Empty;
-    [JsonPropertyName("Client3Path")]
-    public string Client3Path
-    {
-        get => _client3Path;
-        set => SetProperty(ref _client3Path, value);
-    }
+    [JsonIgnore] public string Client2Path => $"{InstallPath}2";
+    [JsonIgnore] public string Client3Path => $"{InstallPath}3";
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? name = null)

@@ -32,26 +32,12 @@
             Text="{x:Bind ClientSettings.InstallPath, Mode=TwoWay}"
             TextChanged="TextBox_InstallPath_TextChanged">
             <controls:ValidatedTextBox.InputRowRightContent>
-                <StackPanel Orientation="Horizontal">
-                    <Button
-                        x:Name="Button_Path1_PickFolder"
-                        Margin="8,0,8,0"
-                        Click="Button_Path_PickFolder_Click"
-                        Content="..."
-                        Style="{StaticResource AccentButtonStyle}" />
-                    <Button
-                        x:Name="Button_AutoFind"
-                        Click="Button_AutoFind_Click"
-                        Content="자동 찾기" />
-                    <TeachingTip
-                        x:Name="TeachingTip_Button_AutoFind"
-                        Title="This is the title"
-                        IsLightDismissEnabled="True"
-                        PlacementMargin="20"
-                        PreferredPlacement="Auto"
-                        Subtitle="And this is the subtitle" />
-                </StackPanel>
-
+                <Button
+                    x:Name="Button_Path1_PickFolder"
+                    Margin="8,0,0,0"
+                    Click="Button_Path_PickFolder_Click"
+                    Content="..."
+                    Style="{StaticResource AccentButtonStyle}" />
             </controls:ValidatedTextBox.InputRowRightContent>
         </controls:ValidatedTextBox>
 
@@ -70,7 +56,7 @@
                     Toggled="ToggleSwitch_UseMultiClient_Toggled" />
             </Expander.Header>
             <Expander.Content>
-                <Grid RowSpacing="16">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -81,7 +67,8 @@
                     <StackPanel
                         Grid.Row="0"
                         Grid.ColumnSpan="2"
-                        Orientation="Vertical">
+                        Orientation="Vertical"
+                        Spacing="8">
                         <InfoBar
                             Title="효율적인 다클라 생성방식이란?"
                             IsOpen="{x:Bind ShowSymbolInfoBar, Mode=OneWay}"
@@ -100,88 +87,39 @@
                         </InfoBar>
                         <CheckBox
                             x:Name="CheckBox_UseSymbol"
-                            Grid.Row="0"
-                            Grid.ColumnSpan="2"
-                            Content="효율적인 다클라 생성방식 사용"
+                            Content="(권장) 효율적인 다클라 생성방식 사용"
                             IsChecked="{x:Bind ClientSettings.UseSymbol, Mode=TwoWay}"
                             IsEnabled="{x:Bind CanUseSymbol, Mode=OneWay}" />
-                    </StackPanel>
 
-                    <StackPanel
-                        Grid.Row="1"
-                        Grid.ColumnSpan="2"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                        <Button
-                            x:Name="Button_CreateMultiClient"
-                            Grid.Row="0"
-                            Grid.ColumnSpan="2"
-                            Click="Button_CreateMultiClient_Click"
-                            Content="다클라 생성"
-                            Style="{ThemeResource AccentButtonStyle}" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            Style="{ThemeResource CaptionTextBlockStyle}"
-                            Text="아직 다클라를 생성하지 않으셨나요?" />
-                    </StackPanel>
+                        <CheckBox
+                            x:Name="CheckBox_UseClient2"
+                            Content="2클라 사용"
+                            IsChecked="{x:Bind ClientSettings.UseClient2, Mode=TwoWay}"
+                            IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
 
-                    <controls:ValidatedTextBox
-                        x:Name="TextBox_Path2"
-                        Grid.Row="2"
-                        Grid.Column="1"
-                        Header="(선택) 2클라 설치경로"
-                        InputIsEnabled="{x:Bind TextBox_Path2_IsEnabled, Mode=OneWay}"
-                        PlaceholderText="예시) C:\AKInteractive\Gersang2"
-                        Text="{x:Bind ClientSettings.Client2Path, Mode=TwoWay}"
-                        TextChanged="TextBox_InstallPath_TextChanged">
-                        <controls:ValidatedTextBox.InputRowLeftContent>
-                            <CheckBox
-                                x:Name="CheckBox_UseClient2"
-                                MinWidth="35"
-                                MaxWidth="35"
-                                VerticalAlignment="Bottom"
-                                IsChecked="{x:Bind ClientSettings.UseClient2, Mode=TwoWay}"
-                                IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
-                        </controls:ValidatedTextBox.InputRowLeftContent>
-                        <controls:ValidatedTextBox.InputRowRightContent>
+                        <CheckBox
+                            x:Name="CheckBox_UseClient3"
+                            Content="3클라 사용"
+                            IsChecked="{x:Bind ClientSettings.UseClient3, Mode=TwoWay}"
+                            IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
+
+                        <RichTextBlock Margin="0,0,0,8">
+                            <Paragraph>안정적인 다클라 기능 제공을 위해 다클라 경로는 위와 같이 고정됩니다.</Paragraph>
+                        </RichTextBlock>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
                             <Button
-                                x:Name="Button_Path2_PickFolder"
-                                Margin="8,0,0,0"
-                                Click="Button_Path_PickFolder_Click"
-                                Content="..."
-                                IsEnabled="{x:Bind TextBox_Path2_IsEnabled, Mode=OneWay}"
-                                Style="{StaticResource AccentButtonStyle}" />
-                        </controls:ValidatedTextBox.InputRowRightContent>
-                    </controls:ValidatedTextBox>
-
-                    <controls:ValidatedTextBox
-                        x:Name="TextBox_Path3"
-                        Grid.Row="3"
-                        Grid.Column="1"
-                        Header="(선택) 3클라 설치경로"
-                        InputIsEnabled="{x:Bind TextBox_Path3_IsEnabled, Mode=OneWay}"
-                        PlaceholderText="예시) C:\AKInteractive\Gersang3"
-                        Text="{x:Bind ClientSettings.Client3Path, Mode=TwoWay}"
-                        TextChanged="TextBox_InstallPath_TextChanged">
-                        <controls:ValidatedTextBox.InputRowLeftContent>
-                            <CheckBox
-                                x:Name="CheckBox_UseClient3"
-                                MinWidth="35"
-                                MaxWidth="35"
-                                VerticalAlignment="Bottom"
-                                IsChecked="{x:Bind ClientSettings.UseClient3, Mode=TwoWay}"
-                                IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
-                        </controls:ValidatedTextBox.InputRowLeftContent>
-                        <controls:ValidatedTextBox.InputRowRightContent>
-                            <Button
-                                x:Name="Button_Path3_PickFolder"
-                                Margin="8,0,0,0"
-                                Click="Button_Path_PickFolder_Click"
-                                Content="..."
-                                IsEnabled="{x:Bind TextBox_Path3_IsEnabled, Mode=OneWay}"
-                                Style="{StaticResource AccentButtonStyle}" />
-                        </controls:ValidatedTextBox.InputRowRightContent>
-                    </controls:ValidatedTextBox>
+                                x:Name="Button_CreateMultiClient"
+                                Click="Button_CreateMultiClient_Click"
+                                Content="다클라 생성"
+                                IsEnabled="{x:Bind TextBox_Path1.IsValid, Mode=OneWay}"
+                                Style="{ThemeResource AccentButtonStyle}" />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                Text="아직 다클라를 생성하지 않으셨나요?" />
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
             </Expander.Content>
         </Expander>

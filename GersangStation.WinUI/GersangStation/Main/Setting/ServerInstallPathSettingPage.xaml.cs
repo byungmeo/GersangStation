@@ -7,6 +7,7 @@ using Microsoft.Windows.Storage.Pickers;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -90,8 +91,6 @@ namespace GersangStation.Main.Setting
             ClientSettings = AppDataManager.LoadServerClientSettings(currentGameServer);
             CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
             TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
-            TextBox_Path2.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}2";
-            TextBox_Path3.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}3";
         }
 
         private async Task<bool> ShowSaveDialog()
@@ -195,12 +194,20 @@ namespace GersangStation.Main.Setting
         private void TextBox_InstallPath_TextChanged(object sender, TextChangedEventArgs e)
         {
             var textBox = (ValidatedTextBox)sender;
-
-            bool isOrgPath = textBox == TextBox_Path1;
-            bool useSymbol = CheckBox_UseSymbol.IsEnabled && (CheckBox_UseSymbol.IsChecked ?? false);
-            bool isValid = GameClientHelper.IsValidInstallPath(currentGameServer, textBox.Text, isOrgPath, useSymbol, out string reason);
+            bool isValid = GameClientHelper.IsValidInstallPath(currentGameServer, textBox.Text, out string reason);
             textBox.IsValid = isValid;
             textBox.ErrorText = reason;
+            OnPropertyChanged(nameof(textBox.IsValid));
+            if (isValid)
+            {
+                CheckBox_UseClient2.Content = $"2클라 사용 {textBox.Text}2";
+                CheckBox_UseClient3.Content = $"3클라 사용 {textBox.Text}3";
+            } 
+            else
+            {
+                CheckBox_UseClient2.Content = $"2클라 사용";
+                CheckBox_UseClient3.Content = $"3클라 사용";
+            }
         }
 
         private async void Button_Path_PickFolder_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -224,55 +231,12 @@ namespace GersangStation.Main.Setting
                 var folder = await picker.PickSingleFolderAsync();
                 if (folder is not null)
                 {
-                    if (button == Button_Path1_PickFolder)
-                    {
-                        TextBox_Path1.Text = folder.Path;
-                    }
-                    else if (button == Button_Path2_PickFolder)
-                    {
-                        TextBox_Path2.Text = folder.Path;
-                    }
-                    else
-                    {
-                        TextBox_Path3.Text = folder.Path;
-                    }
+                    TextBox_Path1.Text = folder.Path;
                 }
 
                 // re-enable the button
                 button.IsEnabled = true;
             }
-
-        }
-
-        private void Button_AutoFind_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-        {
-            string teachingTipTitle;
-            string teachingTipSubtitle;
-
-            string? foundPath = RegistryHelper.GetInstallPathFromRegistry(currentGameServer);
-            if (foundPath is null)
-            {
-                teachingTipTitle = "찾기 실패";
-                teachingTipSubtitle = "거상을 플레이한 적이 없어 경로를 찾는데 실패했습니다.";
-            }
-            else
-            {
-                bool isValid = GameClientHelper.IsValidInstallPath(currentGameServer, foundPath, true, ClientSettings.UseSymbol, out string reason);
-                if (isValid)
-                {
-                    teachingTipTitle = "찾기 성공";
-                    teachingTipSubtitle = "거상 플레이 이력을 바탕으로 경로를 찾는데 성공했습니다.";
-                }
-                else
-                {
-                    teachingTipTitle = "찾기 실패";
-                    teachingTipSubtitle = $"경로를 찾았지만 유효한 메인 클라이언트 경로가 아닙니다.\n직접 폴더를 선택해주세요.\n{foundPath}";
-                }
-            }
-
-            TeachingTip_Button_AutoFind.Title = teachingTipTitle;
-            TeachingTip_Button_AutoFind.Subtitle = teachingTipSubtitle;
-            TeachingTip_Button_AutoFind.IsOpen = true;
         }
     }
 }

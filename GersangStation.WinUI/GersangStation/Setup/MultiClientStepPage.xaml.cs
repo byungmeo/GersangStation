@@ -437,9 +437,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
                 UseMultiClient = true,
                 UseSymbol = IsDriveCompatible,
                 UseClient2 = true,
-                Client2Path = client2Path,
-                UseClient3 = true,
-                Client3Path = client3Path,
+                UseClient3 = true
             });
         return true;
     }
