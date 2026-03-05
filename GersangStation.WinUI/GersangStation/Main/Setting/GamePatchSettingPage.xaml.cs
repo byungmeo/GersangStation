@@ -228,8 +228,20 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             ProgressValue = 0;
             ProgressText = "패치를 준비하는 중...";
 
-            await RunDummyPatchAsync(_patchCts.Token);
+            var patchProgress = new Progress<PatchProgress>(p =>
+            {
+                ProgressValue = Math.Clamp(p.Percentage, 0, ProgressMaximum);
+                ProgressText = p.Message;
+            });
 
+            await PatchHelper.PatchAsync(
+                server: AppDataManager.SelectedServer,
+                currentClientVersion: _currentClientVersion,
+                cleanupTemp: ShouldDeleteTemp,
+                progress: patchProgress,
+                ct: _patchCts.Token);
+
+            ProgressValue = ProgressMaximum;
             ProgressText = "패치가 완료되었습니다.";
         }
         catch (OperationCanceledException)
@@ -251,20 +263,6 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             return;
 
         _patchCts?.Cancel();
-    }
-
-    // TODO: 삭제
-    private async Task RunDummyPatchAsync(CancellationToken cancellationToken)
-    {
-        for (int i = 1; i <= 100; i++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            ProgressValue = i;
-            ProgressText = $"패치 진행 중... {i}%";
-
-            await Task.Delay(30, cancellationToken);
-        }
     }
 
     private async void Button_Refresh_Click(object sender, RoutedEventArgs e)

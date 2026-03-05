@@ -14,6 +14,7 @@ public static class PatchDownloaderStage
         string tempRoot,
         GameServer server,                 // 예: https://.../Gersang/Patch/Gersang_Server
         int maxConcurrency,
+        Action<int, int>? onFileDownloaded,
         CancellationToken ct)
     {
         if (plan is null) throw new ArgumentNullException(nameof(plan));
@@ -37,6 +38,8 @@ public static class PatchDownloaderStage
 
         // enqueue tasks 모아서 await
         var tasks = new List<Task>();
+        int totalFileCount = plan.ByVersion.Values.Sum(files => files.Count);
+        int completedFileCount = 0;
 
         try
         {
@@ -70,7 +73,23 @@ public static class PatchDownloaderStage
                         TempPath: temp,
                         Overwrite: true);
 
-                    tasks.Add(manager.EnqueueAsync(url, dest, options, progress: null, ct));
+                    int completionNotified = 0;
+                    IProgress<DownloadProgress>? progress = onFileDownloaded is null
+                        ? null
+                        : new Progress<DownloadProgress>(p =>
+                        {
+                            long totalBytes = p.TotalBytes ?? 0;
+                            if (totalBytes <= 0 || p.BytesReceived < totalBytes)
+                                return;
+
+                            if (Interlocked.CompareExchange(ref completionNotified, 1, 0) != 0)
+                                return;
+
+                            int completed = Interlocked.Increment(ref completedFileCount);
+                            onFileDownloaded(completed, totalFileCount);
+                        });
+
+                    tasks.Add(manager.EnqueueAsync(url, dest, options, progress: progress, ct));
                 }
             }
 

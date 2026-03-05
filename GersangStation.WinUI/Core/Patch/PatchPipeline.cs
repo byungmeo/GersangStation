@@ -29,6 +29,32 @@ public static class PatchPipeline
             tempRoot,
             maxConcurrency,
             maxExtractRetryCount,
+            progress: null,
+            cleanupTemp: cleanupTemp);
+    }
+
+    /// <summary>
+    /// <see cref="CancellationToken"/>을 모르는 호출자를 위한 간편 오버로드입니다.
+    /// 내부적으로 <see cref="CancellationToken.None"/>을 사용합니다.
+    /// </summary>
+    public static Task RunPatchFromServerAsync(
+        int currentClientVersion,
+        GameServer server,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        int maxExtractRetryCount,
+        IProgress<PatchProgress>? progress,
+        bool cleanupTemp = true)
+    {
+        return RunPatchFromServerAsync(
+            currentClientVersion,
+            server,
+            installRoot,
+            tempRoot,
+            maxConcurrency,
+            maxExtractRetryCount,
+            progress,
             CancellationToken.None,
             cleanupTemp);
     }
@@ -47,6 +73,33 @@ public static class PatchPipeline
         CancellationToken ct,
         bool cleanupTemp = true)
     {
+        return RunPatchFromServerAsync(
+            currentClientVersion,
+            server,
+            installRoot,
+            tempRoot,
+            maxConcurrency,
+            maxExtractRetryCount,
+            progress: null,
+            ct: ct,
+            cleanupTemp: cleanupTemp);
+    }
+
+    /// <summary>
+    /// 서버 메타(vsn.dat.gsz + Client_info_File/{version})를 읽어
+    /// 다운로드/병합/압축해제 파이프라인을 실행한다.
+    /// </summary>
+    public static Task RunPatchFromServerAsync(
+        int currentClientVersion,
+        GameServer server,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        int maxExtractRetryCount,
+        IProgress<PatchProgress>? progress,
+        CancellationToken ct,
+        bool cleanupTemp = true)
+    {
         return RunPatchAsync(
             currentClientVersion: currentClientVersion,
             server: server,
@@ -54,6 +107,7 @@ public static class PatchPipeline
             tempRoot: tempRoot,
             maxConcurrency: maxConcurrency,
             maxExtractRetryCount: maxExtractRetryCount,
+            progress: progress,
             ct: ct,
             cleanupTemp: cleanupTemp);
     }
@@ -78,8 +132,66 @@ public static class PatchPipeline
             tempRoot,
             maxConcurrency,
             maxExtractRetryCount,
+            progress: null,
+            cleanupTemp: cleanupTemp);
+    }
+
+    /// <summary>
+    /// <see cref="CancellationToken"/>을 모르는 호출자를 위한 간편 오버로드입니다.
+    /// 내부적으로 <see cref="CancellationToken.None"/>을 사용합니다.
+    /// </summary>
+    public static Task RunPatchAsync(
+        int currentClientVersion,
+        GameServer server,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        int maxExtractRetryCount,
+        IProgress<PatchProgress>? progress,
+        bool cleanupTemp = true)
+    {
+        return RunPatchAsync(
+            currentClientVersion,
+            server,
+            installRoot,
+            tempRoot,
+            maxConcurrency,
+            maxExtractRetryCount,
+            progress,
             CancellationToken.None,
             cleanupTemp);
+    }
+
+    /// <summary>
+    /// 패치 파일 다운로드 + (버전 오름차순) 압축 해제 + 임시폴더 정리.
+    ///
+    /// <para>CancellationToken은 "중간에 멈추고 싶을 때" 전달하는 취소 신호입니다.</para>
+    /// <para>취소를 쓰지 않으면 간편 오버로드(토큰 없는 메서드)를 사용해도 됩니다.</para>
+    ///
+    /// 1) vsn.dat.gsz로 최신 버전 조회
+    /// 2) 현재+1..최신 버전의 Client_info_File 수집
+    /// 3) 이후 다운로드/압축해제 파이프라인 실행
+    /// </summary>
+    public static Task RunPatchAsync(
+        int currentClientVersion,
+        GameServer server,
+        string installRoot,
+        string tempRoot,
+        int maxConcurrency,
+        int maxExtractRetryCount,
+        CancellationToken ct,
+        bool cleanupTemp = true)
+    {
+        return RunPatchAsync(
+            currentClientVersion,
+            server,
+            installRoot,
+            tempRoot,
+            maxConcurrency,
+            maxExtractRetryCount,
+            progress: null,
+            ct: ct,
+            cleanupTemp: cleanupTemp);
     }
 
     /// <summary>
@@ -99,6 +211,7 @@ public static class PatchPipeline
         string tempRoot,
         int maxConcurrency,
         int maxExtractRetryCount,
+        IProgress<PatchProgress>? progress,
         CancellationToken ct,
         bool cleanupTemp = true)
     {
@@ -118,10 +231,16 @@ public static class PatchPipeline
             Timeout = TimeSpan.FromMinutes(5)
         };
 
+        progress?.Report(new PatchProgress(0, "최신 버전 정보를 확인하는 중..."));
+
         int latestServerVersion = await ResolveLatestServerVersionAsync(http, server, tempRoot, maxExtractRetryCount, ct).ConfigureAwait(false);
         if (latestServerVersion < currentClientVersion)
+        {
+            progress?.Report(new PatchProgress(100, "이미 최신 버전입니다."));
             return;
+        }
 
+        progress?.Report(new PatchProgress(5, "패치 파일 목록을 준비하는 중..."));
         var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, server, ct).ConfigureAwait(false);
 
         try
@@ -132,17 +251,27 @@ public static class PatchPipeline
             // 3) 최신 우선 병합 + 5) 버전 오름차순 해제용 ExtractPlan 생성
             // -----------------------------------------------------------------
             var plan = PatchPlanBuilder.BuildExtractPlan(entriesByVersion);
+            int totalFileCount = plan.ByVersion.Values.Sum(files => files.Count);
+            int extractedFileCount = 0;
 
             ct.ThrowIfCancellationRequested();
 
             // -----------------------------------------------------------------
             // 4) 계획에 포함된 .gsz 다운로드 (병렬 OK)
             // -----------------------------------------------------------------
+            progress?.Report(new PatchProgress(10, "패치 파일을 다운로드하는 중..."));
             await PatchDownloaderStage.DownloadAllAsync(
                 plan,
                 tempRoot: tempRoot,
                 server: server,
                 maxConcurrency: maxConcurrency,
+                onFileDownloaded: (completed, total) =>
+                {
+                    double percent = total <= 0
+                        ? 70
+                        : 10 + (completed * 60.0 / total);
+                    progress?.Report(new PatchProgress(percent, $"패치 파일 다운로드 중... ({completed}/{total})"));
+                },
                 ct: ct);
 
             ct.ThrowIfCancellationRequested();
@@ -150,6 +279,7 @@ public static class PatchPipeline
             // -----------------------------------------------------------------
             // 5) 압축 해제: 반드시 "버전 오름차순"으로, 설치 경로에 덮어쓰기
             // -----------------------------------------------------------------
+            progress?.Report(new PatchProgress(70, "패치 파일 압축 해제를 시작합니다..."));
             foreach (var kv in plan.ByVersion) // 오름차순
             {
                 int version = kv.Key;
@@ -168,6 +298,12 @@ public static class PatchPipeline
                         maxExtractRetryCount: maxExtractRetryCount,
                         http: http,
                         ct: ct).ConfigureAwait(false);
+
+                    extractedFileCount++;
+                    double percent = totalFileCount <= 0
+                        ? 100
+                        : 70 + (extractedFileCount * 30.0 / totalFileCount);
+                    progress?.Report(new PatchProgress(percent, $"패치 적용 중... ({extractedFileCount}/{totalFileCount})"));
                 }
             }
 
@@ -176,6 +312,8 @@ public static class PatchPipeline
             // -----------------------------------------------------------------
             if (cleanupTemp)
                 TryDeleteDirectory(tempRoot);
+
+            progress?.Report(new PatchProgress(100, "패치가 완료되었습니다."));
         }
         catch (OperationCanceledException)
         {
