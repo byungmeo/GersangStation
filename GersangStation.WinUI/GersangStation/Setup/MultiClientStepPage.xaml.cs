@@ -463,7 +463,7 @@ public sealed partial class MultiClientStepPage : Page, ISetupStepPage, IAsyncSe
 
     private void ResolveDriveCompatibility(string installPath)
     {
-        bool canUseSymbol = InstallPathHelper.CanUseSymbol(installPath, out string resolvedFormat);
+        bool canUseSymbol = GameClientHelper.CanUseSymbol(installPath, out string resolvedFormat);
 
         DriveFormatText = $"현재 드라이브 포맷: {resolvedFormat}";
 

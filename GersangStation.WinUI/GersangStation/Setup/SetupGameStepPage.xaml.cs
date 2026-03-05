@@ -581,9 +581,9 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
         string charDir = Path.Combine(path, "char");
         if (Directory.Exists(charDir))
         {
-            if (InstallPathHelper.CanUseSymbol(path, out _))
+            if (GameClientHelper.CanUseSymbol(path, out _))
             {
-                if (InstallPathHelper.IsSymbolDirectory(charDir))
+                if (GameClientHelper.IsSymbolDirectory(charDir))
                 {
                     // ✅ (...\Gersang3\ -> ...\Gersang\) 후보 검사
                     string? parent2 = null;
@@ -601,8 +601,8 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
                                 string candCharDir = Path.Combine(candidate, "char");
 
                                 if (!Directory.Exists(candCharDir) ||
-                                    !InstallPathHelper.CanUseSymbol(candidate, out _) ||
-                                    !InstallPathHelper.IsSymbolDirectory(candCharDir))
+                                    !GameClientHelper.CanUseSymbol(candidate, out _) ||
+                                    !GameClientHelper.IsSymbolDirectory(candCharDir))
                                 {
                                     if (!string.Equals(InstallPath, candidate, StringComparison.OrdinalIgnoreCase))
                                     {

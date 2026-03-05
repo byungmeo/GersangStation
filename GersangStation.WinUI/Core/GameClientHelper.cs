@@ -2,7 +2,7 @@
 
 namespace Core
 {
-    public static class InstallPathHelper
+    public static class GameClientHelper
     {
         public static bool CanUseSymbol(string anyPathInDrive, out string resolvedFormat)
         {

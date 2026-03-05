@@ -88,7 +88,7 @@ namespace GersangStation.Main.Setting
 
             currentGameServer = (GameServer)e.Parameter;
             ClientSettings = AppDataManager.LoadServerClientSettings(currentGameServer);
-            CanUseSymbol = InstallPathHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
+            CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
             TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
             TextBox_Path2.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}2";
             TextBox_Path3.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}3";
@@ -153,7 +153,7 @@ namespace GersangStation.Main.Setting
 
             if (e.PropertyName == nameof(ClientSettings.InstallPath))
             {
-                CanUseSymbol = InstallPathHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
+                CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
             }
 
             if (e.PropertyName == nameof(ClientSettings.UseMultiClient) ||
@@ -198,7 +198,7 @@ namespace GersangStation.Main.Setting
 
             bool isOrgPath = textBox == TextBox_Path1;
             bool useSymbol = CheckBox_UseSymbol.IsEnabled && (CheckBox_UseSymbol.IsChecked ?? false);
-            bool isValid = InstallPathHelper.IsValidInstallPath(currentGameServer, textBox.Text, isOrgPath, useSymbol, out string reason);
+            bool isValid = GameClientHelper.IsValidInstallPath(currentGameServer, textBox.Text, isOrgPath, useSymbol, out string reason);
             textBox.IsValid = isValid;
             textBox.ErrorText = reason;
         }
@@ -257,7 +257,7 @@ namespace GersangStation.Main.Setting
             }
             else
             {
-                bool isValid = InstallPathHelper.IsValidInstallPath(currentGameServer, foundPath, true, ClientSettings.UseSymbol, out string reason);
+                bool isValid = GameClientHelper.IsValidInstallPath(currentGameServer, foundPath, true, ClientSettings.UseSymbol, out string reason);
                 if (isValid)
                 {
                     teachingTipTitle = "찾기 성공";
