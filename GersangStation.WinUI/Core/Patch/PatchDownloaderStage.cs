@@ -7,13 +7,13 @@ public static class PatchDownloaderStage
 {
     /// <summary>
     /// ExtractPlan에 포함된 파일들을 TempRoot/{version}/ 아래로 다운로드.
-    /// 작업이 취소되면 TempRoot 전체 삭제(best-effort).
     /// </summary>
     public static async Task DownloadAllAsync(
         PatchExtractPlan plan,
         string tempRoot,
         GameServer server,                 // 예: https://.../Gersang/Patch/Gersang_Server
         int maxConcurrency,
+        Action<int, int>? onFileDownloaded,
         CancellationToken ct)
     {
         if (plan is null) throw new ArgumentNullException(nameof(plan));
@@ -37,63 +37,58 @@ public static class PatchDownloaderStage
 
         // enqueue tasks 모아서 await
         var tasks = new List<Task>();
+        int totalFileCount = plan.ByVersion.Values.Sum(files => files.Count);
+        int completedFileCount = 0;
 
-        try
+        foreach (var kv in plan.ByVersion) // SortedDictionary => 오름차순
         {
-            foreach (var kv in plan.ByVersion) // SortedDictionary => 오름차순
+            ct.ThrowIfCancellationRequested();
+
+            int version = kv.Key;
+            var files = kv.Value;
+
+            string versionDir = Path.Combine(tempRoot, version.ToString());
+            Directory.CreateDirectory(versionDir);
+
+            foreach (var f in files)
             {
                 ct.ThrowIfCancellationRequested();
 
-                int version = kv.Key;
-                var files = kv.Value;
+                // URL: .../Client_Patch_File/{경로}/{파일명}
+                // patchBaseUri = .../Gersang/Patch/Gersang_Server 라고 두면:
+                // => {patchBaseUri}/Client_Patch_File/...
+                var url = new Uri(GameServerHelper.GetPatchFileUrl(server, f.RelativeDir + f.CompressedFileName));
 
-                string versionDir = Path.Combine(tempRoot, version.ToString());
-                Directory.CreateDirectory(versionDir);
+                string dest = Path.Combine(versionDir, f.CompressedFileName);
+                string temp = dest + ".crdownload";
 
-                foreach (var f in files)
-                {
-                    ct.ThrowIfCancellationRequested();
+                if (File.Exists(dest)) File.Delete(dest);
+                if (File.Exists(temp)) File.Delete(temp);
 
-                    // URL: .../Client_Patch_File/{경로}/{파일명}
-                    // patchBaseUri = .../Gersang/Patch/Gersang_Server 라고 두면:
-                    // => {patchBaseUri}/Client_Patch_File/...
-                    
-                    var url = new Uri(GameServerHelper.GetPatchFileUrl(server, f.RelativeDir + f.CompressedFileName));
+                var options = new DownloadOptions(
+                    TempPath: temp,
+                    Overwrite: true);
 
-                    string dest = Path.Combine(versionDir, f.CompressedFileName);
-                    string temp = dest + ".crdownload";
+                int completionNotified = 0;
+                IProgress<DownloadProgress>? progress = onFileDownloaded is null
+                    ? null
+                    : new Progress<DownloadProgress>(p =>
+                    {
+                        long totalBytes = p.TotalBytes ?? 0;
+                        if (totalBytes <= 0 || p.BytesReceived < totalBytes)
+                            return;
 
-                    if (File.Exists(dest)) File.Delete(dest);
-                    if (File.Exists(temp)) File.Delete(temp);
+                        if (Interlocked.CompareExchange(ref completionNotified, 1, 0) != 0)
+                            return;
 
-                    var options = new DownloadOptions(
-                        TempPath: temp,
-                        Overwrite: true);
+                        int completed = Interlocked.Increment(ref completedFileCount);
+                        onFileDownloaded(completed, totalFileCount);
+                    });
 
-                    tasks.Add(manager.EnqueueAsync(url, dest, options, progress: null, ct));
-                }
+                tasks.Add(manager.EnqueueAsync(url, dest, options, progress: progress, ct));
             }
+        }
 
-            await Task.WhenAll(tasks).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            // “작업 취소 시 임시 폴더 삭제” 요구 반영
-            TryDeleteDirectory(tempRoot);
-            throw;
-        }
-    }
-
-    private static void TryDeleteDirectory(string path)
-    {
-        try
-        {
-            if (Directory.Exists(path))
-                Directory.Delete(path, recursive: true);
-        }
-        catch
-        {
-            // best-effort
-        }
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 }

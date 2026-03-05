@@ -83,6 +83,19 @@ public static class PatchHelper
     /// </summary>
     public static Task PatchAsync(GameServer server, int currentClientVersion, bool cleanupTemp, CancellationToken ct = default)
     {
+        return PatchAsync(server, currentClientVersion, cleanupTemp, progress: null, ct: ct);
+    }
+
+    /// <summary>
+    /// 패치를 수행합니다. 상위 계층에서는 현재 버전만 전달하면 됩니다.
+    /// </summary>
+    public static Task PatchAsync(
+        GameServer server,
+        int currentClientVersion,
+        bool cleanupTemp,
+        IProgress<PatchProgress>? progress = null,
+        CancellationToken ct = default)
+    {
         // TODO: 고급 설정에서 불러오기
         int maxConcurrency = 2;
         int maxExtractRetryCount = 2;
@@ -95,6 +108,7 @@ public static class PatchHelper
             tempRoot: clientSettings.TempPath,
             maxConcurrency: maxConcurrency,
             maxExtractRetryCount: maxExtractRetryCount,
+            progress: progress,
             ct: ct,
             cleanupTemp: cleanupTemp);
     }
