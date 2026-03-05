@@ -528,7 +528,23 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         CanGoForward = sender.CanGoForward;
     }
 
-    private async Task ShowOtpDialogAsync()
+    private async void ContentDialog_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContentDialog dialog)
+            return;
+
+        for (int seconds = 5; seconds >= 1; --seconds)
+        {
+            dialog.PrimaryButtonText = $"확인({seconds})";
+            dialog.IsPrimaryButtonEnabled = false;
+            await Task.Delay(1000);
+        }
+
+        dialog.PrimaryButtonText = "확인";
+        dialog.IsPrimaryButtonEnabled = true;
+    }
+
+    private async Task ShowOtpDialogAsync(bool reEnter = false)
     {
         var inputTextBox = new TextBox
         {
@@ -579,7 +595,14 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             }
         };
 
+        if (reEnter)
+        {
+            // 5초 동안 확인 버튼 잠금
+            dlg.Loaded += ContentDialog_Loaded;
+        }
+            
         var result = await dlg.ShowAsync();
+        dlg.Loaded -= ContentDialog_Loaded;
         if (result == ContentDialogResult.Primary)
         {
             await _webview.ExecuteScriptAsync(InputOtpScript(inputTextBox.Text));
@@ -589,7 +612,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         {
             TryingLogin = false;
             TryingGameStart = false;
-            _webview.NavigateToString(Url_Gersang_Main);
+            _webview.Source = new Uri(Url_Gersang_Main);
         }
     }
 
@@ -673,7 +696,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         await UpdateLoginStateByCookieAsync();
         if (TryingLogin && _currentSource.Contains(Url_Gersang_Otp))
         {
-            await _webview!.DispatcherQueue.RunOrEnqueueAsync(ShowOtpDialogAsync);
+            await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => ShowOtpDialogAsync(false));
         }
 
         // TODO: sender.DocumentTitle.Contains("점검")
@@ -714,12 +737,17 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         var deferral = args.GetDeferral();
         try
         {
-            // UI 스레드에서 ContentDialog 표시
             await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => HandleScriptDialogAsync(args));
         }
         finally
         {
             deferral.Complete();
+        }
+
+        if (args.Message.Contains("인증번호가 다릅니다"))
+        {
+            await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => ShowOtpDialogAsync(true));
+            return;
         }
     }
 
