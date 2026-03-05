@@ -25,23 +25,23 @@ public static class AppDataManager
     #region LocalSettings Properties
     public static bool IsSetupCompleted
     {
-        get => LoadLocalSetting(SetupCompleted_SettingKey, false);
+        get => LoadLocalSetting(SetupCompleted_SettingKey, defaultValue: false);
         set => SaveLocalSetting(SetupCompleted_SettingKey, value);
     }
     public static bool UseSymbol
     {
-        get => LoadLocalSetting(UseSymbol_SettingKey, true);
+        get => LoadLocalSetting(UseSymbol_SettingKey, defaultValue: true);
         set => SaveLocalSetting(UseSymbol_SettingKey, value);
     }
     public static int SelectedPreset
     {
-        get => LoadLocalSetting(SelectedPreset_SettingKey, 0);
+        get => LoadLocalSetting(SelectedPreset_SettingKey, defaultValue: 0);
         set => SaveLocalSetting(SelectedPreset_SettingKey, value);
     }
     public static GameServer SelectedServer
     {
-        get => LoadLocalSetting(SelectedServer_SettingKey, GameServer.Korea_Live);
-        set => SaveLocalSetting(SelectedServer_SettingKey, value);
+        get => (GameServer)LoadLocalSetting(SelectedServer_SettingKey, defaultValue: (int)GameServer.Korea_Live);
+        set => SaveLocalSetting(SelectedServer_SettingKey, (int)value);
     }
     #endregion
 
