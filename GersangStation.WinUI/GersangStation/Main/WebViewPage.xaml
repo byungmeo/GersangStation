@@ -23,6 +23,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
                 <Button
@@ -71,12 +72,25 @@
                         <SymbolIcon Symbol="Home" />
                     </Viewbox>
                 </Button>
-                <TextBox
+                <ComboBox
+                    x:Name="ComboBox_Account"
                     Grid.Column="4"
+                    Width="200"
+                    VerticalAlignment="Center"
+                    DisplayMemberPath="Nickname"
+                    ItemsSource="{x:Bind Accounts, Mode=OneWay}"
+                    PlaceholderText="미로그인 상태"
+                    SelectedItem="{x:Bind SelectedAccount, Mode=TwoWay}"
+                    SelectionChanged="ComboBox_Account_SelectionChanged" />
+                <TextBox
+                    x:Name="TextBox_Search"
+                    Grid.Column="5"
                     Margin="10,6,10,6"
                     BorderBrush="LightGray"
-                    PlaceholderText="웹 주소 검색"
-                    Text="{x:Bind _webviewManager.CurrentSource, Mode=OneWay}" />
+                    GotFocus="TextBox_Search_GotFocus"
+                    KeyDown="TextBox_Search_KeyDown"
+                    LostFocus="TextBox_Search_LostFocus"
+                    PlaceholderText="주소 또는 검색어 입력" />
             </Grid>
 
             <WebView2

@@ -9,6 +9,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using Windows.Foundation;
 
 namespace GersangStation;
 
@@ -84,6 +85,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
     }
 
+    public event EventHandler? LoggedInChanged;
     private string _loggedInMemberId = "";
     public string LoggedInMemberId
     {
@@ -247,17 +249,24 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (core is null)
             return;
 
+        bool isLoggedInMemberIdChanged = false;
         var cookies = await core.CookieManager.GetCookiesAsync(Url_Gersang_Main);
         foreach (var c in cookies)
         {
             if (string.Equals(c.Name, "memberID", StringComparison.OrdinalIgnoreCase))
             {
-                LoggedInMemberId = c.Value;
+                if(LoggedInMemberId != c.Value)
+                {
+                    isLoggedInMemberIdChanged = true;
+                    LoggedInMemberId = c.Value;
+                }
                 break;
             }
         }
 
         LoggedIn = !string.IsNullOrWhiteSpace(LoggedInMemberId);
+        if (isLoggedInMemberIdChanged)
+            LoggedInChanged?.Invoke(this, EventArgs.Empty);
         Debug.WriteLine($"IsLoggedIn: {LoggedIn}, LoggedInMemberId: {LoggedInMemberId}");
         if (LoggedIn)
         {
@@ -494,6 +503,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 #endif
     }
 
+    public event TypedEventHandler<CoreWebView2, CoreWebView2SourceChangedEventArgs> SourceChanged;
     private void OnSourceChanged(CoreWebView2 sender, CoreWebView2SourceChangedEventArgs args)
     {
 #if DEBUGGING
@@ -503,6 +513,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 #endif
         CurrentTitle = sender.DocumentTitle;
         CurrentSource = sender.Source;
+
+        SourceChanged?.Invoke(sender, args);
     }
 
     private void OnHistoryChanged(CoreWebView2 sender, object args)

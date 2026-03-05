@@ -196,19 +196,7 @@
                     <RichTextBlock
                         x:Name="RichTextBlock_PatchReadme"
                         Padding="10,10,10,10"
-                        TextAlignment="Justify">
-                        <!--
-                <Paragraph>
-                    [2026-03-05 거상 패치 V34024]
-                </Paragraph>
-                <Paragraph>
-                    1. 다음 사항이 수정되었습니다.
-                </Paragraph>
-                <Paragraph>
-                    - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                </Paragraph>
-                        -->
-                    </RichTextBlock>
+                        TextAlignment="Justify" />
                 </ScrollView>
             </Grid>
             <!--#endregion Right Contents-->
