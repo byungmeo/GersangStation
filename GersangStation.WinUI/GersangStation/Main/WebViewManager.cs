@@ -8,6 +8,11 @@ using Microsoft.Web.WebView2.Core;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Net.WebSockets;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 
@@ -24,6 +29,9 @@ public enum TryLoginResult
 public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 {
     #region Gersang Homepage Controller
+    private string _cachedGameStartId = string.Empty;
+    private int _cachedGameStartClientIndex = -1;
+
     private string _cachedInstallPath = "";
     private bool _tryingGameStart = false;
     public bool TryingGameStart
@@ -118,21 +126,6 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (_webview is null || 3 <= clientIndex || clientIndex < 0)
             return false;
 
-        TryLoginResult tryLoginResult = await TryLogin(id);
-        switch (tryLoginResult)
-        {
-            case TryLoginResult.Success:
-                break;
-            case TryLoginResult.InvalidId:
-                return false;
-            case TryLoginResult.NotFoundPw:
-                return false;
-            case TryLoginResult.NullWebview:
-                return false;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(tryLoginResult), tryLoginResult, null);
-        }
-
         ClientSettings settings = AppDataManager.LoadServerClientSettings(AppDataManager.SelectedServer);
         string installPath = clientIndex switch
         {
@@ -142,15 +135,50 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             _ => throw new ArgumentOutOfRangeException(nameof(clientIndex), clientIndex, null),
         };
 
+        // 재진입/재시도에 필요한 정보는 먼저 캐시
+        _cachedGameStartId = id;
+        _cachedGameStartClientIndex = clientIndex;
+        _cachedInstallPath = installPath;
+
+        // 거상 도메인이 아니면 먼저 거상 메인으로 이동하고,
+        // DOMContentLoaded 이후 다시 TryGameStart를 타게 한다.
+        if (!IsGersangDomain(_webview.Source))
+        {
+            Debug.WriteLine("거상 도메인이 아니므로 거상 메인으로 이동 후 게임 실행을 재시도합니다.");
+            TryingGameStart = true;
+            _webview.Source = new Uri(Url_Gersang_Main);
+            return true;
+        }
+
+        TryLoginResult tryLoginResult = await TryLogin(id);
+        switch (tryLoginResult)
+        {
+            case TryLoginResult.Success:
+                break;
+            case TryLoginResult.InvalidId:
+                TryingGameStart = false;
+                return false;
+            case TryLoginResult.NotFoundPw:
+                TryingGameStart = false;
+                return false;
+            case TryLoginResult.NullWebview:
+                TryingGameStart = false;
+                return false;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(tryLoginResult), tryLoginResult, null);
+        }
+
         TryingGameStart = true;
         _cachedInstallPath = installPath;
         Debug.WriteLine($"TryGameStart id:{id}, _cachedInstallPath: {_cachedInstallPath}");
 
-        // 이 시점에 로그인을 하고 있지 않다면 이미 로그인 되어있고, 실행 가능한 상태라는 것
+        // 이 시점에 로그인을 하고 있지 않다면 이미 로그인 되어있고 실행 가능한 상태
         if (!TryingLogin)
         {
+            await GameStart(_cachedInstallPath);
             _cachedInstallPath = string.Empty;
-            await GameStart(installPath);
+            _cachedGameStartId = string.Empty;
+            _cachedGameStartClientIndex = -1;
         }
 
         return true;
@@ -160,6 +188,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         _webview.Source = new Uri(Url_Gersang_Logout);
         TryingLogout = true;
+    }
+
+    private static bool IsGersangDomain(Uri? uri)
+    {
+        return uri is not null
+            && uri.Scheme == Uri.UriSchemeHttps
+            && uri.Host.Equals("www.gersang.co.kr", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<TryLoginResult> TryLogin(string id)
@@ -189,7 +224,6 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             }
         }
             
-
         if (string.IsNullOrWhiteSpace(id))
             return TryLoginResult.InvalidId;
 
@@ -198,12 +232,130 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             return TryLoginResult.NotFoundPw;
 
         TryingLogin = true;
+        // 거상 홈페이지가 아니면 스크립트를 실행하지 않고 우선 거상 공홈에 접속한다
+        if (!IsGersangDomain(_webview.Source))
+        {
+            Debug.WriteLine($"거상 홈페이지가 아닌 곳에서 로그인 시도");
+            _cachedLoginId = id;
+            _webview.Source = new Uri(Url_Gersang_Main);
+            return TryLoginResult.Success;
+        }
 
         await _webview.ExecuteScriptAsync(InputIdScript(id));
         await _webview.ExecuteScriptAsync(InputPwScript(pw));
         await _webview.ExecuteScriptAsync(TryLoginScript);
 
         return TryLoginResult.Success;
+    }
+
+    private static async Task<string?> ReceiveOnceViaWebSocket1818Async(CancellationToken cancellationToken)
+    {
+        using HttpListener listener = new();
+        listener.Prefixes.Add("http://127.0.0.1:1818/");
+        listener.Start();
+
+        try
+        {
+            using CancellationTokenRegistration registration = cancellationToken.Register(() =>
+            {
+                try
+                {
+                    listener.Stop();
+                }
+                catch
+                {
+                }
+            });
+
+            HttpListenerContext context = await listener.GetContextAsync();
+
+            if (!context.Request.IsWebSocketRequest)
+            {
+                context.Response.StatusCode = 400;
+                context.Response.Close();
+                return null;
+            }
+
+            HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(null);
+            using WebSocket webSocket = wsContext.WebSocket;
+
+            byte[] buffer = new byte[8192];
+            WebSocketReceiveResult result = await webSocket.ReceiveAsync(
+                new ArraySegment<byte>(buffer),
+                cancellationToken);
+
+            if (result.MessageType != WebSocketMessageType.Text)
+                return null;
+
+            string payload = Encoding.UTF8.GetString(buffer, 0, result.Count);
+
+            byte[] okBytes = Encoding.UTF8.GetBytes("OK");
+            await webSocket.SendAsync(
+                new ArraySegment<byte>(okBytes),
+                WebSocketMessageType.Text,
+                true,
+                cancellationToken);
+
+            return payload;
+        }
+        catch (HttpListenerException)
+        {
+            return null;
+        }
+    }
+
+    private async Task StartGameThroughLocalSocketAsync(string serverParam, string clientInstallPath)
+    {
+        string runExePath = Path.Combine(clientInstallPath, "Run.exe");
+        Debug.WriteLine($"runExePath: {runExePath}");
+
+        if (!File.Exists(runExePath))
+            return;
+
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(10));
+
+        Task<string?> receiveTask = ReceiveOnceViaWebSocket1818Async(cts.Token);
+
+        await _webview.ExecuteScriptAsync(SocketStartScript(serverParam));
+        Debug.WriteLine("SocketStartScript 실행");
+
+        string? payload;
+        try
+        {
+            payload = await receiveTask;
+        }
+        catch (OperationCanceledException)
+        {
+            Debug.WriteLine("WebSocket 수신 시간 초과");
+            return;
+        }
+
+        Debug.WriteLine($"payload: {payload}");
+
+        if (string.IsNullOrWhiteSpace(payload))
+            return;
+
+        string[] parts = payload.Split('\t');
+        if (parts.Length < 3)
+            return;
+
+        string id = parts[1];
+        string pw = parts[2];
+        string? accountId = parts.Length >= 4 ? parts[3] : null;
+
+        Process process = new();
+        process.StartInfo.FileName = runExePath;
+        process.StartInfo.Arguments = accountId is not null
+            ? $"{id}\t{pw}\t{accountId}"
+            : $"{id}\t{pw}";
+        process.StartInfo.WorkingDirectory = clientInstallPath;
+        process.StartInfo.UseShellExecute = true;
+        process.StartInfo.Verb = "runas";
+
+        process.Start();
+        Debug.WriteLine("Run.exe 시작");
+        await process.WaitForExitAsync();
+        Debug.WriteLine("Run.exe 종료");
     }
 
     private async Task GameStart(string clientInstallPath)
@@ -222,30 +374,19 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         // TODO: 
         Debug.WriteLine("[PASS] 클라이언트 패치 가능 여부 검사");
 
-        // 3. Registry 등록
-        RegistryHelper.SetInstallPathToRegistry(selectedServer, clientInstallPath);
-        Debug.WriteLine("Registry 등록");
-
-        // 4. GersangStarter를 통한 게임 실행
-        string? gersangStarterPath = RegistryHelper.GetGersangStarterPathFromRegistry();
-        Debug.WriteLine($"gersangStarterPath: {gersangStarterPath}");
-        if (gersangStarterPath is null)
-            return;
+        // 3. 거상 실행
         string param = GameServerHelper.GetGameStartParam(selectedServer);
-        await _webview.ExecuteScriptAsync(SocketStartScript(param)); //소켓을 엽니다.
-        Process starter = new();
-        starter.StartInfo.FileName = gersangStarterPath;
-        starter.EnableRaisingEvents = true;
-        starter.Start();
-        Debug.WriteLine("GersangStarter 시작");
-        await starter.WaitForExitAsync();
-        Debug.WriteLine("GersangStarter 종료");
+        await StartGameThroughLocalSocketAsync(param, clientInstallPath);
+
         // TODO: 방금 켜진 거상 프로세스 추적
     }
 
     private async Task UpdateLoginStateByCookieAsync()
     {
-        var core = _webview?.CoreWebView2;
+        if (_webview is null)
+            return;
+
+        var core = _webview.CoreWebView2;
         if (core is null)
             return;
 
@@ -267,14 +408,22 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         LoggedIn = !string.IsNullOrWhiteSpace(LoggedInMemberId);
         if (isLoggedInMemberIdChanged)
             LoggedInChanged?.Invoke(this, EventArgs.Empty);
-        Debug.WriteLine($"IsLoggedIn: {LoggedIn}, LoggedInMemberId: {LoggedInMemberId}");
+        Debug.WriteLine($"TryingLogin: {TryingLogin}, IsLoggedIn: {LoggedIn}, LoggedInMemberId: {LoggedInMemberId}");
         if (LoggedIn)
         {
             TryingLogin = false;
+
             if (TryingGameStart)
             {
-                await GameStart(_cachedInstallPath);
-                _cachedInstallPath = string.Empty;
+                if (IsGersangDomain(new Uri(_currentSource)))
+                {
+                    await TryGameStart(_cachedGameStartId, _cachedGameStartClientIndex);
+                }
+                else
+                {
+                    Debug.WriteLine("로그인 쿠키는 있지만 거상 도메인이 아니므로 거상 메인으로 이동 후 게임 실행을 재시도합니다.");
+                    _webview.Source = new Uri(Url_Gersang_Main);
+                }
             }
         }
         else
@@ -288,6 +437,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                     await TryLogin(_cachedLoginId);
                     _cachedLoginId = string.Empty;
                 }
+            }
+            else if (TryingLogin && !string.IsNullOrWhiteSpace(_cachedLoginId))
+            {
+                await TryLogin(_cachedLoginId);
+                _cachedLoginId = string.Empty;
             }
         }
     }

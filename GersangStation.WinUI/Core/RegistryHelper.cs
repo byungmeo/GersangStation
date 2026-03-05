@@ -43,8 +43,10 @@ namespace Core
 
         public static void SetInstallPathToRegistry(GameServer gameServerContext, string installPath)
         {
-            RegistryKey? registryKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\JOYON\Gersang\Korean", RegistryKeyPermissionCheck.ReadWriteSubTree);
-            registryKey?.SetValue(GameServerHelper.GetInstallPathRegKey(gameServerContext), installPath);
+            RegistryKey? registryKey = Registry.CurrentUser.OpenSubKey(@"Software\JOYON\Gersang\Korean", RegistryKeyPermissionCheck.ReadWriteSubTree);
+            string regName = GameServerHelper.GetInstallPathRegKey(gameServerContext);
+            Debug.WriteLine($"regName: {regName}, regValue: {installPath}");
+            registryKey?.SetValue(regName, installPath);
             registryKey?.Close();
         }
 
