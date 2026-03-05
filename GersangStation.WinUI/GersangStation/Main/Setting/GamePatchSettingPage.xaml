@@ -9,304 +9,233 @@
     d:DataContext="{d:DesignInstance Type=local:GamePatchSettingPage}"
     mc:Ignorable="d">
 
-    <Grid Margin="10,10,10,10" ColumnSpacing="20">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <!--#region Left Contents-->
-        <Grid Grid.Column="0" RowSpacing="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <!--#region Patch Control Row-->
-            <StackPanel
-                Grid.Row="0"
-                HorizontalAlignment="Center"
-                Orientation="Horizontal"
-                Spacing="12">
-                <ComboBox
-                    Width="200"
+    <Grid>
+        <Grid Margin="10,10,10,10" ColumnSpacing="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!--#region Left Contents-->
+            <Grid Grid.Column="0" RowSpacing="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <!--#region Patch Control Row-->
+                <StackPanel
+                    Grid.Row="0"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal">
+                    <ComboBox
+                        Width="200"
+                        HorizontalAlignment="Stretch"
+                        DisplayMemberPath="Display"
+                        Header="현재 버전"
+                        IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
+                        ItemsSource="{x:Bind Versions}"
+                        PlaceholderText="v00000   0000-00-00"
+                        SelectedItem="{x:Bind SelectedVersionItem, Mode=TwoWay}" />
+                    <FontIcon
+                        Margin="5,0,5,0"
+                        VerticalAlignment="Bottom"
+                        FontSize="32"
+                        Glyph="&#xEB9D;" />
+                    <TextBox
+                        x:Name="TextBox_LatestVersion"
+                        Width="200"
+                        VerticalAlignment="Top"
+                        Background="{ThemeResource TextBoxDisabledBackgroundThemeBrush}"
+                        Header="최신 버전"
+                        IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
+                        IsReadOnly="True"
+                        PlaceholderText="v00000   0000-00-00"
+                        Text="{x:Bind DisplayLatestVersion, Mode=OneWay}" />
+                    <Button
+                        x:Name="Button_Refresh"
+                        VerticalAlignment="Bottom"
+                        Click="Button_Refresh_Click"
+                        IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
+                        Style="{ThemeResource AlternateCloseButtonStyle}">
+                        <Button.Content>
+                            <FontIcon Glyph="&#xE895;" />
+                        </Button.Content>
+                    </Button>
+                    <Button
+                        x:Name="Button_PatchStart"
+                        VerticalAlignment="Bottom"
+                        Click="Button_PatchStart_Click"
+                        Content="패치"
+                        IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
+                        Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+                <!--#endregion Patch Control Row-->
+
+                <!--#region Patch Option Row-->
+                <Grid
+                    Grid.Row="1"
                     HorizontalAlignment="Stretch"
-                    Header="현재 버전"
-                    PlaceholderText="v34000   2026-03-05" />
-                <FontIcon
-                    VerticalAlignment="Bottom"
-                    FontSize="32"
-                    Glyph="&#xEB9D;" />
-                <TextBox
-                    Grid.Column="2"
-                    Width="200"
+                    RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        HorizontalAlignment="Center"
+                        Content="다클라 패치 적용"
+                        IsChecked="{x:Bind ShouldPatchMultiClient, Mode=TwoWay}"
+                        IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}" />
+                    <CheckBox
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        HorizontalAlignment="Center"
+                        Content="(권장) 임시 파일 삭제"
+                        IsChecked="{x:Bind ShouldDeleteTemp, Mode=TwoWay}"
+                        IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}" />
+                    <TextBlock
+                        Grid.Row="1"
+                        Grid.ColumnSpan="2"
+                        HorizontalAlignment="Center"
+                        FontSize="12"
+                        IsTextSelectionEnabled="True"
+                        Text="{x:Bind TempPath}" />
+                    <!--  ="임시 파일 경로: F:\Games\AKInteractive\Gersang\PatchTemp" />  -->
+                </Grid>
+                <!--#endregion Patch Option Row-->
+
+                <!--#region Progress Row-->
+                <Grid
+                    Grid.Row="2"
+                    Margin="50,0,50,0"
+                    HorizontalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <ProgressBar
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Height="8"
+                        HorizontalAlignment="Stretch"
+                        Maximum="{x:Bind ProgressMaximum, Mode=OneWay}"
+                        Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"
+                        Value="{x:Bind ProgressValue, Mode=OneWay}" />
+                    <Button
+                        x:Name="Button_PatchStop"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Click="Button_PatchStop_Click"
+                        Style="{ThemeResource AlternateCloseButtonStyle}"
+                        Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}">
+                        <Button.Content>
+                            <FontIcon Glyph="&#xE711;" />
+                        </Button.Content>
+                    </Button>
+                    <TextBlock
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        HorizontalAlignment="Center"
+                        Text="{x:Bind ProgressText, Mode=OneWay}"
+                        Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}" />
+                </Grid>
+                <!--#endregion Progress Row-->
+
+                <!--#region Patch Record Row (향후 개발)-->
+                <!--
+        <Grid Grid.Row="3">
+            <ListView
+                Margin="10,0,10,0"
+                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                Header="패치이력"
+                ItemsSource="{x:Bind PatchRecords, Mode=OneWay}"
+                SelectionMode="None">
+                <ListViewItem>
+                    <TextBlock IsTextSelectionEnabled="True" Text="[2026-03-05 12:00:00 AM] [1m 36s] [성공] v34000 -&gt; v34000" />
+                </ListViewItem>
+                <ListViewItem>
+                    <TextBlock IsTextSelectionEnabled="True" Text="[2026-03-05 12:00:00 AM] [1m 36s] [성공] v34000 -&gt; v34000" />
+                </ListViewItem>
+                <ListViewItem>
+                    <TextBlock IsTextSelectionEnabled="True" Text="[2026-03-05 12:00:00 AM] [1m 36s] [성공] v34000 -&gt; v34000" />
+                </ListViewItem>
+                <ListViewItem>
+                    <TextBlock IsTextSelectionEnabled="True" Text="[2026-03-05 12:00:00 AM] [1m 36s] [성공] v34000 -&gt; v34000" />
+                </ListViewItem>
+            </ListView>
+        </Grid>
+                -->
+                <!--#endregion Patch Record Row-->
+            </Grid>
+            <!--#endregion Left Contents-->
+
+            <!--#region Right Contents-->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock
+                    Grid.Row="0"
                     VerticalAlignment="Top"
-                    Background="{ThemeResource TextBoxDisabledBackgroundThemeBrush}"
-                    Header="최신 버전"
-                    IsReadOnly="True"
-                    Text="v34000   2026-03-05" />
-                <Button
-                    VerticalAlignment="Bottom"
-                    Content="패치"
-                    Style="{ThemeResource AccentButtonStyle}" />
+                    Style="{ThemeResource TitleTextBlockStyle}"
+                    Text="패치내역" />
+                <ScrollView Grid.Row="1" Background="{ThemeResource SolidBackgroundFillColorBaseAlt}">
+                    <RichTextBlock
+                        x:Name="RichTextBlock_PatchReadme"
+                        Padding="10,10,10,10"
+                        TextAlignment="Justify">
+                        <!--
+                <Paragraph>
+                    [2026-03-05 거상 패치 V34024]
+                </Paragraph>
+                <Paragraph>
+                    1. 다음 사항이 수정되었습니다.
+                </Paragraph>
+                <Paragraph>
+                    - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
+                </Paragraph>
+                        -->
+                    </RichTextBlock>
+                </ScrollView>
+            </Grid>
+            <!--#endregion Right Contents-->
+        </Grid>
+
+        <!--#region 로딩 오버레이-->
+        <Grid
+            x:Name="LoadingOverlay"
+            Grid.ColumnSpan="2"
+            Background="{ThemeResource SmokeFillColorDefaultBrush}"
+            Visibility="{x:Bind LoadingOverlayVisibility, Mode=OneWay}">
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="12">
+                <ProgressRing
+                    Width="86"
+                    Height="86"
+                    IsActive="{x:Bind IsLoadingPatchInfo, Mode=OneWay}" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="28"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    Text="패치 버전 정보를 불러오는 중..." />
             </StackPanel>
-            <!--#endregion Patch Control Row-->
-
-            <!--#region Patch Option Row-->
-            <Grid
-                Grid.Row="1"
-                HorizontalAlignment="Stretch"
-                ColumnSpacing="12">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <CheckBox
-                    Grid.Row="0"
-                    Grid.Column="0"
-                    HorizontalAlignment="Center"
-                    Content="다클라 패치 적용" />
-                <CheckBox
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    HorizontalAlignment="Center"
-                    Content="(권장) 임시 파일 삭제" />
-                <TextBlock
-                    Grid.Row="1"
-                    Grid.ColumnSpan="2"
-                    HorizontalAlignment="Center"
-                    FontSize="12"
-                    IsTextSelectionEnabled="True"
-                    Text="임시 파일 경로: F:\Games\AKInteractive\Gersang\PatchTemp" />
-            </Grid>
-            <!--#endregion Patch Option Row-->
-
-            <!--#region Progress Row-->
-            <Grid
-                Grid.Row="2"
-                Margin="50,0,50,0"
-                HorizontalAlignment="Stretch">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <ProgressBar
-                    Grid.Row="0"
-                    Grid.Column="0"
-                    Height="8"
-                    HorizontalAlignment="Stretch"
-                    Maximum="100"
-                    Visibility="Visible"
-                    Value="50" />
-                <Button
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Style="{ThemeResource AlternateCloseButtonStyle}"
-                    Visibility="Visible">
-                    <Button.Content>
-                        <FontIcon Glyph="&#xE711;" />
-                    </Button.Content>
-                </Button>
-                <TextBlock
-                    Grid.Row="1"
-                    Grid.Column="0"
-                    HorizontalAlignment="Center"
-                    Text="다운로드 중... (0 / 300)"
-                    Visibility="Visible" />
-            </Grid>
-            <!--#endregion Progress Row-->
-
-            <!--#region Patch Record Row-->
-            <Grid Grid.Row="3">
-                <ListView
-                    Margin="10,0,10,0"
-                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
-                    BorderThickness="1"
-                    Header="패치이력"
-                    SelectionMode="None">
-                    <ListViewItem>
-                        <TextBlock Text="[2026-03-05 12:00:00 AM] [성공] v34000 -&gt; v34000" />
-                    </ListViewItem>
-                    <ListViewItem>
-                        <TextBlock Text="[2026-03-05 12:00:00 AM] [성공] v34000 -&gt; v34000" />
-                    </ListViewItem>
-                    <ListViewItem>
-                        <TextBlock Text="[2026-03-05 12:00:00 AM] [성공] v34000 -&gt; v34000" />
-                    </ListViewItem>
-                    <ListViewItem>
-                        <TextBlock Text="[2026-03-05 12:00:00 AM] [성공] v34000 -&gt; v34000" />
-                    </ListViewItem>
-                </ListView>
-            </Grid>
-            <!--#endregion Patch Record Row-->
         </Grid>
-        <!--#endregion Left Contents-->
-
-        <!--#region Right Contents-->
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            <TextBlock
-                Grid.Row="0"
-                VerticalAlignment="Top"
-                Style="{ThemeResource TitleTextBlockStyle}"
-                Text="패치내역" />
-            <ScrollView Grid.Row="1">
-                <RichTextBlock TextAlignment="Justify">
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph>
-                        [거상 패치 V34024]
-                    </Paragraph>
-                    <Paragraph>
-                        1. 다음 사항이 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph>
-                        - 일부 전투 컨텐츠에서 간헐적으로 클라이언트가 종료되던 오류가 수정되었습니다.
-                    </Paragraph>
-                    <Paragraph />
-                    <Paragraph />
-                    <!--  Additional content not shown.  -->
-                </RichTextBlock>
-            </ScrollView>
-        </Grid>
-        <!--#endregion-->
+        <!--#endregion 로딩 오버레이-->
     </Grid>
 </Page>

@@ -132,8 +132,7 @@ namespace GersangStation.Main.Setting
         {
             base.OnNavigatingFrom(e);
 
-            if (IsDirty)
-                e.Cancel = !await ShowSaveDialog();
+            e.Cancel = !await ConfirmLeaveAsync();
         }
 
         public async Task<bool> ConfirmLeaveAsync()
