@@ -53,6 +53,7 @@ public sealed class ClientSettings : INotifyPropertyChanged
         set => SetProperty(ref _useClient3, value);
     }
 
+    [JsonIgnore] public string TempPath => $"{InstallPath}\\PatchTemp";
     [JsonIgnore] public string Client2Path => $"{InstallPath}2";
     [JsonIgnore] public string Client3Path => $"{InstallPath}3";
 

@@ -81,24 +81,22 @@ public static class PatchHelper
     /// <summary>
     /// 패치를 수행합니다. 상위 계층에서는 현재 버전만 전달하면 됩니다.
     /// </summary>
-    public static Task PatchAsync(GameServer server, int currentClientVersion, CancellationToken ct = default)
+    public static Task PatchAsync(GameServer server, int currentClientVersion, bool cleanupTemp, CancellationToken ct = default)
     {
-        string tempRoot = Path.Combine(
-            Path.GetTempPath(),
-            "GersangStation",
-            "Patch",
-            Guid.NewGuid().ToString("N"));
+        // TODO: 고급 설정에서 불러오기
+        int maxConcurrency = 2;
+        int maxExtractRetryCount = 2;
 
         ClientSettings clientSettings = AppDataManager.LoadServerClientSettings(server);
         return PatchPipeline.RunPatchAsync(
             currentClientVersion: currentClientVersion,
             server: server,
             installRoot: clientSettings.InstallPath,
-            tempRoot: tempRoot,
-            maxConcurrency: 2,
-            maxExtractRetryCount: 2,
+            tempRoot: clientSettings.TempPath,
+            maxConcurrency: maxConcurrency,
+            maxExtractRetryCount: maxExtractRetryCount,
             ct: ct,
-            cleanupTemp: true);
+            cleanupTemp: cleanupTemp);
     }
 
     /// <summary>
@@ -163,7 +161,6 @@ public static class PatchHelper
             }
 
             await Extractor.ExtractAsync(archivePath, actualInstallRoot, progress: extractionProgress, ct: ct).ConfigureAwait(false);
-            SaveInstallPathToRegistry(actualInstallRoot);
         }
         finally
         {
@@ -179,7 +176,7 @@ public static class PatchHelper
         }
     }
 
-    public static HttpClient CreateHttpClient(TimeSpan timeout)
+    private static HttpClient CreateHttpClient(TimeSpan timeout)
     {
         return new HttpClient(new HttpClientHandler
         {
@@ -188,11 +185,5 @@ public static class PatchHelper
         {
             Timeout = timeout
         };
-    }
-
-    private static void SaveInstallPathToRegistry(string installRoot)
-    {
-        using RegistryKey? key = Registry.CurrentUser.CreateSubKey(@"Software\JOYON\Gersang\Korean", writable: true);
-        key?.SetValue("InstallPath", installRoot, RegistryValueKind.String);
     }
 }

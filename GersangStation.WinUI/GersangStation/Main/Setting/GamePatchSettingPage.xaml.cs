@@ -140,7 +140,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         try
         {
             _currentClientVersion = PatchHelper.GetCurrentClientVersion(AppDataManager.SelectedServer);
-            TempPath = $"임시 파일 경로: {AppDataManager.LoadServerClientSettings(AppDataManager.SelectedServer).InstallPath + (@"\PathTemp")}";
+            TempPath = $"임시 파일 경로: {AppDataManager.LoadServerClientSettings(AppDataManager.SelectedServer).TempPath}";
 
             SelectedVersionItem = null;
             Versions.Clear();
