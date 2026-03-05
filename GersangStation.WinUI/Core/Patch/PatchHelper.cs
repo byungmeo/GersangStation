@@ -26,7 +26,7 @@ public static class PatchHelper
 
         string vsnPath = Path.Combine(clientSettings.InstallPath, "Online", "vsn.dat");
         if (!File.Exists(vsnPath))
-            throw new FileNotFoundException("Current version file not found.", vsnPath);
+            return 0;
 
         using var stream = File.OpenRead(vsnPath);
         return PatchPipeline.DecodeLatestVersionFromVsnDat(stream);
