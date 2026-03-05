@@ -104,7 +104,7 @@
                             IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
 
                         <RichTextBlock Margin="0,0,0,8">
-                            <Paragraph>안정적인 다클라 기능 제공을 위해 다클라 경로는 위와 같이 고정됩니다.</Paragraph>
+                            <Paragraph>안정적인 다클라 기능 제공을 위해 다클라 경로는 위와 같이 고정됩니다. 이미 다클라가 있으신 분들은 삭제 후 재생성 또는 이름을 동일하게 변경해주세요.</Paragraph>
                         </RichTextBlock>
 
                         <StackPanel
