@@ -6,8 +6,6 @@ using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Windows.Storage.Pickers;
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -182,7 +180,29 @@ namespace GersangStation.Main.Setting
 
         private void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            // TODO: 다클라 생성 기능 연결
+            if (!ClientSettings.UseSymbol)
+                return;
+
+            bool success = GameClientHelper.CreateSymbolMultiClient(new CreateSymbolMultiClientArgs
+            {
+                InstallPath = TextBox_Path1.Text,
+                DestPath2 = ClientSettings.UseClient2 ? ClientSettings.Client2Path : string.Empty,
+                DestPath3 = ClientSettings.UseClient3 ? ClientSettings.Client3Path : string.Empty,
+                OverwriteConfig = false
+            }, out string reason);
+
+            if (success) 
+            {
+                TeachingTip_General.Title = "다클라 생성 성공";
+                TeachingTip_General.Subtitle = "";
+
+            }
+            else
+            {
+                TeachingTip_General.Title = "다클라 생성 실패";
+                TeachingTip_General.Subtitle = reason;
+            }
+            TeachingTip_General.IsOpen = true;
         }
 
         private async void Button_SymbolErrorAction_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
