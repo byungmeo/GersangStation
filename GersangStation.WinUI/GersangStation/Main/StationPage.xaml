@@ -166,7 +166,8 @@
                     DisplayMemberPath="DisplayName"
                     ItemsSource="{x:Bind models:GameServerHelper.ServerOptions, Mode=OneTime}"
                     SelectedIndex="{x:Bind SelectedServerIndex, Mode=TwoWay}"
-                    SelectedValuePath="Server">
+                    SelectedValuePath="Server"
+                    SelectionChanged="ComboBox_Server_SelectionChanged">
                     <ComboBox.HeaderTemplate>
                         <DataTemplate>
                             <TextBlock FontSize="12" Text="거상 서버" />
@@ -204,13 +205,29 @@
                     Grid.ColumnSpan="3"
                     Orientation="Horizontal">
                     <TextBlock
+                        x:Name="TextBlock_Version"
                         Height="20"
                         VerticalAlignment="Center"
                         FontSize="12"
-                        Text="설치 버전: v34000 | 최신 버전 v34012" />
-                    <Button VerticalAlignment="Center" Style="{StaticResource SubtleButtonStyle}">
+                        Text="설치 버전: 확인불가 | 최신 버전: 확인불가" />
+                    <Button
+                        x:Name="Button_RefreshVersion"
+                        VerticalAlignment="Center"
+                        Click="Button_RefreshVersion_Click"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Visibility="Visible">
                         <Viewbox Width="12" Stretch="Uniform">
                             <SymbolIcon Symbol="Refresh" />
+                        </Viewbox>
+                    </Button>
+                    <Button
+                        x:Name="Button_Patch"
+                        VerticalAlignment="Center"
+                        Click="Button_Patch_Click"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Visibility="Collapsed">
+                        <Viewbox Width="12" Stretch="Uniform">
+                            <SymbolIcon Symbol="Download" />
                         </Viewbox>
                     </Button>
                     <Button VerticalAlignment="Center" Style="{StaticResource DefaultButtonStyle}">

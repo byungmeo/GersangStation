@@ -1,5 +1,7 @@
+using GersangStation.Main.Setting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media.Animation;
 
 namespace GersangStation.Main;
@@ -78,5 +80,19 @@ public sealed partial class MainWindow : Window
 
         _previousSelectedIndex = currentSelectedIndex;
         _previousSelectedItem = sender.SelectedItem;
+    }
+
+    // 강제로 패치 설정 페이지로 이동
+    public void NavigateToSettingPage(SettingSection section)
+    {
+        ContentFrame.Navigate(typeof(SettingPage), 
+            new SettingPageNavigationParameter{ Section = section }, 
+            new SlideNavigationTransitionInfo{ Effect = SlideNavigationTransitionEffect.FromLeft });
+
+        _suppressNavSelectionChanged = true;
+        _previousSelectedIndex = MainSelectorBar.Items.IndexOf(MainSelectorBar.SelectedItem);
+        _previousSelectedItem = MainSelectorBar.SelectedItem;
+        MainSelectorBar.SelectedItem = SelectorBarItem_Setting;
+        _suppressNavSelectionChanged = false;
     }
 }

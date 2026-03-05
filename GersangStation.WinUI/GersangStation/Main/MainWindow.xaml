@@ -63,7 +63,10 @@
                 Text="플래너" />
 
             <!--  환경설정 바  -->
-            <SelectorBarItem Icon="Setting" Text="설정" />
+            <SelectorBarItem
+                x:Name="SelectorBarItem_Setting"
+                Icon="Setting"
+                Text="설정" />
         </SelectorBar>
 
         <!--  Frame  -->

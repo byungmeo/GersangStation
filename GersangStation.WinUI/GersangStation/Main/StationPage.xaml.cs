@@ -1,10 +1,15 @@
 using Core;
 using Core.Models;
+using Core.Patch;
+using GersangStation.Main.Setting;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace GersangStation.Main
 {
@@ -127,13 +132,13 @@ namespace GersangStation.Main
         {
             // x:Bind가 동작하기 전에 바인딩 원본 상태를 먼저 확정합니다.
             Accounts = AppDataManager.LoadAccounts();
-            _presetList = AppDataManager.LoadPresetList();
+            PresetList = AppDataManager.LoadPresetList();
 
-            _selectedServerIndex = (int)AppDataManager.SelectedServer;
-            _selectedPreset = NormalizePresetIndex(AppDataManager.SelectedPreset);
+            SelectedServerIndex = (int)AppDataManager.SelectedServer;
+            SelectedPreset = NormalizePresetIndex(AppDataManager.SelectedPreset);
 
-            if (_selectedPreset != AppDataManager.SelectedPreset)
-                AppDataManager.SelectedPreset = _selectedPreset;
+            if (SelectedPreset != AppDataManager.SelectedPreset)
+                AppDataManager.SelectedPreset = SelectedPreset;
         }
 
         public StationPage()
@@ -186,6 +191,36 @@ namespace GersangStation.Main
                     Debug.WriteLine("window.WebViewManager is not null");
                     bool result = await window.WebViewManager.TryGameStart(Id, 2);
                 }
+            }
+        }
+
+        private async Task UpdateServer()
+        {
+            GameServer server = AppDataManager.SelectedServer = (GameServer)SelectedServerIndex;
+            int currentVersion = PatchHelper.GetCurrentClientVersion(server);
+            int latestVersion = await PatchHelper.GetLatestServerVersionAsync(server);
+            string currentStr = currentVersion <= 0 ? "확인불가" : $"v{currentVersion}";
+            string latestStr = latestVersion <= 0 ? "확인불가" : $"v{latestVersion}";
+            TextBlock_Version.Text = $"설치 버전: {currentStr} | 최신 버전: {latestStr}";
+            Button_RefreshVersion.Visibility = currentVersion < latestVersion ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+            Button_Patch.Visibility = currentVersion < latestVersion ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        }
+
+        private async void ComboBox_Server_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            await UpdateServer();
+        }
+
+        private async void Button_RefreshVersion_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            await UpdateServer();
+        }
+
+        private void Button_Patch_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        {
+            if (App.CurrentWindow is MainWindow window)
+            {
+                window.NavigateToSettingPage(SettingSection.GamePatch);
             }
         }
     }

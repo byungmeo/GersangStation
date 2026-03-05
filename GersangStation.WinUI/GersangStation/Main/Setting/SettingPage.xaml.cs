@@ -1,9 +1,23 @@
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 using System.Threading.Tasks;
 
 namespace GersangStation.Main.Setting;
+
+public enum SettingSection
+{
+    Account,
+    InstallPath,
+    GamePatch
+}
+
+public sealed class SettingPageNavigationParameter
+{
+    public SettingSection Section { get; init; } = SettingSection.Account;
+}
 
 public sealed partial class SettingPage : Page, IConfirmLeave
 {
@@ -28,7 +42,24 @@ public sealed partial class SettingPage : Page, IConfirmLeave
     {
         InitializeComponent();
 
-        _previousSelectedItem = SettingNavationView.SelectedItem;
+        _previousSelectedItem = SettingNavigationView.SelectedItem;
+    }
+
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+
+        if (e.Parameter is SettingPageNavigationParameter parameter)
+        {
+            SettingNavigationView.SelectedItem = parameter.Section switch
+            {
+                SettingSection.GamePatch => NavigationViewItem_GamePatch,
+                SettingSection.Account => NavigationViewItem_Account,
+                SettingSection.InstallPath => NavigationViewItem_InstallPath,
+                _ => throw new ArgumentOutOfRangeException(nameof(e), e, null),
+            };
+            return;
+        }
     }
 
     public async Task<bool> ConfirmLeaveAsync()
@@ -39,7 +70,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         return true;
     }
 
-    private async void SettingNavationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private async void SettingNavigationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if(_suppressNavSelectionChanged)
             return;

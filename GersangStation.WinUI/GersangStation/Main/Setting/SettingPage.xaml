@@ -10,25 +10,28 @@
     mc:Ignorable="d">
 
     <NavigationView
-        x:Name="SettingNavationView"
+        x:Name="SettingNavigationView"
         IsBackButtonVisible="Collapsed"
         IsPaneToggleButtonVisible="False"
         IsSettingsVisible="False"
         IsTabStop="False"
         PaneDisplayMode="Left"
-        SelectionChanged="SettingNavationView_SelectionChanged">
+        SelectionChanged="SettingNavigationView_SelectionChanged">
         <NavigationView.MenuItems>
             <NavigationViewItem
+                x:Name="NavigationViewItem_Account"
                 Content="계정"
                 Icon="People"
                 Tag="AccountSettingPage" />
             <NavigationViewItem Content="클라이언트" Icon="Play">
                 <NavigationViewItem.MenuItems>
                     <NavigationViewItem
+                        x:Name="NavigationViewItem_InstallPath"
                         Content="경로 설정"
                         Icon="Folder"
                         Tag="InstallPathSettingPage" />
                     <NavigationViewItem
+                        x:Name="NavigationViewItem_GamePatch"
                         Content="패치"
                         Icon="Download"
                         Tag="GamePatchSettingPage" />
