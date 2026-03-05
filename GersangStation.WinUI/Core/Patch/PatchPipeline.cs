@@ -1,4 +1,5 @@
 ﻿using Core.Extractor;
+using Core.Models;
 using System.Net;
 using System.Text;
 
@@ -14,7 +15,7 @@ public static class PatchPipeline
     /// </summary>
     public static Task RunPatchFromServerAsync(
         int currentClientVersion,
-        Uri patchBaseUri,
+        GameServer server,
         string installRoot,
         string tempRoot,
         int maxConcurrency,
@@ -23,7 +24,7 @@ public static class PatchPipeline
     {
         return RunPatchFromServerAsync(
             currentClientVersion,
-            patchBaseUri,
+            server,
             installRoot,
             tempRoot,
             maxConcurrency,
@@ -38,7 +39,7 @@ public static class PatchPipeline
     /// </summary>
     public static Task RunPatchFromServerAsync(
         int currentClientVersion,
-        Uri patchBaseUri,
+        GameServer server,
         string installRoot,
         string tempRoot,
         int maxConcurrency,
@@ -48,7 +49,7 @@ public static class PatchPipeline
     {
         return RunPatchAsync(
             currentClientVersion: currentClientVersion,
-            patchBaseUri: patchBaseUri,
+            server: server,
             installRoot: installRoot,
             tempRoot: tempRoot,
             maxConcurrency: maxConcurrency,
@@ -63,7 +64,7 @@ public static class PatchPipeline
     /// </summary>
     public static Task RunPatchAsync(
         int currentClientVersion,
-        Uri patchBaseUri,
+        GameServer server,
         string installRoot,
         string tempRoot,
         int maxConcurrency,
@@ -72,7 +73,7 @@ public static class PatchPipeline
     {
         return RunPatchAsync(
             currentClientVersion,
-            patchBaseUri,
+            server,
             installRoot,
             tempRoot,
             maxConcurrency,
@@ -93,7 +94,7 @@ public static class PatchPipeline
     /// </summary>
     public static async Task RunPatchAsync(
         int currentClientVersion,
-        Uri patchBaseUri,
+        GameServer server,
         string installRoot,
         string tempRoot,
         int maxConcurrency,
@@ -101,7 +102,6 @@ public static class PatchPipeline
         CancellationToken ct,
         bool cleanupTemp = true)
     {
-        if (patchBaseUri is null) throw new ArgumentNullException(nameof(patchBaseUri));
         if (string.IsNullOrWhiteSpace(installRoot)) throw new ArgumentException("installRoot is required.", nameof(installRoot));
         if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
         if (maxConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
@@ -118,11 +118,11 @@ public static class PatchPipeline
             Timeout = TimeSpan.FromMinutes(5)
         };
 
-        int latestServerVersion = await ResolveLatestServerVersionAsync(http, patchBaseUri, tempRoot, maxExtractRetryCount, ct).ConfigureAwait(false);
+        int latestServerVersion = await ResolveLatestServerVersionAsync(http, server, tempRoot, maxExtractRetryCount, ct).ConfigureAwait(false);
         if (latestServerVersion < currentClientVersion)
             return;
 
-        var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, patchBaseUri, ct).ConfigureAwait(false);
+        var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, server, ct).ConfigureAwait(false);
 
         try
         {
@@ -141,7 +141,7 @@ public static class PatchPipeline
             await PatchDownloaderStage.DownloadAllAsync(
                 plan,
                 tempRoot: tempRoot,
-                patchBaseUri: patchBaseUri,
+                server: server,
                 maxConcurrency: maxConcurrency,
                 ct: ct);
 
@@ -158,7 +158,7 @@ public static class PatchPipeline
                     ct.ThrowIfCancellationRequested();
 
                     string gszPath = Path.Combine(tempRoot, version.ToString(), f.CompressedFileName);
-                    Uri patchUrl = PatchDownloaderStage.BuildPatchUrl(patchBaseUri, f.RelativeDir, f.CompressedFileName);
+                    Uri patchUrl = new Uri(GameServerHelper.GetPatchFileUrl(server, f.RelativeDir + f.CompressedFileName));
 
                     await ExtractWithRetryAsync(
                         archivePath: gszPath,
@@ -238,7 +238,7 @@ public static class PatchPipeline
         return rows;
     }
 
-    private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, Uri patchBaseUri, string tempRoot, int maxExtractRetryCount, CancellationToken ct)
+    private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, GameServer server, string tempRoot, int maxExtractRetryCount, CancellationToken ct)
     {
         string probeRoot = Path.Combine(tempRoot, "LatestVersionProbe");
         TryDeleteDirectory(probeRoot);
@@ -247,7 +247,7 @@ public static class PatchPipeline
         string archivePath = Path.Combine(probeRoot, "vsn.dat.gsz");
         string extractRoot = Path.Combine(probeRoot, "extract");
 
-        var url = new Uri(patchBaseUri, "Client_Patch_File/Online/vsn.dat.gsz");
+        var url = new Uri(GameServerHelper.GetVsnUrl(server));
 
         using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -309,7 +309,7 @@ public static class PatchPipeline
         HttpClient http,
         int currentClientVersion,
         int latestServerVersion,
-        Uri patchBaseUri,
+        GameServer server,
         CancellationToken ct)
     {
         var result = new Dictionary<int, List<string[]>>();
@@ -318,7 +318,7 @@ public static class PatchPipeline
         {
             ct.ThrowIfCancellationRequested();
 
-            var url = new Uri(patchBaseUri, $"Client_info_File/{version}");
+            var url = new Uri(GameServerHelper.GetVersionInfoUrl(server, version));
             using var response = await http.GetAsync(url, ct).ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound)

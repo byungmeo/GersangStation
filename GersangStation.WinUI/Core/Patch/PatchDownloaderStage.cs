@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using Core.Models;
+using System.Net;
 
 namespace Core.Patch;
 
@@ -11,13 +12,12 @@ public static class PatchDownloaderStage
     public static async Task DownloadAllAsync(
         PatchExtractPlan plan,
         string tempRoot,
-        Uri patchBaseUri,                 // 예: https://.../Gersang/Patch/Gersang_Server
+        GameServer server,                 // 예: https://.../Gersang/Patch/Gersang_Server
         int maxConcurrency,
         CancellationToken ct)
     {
         if (plan is null) throw new ArgumentNullException(nameof(plan));
         if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
-        if (patchBaseUri is null) throw new ArgumentNullException(nameof(patchBaseUri));
         if (maxConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
 
         Directory.CreateDirectory(tempRoot);
@@ -57,7 +57,8 @@ public static class PatchDownloaderStage
                     // URL: .../Client_Patch_File/{경로}/{파일명}
                     // patchBaseUri = .../Gersang/Patch/Gersang_Server 라고 두면:
                     // => {patchBaseUri}/Client_Patch_File/...
-                    var url = BuildPatchUrl(patchBaseUri, f.RelativeDir, f.CompressedFileName);
+                    
+                    var url = new Uri(GameServerHelper.GetPatchFileUrl(server, f.RelativeDir + f.CompressedFileName));
 
                     string dest = Path.Combine(versionDir, f.CompressedFileName);
                     string temp = dest + ".crdownload";
@@ -94,18 +95,5 @@ public static class PatchDownloaderStage
         {
             // best-effort
         }
-    }
-    internal static Uri BuildPatchUrl(Uri patchBaseUri, string relativeDir, string compressedFileName)
-    {
-        // relativeDir: "\Online\Sub\" -> "Online/Sub/"
-        string rel = relativeDir.Replace('\\', '/').Trim('/');
-        string baseStr = patchBaseUri.ToString();
-        if (!baseStr.EndsWith("/")) baseStr += "/";
-
-        // rel이 빈 문자열이면(루트 "\") "Client_Patch_File/" 바로 아래에 붙음
-        if (rel.Length == 0)
-            return new Uri(baseStr + "Client_Patch_File/" + compressedFileName);
-
-        return new Uri(baseStr + "Client_Patch_File/" + rel + "/" + compressedFileName);
     }
 }

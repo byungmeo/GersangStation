@@ -132,7 +132,7 @@ public partial class ParallelBandwidthProbeTests
 
     [Ignore("전체 대역폭이 제한되어 있고, 동시성을 올려도 변함이 거의 없다는 것이 증명되었음. 최대 2개까지만 유효")]
     [DoNotParallelize]
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(1)]
     [DataRow(2)]
     [DataRow(8)]

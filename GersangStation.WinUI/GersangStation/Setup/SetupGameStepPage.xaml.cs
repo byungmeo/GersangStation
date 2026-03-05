@@ -374,7 +374,7 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
                 return;
 
             string installRoot = selectedRoot.Trim();
-            string installRootWithGameFolder = PatchClientApi.NormalizeFullClientInstallRoot(installRoot);
+            string installRootWithGameFolder = PatchHelper.NormalizeFullClientInstallRoot(installRoot);
             string parentRoot = Directory.GetParent(installRootWithGameFolder)?.FullName ?? installRootWithGameFolder;
             string archivePath = Path.Combine(installRootWithGameFolder, "Gersang_Install.7z");
             bool skipDownloadIfArchiveExists = false;
@@ -435,8 +435,9 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
                     InstallProgressText = $"압축 해제 중... {processedText}";
             });
 
-            await PatchClientApi.InstallFullClientAsync(
+            await PatchHelper.InstallFullClientAsync(
                 installRoot: installRoot,
+                server: GameServer.Korea_Live,
                 progress: downloadProgress,
                 extractionProgress: extractionProgress,
                 skipDownloadIfArchiveExists: skipDownloadIfArchiveExists,

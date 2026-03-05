@@ -1,8 +1,8 @@
 using Core.Extractor;
+using Core.Models;
 using Microsoft.Win32;
 using System.Diagnostics;
 using System.Net;
-using System.Text.RegularExpressions;
 
 namespace Core.Patch;
 
@@ -10,47 +10,21 @@ namespace Core.Patch;
 /// 상위 계층(WinUI 등)에서 사용하기 위한 단순 Patch API.
 /// 본섭 CDN 기준으로 고정되어 있습니다.
 /// </summary>
-public static class PatchClientApi
+public static class PatchHelper
 {
     private static readonly IExtractor Extractor = new NativeSevenZipExtractor();
-    private static readonly Regex PatchDateRegex = new(@"^\s*-(\d{4}\.\d{2}\.\d{2})-\s*$", RegexOptions.Multiline | RegexOptions.Compiled);
-
-    public static readonly Uri PatchBaseUri = new("https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/");
-    public static readonly Uri FullClientUri = new("http://ak-gersangkr.xcache.kinxcdn.com/FullClient/Gersang_Install.7z");
 
     public const string ReadMeSuffix = "Client_Readme/readme.txt";
     public const string LatestVersionArchiveSuffix = "Client_Patch_File/Online/vsn.dat.gsz";
 
-    private static string? _clientInstallRoot;
-
-    /// <summary>
-    /// 전역 클라이언트 설치 경로를 지정합니다.
-    /// </summary>
-    public static void SetClientInstallRoot(string clientInstallRoot)
-    {
-        if (string.IsNullOrWhiteSpace(clientInstallRoot))
-            throw new ArgumentException("clientInstallRoot is required.", nameof(clientInstallRoot));
-
-        _clientInstallRoot = clientInstallRoot;
-    }
-
-    /// <summary>
-    /// 현재 저장된 전역 클라이언트 설치 경로를 반환합니다.
-    /// </summary>
-    public static string GetClientInstallRoot()
-    {
-        EnsureClientInstallRootConfigured();
-        return _clientInstallRoot!;
-    }
-
     /// <summary>
     /// 설치 경로의 Online/vsn.dat을 읽어 현재 클라이언트 버전을 반환합니다.
     /// </summary>
-    public static int GetCurrentClientVersion()
+    public static int GetCurrentClientVersion(GameServer server)
     {
-        EnsureClientInstallRootConfigured();
+        ClientSettings clientSettings = AppDataManager.LoadServerClientSettings(server);
 
-        string vsnPath = Path.Combine(_clientInstallRoot!, "Online", "vsn.dat");
+        string vsnPath = Path.Combine(clientSettings.InstallPath, "Online", "vsn.dat");
         if (!File.Exists(vsnPath))
             throw new FileNotFoundException("Current version file not found.", vsnPath);
 
@@ -61,10 +35,11 @@ public static class PatchClientApi
     /// <summary>
     /// 서버의 최신 버전(vsn.dat.gsz)을 읽어 int 버전을 반환합니다.
     /// </summary>
-    public static async Task<int> GetLatestServerVersionAsync(CancellationToken ct = default)
+    public static async Task<int> GetLatestServerVersionAsync(GameServer server, CancellationToken ct = default)
     {
+        string vsnUrl = GameServerHelper.GetVsnUrl(server);
         using var http = CreateHttpClient(TimeSpan.FromMinutes(5));
-        using var response = await http.GetAsync(new Uri(PatchBaseUri, LatestVersionArchiveSuffix), HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        using var response = await http.GetAsync(new Uri(vsnUrl), HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
         string probeRoot = Path.Combine(Path.GetTempPath(), "GersangStation", "LatestVersion", Guid.NewGuid().ToString("N"));
@@ -106,97 +81,24 @@ public static class PatchClientApi
     /// <summary>
     /// 패치를 수행합니다. 상위 계층에서는 현재 버전만 전달하면 됩니다.
     /// </summary>
-    public static Task PatchAsync(int currentClientVersion, CancellationToken ct = default)
+    public static Task PatchAsync(GameServer server, int currentClientVersion, CancellationToken ct = default)
     {
-        EnsureClientInstallRootConfigured();
-
         string tempRoot = Path.Combine(
             Path.GetTempPath(),
             "GersangStation",
             "Patch",
             Guid.NewGuid().ToString("N"));
 
+        ClientSettings clientSettings = AppDataManager.LoadServerClientSettings(server);
         return PatchPipeline.RunPatchAsync(
             currentClientVersion: currentClientVersion,
-            patchBaseUri: PatchBaseUri,
-            installRoot: _clientInstallRoot!,
+            server: server,
+            installRoot: clientSettings.InstallPath,
             tempRoot: tempRoot,
             maxConcurrency: 2,
             maxExtractRetryCount: 2,
             ct: ct,
             cleanupTemp: true);
-    }
-
-    /// <summary>
-    /// 패치 내역(ReadMe) 텍스트를 다운로드합니다.
-    /// </summary>
-    public static async Task<string> DownloadReadMeAsync(CancellationToken ct = default)
-    {
-        using var http = CreateHttpClient(TimeSpan.FromMinutes(1));
-        return await http.GetStringAsync(new Uri(PatchBaseUri, ReadMeSuffix), ct).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// ReadMe 텍스트에서 최신 패치 노트를 파싱하여 반환합니다.
-    /// </summary>
-    public static IEnumerable<PatchNote> ParseRecentPatchNotes(string readMeText, int takeCount = 5)
-    {
-        if (string.IsNullOrWhiteSpace(readMeText))
-            return [];
-
-        if (takeCount <= 0)
-            return [];
-
-        MatchCollection matches = PatchDateRegex.Matches(readMeText);
-        if (matches.Count == 0)
-            return [];
-
-        var result = new List<PatchNote>(Math.Min(takeCount, matches.Count));
-
-        for (int i = 0; i < matches.Count && result.Count < takeCount; i++)
-        {
-            Match current = matches[i];
-            int bodyStart = current.Index + current.Length;
-            int bodyEnd = i + 1 < matches.Count ? matches[i + 1].Index : readMeText.Length;
-            string body = readMeText[bodyStart..bodyEnd].Trim();
-
-            if (string.IsNullOrWhiteSpace(body))
-                continue;
-
-            string[] lines = body
-                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            if (lines.Length == 0)
-                continue;
-
-            string title = lines[0];
-            string note = lines.Length > 1
-                ? string.Join(Environment.NewLine, lines[1..]).Trim()
-                : string.Empty;
-
-            result.Add(new PatchNote(
-                DateStr: current.Groups[1].Value,
-                Title: title,
-                Note: note));
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// 서버 ReadMe를 내려받아 최신 패치 노트를 파싱합니다.
-    /// </summary>
-    public static async Task<IEnumerable<PatchNote>> DownloadRecentPatchNotesAsync(int takeCount = 5, CancellationToken ct = default)
-    {
-        try
-        {
-            string readMe = await DownloadReadMeAsync(ct).ConfigureAwait(false);
-            return ParseRecentPatchNotes(readMe, takeCount);
-        }
-        catch
-        {
-            return [];
-        }
     }
 
     /// <summary>
@@ -219,6 +121,7 @@ public static class PatchClientApi
     /// </summary>
     public static async Task InstallFullClientAsync(
         string installRoot,
+        GameServer server,
         IProgress<DownloadProgress>? progress = null,
         IProgress<ExtractionProgress>? extractionProgress = null,
         bool skipDownloadIfArchiveExists = true,
@@ -250,7 +153,7 @@ public static class PatchClientApi
             else
             {
                 await downloader.DownloadAsync(
-                    FullClientUri,
+                    new Uri(GameServerHelper.GetFullClientUrl(server)),
                     archivePath,
                     new DownloadOptions(Overwrite: !skipDownloadIfArchiveExists),
                     progress: progress,
@@ -276,13 +179,7 @@ public static class PatchClientApi
         }
     }
 
-    private static void EnsureClientInstallRootConfigured()
-    {
-        if (string.IsNullOrWhiteSpace(_clientInstallRoot))
-            throw new InvalidOperationException("Client install root is not configured. Call SetClientInstallRoot first.");
-    }
-
-    private static HttpClient CreateHttpClient(TimeSpan timeout)
+    public static HttpClient CreateHttpClient(TimeSpan timeout)
     {
         return new HttpClient(new HttpClientHandler
         {
