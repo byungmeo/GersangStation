@@ -35,9 +35,9 @@
                 <StackPanel Orientation="Horizontal">
                     <Button
                         x:Name="Button_Path1_PickFolder"
+                        Margin="8,0,8,0"
                         Click="Button_Path_PickFolder_Click"
                         Content="..."
-                        Margin="0,0,8,0"
                         Style="{StaticResource AccentButtonStyle}" />
                     <Button
                         x:Name="Button_AutoFind"
@@ -70,7 +70,7 @@
                     Toggled="ToggleSwitch_UseMultiClient_Toggled" />
             </Expander.Header>
             <Expander.Content>
-                <Grid RowSpacing="10">
+                <Grid RowSpacing="16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -92,10 +92,10 @@
                             Message="드라이브의 파일 시스템이 NTFS인 경우에만 사용 가능합니다."
                             Severity="Error">
                             <InfoBar.ActionButton>
-                                <Button
+                                <HyperlinkButton
                                     x:Name="Button_SymbolErrorAction"
-                                    Click="Button_SymbolErrorAction_Click"
-                                    Content="해결 방법" />
+                                    Content="해결 방법"
+                                    NavigateUri="https://github.com/byungmeo/GersangStation/discussions/39" />
                             </InfoBar.ActionButton>
                         </InfoBar>
                         <CheckBox
@@ -111,7 +111,7 @@
                         Grid.Row="1"
                         Grid.ColumnSpan="2"
                         Orientation="Horizontal"
-                        Spacing="10">
+                        Spacing="8">
                         <Button
                             x:Name="Button_CreateMultiClient"
                             Grid.Row="0"
@@ -146,6 +146,7 @@
                         <controls:ValidatedTextBox.InputRowRightContent>
                             <Button
                                 x:Name="Button_Path2_PickFolder"
+                                Margin="8,0,0,0"
                                 Click="Button_Path_PickFolder_Click"
                                 Content="..."
                                 IsEnabled="{x:Bind TextBox_Path2_IsEnabled, Mode=OneWay}"
@@ -174,6 +175,7 @@
                         <controls:ValidatedTextBox.InputRowRightContent>
                             <Button
                                 x:Name="Button_Path3_PickFolder"
+                                Margin="8,0,0,0"
                                 Click="Button_Path_PickFolder_Click"
                                 Content="..."
                                 IsEnabled="{x:Bind TextBox_Path3_IsEnabled, Mode=OneWay}"

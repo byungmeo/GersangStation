@@ -1,6 +1,8 @@
 using Core.Models;
 using Microsoft.UI.Text;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using System.Linq;
 using System.Threading.Tasks;
@@ -53,12 +55,12 @@ public sealed partial class InstallPathSettingPage : Page, IConfirmLeave
         foreach (var item in sender.Items.OfType<SelectorBarItem>())
         {
             item.FontWeight = FontWeights.Normal;
-            item.FontSize = 16;
+            item.FontSize = 14;
         }
         if (sender.SelectedItem is SelectorBarItem selected)
         {
-            selected.FontWeight = FontWeights.Bold;
-            selected.FontSize = 22;
+            selected.FontWeight = FontWeights.SemiBold;
+            selected.FontSize = 20;
         }
 
         int currentSelectedIndex = sender.Items.IndexOf(selectedItem);

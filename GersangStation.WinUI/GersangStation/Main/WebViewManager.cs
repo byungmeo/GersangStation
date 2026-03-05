@@ -664,6 +664,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             await _webview!.DispatcherQueue.RunOrEnqueueAsync(ShowOtpDialogAsync);
         }
 
+        // TODO: sender.DocumentTitle.Contains("점검")
+        // -> 거상 홈페이지 조작 관련 기능 비활성화 및 안내
+
         // TODO: url.Contains("member/convert.gs")
         // -> 메인 주소로 이동 (주민등록번호 파기로 인한 인증정보 없는 계정들 전용)
 

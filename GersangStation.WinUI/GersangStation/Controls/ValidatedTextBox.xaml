@@ -8,57 +8,57 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid RowSpacing="4">
+    <Grid RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <!--  Header  -->
             <RowDefinition Height="Auto" />
-            <!--  InputRow  -->
+            <!--  Input Row  -->
             <RowDefinition Height="Auto" />
             <!--  Error  -->
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
 
         <!--  Header  -->
         <ContentPresenter
             Grid.Row="0"
+            Grid.Column="1"
             Content="{x:Bind Header, Mode=OneWay}"
             Visibility="{x:Bind HeaderVisibility, Mode=OneWay}" />
 
-        <!--  InputRow  -->
-        <Grid Grid.Row="1" ColumnSpacing="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <!--  LeftContent  -->
-                <ColumnDefinition Width="*" />
-                <!--  TextBox  -->
-                <ColumnDefinition Width="Auto" />
-                <!--  RightContent  -->
-            </Grid.ColumnDefinitions>
 
-            <ContentPresenter
-                Grid.Column="0"
-                VerticalAlignment="Center"
-                Content="{x:Bind InputRowLeftContent, Mode=OneWay}" />
+        <!--  Input Row  -->
+        <ContentPresenter
+            Grid.Row="1"
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            Content="{x:Bind InputRowLeftContent, Mode=OneWay}" />
 
-            <TextBox
-                x:Name="InnerTextBox"
-                Grid.Column="1"
-                VerticalAlignment="Center"
-                IsEnabled="{x:Bind InputIsEnabled, Mode=OneWay}"
-                PlaceholderText="{x:Bind PlaceholderText, Mode=OneWay}"
-                Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                TextChanged="InnerTextBox_TextChanged" />
+        <TextBox
+            x:Name="InnerTextBox"
+            Grid.Row="1"
+            Grid.Column="1"
+            VerticalAlignment="Center"
+            IsEnabled="{x:Bind InputIsEnabled, Mode=OneWay}"
+            PlaceholderText="{x:Bind PlaceholderText, Mode=OneWay}"
+            Text="{x:Bind Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            TextChanged="InnerTextBox_TextChanged" />
 
-            <ContentPresenter
-                Grid.Column="2"
-                VerticalAlignment="Center"
-                Content="{x:Bind InputRowRightContent, Mode=OneWay}" />
-        </Grid>
+        <ContentPresenter
+            Grid.Row="1"
+            Grid.Column="2"
+            VerticalAlignment="Center"
+            Content="{x:Bind InputRowRightContent, Mode=OneWay}" />
 
         <!--  Error  -->
         <TextBlock
             x:Name="ErrorTextBlock"
             Grid.Row="2"
+            Grid.Column="1"
             Text="{x:Bind ErrorText, Mode=OneWay}"
             TextWrapping="Wrap"
             Visibility="Collapsed" />
