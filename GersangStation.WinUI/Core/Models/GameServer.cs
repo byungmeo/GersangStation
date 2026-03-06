@@ -85,7 +85,7 @@ public class GameServerHelper
     {
         GameServer.Korea_Live => $"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Gersang_Server/Client_Patch_File/{relativePath}",
         GameServer.Korea_Test => $"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/Test_Server/Client_Patch_File/{relativePath}",
-        GameServer.Korea_RnD => $"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/RnD_Server/Client_Patch_File/{relativePath}",
+        GameServer.Korea_RnD => $"https://akgersang.xdn.kinxcdn.com/Gersang/Patch/RnD_Server/Client_Patch_File{relativePath}",
         _ => throw new ArgumentOutOfRangeException(nameof(server), server, null)
     };
 

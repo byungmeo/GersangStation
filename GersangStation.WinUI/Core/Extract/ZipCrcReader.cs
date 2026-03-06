@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
 
-namespace Core.Patch;
+namespace Core.Extract;
 
 /// <summary>
 /// ZIP/GSZ 파일의 Central Directory를 파싱하여 엔트리별 CRC를 추출합니다.

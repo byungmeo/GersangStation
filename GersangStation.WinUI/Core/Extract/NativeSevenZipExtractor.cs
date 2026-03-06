@@ -5,6 +5,7 @@ namespace Core.Extractor;
 
 /// <summary>
 /// 7za 커맨드라인(7za.exe)을 사용해 압축을 풉니다.
+/// .gsz 파일 압축 해제 시 파일 정합성을 보장할 수 없으므로, 7z 파일 압축 해제에만 사용 권장
 /// </summary>
 public sealed class NativeSevenZipExtractor : IExtractor
 {
@@ -24,7 +25,12 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
     public string Name => "Native 7-Zip CLI (7za)";
 
-    public bool CanHandle(string archivePath) => File.Exists(archivePath);
+    public bool CanHandle(string archivePath)
+    {
+        return !string.IsNullOrWhiteSpace(archivePath)
+            && File.Exists(archivePath)
+            && File.Exists(_sevenZipExePath);
+    }
 
     public async Task ExtractAsync(
         string archivePath,
@@ -52,6 +58,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
+        bool hasReportedCompletion = false;
         process.OutputDataReceived += (_, args) =>
         {
             if (string.IsNullOrWhiteSpace(args.Data)) return;
@@ -71,13 +78,18 @@ public sealed class NativeSevenZipExtractor : IExtractor
                 return;
             }
 
-            int processedEntries = 0;
-            if (match.Groups["processed"].Success && !int.TryParse(match.Groups["processed"].Value, out processedEntries))
+            // 7za 출력에서 파싱한 보조 숫자이며, totalEntries와 동일 기준의 "처리 엔트리 수"를 보장하지 않습니다.
+            int parsedProcessedValue = 0;
+            if (match.Groups["processed"].Success && !int.TryParse(match.Groups["processed"].Value, out parsedProcessedValue))
                 Debug.WriteLine($"[7ZA][PROGRESS][PARSE-FAIL] processed line={args.Data}");
 
             var currentEntry = match.Groups["entry"].Success ? match.Groups["entry"].Value : null;
-            Debug.WriteLine($"[7ZA][PROGRESS][PARSED] percent={percent}, processed={processedEntries}, entry={currentEntry ?? "(null)"}, total={totalEntries?.ToString() ?? "null"}");
-            progress?.Report(new ExtractionProgress(Name, percent, processedEntries, totalEntries, currentEntry));
+            Debug.WriteLine($"[7ZA][PROGRESS][PARSED] percent={percent}, parsedProcessedValue={parsedProcessedValue}, entry={currentEntry ?? "(null)"}, total={totalEntries?.ToString() ?? "null"}");
+
+            if (percent >= 100)
+                hasReportedCompletion = true;
+
+            progress?.Report(new ExtractionProgress(Name, percent, parsedProcessedValue, totalEntries, currentEntry));
         };
 
         process.ErrorDataReceived += (_, args) =>
@@ -99,20 +111,20 @@ public sealed class NativeSevenZipExtractor : IExtractor
             }
             catch
             {
-                // ignore kill race
             }
         });
 
-        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+        await process.WaitForExitAsync().ConfigureAwait(false);
 
-        if (ct.IsCancellationRequested)
-            ct.ThrowIfCancellationRequested();
+        ct.ThrowIfCancellationRequested();
 
         if (process.ExitCode != 0)
             throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}.");
 
         Debug.WriteLine("[7ZA][PROGRESS][COMPLETE] exitCode=0");
-        progress?.Report(new ExtractionProgress(Name, 100, totalEntries ?? 0, totalEntries, null));
+
+        if (!hasReportedCompletion)
+            progress?.Report(new ExtractionProgress(Name, 100, totalEntries ?? 0, totalEntries, null));
     }
 
     /// <summary>
@@ -169,7 +181,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                failedDestinations.Add(normalizedDestinationRoot);
+                failedDestinations.Add($"{normalizedDestinationRoot} ({ex.GetType().Name}: {ex.Message})");
             }
         }
 
@@ -178,10 +190,20 @@ public sealed class NativeSevenZipExtractor : IExtractor
     }
 
     private static async Task ReplicateDirectoryAsync(
-        string sourceRoot,
-        string destinationRoot,
-        CancellationToken ct)
+    string sourceRoot,
+    string destinationRoot,
+    CancellationToken ct)
     {
+        foreach (string sourceDirectory in Directory.EnumerateDirectories(sourceRoot, "*", SearchOption.AllDirectories))
+        {
+            ct.ThrowIfCancellationRequested();
+
+            string relativeDirectory = Path.GetRelativePath(sourceRoot, sourceDirectory);
+            string destinationDirectory = Path.Combine(destinationRoot, relativeDirectory);
+
+            Directory.CreateDirectory(destinationDirectory);
+        }
+
         foreach (string sourcePath in Directory.EnumerateFiles(sourceRoot, "*", SearchOption.AllDirectories))
         {
             ct.ThrowIfCancellationRequested();
@@ -276,8 +298,8 @@ public sealed class NativeSevenZipExtractor : IExtractor
                 continue;
             }
 
-            Debug.WriteLine($"[7ZA][LIST][PARSED] files={files}, folders={folders}, total={files + folders}");
-            return files + folders;
+            Debug.WriteLine($"[7ZA][LIST][PARSED] files={files}, folders={folders}, totalFiles={files}");
+            return files;
         }
 
         Debug.WriteLine("[7ZA][LIST][PARSED] summary not found in tail lines.");

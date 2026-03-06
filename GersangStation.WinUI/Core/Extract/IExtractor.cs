@@ -8,7 +8,7 @@ public interface IExtractor
 
     Task ExtractAsync(
         string archivePath,
-        string destinationRoot,
+        string destinationPath,
         IProgress<ExtractionProgress>? progress = null,
         CancellationToken ct = default);
 }

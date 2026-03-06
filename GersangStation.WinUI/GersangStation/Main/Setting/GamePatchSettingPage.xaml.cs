@@ -1,6 +1,5 @@
 using Core;
 using Core.Models;
-using Core.Patch;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -139,7 +138,10 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         IsLoadingPatchInfo = true;
         try
         {
-            _currentClientVersion = PatchHelper.GetCurrentClientVersion(AppDataManager.SelectedServer);
+            // TODO: 서버 SelectorBar를 통해서 서버를 알아내기
+            GameServer server = AppDataManager.SelectedServer;
+            ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
+            _currentClientVersion = PatchManager.GetCurrentClientVersion(clientSetting.InstallPath) ?? 0;
             TempPath = $"임시 파일 경로: {AppDataManager.LoadServerClientSettings(AppDataManager.SelectedServer).TempPath}";
 
             SelectedVersionItem = null;
@@ -157,7 +159,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 if (_currentClientVersion >= item.Version)
                     Versions.Add(item);
 
-                bool shouldHighlightHeader = item.Version > 34000;
+                bool shouldHighlightHeader = item.Version > _currentClientVersion;
                 string headerText = $"[{item.Date:yyyy-MM-dd} 거상 업데이트 v{item.Version}]";
 
                 Run headerRun = new()
@@ -219,8 +221,13 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         if (IsBusy)
             return;
 
-        _patchCts = new CancellationTokenSource();
+        if (SelectedVersionItem is null)
+            return;
 
+        _patchCts = new CancellationTokenSource();
+        PatchManager patchManager = new();
+        GameServer server = AppDataManager.SelectedServer;
+        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
         try
         {
             IsDownloading = true;
@@ -228,8 +235,26 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             ProgressValue = 0;
             ProgressText = "패치를 준비하는 중...";
 
-            await RunDummyPatchAsync(_patchCts.Token);
+            Progress<PatchProgress> patchProgress = new(p =>
+            {
+                double percent = p.DownloadingPercent ?? 0;
+                string fileName = string.IsNullOrWhiteSpace(p.DownloadingFileName) ? "-" : p.DownloadingFileName;
 
+                ProgressMaximum = 100;
+                ProgressValue = percent;
+                ProgressText = $"다운로드 현황: {p.DownloadedCount} / {p.TotalCount} {fileName} {percent:F1}%";
+            });
+
+            PatchRunOptions option = new(DeleteArchiveAfterExtract: false);
+            await patchManager.RunAsync(
+                server, 
+                SelectedVersionItem.Version, 
+                clientSetting.InstallPath, 
+                option, 
+                patchProgress,
+                _patchCts.Token);
+
+            ProgressValue = 100;
             ProgressText = "패치가 완료되었습니다.";
         }
         catch (OperationCanceledException)

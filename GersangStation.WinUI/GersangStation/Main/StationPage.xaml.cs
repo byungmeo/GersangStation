@@ -1,6 +1,5 @@
 using Core;
 using Core.Models;
-using Core.Patch;
 using GersangStation.Main.Setting;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -197,8 +196,9 @@ namespace GersangStation.Main
         private async Task UpdateServer()
         {
             GameServer server = AppDataManager.SelectedServer = (GameServer)SelectedServerIndex;
-            int currentVersion = PatchHelper.GetCurrentClientVersion(server);
-            int latestVersion = await PatchHelper.GetLatestServerVersionAsync(server);
+            ClientSettings clientSettings = AppDataManager.LoadServerClientSettings(server);
+            int currentVersion = PatchManager.GetCurrentClientVersion(clientSettings.InstallPath) ?? 0;
+            int latestVersion = await PatchManager.GetLatestServerVersionAsync(server);
             string currentStr = currentVersion <= 0 ? "확인불가" : $"v{currentVersion}";
             string latestStr = latestVersion <= 0 ? "확인불가" : $"v{latestVersion}";
             TextBlock_Version.Text = $"설치 버전: {currentStr} | 최신 버전: {latestStr}";

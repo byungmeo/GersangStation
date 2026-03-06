@@ -1,7 +1,7 @@
 using Core;
+using Core.Download;
 using Core.Extractor;
 using Core.Models;
-using Core.Patch;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -361,107 +361,107 @@ public sealed partial class SetupGameStepPage : Page, ISetupStepPage, IAsyncSetu
 
     private async void OnInstallButtonClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button button) return;
-        if (IsInstallingClient) return;
+        //if (sender is not Button button) return;
+        //if (IsInstallingClient) return;
 
-        button.IsEnabled = false;
-        InstallFailureReason = "";
+        //button.IsEnabled = false;
+        //InstallFailureReason = "";
 
-        try
-        {
-            string? selectedRoot = await PickFolderAsync(button);
-            if (string.IsNullOrWhiteSpace(selectedRoot))
-                return;
+        //try
+        //{
+        //    string? selectedRoot = await PickFolderAsync(button);
+        //    if (string.IsNullOrWhiteSpace(selectedRoot))
+        //        return;
 
-            string installRoot = selectedRoot.Trim();
-            string installRootWithGameFolder = PatchHelper.NormalizeFullClientInstallRoot(installRoot);
-            string parentRoot = Directory.GetParent(installRootWithGameFolder)?.FullName ?? installRootWithGameFolder;
-            string archivePath = Path.Combine(installRootWithGameFolder, "Gersang_Install.7z");
-            bool skipDownloadIfArchiveExists = false;
+        //    string installRoot = selectedRoot.Trim();
+        //    string installRootWithGameFolder = PatchManager.NormalizeFullClientInstallRoot(installRoot);
+        //    string parentRoot = Directory.GetParent(installRootWithGameFolder)?.FullName ?? installRootWithGameFolder;
+        //    string archivePath = Path.Combine(installRootWithGameFolder, "Gersang_Install.7z");
+        //    bool skipDownloadIfArchiveExists = false;
 
-            if (File.Exists(archivePath))
-            {
-                var archiveExistsDialog = new ContentDialog
-                {
-                    XamlRoot = XamlRoot,
-                    Title = "이미 게임 압축파일이 존재합니다. 다시 다운로드 하시겠습니까?",
-                    PrimaryButtonText = "예",
-                    CloseButtonText = "건너뛰기",
-                    DefaultButton = ContentDialogButton.Close
-                };
+        //    if (File.Exists(archivePath))
+        //    {
+        //        var archiveExistsDialog = new ContentDialog
+        //        {
+        //            XamlRoot = XamlRoot,
+        //            Title = "이미 게임 압축파일이 존재합니다. 다시 다운로드 하시겠습니까?",
+        //            PrimaryButtonText = "예",
+        //            CloseButtonText = "건너뛰기",
+        //            DefaultButton = ContentDialogButton.Close
+        //        };
 
-                ContentDialogResult dialogResult = await archiveExistsDialog.ShowAsync();
-                skipDownloadIfArchiveExists = dialogResult == ContentDialogResult.None;
-            }
+        //        ContentDialogResult dialogResult = await archiveExistsDialog.ShowAsync();
+        //        skipDownloadIfArchiveExists = dialogResult == ContentDialogResult.None;
+        //    }
 
-            UpdateRemainingCapacityText(parentRoot);
+        //    UpdateRemainingCapacityText(parentRoot);
 
-            IsInstallingClient = true;
-            InstallProgressPercent = 0;
-            InstallProgressText = "다운로드 준비 중...";
+        //    IsInstallingClient = true;
+        //    InstallProgressPercent = 0;
+        //    InstallProgressText = "다운로드 준비 중...";
 
-            _installClientCts?.Cancel();
-            _installClientCts?.Dispose();
-            _installClientCts = new CancellationTokenSource();
+        //    _installClientCts?.Cancel();
+        //    _installClientCts?.Dispose();
+        //    _installClientCts = new CancellationTokenSource();
 
-            var downloadProgress = new Progress<DownloadProgress>(p =>
-            {
-                long received = p.BytesReceived;
-                long total = p.TotalBytes ?? 0;
+        //    var downloadProgress = new Progress<DownloadProgress>(p =>
+        //    {
+        //        long received = p.BytesReceived;
+        //        long total = p.TotalBytes ?? 0;
 
-                if (total > 0)
-                {
-                    InstallProgressPercent = Math.Clamp(received * 100.0 / total, 0, 100);
-                    InstallProgressText = $"다운로드 중... {FormatBytes(received)} / {FormatBytes(total)}";
-                }
-                else
-                {
-                    InstallProgressPercent = 0;
-                    InstallProgressText = $"다운로드 중... {FormatBytes(received)}";
-                }
-            });
+        //        if (total > 0)
+        //        {
+        //            InstallProgressPercent = Math.Clamp(received * 100.0 / total, 0, 100);
+        //            InstallProgressText = $"다운로드 중... {FormatBytes(received)} / {FormatBytes(total)}";
+        //        }
+        //        else
+        //        {
+        //            InstallProgressPercent = 0;
+        //            InstallProgressText = $"다운로드 중... {FormatBytes(received)}";
+        //        }
+        //    });
 
-            var extractionProgress = new Progress<ExtractionProgress>(p =>
-            {
-                InstallProgressPercent = Math.Clamp(p.Percentage, 0, 100);
+        //    var extractionProgress = new Progress<ExtractionProgress>(p =>
+        //    {
+        //        InstallProgressPercent = Math.Clamp(p.Percentage, 0, 100);
 
-                string processedText = p.TotalEntries is > 0
-                    ? $"{p.ProcessedEntries}/{p.TotalEntries}"
-                    : p.ProcessedEntries.ToString();
+        //        string processedText = p.TotalEntries is > 0
+        //            ? $"{p.ProcessedEntries}/{p.TotalEntries}"
+        //            : p.ProcessedEntries.ToString();
 
-                if (!string.IsNullOrWhiteSpace(p.CurrentEntry))
-                    InstallProgressText = $"압축 해제 중... {processedText} - {p.CurrentEntry}";
-                else
-                    InstallProgressText = $"압축 해제 중... {processedText}";
-            });
+        //        if (!string.IsNullOrWhiteSpace(p.CurrentEntry))
+        //            InstallProgressText = $"압축 해제 중... {processedText} - {p.CurrentEntry}";
+        //        else
+        //            InstallProgressText = $"압축 해제 중... {processedText}";
+        //    });
 
-            await PatchHelper.InstallFullClientAsync(
-                installRoot: installRoot,
-                server: GameServer.Korea_Live,
-                progress: downloadProgress,
-                extractionProgress: extractionProgress,
-                skipDownloadIfArchiveExists: skipDownloadIfArchiveExists,
-                ct: _installClientCts.Token);
+        //    await PatchManager.InstallFullClientAsync(
+        //        installRoot: installRoot,
+        //        server: GameServer.Korea_Live,
+        //        progress: downloadProgress,
+        //        extractionProgress: extractionProgress,
+        //        skipDownloadIfArchiveExists: skipDownloadIfArchiveExists,
+        //        ct: _installClientCts.Token);
 
-            InstallProgressPercent = 100;
-            InstallProgressText = "설치가 완료됐어요.";
+        //    InstallProgressPercent = 100;
+        //    InstallProgressText = "설치가 완료됐어요.";
 
-            InstallPath = installRootWithGameFolder;
-            UpdateRemainingCapacityText(parentRoot);
-        }
-        catch (OperationCanceledException)
-        {
-            InstallFailureReason = "설치가 취소되었습니다.";
-        }
-        catch (Exception ex)
-        {
-            InstallFailureReason = $"설치 실패: {ex.Message}";
-        }
-        finally
-        {
-            IsInstallingClient = false;
-            button.IsEnabled = true;
-        }
+        //    InstallPath = installRootWithGameFolder;
+        //    UpdateRemainingCapacityText(parentRoot);
+        //}
+        //catch (OperationCanceledException)
+        //{
+        //    InstallFailureReason = "설치가 취소되었습니다.";
+        //}
+        //catch (Exception ex)
+        //{
+        //    InstallFailureReason = $"설치 실패: {ex.Message}";
+        //}
+        //finally
+        //{
+        //    IsInstallingClient = false;
+        //    button.IsEnabled = true;
+        //}
     }
 
 

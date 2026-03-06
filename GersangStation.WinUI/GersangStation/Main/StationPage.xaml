@@ -13,10 +13,7 @@
     NavigationCacheMode="Enabled"
     mc:Ignorable="d">
 
-    <Grid
-        Margin="20,0,20,20"
-        BorderBrush="Black"
-        BorderThickness="2">
+    <Grid Margin="20,0,20,20">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -35,8 +32,6 @@
             Grid.Row="1"
             Grid.Column="0"
             Margin="20,0,20,0"
-            BorderBrush="Red"
-            BorderThickness="1"
             RowSpacing="5">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -52,11 +47,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Grid
-                Grid.Row="2"
-                Grid.ColumnSpan="3"
-                BorderBrush="Yellow"
-                BorderThickness="1">
+            <Grid Grid.Row="2" Grid.ColumnSpan="3">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
@@ -245,11 +236,7 @@
             </Grid>
         </Grid>
 
-        <Grid
-            Grid.RowSpan="2"
-            Grid.Column="1"
-            BorderBrush="Green"
-            BorderThickness="1">
+        <Grid Grid.RowSpan="2" Grid.Column="1">
             <Image
                 Grid.Row="0"
                 Grid.Column="0"

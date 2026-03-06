@@ -1,7 +1,4 @@
-﻿using ABI.System;
-using Core.Patch;
-using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -21,13 +18,20 @@ public static partial class PatchReadmeHelper
     private static partial Regex GetBlockRegex();
     private static readonly Regex BlockRegex = GetBlockRegex();
 
-    public static async Task<List<PatchReadmeInfoItem>> GetPatchInfoList(GameServer server)
+    public static async Task<List<PatchReadmeInfoItem>> GetPatchInfoList(GameServer server, CancellationToken ct = default)
     {
-        string readmeText = await DownloadReadMeAsync(GameServerHelper.GetReadMeUrl(server));
+        string readmeText = await DownloadReadMeAsync(GameServerHelper.GetReadMeUrl(server), ct);
         return Parse(readmeText);
     }
 
-    private static List<PatchReadmeInfoItem> Parse(string readmeText)
+    public static async Task<List<int>> GetLatestVersionList(GameServer server, int count, CancellationToken ct = default)
+    {
+        string readmeText = await DownloadReadMeAsync(GameServerHelper.GetReadMeUrl(server), ct);
+        List<PatchReadmeInfoItem> items = Parse(readmeText, count);
+        return items.Select(i => i.Version).ToList();
+    }
+
+    private static List<PatchReadmeInfoItem> Parse(string readmeText, int count = int.MaxValue)
     {
         if (string.IsNullOrWhiteSpace(readmeText))
             return [];
@@ -56,15 +60,15 @@ public static partial class PatchReadmeHelper
                 .ToList();
 
             result.Add(new PatchReadmeInfoItem(date, version, details));
+            if (result.Count > count)
+                break;
         }
 
         return result;
     }
-
-    private static readonly HttpClient _http = new();
     private static async Task<string> DownloadReadMeAsync(string readmeUrl, CancellationToken ct = default)
     {
-        byte[] bytes = await _http.GetByteArrayAsync(readmeUrl, ct);
+        byte[] bytes = await HttpClientProvider.Http.GetByteArrayAsync(readmeUrl, ct);
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         string result = Encoding.GetEncoding(949).GetString(bytes);
         return result;

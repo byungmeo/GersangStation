@@ -130,15 +130,15 @@
                         Height="8"
                         HorizontalAlignment="Stretch"
                         Maximum="{x:Bind ProgressMaximum, Mode=OneWay}"
-                        Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"
                         Value="{x:Bind ProgressValue, Mode=OneWay}" />
+                    <!--  Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"  -->
                     <Button
                         x:Name="Button_PatchStop"
                         Grid.Row="0"
                         Grid.Column="1"
                         Click="Button_PatchStop_Click"
-                        Style="{ThemeResource AlternateCloseButtonStyle}"
-                        Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}">
+                        Style="{ThemeResource AlternateCloseButtonStyle}">
+                        <!--  Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"  -->
                         <Button.Content>
                             <FontIcon Glyph="&#xE711;" />
                         </Button.Content>
@@ -147,8 +147,8 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         HorizontalAlignment="Center"
-                        Text="{x:Bind ProgressText, Mode=OneWay}"
-                        Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}" />
+                        Text="{x:Bind ProgressText, Mode=OneWay}" />
+                    <!--  Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"  -->
                 </Grid>
                 <!--#endregion Progress Row-->
 

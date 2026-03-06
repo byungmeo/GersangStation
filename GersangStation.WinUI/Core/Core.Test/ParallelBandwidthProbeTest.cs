@@ -1,4 +1,4 @@
-﻿using Core.Patch;
+﻿using Core.Download;
 using System.Diagnostics;
 using System.Net;
 
@@ -235,11 +235,10 @@ public partial class ParallelBandwidthProbeTests
     {
         var sw = Stopwatch.StartNew();
 
-        await downloader.DownloadAsync(
+        await downloader.DownloadFileAsync(
             job.Url,
             job.DestinationPath,
-            new DownloadOptions(
-                TempPath: job.TempPath,
+            new DownloadOptions(                
                 Overwrite: true,
                 MaxRetries: 8,
                 BufferSize: 1024 * 1024),
