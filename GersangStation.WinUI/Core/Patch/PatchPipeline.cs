@@ -223,11 +223,6 @@ public static class PatchPipeline
         string normalizedTempRoot = Path.GetFullPath(tempRoot);
         Directory.CreateDirectory(normalizedTempRoot);
 
-        // tempRoot는 호출자가 소유한 "부모" 경로로 보고,
-        // 실제 패치 작업은 실행 단위 하위 폴더에서만 수행한다.
-        string patchSessionRoot = Path.Combine(normalizedTempRoot, "PatchRun", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(patchSessionRoot);
-
         // 메타 조회는 짧은 요청 위주라 기본 HttpClient로 분리
         using var http = new HttpClient(new HttpClientHandler
         {
@@ -239,12 +234,28 @@ public static class PatchPipeline
 
         progress?.Report(new PatchProgress(0, "최신 버전 정보를 확인하는 중..."));
 
-        int latestServerVersion = await ResolveLatestServerVersionAsync(http, server, patchSessionRoot, maxExtractRetryCount, ct).ConfigureAwait(false);
+        string probeRoot = Path.Combine(normalizedTempRoot, "LatestVersionProbe", Guid.NewGuid().ToString("N"));
+        int latestServerVersion;
+        try
+        {
+            latestServerVersion = await ResolveLatestServerVersionAsync(http, server, probeRoot, maxExtractRetryCount, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            TryDeleteDirectory(probeRoot);
+        }
+
         if (latestServerVersion < currentClientVersion)
         {
             progress?.Report(new PatchProgress(100, "이미 최신 버전입니다."));
             return;
         }
+
+        // 사용자 요청 정책: {TempPath}\{CurrentVersion}->{LatestVersion}\{GUID}
+        // 단, Windows 예약문자('>') 이슈를 피하기 위해 시각적으로 동일한 유니코드 화살표(→)를 사용한다.
+        string patchVersionFolder = $"{currentClientVersion}→{latestServerVersion}";
+        string patchSessionRoot = Path.Combine(normalizedTempRoot, patchVersionFolder, Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(patchSessionRoot);
 
         progress?.Report(new PatchProgress(5, "패치 파일 목록을 준비하는 중..."));
         var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, server, ct).ConfigureAwait(false);
@@ -384,7 +395,7 @@ public static class PatchPipeline
 
     private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, GameServer server, string tempRoot, int maxExtractRetryCount, CancellationToken ct)
     {
-        string probeRoot = Path.Combine(tempRoot, "LatestVersionProbe");
+        string probeRoot = tempRoot;
         TryDeleteDirectory(probeRoot);
         Directory.CreateDirectory(probeRoot);
 
