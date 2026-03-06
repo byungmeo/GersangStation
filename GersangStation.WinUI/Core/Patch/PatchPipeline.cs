@@ -1,5 +1,6 @@
 ﻿using Core.Extractor;
 using Core.Models;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 
@@ -222,6 +223,7 @@ public static class PatchPipeline
 
         string normalizedTempRoot = Path.GetFullPath(tempRoot);
         Directory.CreateDirectory(normalizedTempRoot);
+        Debug.WriteLine($"[PATCH][BEGIN] current={currentClientVersion}, installRoot='{installRoot}', tempRoot='{tempRoot}', normalizedTempRoot='{normalizedTempRoot}', cleanupTemp={cleanupTemp}, maxConcurrency={maxConcurrency}, maxExtractRetryCount={maxExtractRetryCount}");
 
         // 메타 조회는 짧은 요청 위주라 기본 HttpClient로 분리
         using var http = new HttpClient(new HttpClientHandler
@@ -235,18 +237,22 @@ public static class PatchPipeline
         progress?.Report(new PatchProgress(0, "최신 버전 정보를 확인하는 중..."));
 
         string probeRoot = Path.Combine(normalizedTempRoot, "LatestVersionProbe", Guid.NewGuid().ToString("N"));
+        Debug.WriteLine($"[PATCH][PROBE] probeRoot='{probeRoot}'");
         int latestServerVersion;
         try
         {
             latestServerVersion = await ResolveLatestServerVersionAsync(http, server, probeRoot, maxExtractRetryCount, ct).ConfigureAwait(false);
+            Debug.WriteLine($"[PATCH][PROBE][DONE] latestServerVersion={latestServerVersion}");
         }
         finally
         {
+            Debug.WriteLine($"[PATCH][PROBE][CLEANUP] path='{probeRoot}'");
             TryDeleteDirectory(probeRoot);
         }
 
         if (latestServerVersion < currentClientVersion)
         {
+            Debug.WriteLine($"[PATCH][SKIP] latestServerVersion({latestServerVersion}) < currentClientVersion({currentClientVersion})");
             progress?.Report(new PatchProgress(100, "이미 최신 버전입니다."));
             return;
         }
@@ -256,9 +262,11 @@ public static class PatchPipeline
         string patchVersionFolder = $"{currentClientVersion}→{latestServerVersion}";
         string patchSessionRoot = Path.Combine(normalizedTempRoot, patchVersionFolder, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(patchSessionRoot);
+        Debug.WriteLine($"[PATCH][SESSION] patchVersionFolder='{patchVersionFolder}', patchSessionRoot='{patchSessionRoot}'");
 
         progress?.Report(new PatchProgress(5, "패치 파일 목록을 준비하는 중..."));
         var entriesByVersion = await DownloadEntriesByVersionAsync(http, currentClientVersion, latestServerVersion, server, ct).ConfigureAwait(false);
+        Debug.WriteLine($"[PATCH][PLAN][META] versionsWithEntries={entriesByVersion.Count}");
 
         try
         {
@@ -270,6 +278,8 @@ public static class PatchPipeline
             var plan = PatchPlanBuilder.BuildExtractPlan(entriesByVersion);
             int totalFileCount = plan.ByVersion.Values.Sum(files => files.Count);
             int extractedFileCount = 0;
+            int totalVersionCount = plan.ByVersion.Count;
+            Debug.WriteLine($"[PATCH][PLAN][BUILD] versionCount={totalVersionCount}, totalFileCount={totalFileCount}");
 
             ct.ThrowIfCancellationRequested();
 
@@ -290,6 +300,7 @@ public static class PatchPipeline
                     progress?.Report(new PatchProgress(percent, $"패치 파일 다운로드 중... ({completed}/{total})"));
                 },
                 ct: ct);
+            Debug.WriteLine($"[PATCH][DOWNLOAD][DONE] totalFileCount={totalFileCount}, root='{patchSessionRoot}'");
 
             ct.ThrowIfCancellationRequested();
 
@@ -300,12 +311,14 @@ public static class PatchPipeline
             foreach (var kv in plan.ByVersion) // 오름차순
             {
                 int version = kv.Key;
+                Debug.WriteLine($"[PATCH][EXTRACT][VERSION][BEGIN] version={version}, fileCount={kv.Value.Count}");
                 foreach (var f in kv.Value)
                 {
                     ct.ThrowIfCancellationRequested();
 
                     string gszPath = Path.Combine(patchSessionRoot, version.ToString(), f.CompressedFileName);
                     Uri patchUrl = new Uri(GameServerHelper.GetPatchFileUrl(server, f.RelativeDir + f.CompressedFileName));
+                    Debug.WriteLine($"[PATCH][EXTRACT][FILE][BEGIN] version={version}, file='{f.CompressedFileName}', relativeDir='{f.RelativeDir}', gszPath='{gszPath}', patchUrl='{patchUrl}'");
 
                     await ExtractWithRetryAsync(
                         archivePath: gszPath,
@@ -315,6 +328,7 @@ public static class PatchPipeline
                         maxExtractRetryCount: maxExtractRetryCount,
                         http: http,
                         ct: ct).ConfigureAwait(false);
+                    Debug.WriteLine($"[PATCH][EXTRACT][FILE][DONE] version={version}, file='{f.CompressedFileName}', extracted={extractedFileCount + 1}/{totalFileCount}");
 
                     extractedFileCount++;
                     double percent = totalFileCount <= 0
@@ -322,28 +336,41 @@ public static class PatchPipeline
                         : 70 + (extractedFileCount * 30.0 / totalFileCount);
                     progress?.Report(new PatchProgress(percent, $"패치 적용 중... ({extractedFileCount}/{totalFileCount})"));
                 }
+                Debug.WriteLine($"[PATCH][EXTRACT][VERSION][DONE] version={version}");
             }
 
             // -----------------------------------------------------------------
             // 6) 임시폴더 삭제
             // -----------------------------------------------------------------
             if (cleanupTemp)
+            {
+                Debug.WriteLine($"[PATCH][CLEANUP] deleting session root: '{patchSessionRoot}'");
                 TryDeleteDirectory(patchSessionRoot);
+            }
 
             progress?.Report(new PatchProgress(100, "패치가 완료되었습니다."));
+            Debug.WriteLine("[PATCH][END] success");
         }
         catch (OperationCanceledException)
         {
+            Debug.WriteLine("[PATCH][CANCEL] operation canceled");
             // 요구사항: 작업 취소 시 임시폴더 제거
             if (cleanupTemp)
+            {
+                Debug.WriteLine($"[PATCH][CANCEL][CLEANUP] deleting session root: '{patchSessionRoot}'");
                 TryDeleteDirectory(patchSessionRoot);
+            }
             throw;
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"[PATCH][FAIL] {ex}");
             // 실패 시에도 임시폴더 제거 (디스크 누수 방지)
             if (cleanupTemp)
+            {
+                Debug.WriteLine($"[PATCH][FAIL][CLEANUP] deleting session root: '{patchSessionRoot}'");
                 TryDeleteDirectory(patchSessionRoot);
+            }
             throw;
         }
     }
@@ -396,6 +423,7 @@ public static class PatchPipeline
     private static async Task<int> ResolveLatestServerVersionAsync(HttpClient http, GameServer server, string tempRoot, int maxExtractRetryCount, CancellationToken ct)
     {
         string probeRoot = tempRoot;
+        Debug.WriteLine($"[PATCH][PROBE][BEGIN] root='{probeRoot}'");
         TryDeleteDirectory(probeRoot);
         Directory.CreateDirectory(probeRoot);
 
@@ -403,6 +431,7 @@ public static class PatchPipeline
         string extractRoot = Path.Combine(probeRoot, "extract");
 
         var url = new Uri(GameServerHelper.GetVsnUrl(server));
+        Debug.WriteLine($"[PATCH][PROBE][DOWNLOAD] url='{url}', archivePath='{archivePath}'");
 
         using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -413,6 +442,7 @@ public static class PatchPipeline
         }
 
         Directory.CreateDirectory(extractRoot);
+        Debug.WriteLine($"[PATCH][PROBE][EXTRACT] archivePath='{archivePath}', extractRoot='{extractRoot}'");
         await ExtractArchiveToDirectoryWithRetryAsync(
             archivePath: archivePath,
             extractRoot: extractRoot,
@@ -422,6 +452,7 @@ public static class PatchPipeline
             ct: ct).ConfigureAwait(false);
 
         string vsnPath = ResolveVsnDatPath(extractRoot);
+        Debug.WriteLine($"[PATCH][PROBE][VSN] vsnPath='{vsnPath}'");
 
         int latestVersion;
         await using (var stream = File.OpenRead(vsnPath))
@@ -440,6 +471,7 @@ public static class PatchPipeline
         }
 
         TryDeleteDirectory(probeRoot);
+        Debug.WriteLine($"[PATCH][PROBE][END] latestVersion={latestVersion}");
         return latestVersion;
     }
 
@@ -468,27 +500,34 @@ public static class PatchPipeline
         CancellationToken ct)
     {
         var result = new Dictionary<int, List<string[]>>();
+        Debug.WriteLine($"[PATCH][META][BEGIN] range={currentClientVersion + 1}..{latestServerVersion}");
 
         for (int version = currentClientVersion + 1; version <= latestServerVersion; version++)
         {
             ct.ThrowIfCancellationRequested();
 
             var url = new Uri(GameServerHelper.GetVersionInfoUrl(server, version));
+            Debug.WriteLine($"[PATCH][META][REQUEST] version={version}, url='{url}'");
             using var response = await http.GetAsync(url, ct).ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                Debug.WriteLine($"[PATCH][META][MISS] version={version} not found");
                 continue;
+            }
 
             response.EnsureSuccessStatusCode();
             string text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
             var rows = ParseClientInfoRows(text);
+            Debug.WriteLine($"[PATCH][META][ROWS] version={version}, rowCount={rows.Count}");
             if (rows.Count > 0)
             {
                 result[version] = rows;
             }
         }
 
+        Debug.WriteLine($"[PATCH][META][END] versionsWithRows={result.Count}");
         return result;
     }
 
@@ -502,24 +541,29 @@ public static class PatchPipeline
         CancellationToken ct)
     {
         Exception? lastException = null;
+        Debug.WriteLine($"[PATCH][EXTRACT][RETRY][BEGIN] archivePath='{archivePath}', installRoot='{installRoot}', relativeDir='{relativeDir}', retry={maxExtractRetryCount}");
 
         for (int attempt = 0; attempt <= maxExtractRetryCount; attempt++)
         {
             ct.ThrowIfCancellationRequested();
+            Debug.WriteLine($"[PATCH][EXTRACT][RETRY][ATTEMPT] archivePath='{archivePath}', attempt={attempt + 1}/{maxExtractRetryCount + 1}");
 
             try
             {
                 if (attempt > 0)
                 {
+                    Debug.WriteLine($"[PATCH][EXTRACT][RETRY][REDOWNLOAD] archivePath='{archivePath}', url='{downloadUrl}'");
                     await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
                 }
 
                 await ExtractGszAsync(archivePath, installRoot, relativeDir, ct).ConfigureAwait(false);
+                Debug.WriteLine($"[PATCH][EXTRACT][RETRY][SUCCESS] archivePath='{archivePath}', attempt={attempt + 1}");
                 return;
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
             {
                 lastException = ex;
+                Debug.WriteLine($"[PATCH][EXTRACT][RETRY][ERROR] archivePath='{archivePath}', attempt={attempt + 1}, error={ex.Message}");
                 if (attempt == maxExtractRetryCount)
                     break;
             }
@@ -555,27 +599,32 @@ public static class PatchPipeline
         CancellationToken ct)
     {
         Exception? lastException = null;
+        Debug.WriteLine($"[PATCH][PROBE][RETRY][BEGIN] archivePath='{archivePath}', extractRoot='{extractRoot}', retry={maxExtractRetryCount}");
 
         for (int attempt = 0; attempt <= maxExtractRetryCount; attempt++)
         {
             ct.ThrowIfCancellationRequested();
             TryDeleteDirectory(extractRoot);
             Directory.CreateDirectory(extractRoot);
+            Debug.WriteLine($"[PATCH][PROBE][RETRY][ATTEMPT] attempt={attempt + 1}/{maxExtractRetryCount + 1}, extractRoot='{extractRoot}'");
 
             try
             {
                 if (attempt > 0)
                 {
+                    Debug.WriteLine($"[PATCH][PROBE][RETRY][REDOWNLOAD] archivePath='{archivePath}', url='{downloadUrl}'");
                     await RedownloadArchiveAsync(http, downloadUrl, archivePath, ct).ConfigureAwait(false);
                 }
 
                 await Extractor.ExtractAsync(archivePath, extractRoot, ct: ct).ConfigureAwait(false);
+                Debug.WriteLine($"[PATCH][PROBE][RETRY][SUCCESS] attempt={attempt + 1}");
 
                 return;
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is IOException)
             {
                 lastException = ex;
+                Debug.WriteLine($"[PATCH][PROBE][RETRY][ERROR] attempt={attempt + 1}, error={ex.Message}");
                 if (attempt == maxExtractRetryCount)
                     break;
             }
@@ -586,6 +635,7 @@ public static class PatchPipeline
 
     private static async Task RedownloadArchiveAsync(HttpClient http, Uri downloadUrl, string archivePath, CancellationToken ct)
     {
+        Debug.WriteLine($"[PATCH][REDOWNLOAD][BEGIN] url='{downloadUrl}', archivePath='{archivePath}'");
         using var response = await http.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
@@ -594,18 +644,27 @@ public static class PatchPipeline
 
         await using var fs = File.Create(archivePath);
         await response.Content.CopyToAsync(fs, ct).ConfigureAwait(false);
+        Debug.WriteLine($"[PATCH][REDOWNLOAD][END] archivePath='{archivePath}'");
     }
 
     private static void TryDeleteDirectory(string path)
     {
+        Debug.WriteLine($"[PATCH][DIR][DELETE][TRY] path='{path}'");
         try
         {
             if (Directory.Exists(path))
+            {
                 Directory.Delete(path, recursive: true);
+                Debug.WriteLine($"[PATCH][DIR][DELETE][DONE] path='{path}'");
+            }
+            else
+            {
+                Debug.WriteLine($"[PATCH][DIR][DELETE][SKIP] not found: '{path}'");
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            // best-effort
+            Debug.WriteLine($"[PATCH][DIR][DELETE][FAIL] path='{path}', error={ex.Message}");
         }
     }
 }

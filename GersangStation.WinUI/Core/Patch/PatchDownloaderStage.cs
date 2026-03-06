@@ -1,4 +1,5 @@
 ﻿using Core.Models;
+using System.Diagnostics;
 using System.Net;
 
 namespace Core.Patch;
@@ -20,6 +21,8 @@ public static class PatchDownloaderStage
         if (string.IsNullOrWhiteSpace(tempRoot)) throw new ArgumentException("tempRoot is required.", nameof(tempRoot));
         if (maxConcurrency < 1) throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
 
+        Debug.WriteLine($"[PATCH][DOWNLOAD][BEGIN] tempRoot='{tempRoot}', maxConcurrency={maxConcurrency}");
+
         Directory.CreateDirectory(tempRoot);
 
         // 너가 쓰던 HttpClient 설정 그대로
@@ -39,6 +42,7 @@ public static class PatchDownloaderStage
         var tasks = new List<Task>();
         int totalFileCount = plan.ByVersion.Values.Sum(files => files.Count);
         int completedFileCount = 0;
+        Debug.WriteLine($"[PATCH][DOWNLOAD][PLAN] versionCount={plan.ByVersion.Count}, totalFileCount={totalFileCount}");
 
         foreach (var kv in plan.ByVersion) // SortedDictionary => 오름차순
         {
@@ -46,6 +50,7 @@ public static class PatchDownloaderStage
 
             int version = kv.Key;
             var files = kv.Value;
+            Debug.WriteLine($"[PATCH][DOWNLOAD][VERSION][BEGIN] version={version}, fileCount={files.Count}");
 
             string versionDir = Path.Combine(tempRoot, version.ToString());
             Directory.CreateDirectory(versionDir);
@@ -68,6 +73,7 @@ public static class PatchDownloaderStage
                 var options = new DownloadOptions(
                     TempPath: temp,
                     Overwrite: true);
+                Debug.WriteLine($"[PATCH][DOWNLOAD][ENQUEUE] version={version}, url='{url}', dest='{dest}', temp='{temp}'");
 
                 int completionNotified = 0;
                 IProgress<DownloadProgress>? progress = onFileDownloaded is null
@@ -82,6 +88,7 @@ public static class PatchDownloaderStage
                             return;
 
                         int completed = Interlocked.Increment(ref completedFileCount);
+                        Debug.WriteLine($"[PATCH][DOWNLOAD][FILE][DONE] version={version}, file='{f.CompressedFileName}', completed={completed}/{totalFileCount}");
                         onFileDownloaded(completed, totalFileCount);
                     });
 
@@ -90,5 +97,6 @@ public static class PatchDownloaderStage
         }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
+        Debug.WriteLine("[PATCH][DOWNLOAD][END] all downloads completed");
     }
 }
