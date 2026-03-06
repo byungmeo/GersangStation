@@ -1,7 +1,8 @@
+using Core.Extractor;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 
-namespace Core.Extractor;
+namespace Core.Extract;
 
 /// <summary>
 /// 7za 커맨드라인(7za.exe)을 사용해 압축을 풉니다.
@@ -44,7 +45,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         Directory.CreateDirectory(destinationRoot);
 
         int? totalEntries = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
-        Debug.WriteLine($"[7ZA][LIST][PARSED] TotalEntries={totalEntries?.ToString() ?? "null"}");
+        WriteLog($"[7ZA][LIST][PARSED] TotalEntries={totalEntries?.ToString() ?? "null"}");
 
         var psi = new ProcessStartInfo
         {
@@ -63,28 +64,28 @@ public sealed class NativeSevenZipExtractor : IExtractor
         {
             if (string.IsNullOrWhiteSpace(args.Data)) return;
 
-            Debug.WriteLine($"[7ZA][OUT] {args.Data}");
+            WriteLog($"[7ZA][OUT] {args.Data}");
 
             var match = ExtractionProgressRegex.Match(args.Data);
             if (!match.Success)
             {
-                Debug.WriteLine($"[7ZA][PROGRESS][SKIP] {args.Data}");
+                WriteLog($"[7ZA][PROGRESS][SKIP] {args.Data}");
                 return;
             }
 
             if (!int.TryParse(match.Groups["percent"].Value, out int percent))
             {
-                Debug.WriteLine($"[7ZA][PROGRESS][PARSE-FAIL] percent line={args.Data}");
+                WriteLog($"[7ZA][PROGRESS][PARSE-FAIL] percent line={args.Data}");
                 return;
             }
 
             // 7za 출력에서 파싱한 보조 숫자이며, totalEntries와 동일 기준의 "처리 엔트리 수"를 보장하지 않습니다.
             int parsedProcessedValue = 0;
             if (match.Groups["processed"].Success && !int.TryParse(match.Groups["processed"].Value, out parsedProcessedValue))
-                Debug.WriteLine($"[7ZA][PROGRESS][PARSE-FAIL] processed line={args.Data}");
+                WriteLog($"[7ZA][PROGRESS][PARSE-FAIL] processed line={args.Data}");
 
             var currentEntry = match.Groups["entry"].Success ? match.Groups["entry"].Value : null;
-            Debug.WriteLine($"[7ZA][PROGRESS][PARSED] percent={percent}, parsedProcessedValue={parsedProcessedValue}, entry={currentEntry ?? "(null)"}, total={totalEntries?.ToString() ?? "null"}");
+            WriteLog($"[7ZA][PROGRESS][PARSED] percent={percent}, parsedProcessedValue={parsedProcessedValue}, entry={currentEntry ?? "(null)"}, total={totalEntries?.ToString() ?? "null"}");
 
             if (percent >= 100)
                 hasReportedCompletion = true;
@@ -95,7 +96,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         process.ErrorDataReceived += (_, args) =>
         {
             if (string.IsNullOrWhiteSpace(args.Data)) return;
-            Debug.WriteLine($"[7ZA][ERR] {args.Data}");
+            WriteLog($"[7ZA][ERR] {args.Data}");
         };
 
         process.Start();
@@ -121,7 +122,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (process.ExitCode != 0)
             throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}.");
 
-        Debug.WriteLine("[7ZA][PROGRESS][COMPLETE] exitCode=0");
+        WriteLog("[7ZA][PROGRESS][COMPLETE] exitCode=0");
 
         if (!hasReportedCompletion)
             progress?.Report(new ExtractionProgress(Name, 100, totalEntries ?? 0, totalEntries, null));
@@ -190,9 +191,9 @@ public sealed class NativeSevenZipExtractor : IExtractor
     }
 
     private static async Task ReplicateDirectoryAsync(
-    string sourceRoot,
-    string destinationRoot,
-    CancellationToken ct)
+        string sourceRoot,
+        string destinationRoot,
+        CancellationToken ct)
     {
         foreach (string sourceDirectory in Directory.EnumerateDirectories(sourceRoot, "*", SearchOption.AllDirectories))
         {
@@ -264,7 +265,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
         if (process.ExitCode != 0)
         {
-            Debug.WriteLine($"[7ZA][LIST][ERR] exitCode={process.ExitCode}, stderr={stderr}");
+            WriteLog($"[7ZA][LIST][ERR] exitCode={process.ExitCode}, stderr={stderr}");
             return null;
         }
 
@@ -274,13 +275,13 @@ public sealed class NativeSevenZipExtractor : IExtractor
         const int tailLineCount = 5;
         int startIndex = Math.Max(0, lines.Length - tailLineCount);
 
-        Debug.WriteLine($"[7ZA][LIST][TAIL] totalLines={lines.Length}, checkingLast={lines.Length - startIndex}");
+        WriteLog($"[7ZA][LIST][TAIL] totalLines={lines.Length}, checkingLast={lines.Length - startIndex}");
 
         // 전체 출력 전부를 파싱하지 않고, 마지막 몇 줄만 검사합니다.
         for (int i = lines.Length - 1; i >= startIndex; i--)
         {
             string line = lines[i];
-            Debug.WriteLine($"[7ZA][LIST][TAIL][OUT] {line}");
+            WriteLog($"[7ZA][LIST][TAIL][OUT] {line}");
 
             var match = ListingSummaryRegex.Match(line);
             if (!match.Success)
@@ -288,21 +289,21 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
             if (!int.TryParse(match.Groups["files"].Value, out int files))
             {
-                Debug.WriteLine($"[7ZA][LIST][PARSE-FAIL] files line={line}");
+                WriteLog($"[7ZA][LIST][PARSE-FAIL] files line={line}");
                 continue;
             }
 
             if (!int.TryParse(match.Groups["folders"].Value, out int folders))
             {
-                Debug.WriteLine($"[7ZA][LIST][PARSE-FAIL] folders line={line}");
+                WriteLog($"[7ZA][LIST][PARSE-FAIL] folders line={line}");
                 continue;
             }
 
-            Debug.WriteLine($"[7ZA][LIST][PARSED] files={files}, folders={folders}, totalFiles={files}");
+            WriteLog($"[7ZA][LIST][PARSED] files={files}, folders={folders}, totalFiles={files}");
             return files;
         }
 
-        Debug.WriteLine("[7ZA][LIST][PARSED] summary not found in tail lines.");
+        WriteLog("[7ZA][LIST][PARSED] summary not found in tail lines.");
         return null;
     }
 
@@ -322,11 +323,18 @@ public sealed class NativeSevenZipExtractor : IExtractor
         {
             if (File.Exists(candidate))
             {
-                Debug.WriteLine($"Resolved 7za.exe Path: {candidate}");
+                WriteLog($"Resolved 7za.exe Path: {candidate}");
                 return candidate;
             }
         }
 
         throw new FileNotFoundException("7za.exe not found.");
+    }
+
+    private static void WriteLog(string message)
+    {
+#if DEBUGGING
+        Debug.WriteLine(message);
+#endif
     }
 }
