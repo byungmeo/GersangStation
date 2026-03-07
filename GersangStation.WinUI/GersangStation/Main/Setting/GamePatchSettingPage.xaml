@@ -6,11 +6,38 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:GersangStation.Main.Setting"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:Core.Models"
     d:DataContext="{d:DesignInstance Type=local:GamePatchSettingPage}"
     mc:Ignorable="d">
 
     <Grid>
-        <Grid Margin="10,10,10,10" ColumnSpacing="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <SelectorBar
+            x:Name="SelectorBar_Server"
+            Grid.Row="0"
+            SelectionChanged="SelectorBar_Server_SelectionChanged">
+            <SelectorBarItem
+                x:Name="SelectorBarItem_Live"
+                IsSelected="True"
+                Tag="{x:Bind model:GameServer.Korea_Live}"
+                Text="본섭" />
+            <SelectorBarItem
+                x:Name="SelectorBarItem_Test"
+                Tag="{x:Bind model:GameServer.Korea_Test}"
+                Text="테섭" />
+            <SelectorBarItem
+                x:Name="SelectorBarItem_RnD"
+                Tag="{x:Bind model:GameServer.Korea_RnD}"
+                Text="천라섭" />
+        </SelectorBar>
+
+        <Grid
+            Grid.Row="1"
+            Margin="10,10,10,10"
+            ColumnSpacing="20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -39,7 +66,7 @@
                         ItemsSource="{x:Bind Versions}"
                         PlaceholderText="v00000   0000-00-00"
                         SelectedItem="{x:Bind SelectedVersionItem, Mode=TwoWay}"
-                        SelectionChanged="ComboBox_SelectionChanged" />
+                        SelectionChanged="ComboBox_CurrentVersion_SelectionChanged" />
                     <FontIcon
                         Margin="5,0,5,0"
                         VerticalAlignment="Bottom"
@@ -209,7 +236,7 @@
         <!--#region 로딩 오버레이-->
         <Grid
             x:Name="LoadingOverlay"
-            Grid.ColumnSpan="2"
+            Grid.RowSpan="2"
             Background="{ThemeResource SmokeFillColorDefaultBrush}"
             Visibility="{x:Bind LoadingOverlayVisibility, Mode=OneWay}">
             <StackPanel

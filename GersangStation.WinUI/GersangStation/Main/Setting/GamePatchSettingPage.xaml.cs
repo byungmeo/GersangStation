@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -25,6 +24,7 @@ namespace GersangStation.Main.Setting;
 public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged, IConfirmLeave
 {
     #region Properties
+    private GameServer _selectedGameServer = GameServer.Korea_Live;
     private string _displayLatestVersion = string.Empty;
     private bool _shouldPatchMultiClient = true;
     private bool _shouldDeleteTemp = true;
@@ -144,16 +144,14 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         IsLoadingPatchInfo = true;
         try
         {
-            // TODO: 서버 SelectorBar를 통해서 서버를 알아내기
-            GameServer server = AppDataManager.SelectedServer;
-            ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
+            ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(_selectedGameServer);
             _currentClientVersion = PatchManager.GetCurrentClientVersion(clientSetting.InstallPath) ?? 0;
             
             SelectedVersionItem = null;
             Versions.Clear();
             RichTextBlock_PatchReadme.Blocks.Clear();
 
-            List<PatchReadmeInfoItem> items = await PatchReadmeHelper.GetPatchInfoList(AppDataManager.SelectedServer);
+            List<PatchReadmeInfoItem> items = await PatchReadmeHelper.GetPatchInfoList(_selectedGameServer);
             var latestPatchInfo = items.FirstOrDefault() ?? new PatchReadmeInfoItem(new DateTime(), 0, []);
             DisplayLatestVersion = latestPatchInfo.Display;
 
@@ -261,11 +259,9 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             return;
 
         PatchManager patchManager = new();
-        // TODO: 게임 서버를 SelectorBar 등으로 선택 가능하도록 수정
-        GameServer server = AppDataManager.SelectedServer;
-        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
+        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(_selectedGameServer);
 
-        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(server);
+        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(_selectedGameServer);
         string tempRoot = PatchManager.GetPatchTempRoot(
             clientSetting.InstallPath,
             SelectedVersionItem.Version,
@@ -319,7 +315,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 ArchiveReuseMode: archiveReuseMode);
 
             await patchManager.RunAsync(
-                server,
+                _selectedGameServer,
                 SelectedVersionItem.Version,
                 clientSetting.InstallPath,
                 option,
@@ -389,14 +385,32 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         return true;
     }
 
-    private async void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void ComboBox_CurrentVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // TODO: 게임 서버를 SelectorBar 등으로 선택 가능하도록 수정
-        GameServer server = AppDataManager.SelectedServer;
-        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(server);
-        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
+        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(_selectedGameServer);
+        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(_selectedGameServer);
         var selectedPatchItem = ComboBox_CurrentVersion.SelectedItem as PatchReadmeInfoItem;
         int selectedCurrentClientVersion = selectedPatchItem?.Version ?? 0;
         TempPath = $"임시 파일 경로: {PatchManager.GetPatchTempRoot(clientSetting.InstallPath, selectedCurrentClientVersion, latestClientVersion)}";
     }
+
+    #region SelectorBar
+    private async void SelectorBar_Server_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    {
+        SelectorBarItem selectedItem = sender.SelectedItem;
+        foreach (var item in sender.Items.OfType<SelectorBarItem>())
+        {
+            item.FontWeight = FontWeights.Normal;
+            item.FontSize = 14;
+        }
+        if (sender.SelectedItem is SelectorBarItem selected)
+        {
+            selected.FontWeight = FontWeights.SemiBold;
+            selected.FontSize = 20;
+        }
+
+        _selectedGameServer = (GameServer)selectedItem.Tag;
+        await LoadPatchInfoAsync();
+    }
+    #endregion SelectorBar
 }
