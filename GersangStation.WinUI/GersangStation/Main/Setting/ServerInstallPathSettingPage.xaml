@@ -11,144 +11,136 @@
     NavigationCacheMode="Disabled"
     mc:Ignorable="d">
 
-    <Grid Margin="10,10,10,10" RowSpacing="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+    <ScrollView>
+        <Grid Margin="10,10,10,10" RowSpacing="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-        <!--#region Column 0-->
-        <controls:ValidatedTextBox
-            x:Name="TextBox_Path1"
-            Grid.Row="0"
-            Grid.Column="0"
-            Header="메인 클라이언트 설치경로"
-            PlaceholderText="예시) C:\AKInteractive\Gersang"
-            Text="{x:Bind ClientSettings.InstallPath, Mode=TwoWay}"
-            TextChanged="TextBox_InstallPath_TextChanged">
-            <controls:ValidatedTextBox.InputRowRightContent>
-                <Button
-                    x:Name="Button_Path1_PickFolder"
-                    Margin="8,0,0,0"
-                    Click="Button_Path_PickFolder_Click"
-                    Content="..."
-                    Style="{StaticResource AccentButtonStyle}" />
-            </controls:ValidatedTextBox.InputRowRightContent>
-        </controls:ValidatedTextBox>
+            <!--#region Column 0-->
+            <controls:ValidatedTextBox
+                x:Name="TextBox_Path1"
+                Grid.Row="0"
+                Header="메인 클라이언트 설치경로"
+                PlaceholderText="예시) C:\AKInteractive\Gersang"
+                Text="{x:Bind ClientSettings.InstallPath, Mode=TwoWay}"
+                TextChanged="TextBox_InstallPath_TextChanged">
+                <controls:ValidatedTextBox.InputRowRightContent>
+                    <Button
+                        x:Name="Button_Path1_PickFolder"
+                        Margin="8,0,0,0"
+                        Click="Button_Path_PickFolder_Click"
+                        Content="..."
+                        Style="{StaticResource AccentButtonStyle}" />
+                </controls:ValidatedTextBox.InputRowRightContent>
+            </controls:ValidatedTextBox>
 
-        <Expander
-            x:Name="Expander_MultiClient"
-            Grid.Row="1"
-            HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch"
-            IsExpanded="{x:Bind ClientSettings.UseMultiClient, Mode=OneTime}">
-            <Expander.Header>
-                <ToggleSwitch
-                    x:Name="ToggleSwitch_UseMultiClient"
-                    IsOn="{x:Bind ClientSettings.UseMultiClient, Mode=TwoWay}"
-                    OffContent="다클라 미사용"
-                    OnContent="다클라 사용"
-                    Toggled="ToggleSwitch_UseMultiClient_Toggled" />
-            </Expander.Header>
-            <Expander.Content>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel
-                        Grid.Row="0"
-                        Grid.ColumnSpan="2"
-                        Orientation="Vertical"
-                        Spacing="8">
-                        <InfoBar
-                            Title="효율적인 다클라 생성방식이란?"
-                            IsOpen="{x:Bind ShowSymbolInfoBar, Mode=OneWay}"
-                            Message="윈도우의 '바로가기'와 유사한 '심볼릭링크' 방식을 활용하여 다클라 용량 및 생성 속도를 약 99% 절감할 수 있습니다. 미체크 시 다클라 생성을 지원하지 않습니다." />
-                        <InfoBar
-                            Title="효율적인 다클라 생성방식을 사용할 수 없습니다."
-                            IsOpen="{x:Bind ShowSymbolErrorBar, Mode=OneWay}"
-                            Message="드라이브의 파일 시스템이 NTFS인 경우에만 사용 가능합니다."
-                            Severity="Error">
-                            <InfoBar.ActionButton>
-                                <HyperlinkButton
-                                    x:Name="Button_SymbolErrorAction"
-                                    Content="해결 방법"
-                                    NavigateUri="https://github.com/byungmeo/GersangStation/discussions/39" />
-                            </InfoBar.ActionButton>
-                        </InfoBar>
-                        <CheckBox
-                            x:Name="CheckBox_UseSymbol"
-                            Content="(권장) 효율적인 다클라 생성방식 사용"
-                            IsChecked="{x:Bind ClientSettings.UseSymbol, Mode=TwoWay}"
-                            IsEnabled="{x:Bind CanUseSymbol, Mode=OneWay}" />
-
-                        <CheckBox
-                            x:Name="CheckBox_UseClient2"
-                            Content="2클라 사용"
-                            IsChecked="{x:Bind ClientSettings.UseClient2, Mode=TwoWay}"
-                            IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
-
-                        <CheckBox
-                            x:Name="CheckBox_UseClient3"
-                            Content="3클라 사용"
-                            IsChecked="{x:Bind ClientSettings.UseClient3, Mode=TwoWay}"
-                            IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
-
-                        <RichTextBlock Margin="0,0,0,8">
-                            <Paragraph>안정적인 다클라 기능 제공을 위해 다클라 경로는 위와 같이 고정됩니다. 이미 다클라가 있으신 분들은 삭제 후 재생성 또는 이름을 동일하게 변경해주세요.</Paragraph>
-                        </RichTextBlock>
+            <Expander
+                x:Name="Expander_MultiClient"
+                Grid.Row="1"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                IsExpanded="{x:Bind ClientSettings.UseMultiClient, Mode=OneTime}">
+                <Expander.Header>
+                    <ToggleSwitch
+                        x:Name="ToggleSwitch_UseMultiClient"
+                        IsOn="{x:Bind ClientSettings.UseMultiClient, Mode=TwoWay}"
+                        OffContent="다클라 미사용"
+                        OnContent="다클라 사용"
+                        Toggled="ToggleSwitch_UseMultiClient_Toggled" />
+                </Expander.Header>
+                <Expander.Content>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
                         <StackPanel
-                            Orientation="Horizontal"
-                            Spacing="8"
-                            Visibility="{x:Bind ClientSettings.UseSymbol, Mode=OneWay}">
-                            <Button
-                                x:Name="Button_CreateMultiClient"
-                                Click="Button_CreateMultiClient_Click"
-                                Content="다클라 생성"
-                                IsEnabled="{x:Bind TextBox_Path1.IsValid, Mode=OneWay}"
-                                Style="{ThemeResource AccentButtonStyle}" />
-                            <TextBlock
-                                VerticalAlignment="Center"
-                                Style="{ThemeResource CaptionTextBlockStyle}"
-                                Text="아직 다클라를 생성하지 않으셨나요?" />
+                            Grid.Row="0"
+                            Grid.ColumnSpan="2"
+                            Orientation="Vertical"
+                            Spacing="8">
+                            <InfoBar
+                                Title="효율적인 다클라 생성방식이란?"
+                                IsOpen="{x:Bind ShowSymbolInfoBar, Mode=OneWay}"
+                                Message="윈도우의 '바로가기'와 유사한 '심볼릭링크' 방식을 활용하여 다클라 용량 및 생성 속도를 약 99% 절감할 수 있습니다. 미체크 시 다클라 생성을 지원하지 않습니다." />
+                            <InfoBar
+                                Title="효율적인 다클라 생성방식을 사용할 수 없습니다."
+                                IsOpen="{x:Bind ShowSymbolErrorBar, Mode=OneWay}"
+                                Message="드라이브의 파일 시스템이 NTFS인 경우에만 사용 가능합니다."
+                                Severity="Error">
+                                <InfoBar.ActionButton>
+                                    <HyperlinkButton
+                                        x:Name="Button_SymbolErrorAction"
+                                        Content="해결 방법"
+                                        NavigateUri="https://github.com/byungmeo/GersangStation/discussions/39" />
+                                </InfoBar.ActionButton>
+                            </InfoBar>
+                            <CheckBox
+                                x:Name="CheckBox_UseSymbol"
+                                Content="(권장) 효율적인 다클라 생성방식 사용"
+                                IsChecked="{x:Bind ClientSettings.UseSymbol, Mode=TwoWay}"
+                                IsEnabled="{x:Bind CanUseSymbol, Mode=OneWay}" />
+
+                            <CheckBox
+                                x:Name="CheckBox_UseClient2"
+                                Content="2클라 사용"
+                                IsChecked="{x:Bind ClientSettings.UseClient2, Mode=TwoWay}"
+                                IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
+
+                            <CheckBox
+                                x:Name="CheckBox_UseClient3"
+                                Content="3클라 사용"
+                                IsChecked="{x:Bind ClientSettings.UseClient3, Mode=TwoWay}"
+                                IsEnabled="{x:Bind ClientSettings.UseMultiClient, Mode=OneWay}" />
+
+                            <RichTextBlock Margin="0,0,0,8">
+                                <Paragraph>안정적인 다클라 기능 제공을 위해 다클라 경로는 위와 같이 고정됩니다. 이미 다클라가 있으신 분들은 삭제 후 재생성 또는 이름을 동일하게 변경해주세요.</Paragraph>
+                            </RichTextBlock>
+
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                Visibility="{x:Bind ClientSettings.UseSymbol, Mode=OneWay}">
+                                <Button
+                                    x:Name="Button_CreateMultiClient"
+                                    Click="Button_CreateMultiClient_Click"
+                                    Content="다클라 생성"
+                                    IsEnabled="{x:Bind TextBox_Path1.IsValid, Mode=OneWay}"
+                                    Style="{ThemeResource AccentButtonStyle}" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    Style="{ThemeResource CaptionTextBlockStyle}"
+                                    Text="아직 다클라를 생성하지 않으셨나요?" />
+                            </StackPanel>
                         </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </Expander.Content>
-        </Expander>
-        <Button
-            x:Name="Button_Save"
-            Grid.Row="2"
-            HorizontalAlignment="Right"
-            Click="Button_Save_Click"
-            Content="저장"
-            IsEnabled="{x:Bind IsDirty, Mode=OneWay}"
-            Style="{ThemeResource AccentButtonStyle}" />
-        <!--#endregion Column 0-->
+                    </Grid>
+                </Expander.Content>
+            </Expander>
+            <Button
+                x:Name="Button_Save"
+                Grid.Row="2"
+                HorizontalAlignment="Right"
+                Click="Button_Save_Click"
+                Content="저장"
+                IsEnabled="{x:Bind IsDirty, Mode=OneWay}"
+                Style="{ThemeResource AccentButtonStyle}" />
+            <!--#endregion Column 0-->
 
-        <!--#region Column 1-->
-        <Grid />
-        <!--#endregion Column 1-->
-
-        <TeachingTip
-            x:Name="TeachingTip_General"
-            Title="Title"
-            Grid.RowSpan="3"
-            Grid.ColumnSpan="2"
-            CloseButtonContent="네, 확인했습니다."
-            IsLightDismissEnabled="True"
-            PlacementMargin="20"
-            PreferredPlacement="Auto"
-            Subtitle="Subtitle" />
-    </Grid>
+            <TeachingTip
+                x:Name="TeachingTip_General"
+                Title="Title"
+                Grid.RowSpan="3"
+                CloseButtonContent="네, 확인했습니다."
+                IsLightDismissEnabled="True"
+                PlacementMargin="20"
+                PreferredPlacement="Auto"
+                Subtitle="Subtitle" />
+        </Grid>
+    </ScrollView>
 </Page>
