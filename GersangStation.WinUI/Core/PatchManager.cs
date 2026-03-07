@@ -1,5 +1,5 @@
 using Core.Download;
-using Core.Extractor;
+using Core.Extract;
 using Core.Models;
 using System.Diagnostics;
 using System.Net;
@@ -19,10 +19,14 @@ public sealed record PatchProgress(
     int DownloadedCount,
     int ExtractedCount,
     string? DownloadingFileName,
-    double? DownloadingPercent);
+    double? DownloadingPercent,
+    string? ExtractingFileName,
+    double? ExtractingPercent);
 
 public sealed class PatchProgressState
 {
+    private readonly object _sync = new();
+
     public int TotalCount { get; init; }
 
     public int DownloadedCount { get; set; }
@@ -34,14 +38,37 @@ public sealed class PatchProgressState
     public string? ExtractingFileName { get; set; }
     public double? ExtractingPercent { get; set; }
 
+    /// <summary>
+    /// 진행 상태를 원자적으로 갱신합니다.
+    /// 다운로드/압축 해제 진행 보고가 서로 다른 스레드에서 들어올 수 있으므로 잠금이 필요합니다.
+    /// </summary>
+    public void Update(Action<PatchProgressState> updater)
+    {
+        ArgumentNullException.ThrowIfNull(updater);
+
+        lock (_sync)
+        {
+            updater(this);
+        }
+    }
+
+    /// <summary>
+    /// 현재 진행 상태의 스냅샷을 반환합니다.
+    /// 프론트단에는 이 스냅샷만 전달합니다.
+    /// </summary>
     public PatchProgress Snapshot()
     {
-        return new PatchProgress(
-            TotalCount,
-            DownloadedCount,
-            ExtractedCount,
-            DownloadingFileName,
-            DownloadingPercent);
+        lock (_sync)
+        {
+            return new PatchProgress(
+                TotalCount,
+                DownloadedCount,
+                ExtractedCount,
+                DownloadingFileName,
+                DownloadingPercent,
+                ExtractingFileName,
+                ExtractingPercent);
+        }
     }
 }
 
@@ -52,9 +79,9 @@ public enum PatchArchiveReuseMode
 }
 
 public sealed record PatchRunOptions(
-    bool DeleteArchiveAfterExtract = false,
+    bool DeleteTempFilesAfterPatch = false,
     PatchArchiveReuseMode ArchiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible);
-    
+
 /*
 public sealed record PatchProgress(
     int TotalCount,
@@ -68,7 +95,9 @@ public sealed record PatchProgress(
 public sealed record ExtractJob(
     string ArchivePath,
     string DestinationPath,
-    IProgress<ExtractionProgress>? Progress = null);
+    IProgress<ExtractionProgress>? Progress = null,
+    Action? OnBeforeExtract = null,
+    Action? OnAfterExtract = null);
 
 public sealed class ExtractorWorker
 {
@@ -119,6 +148,8 @@ public sealed class ExtractorWorker
 
             Exception? lastException = null;
 
+            job.OnBeforeExtract?.Invoke();
+
             for (int attempt = 1; attempt <= _maxExtractAttempts; ++attempt)
             {
                 _ct.ThrowIfCancellationRequested();
@@ -132,6 +163,7 @@ public sealed class ExtractorWorker
                         _ct);
 
                     lastException = null;
+                    job.OnAfterExtract?.Invoke();
                     break;
                 }
                 catch (OperationCanceledException) when (_ct.IsCancellationRequested)
@@ -184,7 +216,7 @@ public sealed class PatchManager
         int UNUSED_FileOption);
 
     private readonly Downloader _downloader = new(HttpClientProvider.Http);
-    private readonly IExtractor _extractor = new NativeSevenZipExtractor();
+    private readonly IExtractor _extractor = new ZipFileExtractor();
 
     public async Task RunAsync(
     GameServer targetServer,
@@ -233,9 +265,20 @@ public sealed class PatchManager
                 $"{item.ExtractDestPath}\n");
         }
 
-        int totalItemCount = items.Count;
-        int downloadedCount = 0;
-        string? downloadingFileName = null;
+        PatchProgressState state = new()
+        {
+            // TotalCount = 다운로드해야할파일 갯수 + 압축해제해야할파일 갯수로 정의
+            // 다운로드 하는 파일이 모두 압축파일이라고 가정하기 때문에 * 2
+            TotalCount = items.Count * 2
+        };
+
+        void ReportProgressSnapshot()
+        {
+            if (progress is null)
+                return;
+
+            progress.Report(state.Snapshot());
+        }
 
         Progress<DownloadProgress>? downloadProgress = null;
         if (progress is not null)
@@ -246,19 +289,27 @@ public sealed class PatchManager
                 if (p.TotalBytes is long totalBytes && totalBytes > 0)
                     percent = (double)p.BytesReceived / totalBytes * 100.0;
 
-                progress.Report(new PatchProgress(
-                    TotalCount: totalItemCount,
-                    DownloadedCount: downloadedCount,
-                    ExtractedCount: 0,
-                    DownloadingFileName: downloadingFileName,
-                    DownloadingPercent: percent));
+                state.Update(s =>
+                {
+                    s.DownloadingPercent = percent;
+                });
+
+                ReportProgressSnapshot();
             });
         }
 
         Progress<ExtractionProgress>? extractionProgress = null;
         if (progress is not null)
         {
-            // TODO: extraction progress를 PatchProgress에 녹일 때 여기서 연결
+            extractionProgress = new Progress<ExtractionProgress>(p =>
+            {
+                state.Update(s =>
+                {
+                    s.ExtractingPercent = p.Percentage;
+                });
+
+                ReportProgressSnapshot();
+            });
         }
 
         DownloadOptions downloadOptions = CreateDownloadOptions(options);
@@ -272,25 +323,45 @@ public sealed class PatchManager
                 downloadOptions: downloadOptions,
                 onBeforeDownload: item =>
                 {
-                    downloadingFileName = item.FileName;
+                    state.Update(s =>
+                    {
+                        s.DownloadingFileName = item.FileName;
+                        s.DownloadingPercent = 0;
+                    });
 
-                    progress?.Report(new PatchProgress(
-                        TotalCount: totalItemCount,
-                        DownloadedCount: downloadedCount,
-                        ExtractedCount: 0,
-                        DownloadingFileName: downloadingFileName,
-                        DownloadingPercent: 0));
+                    ReportProgressSnapshot();
                 },
                 onAfterDownload: item =>
                 {
-                    downloadedCount++;
+                    state.Update(s =>
+                    {
+                        s.DownloadedCount++;
+                        s.DownloadingFileName = item.FileName;
+                        s.DownloadingPercent = 100;
+                    });
 
-                    progress?.Report(new PatchProgress(
-                        TotalCount: totalItemCount,
-                        DownloadedCount: downloadedCount,
-                        ExtractedCount: 0,
-                        DownloadingFileName: item.FileName,
-                        DownloadingPercent: 100));
+                    ReportProgressSnapshot();
+                },
+                onBeforeExtract: item =>
+                {
+                    state.Update(s =>
+                    {
+                        s.ExtractingFileName = item.FileName;
+                        s.ExtractingPercent = 0;
+                    });
+
+                    ReportProgressSnapshot();
+                },
+                onAfterExtract: item =>
+                {
+                    state.Update(s =>
+                    {
+                        s.ExtractedCount++;
+                        s.ExtractingFileName = item.FileName;
+                        s.ExtractingPercent = 100;
+                    });
+
+                    ReportProgressSnapshot();
                 },
                 downloadProgress: downloadProgress,
                 extractionProgress: extractionProgress,
@@ -303,7 +374,7 @@ public sealed class PatchManager
             // 성공적으로 전체 패치가 끝났을 때만 temp 루트를 정리한다.
             // 실패/중단 시에는 archive/temp/meta를 그대로 남겨 다음 실행에서
             // 이어받기 / 새로 받기 선택이 가능해야 한다.
-            if (patchSucceeded && options.DeleteArchiveAfterExtract)
+            if (patchSucceeded && options.DeleteTempFilesAfterPatch)
             {
                 bool deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
                 if (!deleted)
@@ -319,6 +390,8 @@ public sealed class PatchManager
     DownloadOptions downloadOptions,
     Action<PatchItem>? onBeforeDownload = null,
     Action<PatchItem>? onAfterDownload = null,
+    Action<PatchItem>? onBeforeExtract = null,
+    Action<PatchItem>? onAfterExtract = null,
     IProgress<DownloadProgress>? downloadProgress = null,
     IProgress<ExtractionProgress>? extractionProgress = null,
     CancellationToken ct = default)
@@ -348,7 +421,9 @@ public sealed class PatchManager
                     new ExtractJob(
                         item.DownloadDestPath,
                         item.ExtractDestPath,
-                        extractionProgress)).ConfigureAwait(false);
+                        extractionProgress,
+                        OnBeforeExtract: () => onBeforeExtract?.Invoke(item),
+                        OnAfterExtract: () => onAfterExtract?.Invoke(item))).ConfigureAwait(false);
             }
 
             worker.Complete();
@@ -559,7 +634,7 @@ public sealed class PatchManager
         }
     }
 
-    private static string GetPatchTempRoot(
+    public static string GetPatchTempRoot(
     string clientPath,
     int currentVersion,
     int targetVersion)

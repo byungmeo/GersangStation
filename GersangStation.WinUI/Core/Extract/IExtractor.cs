@@ -1,4 +1,4 @@
-namespace Core.Extractor;
+namespace Core.Extract;
 
 public interface IExtractor
 {
@@ -18,4 +18,4 @@ public sealed record ExtractionProgress(
     int Percentage,
     int ProcessedEntries,
     int? TotalEntries,
-    string? CurrentEntry);
+    string? CurrentArchive);

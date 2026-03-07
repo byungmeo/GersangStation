@@ -10,6 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -32,6 +34,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private string _progressText = string.Empty;
     private bool _isLoadingPatchInfo = false;
     private bool _isDownloadingPatch = false;
+    private bool _hasPatchProgress = false;
     private PatchReadmeInfoItem? _selectedVersionItem;
     private CancellationTokenSource? _patchCts;
     private int _currentClientVersion;
@@ -42,6 +45,8 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     public Visibility DownloadingVisibility => IsDownloading ? Visibility.Visible : Visibility.Collapsed;
     public Visibility NotBusyVisibility => IsBusy ? Visibility.Collapsed : Visibility.Visible;
     public Visibility LoadingOverlayVisibility => IsLoadingPatchInfo ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility PatchProgressVisibility => _hasPatchProgress ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility PatchCancelVisibility => IsDownloading ? Visibility.Visible : Visibility.Collapsed;
     public bool IsBusy => _isLoadingPatchInfo || _isDownloadingPatch;
 
     public string DisplayLatestVersion
@@ -104,6 +109,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 OnPropertyChanged(nameof(IsNotBusy));
                 OnPropertyChanged(nameof(DownloadingVisibility));
                 OnPropertyChanged(nameof(NotBusyVisibility));
+                OnPropertyChanged(nameof(PatchCancelVisibility));
             }
         }
     }
@@ -142,8 +148,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             GameServer server = AppDataManager.SelectedServer;
             ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
             _currentClientVersion = PatchManager.GetCurrentClientVersion(clientSetting.InstallPath) ?? 0;
-            TempPath = $"임시 파일 경로: {AppDataManager.LoadServerClientSettings(AppDataManager.SelectedServer).TempPath}";
-
+            
             SelectedVersionItem = null;
             Versions.Clear();
             RichTextBlock_PatchReadme.Blocks.Clear();
@@ -216,6 +221,37 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
+    private void ShowPatchProgress()
+    {
+        if (_hasPatchProgress)
+            return;
+
+        _hasPatchProgress = true;
+        OnPropertyChanged(nameof(PatchProgressVisibility));
+    }
+
+    private async Task<PatchArchiveReuseMode> AskArchiveReuseModeAsync(string tempRoot)
+    {
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = "이전 임시 파일 발견",
+            Content =
+                $"이전 패치 임시 파일이 존재합니다.\n\n" +
+                $"{tempRoot}\n\n" +
+                $"이어받기를 진행할까요?",
+            PrimaryButtonText = "이어받기",
+            SecondaryButtonText = "처음부터",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        ContentDialogResult result = await dialog.ShowAsync();
+
+        return result == ContentDialogResult.Primary
+            ? PatchArchiveReuseMode.ResumeIfPossible
+            : PatchArchiveReuseMode.RestartFromScratch;
+    }
+
     private async void Button_PatchStart_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         if (IsBusy)
@@ -224,37 +260,73 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         if (SelectedVersionItem is null)
             return;
 
-        _patchCts = new CancellationTokenSource();
         PatchManager patchManager = new();
+        // TODO: 게임 서버를 SelectorBar 등으로 선택 가능하도록 수정
         GameServer server = AppDataManager.SelectedServer;
         ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
+
+        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(server);
+        string tempRoot = PatchManager.GetPatchTempRoot(
+            clientSetting.InstallPath,
+            SelectedVersionItem.Version,
+            latestClientVersion);
+
+        TempPath = $"임시 파일 경로: {tempRoot}";
+
+        PatchArchiveReuseMode archiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible;
+        if (Directory.Exists(tempRoot))
+        {
+            archiveReuseMode = await AskArchiveReuseModeAsync(tempRoot);
+        }
+
+        _patchCts = new CancellationTokenSource();
+
         try
         {
             IsDownloading = true;
-            ProgressMaximum = 100;
+            ShowPatchProgress();
+
+            ProgressMaximum = 1;
             ProgressValue = 0;
             ProgressText = "패치를 준비하는 중...";
 
             Progress<PatchProgress> patchProgress = new(p =>
             {
-                double percent = p.DownloadingPercent ?? 0;
-                string fileName = string.IsNullOrWhiteSpace(p.DownloadingFileName) ? "-" : p.DownloadingFileName;
+                int completedCount = p.DownloadedCount + p.ExtractedCount;
+                int phaseTotalCount = p.TotalCount / 2;
 
-                ProgressMaximum = 100;
-                ProgressValue = percent;
-                ProgressText = $"다운로드 현황: {p.DownloadedCount} / {p.TotalCount} {fileName} {percent:F1}%";
+                double downloadingPercent = p.DownloadingPercent ?? 0;
+                double extractingPercent = p.ExtractingPercent ?? 0;
+
+                string downloadingFileName = string.IsNullOrWhiteSpace(p.DownloadingFileName)
+                    ? "-"
+                    : p.DownloadingFileName;
+
+                string extractingFileName = string.IsNullOrWhiteSpace(p.ExtractingFileName)
+                    ? "-"
+                    : p.ExtractingFileName;
+
+                ProgressMaximum = p.TotalCount;
+                ProgressValue = completedCount;
+
+                ProgressText =
+                    $"다운로드: {p.DownloadedCount} / {phaseTotalCount}  {downloadingFileName}  {downloadingPercent:F1}%\n" +
+                    $"압축 해제: {p.ExtractedCount} / {phaseTotalCount}  {extractingFileName}  {extractingPercent:F1}%";
             });
 
-            PatchRunOptions option = new(DeleteArchiveAfterExtract: false);
+            PatchRunOptions option = new(
+                DeleteTempFilesAfterPatch: ShouldDeleteTemp,
+                ArchiveReuseMode: archiveReuseMode);
+
             await patchManager.RunAsync(
-                server, 
-                SelectedVersionItem.Version, 
-                clientSetting.InstallPath, 
-                option, 
+                server,
+                SelectedVersionItem.Version,
+                clientSetting.InstallPath,
+                option,
                 patchProgress,
                 _patchCts.Token);
 
-            ProgressValue = 100;
+            ProgressValue = ProgressMaximum;
             ProgressText = "패치가 완료되었습니다.";
         }
         catch (OperationCanceledException)
@@ -315,5 +387,16 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         }
 
         return true;
+    }
+
+    private async void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // TODO: 게임 서버를 SelectorBar 등으로 선택 가능하도록 수정
+        GameServer server = AppDataManager.SelectedServer;
+        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(server);
+        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(server);
+        var selectedPatchItem = ComboBox_CurrentVersion.SelectedItem as PatchReadmeInfoItem;
+        int selectedCurrentClientVersion = selectedPatchItem?.Version ?? 0;
+        TempPath = $"임시 파일 경로: {PatchManager.GetPatchTempRoot(clientSetting.InstallPath, selectedCurrentClientVersion, latestClientVersion)}";
     }
 }

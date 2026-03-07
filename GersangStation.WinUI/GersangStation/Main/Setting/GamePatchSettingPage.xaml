@@ -30,6 +30,7 @@
                     HorizontalAlignment="Center"
                     Orientation="Horizontal">
                     <ComboBox
+                        x:Name="ComboBox_CurrentVersion"
                         Width="200"
                         HorizontalAlignment="Stretch"
                         DisplayMemberPath="Display"
@@ -37,7 +38,8 @@
                         IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
                         ItemsSource="{x:Bind Versions}"
                         PlaceholderText="v00000   0000-00-00"
-                        SelectedItem="{x:Bind SelectedVersionItem, Mode=TwoWay}" />
+                        SelectedItem="{x:Bind SelectedVersionItem, Mode=TwoWay}"
+                        SelectionChanged="ComboBox_SelectionChanged" />
                     <FontIcon
                         Margin="5,0,5,0"
                         VerticalAlignment="Bottom"
@@ -106,8 +108,7 @@
                         HorizontalAlignment="Center"
                         FontSize="12"
                         IsTextSelectionEnabled="True"
-                        Text="{x:Bind TempPath}" />
-                    <!--  ="임시 파일 경로: F:\Games\AKInteractive\Gersang\PatchTemp" />  -->
+                        Text="{x:Bind TempPath, Mode=OneWay}" />
                 </Grid>
                 <!--#endregion Patch Option Row-->
 
@@ -115,7 +116,8 @@
                 <Grid
                     Grid.Row="2"
                     Margin="50,0,50,0"
-                    HorizontalAlignment="Stretch">
+                    HorizontalAlignment="Stretch"
+                    Visibility="{x:Bind PatchProgressVisibility, Mode=OneWay}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -124,6 +126,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+
                     <ProgressBar
                         Grid.Row="0"
                         Grid.Column="0"
@@ -131,24 +134,25 @@
                         HorizontalAlignment="Stretch"
                         Maximum="{x:Bind ProgressMaximum, Mode=OneWay}"
                         Value="{x:Bind ProgressValue, Mode=OneWay}" />
-                    <!--  Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"  -->
+
                     <Button
                         x:Name="Button_PatchStop"
                         Grid.Row="0"
                         Grid.Column="1"
                         Click="Button_PatchStop_Click"
-                        Style="{ThemeResource AlternateCloseButtonStyle}">
-                        <!--  Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"  -->
+                        IsEnabled="{x:Bind IsDownloading, Mode=OneWay}"
+                        Style="{ThemeResource AlternateCloseButtonStyle}"
+                        Visibility="{x:Bind PatchCancelVisibility, Mode=OneWay}">
                         <Button.Content>
                             <FontIcon Glyph="&#xE711;" />
                         </Button.Content>
                     </Button>
+
                     <TextBlock
                         Grid.Row="1"
                         Grid.Column="0"
                         HorizontalAlignment="Center"
                         Text="{x:Bind ProgressText, Mode=OneWay}" />
-                    <!--  Visibility="{x:Bind DownloadingVisibility, Mode=OneWay}"  -->
                 </Grid>
                 <!--#endregion Progress Row-->
 

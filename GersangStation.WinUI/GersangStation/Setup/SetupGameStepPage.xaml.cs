@@ -1,6 +1,4 @@
 using Core;
-using Core.Download;
-using Core.Extractor;
 using Core.Models;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;

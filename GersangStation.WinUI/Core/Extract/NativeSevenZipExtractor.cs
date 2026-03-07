@@ -1,5 +1,5 @@
-using Core.Extractor;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 
 namespace Core.Extract;
@@ -59,6 +59,8 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
+        string currentArchive = Path.GetFileName(archivePath);
+
         bool hasReportedCompletion = false;
         process.OutputDataReceived += (_, args) =>
         {
@@ -90,7 +92,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
             if (percent >= 100)
                 hasReportedCompletion = true;
 
-            progress?.Report(new ExtractionProgress(Name, percent, parsedProcessedValue, totalEntries, currentEntry));
+            progress?.Report(new ExtractionProgress(Name, percent, parsedProcessedValue, totalEntries, currentArchive));
         };
 
         process.ErrorDataReceived += (_, args) =>
