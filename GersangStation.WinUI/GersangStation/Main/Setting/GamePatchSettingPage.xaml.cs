@@ -141,6 +141,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
     private async Task LoadPatchInfoAsync()
     {
+        var startAt = DateTime.UtcNow;
         IsLoadingPatchInfo = true;
         try
         {
@@ -200,6 +201,13 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         }
         finally
         {
+            // TODO: [#104] 임시조치
+            TimeSpan elapsed = DateTime.UtcNow - startAt;
+            TimeSpan minDuration = TimeSpan.FromMilliseconds(500);
+
+            if (elapsed < minDuration)
+                await Task.Delay(minDuration - elapsed);
+
             IsLoadingPatchInfo = false;
         }
     }
@@ -389,13 +397,20 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             item.FontWeight = FontWeights.Normal;
             item.FontSize = 14;
         }
-        if (sender.SelectedItem is SelectorBarItem selected)
+
+        if (selectedItem is SelectorBarItem selected)
         {
             selected.FontWeight = FontWeights.SemiBold;
             selected.FontSize = 20;
         }
 
-        _selectedGameServer = (GameServer)selectedItem.Tag;
+        if (selectedItem.Tag is not GameServer selectedGameServer)
+            return;
+
+        if (_selectedGameServer == selectedGameServer)
+            return;
+
+        _selectedGameServer = selectedGameServer;
         await LoadPatchInfoAsync();
     }
     #endregion SelectorBar

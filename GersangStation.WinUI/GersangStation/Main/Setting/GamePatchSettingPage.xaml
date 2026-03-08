@@ -18,6 +18,8 @@
         <SelectorBar
             x:Name="SelectorBar_Server"
             Grid.Row="0"
+            IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
+            IsHitTestVisible="{x:Bind IsNotBusy, Mode=OneWay}"
             SelectionChanged="SelectorBar_Server_SelectionChanged">
             <SelectorBarItem
                 x:Name="SelectorBarItem_Live"
