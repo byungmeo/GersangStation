@@ -1,4 +1,4 @@
-﻿using Core.Models;
+using Core.Models;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,6 +8,12 @@ namespace Core;
 
 public static class AppDataManager
 {
+    public readonly record struct AppDataOperationResult(bool Success, Exception? Exception)
+    {
+        public static AppDataOperationResult Ok() => new(true, null);
+        public static AppDataOperationResult Fail(Exception exception) => new(false, exception);
+    }
+
     private const string SetupCompleted_SettingKey = "SetupCompleted";
     private const string UseSymbol_SettingKey = "useSymbol";
     private const string SelectedPreset_SettingKey = "SelectedPreset";
@@ -46,65 +52,106 @@ public static class AppDataManager
     #endregion
 
     public static void SaveAccounts(IEnumerable<Account> accounts)
+        => SaveAccountsAsync(accounts).GetAwaiter().GetResult();
+
+    public static async Task<AppDataOperationResult> SaveAccountsAsync(IEnumerable<Account> accounts)
     {
-        var list = accounts?.ToList() ?? [];
-        string json = JsonSerializer.Serialize(list, JsonOptions);
-        WriteTextToLocalFolder(AccountsFileName, json);
+        try
+        {
+            var list = accounts?.ToList() ?? [];
+            string json = JsonSerializer.Serialize(list, JsonOptions);
+            return await WriteTextToLocalFolderAsync(AccountsFileName, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
     }
 
     public static IList<Account> LoadAccounts()
+        => LoadAccountsAsync().GetAwaiter().GetResult().Accounts;
+
+    public static async Task<(IList<Account> Accounts, AppDataOperationResult Result)> LoadAccountsAsync()
     {
-        string? json = ReadTextFromLocalFolder(AccountsFileName);
+        (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(AccountsFileName).ConfigureAwait(false);
+        if (!readResult.Success)
+            return ([], readResult);
+
         if (string.IsNullOrWhiteSpace(json))
-            return [];
+            return ([], AppDataOperationResult.Ok());
 
         try
         {
             var result = JsonSerializer.Deserialize<List<Account>>(json);
-            return result ?? [];
+            return (result ?? [], AppDataOperationResult.Ok());
         }
-        catch
+        catch (Exception ex)
         {
-            return [];
+            return ([], AppDataOperationResult.Fail(ex));
         }
     }
 
     private static AllServerClientSettings LoadAllServerClientSettings()
+        => LoadAllServerClientSettingsAsync().GetAwaiter().GetResult().Settings;
+
+    private static async Task<(AllServerClientSettings Settings, AppDataOperationResult Result)> LoadAllServerClientSettingsAsync()
     {
-        string? json = ReadTextFromLocalFolder(ClientSettingsFileName);
+        (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(ClientSettingsFileName).ConfigureAwait(false);
+        if (!readResult.Success)
+            return (new AllServerClientSettings(), readResult);
+
         if (string.IsNullOrWhiteSpace(json))
-            return new AllServerClientSettings();
+            return (new AllServerClientSettings(), AppDataOperationResult.Ok());
 
         try
         {
             var result = JsonSerializer.Deserialize<AllServerClientSettings>(json, JsonOptions);
-            return result ?? new AllServerClientSettings();
+            return (result ?? new AllServerClientSettings(), AppDataOperationResult.Ok());
         }
-        catch
+        catch (Exception ex)
         {
-            return new AllServerClientSettings();
+            return (new AllServerClientSettings(), AppDataOperationResult.Fail(ex));
         }
     }
 
     public static ClientSettings LoadServerClientSettings(GameServer server)
+        => LoadServerClientSettingsAsync(server).GetAwaiter().GetResult().Settings;
+
+    public static async Task<(ClientSettings Settings, AppDataOperationResult Result)> LoadServerClientSettingsAsync(GameServer server)
     {
-        var all = LoadAllServerClientSettings();
+        var (all, result) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
         if (!all.Servers.TryGetValue(server, out var s))
-            return new ClientSettings();
-        return s;
+            return (new ClientSettings(), result.Success ? AppDataOperationResult.Ok() : result);
+        return (s, result.Success ? AppDataOperationResult.Ok() : result);
     }
 
     private static void SaveAllServerClientSettings(AllServerClientSettings settings)
+        => SaveAllServerClientSettingsAsync(settings).GetAwaiter().GetResult();
+
+    private static async Task<AppDataOperationResult> SaveAllServerClientSettingsAsync(AllServerClientSettings settings)
     {
-        string json = JsonSerializer.Serialize(settings, JsonOptions);
-        WriteTextToLocalFolder(ClientSettingsFileName, json);
+        try
+        {
+            string json = JsonSerializer.Serialize(settings, JsonOptions);
+            return await WriteTextToLocalFolderAsync(ClientSettingsFileName, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
     }
 
     public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
+        => SaveServerClientSettingsAsync(server, settings).GetAwaiter().GetResult();
+
+    public static async Task<AppDataOperationResult> SaveServerClientSettingsAsync(GameServer server, ClientSettings settings)
     {
-        var all = LoadAllServerClientSettings();
+        var (all, loadResult) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
+        if (!loadResult.Success)
+            return loadResult;
+
         all.Servers[server] = settings;
-        SaveAllServerClientSettings(all);
+        return await SaveAllServerClientSettingsAsync(all).ConfigureAwait(false);
     }
 
     // -------------------------
@@ -115,9 +162,19 @@ public static class AppDataManager
     // - 정규화로 변경이 발생하면 즉시 SavePresetContainer()로 다시 저장
     // -------------------------
     public static void SavePresetList(PresetList presetList)
+        => SavePresetListAsync(presetList).GetAwaiter().GetResult();
+
+    public static async Task<AppDataOperationResult> SavePresetListAsync(PresetList presetList)
     {
-        string json = JsonSerializer.Serialize(presetList, JsonOptions);
-        WriteTextToLocalFolder(PresetListFileName, json);
+        try
+        {
+            string json = JsonSerializer.Serialize(presetList, JsonOptions);
+            return await WriteTextToLocalFolderAsync(PresetListFileName, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
     }
 
     /// <summary>
@@ -125,29 +182,35 @@ public static class AppDataManager
     /// 없는 Id는 ""로 정규화합니다. 정규화로 변경이 발생하면 재저장합니다.
     /// </summary>
     public static PresetList LoadPresetList()
+        => LoadPresetListAsync().GetAwaiter().GetResult().PresetList;
+
+    public static async Task<(PresetList PresetList, AppDataOperationResult Result)> LoadPresetListAsync()
     {
         PresetList presetList;
 
-        string? json = ReadTextFromLocalFolder(PresetListFileName);
+        (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(PresetListFileName).ConfigureAwait(false);
+        if (!readResult.Success)
+            return (new PresetList(), readResult);
+
         if (string.IsNullOrWhiteSpace(json))
         {
             presetList = new PresetList();
-            SavePresetList(presetList);
-            return presetList;
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            return (presetList, saveResult);
         }
 
         try
         {
             presetList = JsonSerializer.Deserialize<PresetList>(json) ?? new PresetList();
         }
-        catch
+        catch (Exception ex)
         {
             presetList = new PresetList();
-            SavePresetList(presetList);
-            return presetList;
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            return (presetList, saveResult.Success ? AppDataOperationResult.Fail(ex) : saveResult);
         }
 
-        var accounts = LoadAccounts();
+        var (accounts, accountLoadResult) = await LoadAccountsAsync().ConfigureAwait(false);
         HashSet<string> validIds = accounts
             .Select(a => a.Id ?? "")
             .Where(id => id.Length != 0)
@@ -156,9 +219,12 @@ public static class AppDataManager
         bool changed = EnsurePresetListShape(presetList);
         changed |= NormalizePresetIds(presetList, validIds);
         if (changed)
-            SavePresetList(presetList);
+        {
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            return (presetList, saveResult.Success ? accountLoadResult : saveResult);
+        }
 
-        return presetList;
+        return (presetList, accountLoadResult.Success ? AppDataOperationResult.Ok() : accountLoadResult);
     }
 
     private static bool EnsurePresetListShape(PresetList presetList)
@@ -250,46 +316,53 @@ public static class AppDataManager
         return changed;
     }
 
-    private static void WriteTextToLocalFolder(string fileName, string content)
+    private static async Task<AppDataOperationResult> WriteTextToLocalFolderAsync(string fileName, string content)
     {
-        StorageFolder folder = ApplicationData.Current.LocalFolder;
-
-        StorageFile file = folder
-            .CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting)
-            .AsTask()
-            .GetAwaiter()
-            .GetResult();
-
-        Debug.WriteLine($"[AppDataManager] WriteTextToLocalFolder FileName: {fileName}, Content:\n{content}");
-        FileIO.WriteTextAsync(file, content)
-            .AsTask()
-            .GetAwaiter()
-            .GetResult();
-    }
-
-    private static string? ReadTextFromLocalFolder(string fileName)
-    {
-        StorageFolder folder = ApplicationData.Current.LocalFolder;
-
         try
         {
-            IStorageItem? item = folder
+            StorageFolder folder = ApplicationData.Current.LocalFolder;
+
+            StorageFile file = await folder
+                .CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting)
+                .AsTask()
+                .ConfigureAwait(false);
+
+            Debug.WriteLine($"[AppDataManager] WriteTextToLocalFolder FileName: {fileName}, Content:\n{content}");
+            await FileIO.WriteTextAsync(file, content)
+                .AsTask()
+                .ConfigureAwait(false);
+
+            return AppDataOperationResult.Ok();
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
+    }
+
+    private static async Task<(string? Content, AppDataOperationResult Result)> ReadTextFromLocalFolderAsync(string fileName)
+    {
+        try
+        {
+            StorageFolder folder = ApplicationData.Current.LocalFolder;
+
+            IStorageItem? item = await folder
                 .TryGetItemAsync(fileName)
                 .AsTask()
-                .GetAwaiter()
-                .GetResult();
+                .ConfigureAwait(false);
 
             if (item is not StorageFile file)
-                return null;
+                return (null, AppDataOperationResult.Ok());
 
-            return FileIO.ReadTextAsync(file)
+            string? content = await FileIO.ReadTextAsync(file)
                 .AsTask()
-                .GetAwaiter()
-                .GetResult();
+                .ConfigureAwait(false);
+
+            return (content, AppDataOperationResult.Ok());
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            return (null, AppDataOperationResult.Fail(ex));
         }
     }
 
@@ -308,7 +381,16 @@ public static class AppDataManager
     private static void SaveLocalSetting<T>(string key, T value)
     {
         ValidateSupportedLocalSettingsType(key, value);
-        LocalSettings.Values[key] = value;
+
+        try
+        {
+            LocalSettings.Values[key] = value;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AppDataManager] SaveLocalSetting failed. Key: {key}, Error: {ex}");
+            throw;
+        }
     }
 
     private static void ValidateSupportedLocalSettingsType(string key, object? value)
