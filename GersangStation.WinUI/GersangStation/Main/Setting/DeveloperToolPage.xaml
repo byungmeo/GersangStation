@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.DeveloperToolPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main.Setting"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:Core.Models"
+    NavigationCacheMode="Disabled"
+    mc:Ignorable="d">
+
+    <Grid Padding="16">
+        <StackPanel HorizontalAlignment="Left" Spacing="12">
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="클라이언트 버전 다운그레이드" />
+            <TextBlock Opacity="0.72" Text="선택한 서버의 메인 클라이언트 Online\\vsn.dat 버전을 직접 낮춰 패치 흐름을 테스트합니다." />
+            <ComboBox
+                x:Name="ComboBox_Server"
+                DisplayMemberPath="DisplayName"
+                Header="서버"
+                ItemsSource="{x:Bind model:GameServerHelper.ServerOptions, Mode=OneTime}"
+                SelectedIndex="0"
+                SelectedValuePath="Server" />
+            <TextBox
+                x:Name="TextBox_TargetDowngradeVersion"
+                Header="목표 버전"
+                InputScope="Number"
+                PlaceholderText="예) 34000" />
+            <Button
+                x:Name="Button_Downgrade"
+                HorizontalAlignment="Left"
+                Click="Button_Downgrade_Click"
+                Content="다운그레이드"
+                Style="{ThemeResource AccentButtonStyle}" />
+        </StackPanel>
+    </Grid>
+</Page>

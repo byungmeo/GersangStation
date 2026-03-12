@@ -1,4 +1,4 @@
-using Core.Extractor;
+using Core.Extract;
 using System.Diagnostics;
 
 namespace Core.Test;

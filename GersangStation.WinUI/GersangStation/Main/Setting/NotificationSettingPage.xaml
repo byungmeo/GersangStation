@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.NotificationSettingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main.Setting"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Padding="24,24,24,40" Spacing="20">
+                <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="알림 설정" />
+
+                <Border
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="종료 임박 이벤트 하이라이트" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="이벤트 종료까지 몇 일 남았을 때 강조하여 표시할까요? (기본값: 3일)"
+                            TextWrapping="WrapWholeWords" />
+                        <NumberBox
+                            x:Name="NumberBox_EventUrgencyThresholdDays"
+                            Width="180"
+                            HorizontalAlignment="Left"
+                            Header="기준일"
+                            IsTabStop="False"
+                            Loaded="NumberBox_EventUrgencyThresholdDays_Loaded"
+                            Minimum="0"
+                            SmallChange="1"
+                            SpinButtonPlacementMode="Inline"
+                            Value="{x:Bind EventUrgencyThresholdDays, Mode=TwoWay}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

@@ -1,4 +1,4 @@
-﻿using Core.Patch;
+﻿using Core.Download;
 using System.Diagnostics;
 using System.Net;
 
@@ -132,7 +132,7 @@ public partial class ParallelBandwidthProbeTests
 
     [Ignore("전체 대역폭이 제한되어 있고, 동시성을 올려도 변함이 거의 없다는 것이 증명되었음. 최대 2개까지만 유효")]
     [DoNotParallelize]
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(1)]
     [DataRow(2)]
     [DataRow(8)]
@@ -235,11 +235,10 @@ public partial class ParallelBandwidthProbeTests
     {
         var sw = Stopwatch.StartNew();
 
-        await downloader.DownloadAsync(
+        await downloader.DownloadFileAsync(
             job.Url,
             job.DestinationPath,
-            new DownloadOptions(
-                TempPath: job.TempPath,
+            new DownloadOptions(                
                 Overwrite: true,
                 MaxRetries: 8,
                 BufferSize: 1024 * 1024),

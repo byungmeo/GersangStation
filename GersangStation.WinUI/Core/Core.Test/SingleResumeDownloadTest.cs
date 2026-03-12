@@ -1,4 +1,4 @@
-﻿namespace GersangStation.Test;
+﻿namespace Core.Test;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;

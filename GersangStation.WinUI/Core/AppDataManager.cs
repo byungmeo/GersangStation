@@ -1,179 +1,735 @@
-﻿using System.Text.Json;
+using Core.Models;
+using System.Diagnostics;
+using System.Text.Json;
 using Windows.Storage;
 
 namespace Core;
 
 public static class AppDataManager
 {
-    private const string KeySetupCompleted = "SetupCompleted";
-    private const string KeyUseSymbol = "useSymbol";
+    public readonly record struct AppDataOperationResult(bool Success, Exception? Exception)
+    {
+        public static AppDataOperationResult Ok() => new(true, null);
+        public static AppDataOperationResult Fail(Exception exception) => new(false, exception);
+    }
+
+    public readonly record struct AccountCredential(string UserName, string Password);
+
+    private const string SetupCompleted_SettingKey = "SetupCompleted";
+    private const string UseSymbol_SettingKey = "useSymbol";
+    private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
+    private const string SelectedPreset_SettingKey = "SelectedPreset";
+    private const string SelectedServer_SettingKey = "SelectedServer";
+    private const string EventUrgencyThresholdDays_SettingKey = "EventUrgencyThresholdDays";
     private const string AccountsFileName = "accounts.json";
     private const string ClientSettingsFileName = "client-settings.json";
+    private const string PresetListFileName = "preset-list.json"; // LocalFolder 저장
+    private const string BrowserFavoritesFileName = "browser-favorites.json";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true
-    };
-
-    public sealed class AccountProfile
-    {
-        public string Id { get; set; } = "";
-        public string Nickname { get; set; } = "";
-    }
-
-    public sealed class ClientSettingsProfile
-    {
-        public string InstallPath { get; set; } = "";
-        public string Client2Path { get; set; } = "";
-        public string Client3Path { get; set; } = "";
-    }
-
+    #region LocalSettings Properties
     public static bool IsSetupCompleted
     {
-        get => GetValue(KeySetupCompleted, false);
-        set => SetValue(KeySetupCompleted, value);
+        get => LoadLocalSetting(SetupCompleted_SettingKey, defaultValue: false);
+        set => SaveLocalSetting(SetupCompleted_SettingKey, value);
     }
-
-    public static bool LoadUseSymbol()
+    public static bool UseSymbol
     {
-        if (LocalSettings.Values.TryGetValue(KeyUseSymbol, out object? value) && value is bool useSymbol)
-            return useSymbol;
-
-        return true;
+        get => LoadLocalSetting(UseSymbol_SettingKey, defaultValue: true);
+        set => SaveLocalSetting(UseSymbol_SettingKey, value);
     }
+    public static bool IsDeveloperToolEnabled
+    {
+        get => LoadLocalSetting(DeveloperToolEnabled_SettingKey, defaultValue: false);
+        set
+        {
+            bool previous = IsDeveloperToolEnabled;
+            SaveLocalSetting(DeveloperToolEnabled_SettingKey, value);
 
-    public static void SaveUseSymbol(bool useSymbol) => SetValue(KeyUseSymbol, useSymbol);
+            if (previous != value)
+                DeveloperToolEnabledChanged?.Invoke(null, value);
+        }
+    }
+    public static int SelectedPreset
+    {
+        get => LoadLocalSetting(SelectedPreset_SettingKey, defaultValue: 0);
+        set => SaveLocalSetting(SelectedPreset_SettingKey, value);
+    }
+    public static GameServer SelectedServer
+    {
+        get => (GameServer)LoadLocalSetting(SelectedServer_SettingKey, defaultValue: (int)GameServer.Korea_Live);
+        set => SaveLocalSetting(SelectedServer_SettingKey, (int)value);
+    }
+    public static int EventUrgencyThresholdDays
+    {
+        get => Math.Max(0, LoadLocalSetting(EventUrgencyThresholdDays_SettingKey, defaultValue: 3));
+        set => SaveLocalSetting(EventUrgencyThresholdDays_SettingKey, Math.Max(0, value));
+    }
+    #endregion
+
+    public static event EventHandler<bool>? DeveloperToolEnabledChanged;
+
+    public static void SaveAccounts(IEnumerable<Account> accounts)
+        => SaveAccountsAsync(accounts).GetAwaiter().GetResult();
+
+    public static async Task<AppDataOperationResult> SaveAccountsAsync(IEnumerable<Account> accounts)
+    {
+        try
+        {
+            List<Account> list = NormalizeAccountsForPersistence(accounts);
+            string json = JsonSerializer.Serialize(list, AppDataJsonSerializerContext.Default.ListAccount);
+            return await WriteTextToLocalFolderAsync(AccountsFileName, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
+    }
 
     /// <summary>
-    /// 계정 아이디/별명 목록을 LocalFolder(accounts.json)에 저장합니다.
+    /// 계정 목록 저장과 비밀번호 저장을 한 흐름으로 묶고, 저장 후 프리셋/자격 증명 정합성도 함께 맞춥니다.
     /// </summary>
-    public static void SaveAccounts(IEnumerable<AccountProfile> accounts)
+    public static async Task<(IList<Account> Accounts, AppDataOperationResult Result)> SaveAccountsWithCredentialsAsync(
+        IEnumerable<Account> accounts,
+        IEnumerable<AccountCredential>? credentials = null)
     {
-        var list = accounts?.ToList() ?? [];
-        string json = JsonSerializer.Serialize(list, JsonOptions);
-        WriteTextToLocalFolder(AccountsFileName, json);
+        // 정책:
+        // - 비밀번호는 계정과 항상 1:1로 존재해야 합니다.
+        // - 계정 저장 후에는 고아 자격 증명과 잘못된 프리셋 참조를 남기지 않습니다.
+        List<Account> normalizedAccounts = NormalizeAccountsForPersistence(accounts);
+        List<AccountCredential> normalizedCredentials = NormalizeCredentials(credentials);
+        Dictionary<string, string?> previousPasswords = new(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            foreach (AccountCredential credential in normalizedCredentials)
+            {
+                previousPasswords[credential.UserName] = PasswordVaultHelper.GetPassword(credential.UserName);
+                PasswordVaultHelper.Save(credential.UserName, credential.Password);
+            }
+        }
+        catch (Exception ex)
+        {
+            RollbackCredentialUpserts(previousPasswords);
+            return (normalizedAccounts, AppDataOperationResult.Fail(ex));
+        }
+
+        AppDataOperationResult saveResult = await SaveAccountsAsync(normalizedAccounts).ConfigureAwait(false);
+        if (!saveResult.Success)
+        {
+            RollbackCredentialUpserts(previousPasswords);
+            return (normalizedAccounts, saveResult);
+        }
+
+        await SyncAccountsAndPresetsAfterSaveAsync(normalizedAccounts).ConfigureAwait(false);
+        return (normalizedAccounts, AppDataOperationResult.Ok());
     }
 
+    public static IList<Account> LoadAccounts()
+        => LoadAccountsAsync().GetAwaiter().GetResult().Accounts;
+
     /// <summary>
-    /// LocalFolder(accounts.json)에서 계정 아이디/별명 목록을 읽어옵니다.
+    /// 저장된 계정 목록을 불러오고, 비밀번호가 없는 계정이나 중복/공백 ID를 정리합니다.
     /// </summary>
-    public static IReadOnlyList<AccountProfile> LoadAccounts()
+    public static async Task<(IList<Account> Accounts, AppDataOperationResult Result)> LoadAccountsAsync()
     {
-        string? json = ReadTextFromLocalFolder(AccountsFileName);
+        (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(AccountsFileName).ConfigureAwait(false);
+        if (!readResult.Success)
+            return ([], readResult);
+
         if (string.IsNullOrWhiteSpace(json))
-            return [];
+        {
+            PasswordVaultHelper.RemoveOrphans([]);
+            return ([], AppDataOperationResult.Ok());
+        }
 
         try
         {
-            var result = JsonSerializer.Deserialize<List<AccountProfile>>(json);
-            return result ?? [];
+            List<Account> result = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.ListAccount) ?? [];
+            List<Account> normalizedAccounts = NormalizeAccountsForPersistence(result, requireCredentialPair: true, out bool changed);
+            PasswordVaultHelper.RemoveOrphans(normalizedAccounts.Select(account => account.Id));
+
+            if (changed)
+            {
+                AppDataOperationResult saveResult = await SaveAccountsAsync(normalizedAccounts).ConfigureAwait(false);
+                return (normalizedAccounts, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+            }
+
+            return (normalizedAccounts, AppDataOperationResult.Ok());
         }
-        catch
+        catch (Exception ex)
         {
-            return [];
+            return ([], AppDataOperationResult.Fail(ex));
         }
     }
 
-    /// <summary>
-    /// 클라이언트 설정을 LocalFolder(client-settings.json)에 저장합니다.
-    /// </summary>
-    public static void SaveClientSettings(ClientSettingsProfile? settings)
-    {
-        var payload = settings ?? new ClientSettingsProfile();
-        payload.InstallPath ??= "";
-        payload.Client2Path ??= "";
-        payload.Client3Path ??= "";
+    private static AllServerClientSettings LoadAllServerClientSettings()
+        => LoadAllServerClientSettingsAsync().GetAwaiter().GetResult().Settings;
 
-        string json = JsonSerializer.Serialize(payload, JsonOptions);
-        WriteTextToLocalFolder(ClientSettingsFileName, json);
-    }
-
-    /// <summary>
-    /// LocalFolder(client-settings.json)에서 클라이언트 설정을 읽어옵니다.
-    /// </summary>
-    public static ClientSettingsProfile LoadClientSettings()
+    private static async Task<(AllServerClientSettings Settings, AppDataOperationResult Result)> LoadAllServerClientSettingsAsync()
     {
-        string? json = ReadTextFromLocalFolder(ClientSettingsFileName);
+        (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(ClientSettingsFileName).ConfigureAwait(false);
+        if (!readResult.Success)
+            return (new AllServerClientSettings(), readResult);
+
         if (string.IsNullOrWhiteSpace(json))
-            return new ClientSettingsProfile();
+            return (new AllServerClientSettings(), AppDataOperationResult.Ok());
 
         try
         {
-            var payload = JsonSerializer.Deserialize<ClientSettingsProfile>(json) ?? new ClientSettingsProfile();
-            payload.InstallPath ??= "";
-            payload.Client2Path ??= "";
-            payload.Client3Path ??= "";
-            return payload;
+            var result = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.AllServerClientSettings);
+            return (result ?? new AllServerClientSettings(), AppDataOperationResult.Ok());
         }
-        catch
+        catch (Exception ex)
         {
-            return new ClientSettingsProfile();
+            return (new AllServerClientSettings(), AppDataOperationResult.Fail(ex));
+        }
+    }
+
+    public static ClientSettings LoadServerClientSettings(GameServer server)
+        => LoadServerClientSettingsAsync(server).GetAwaiter().GetResult().Settings;
+
+    public static async Task<(ClientSettings Settings, AppDataOperationResult Result)> LoadServerClientSettingsAsync(GameServer server)
+    {
+        var (all, result) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
+        if (!all.Servers.TryGetValue(server, out var s))
+            return (new ClientSettings(), result.Success ? AppDataOperationResult.Ok() : result);
+        return (s, result.Success ? AppDataOperationResult.Ok() : result);
+    }
+
+    private static void SaveAllServerClientSettings(AllServerClientSettings settings)
+        => SaveAllServerClientSettingsAsync(settings).GetAwaiter().GetResult();
+
+    private static async Task<AppDataOperationResult> SaveAllServerClientSettingsAsync(AllServerClientSettings settings)
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(settings, AppDataJsonSerializerContext.Default.AllServerClientSettings);
+            return await WriteTextToLocalFolderAsync(ClientSettingsFileName, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
+    }
+
+    public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
+        => SaveServerClientSettingsAsync(server, settings).GetAwaiter().GetResult();
+
+    public static async Task<AppDataOperationResult> SaveServerClientSettingsAsync(GameServer server, ClientSettings settings)
+    {
+        var (all, loadResult) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
+        if (!loadResult.Success)
+            return loadResult;
+
+        all.Servers[server] = settings;
+        return await SaveAllServerClientSettingsAsync(all).ConfigureAwait(false);
+    }
+
+    // -------------------------
+    // PresetContainer (LocalFolder)
+    // 정책:
+    // - ComboBox ItemSource = 모든 계정 목록
+    // - PresetContainer에 저장된 Id가 계정 목록에 없으면 "" 로 정규화(선택 안 함)
+    // - 정규화로 변경이 발생하면 즉시 SavePresetContainer()로 다시 저장
+    // -------------------------
+    public static void SavePresetList(PresetList presetList)
+        => SavePresetListAsync(presetList).GetAwaiter().GetResult();
+
+    public static async Task<AppDataOperationResult> SavePresetListAsync(PresetList presetList)
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(presetList, AppDataJsonSerializerContext.Default.PresetList);
+            return await WriteTextToLocalFolderAsync(PresetListFileName, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
         }
     }
 
     /// <summary>
-    /// 설치 경로만 업데이트하고 나머지 클라이언트 설정은 유지합니다.
+    /// PresetContainer를 불러오고, Accounts 기준으로 Id 유효성 검사 후
+    /// 없는 Id는 ""로 정규화합니다. 정규화로 변경이 발생하면 재저장합니다.
     /// </summary>
-    public static void SaveInstallPath(string installPath)
+    public static PresetList LoadPresetList()
+        => LoadPresetListAsync().GetAwaiter().GetResult().PresetList;
+
+    public static async Task<(PresetList PresetList, AppDataOperationResult Result)> LoadPresetListAsync()
     {
-        var payload = LoadClientSettings();
-        payload.InstallPath = installPath ?? "";
-        SaveClientSettings(payload);
-    }
+        PresetList presetList;
 
-    /// <summary>
-    /// 클라이언트 설정에서 설치 경로만 읽어옵니다.
-    /// </summary>
-    public static string LoadInstallPath() => LoadClientSettings().InstallPath;
+        (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(PresetListFileName).ConfigureAwait(false);
+        if (!readResult.Success)
+            return (new PresetList(), readResult);
 
-    private static void WriteTextToLocalFolder(string fileName, string content)
-    {
-        StorageFolder folder = ApplicationData.Current.LocalFolder;
-
-        // StorageFolder API를 사용해 파일 생성/덮어쓰기를 처리합니다.
-        StorageFile file = folder
-            .CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting)
-            .AsTask()
-            .GetAwaiter()
-            .GetResult();
-
-        FileIO.WriteTextAsync(file, content)
-            .AsTask()
-            .GetAwaiter()
-            .GetResult();
-    }
-
-    private static string? ReadTextFromLocalFolder(string fileName)
-    {
-        StorageFolder folder = ApplicationData.Current.LocalFolder;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            presetList = new PresetList();
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            return (presetList, saveResult);
+        }
 
         try
         {
-            // 파일이 없을 수 있는 일반 흐름에서는 예외를 만들지 않도록 TryGetItemAsync를 사용합니다.
-            IStorageItem? item = folder
+            presetList = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.PresetList) ?? new PresetList();
+        }
+        catch (Exception ex)
+        {
+            presetList = new PresetList();
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            return (presetList, saveResult.Success ? AppDataOperationResult.Fail(ex) : saveResult);
+        }
+
+        var (accounts, accountLoadResult) = await LoadAccountsAsync().ConfigureAwait(false);
+        HashSet<string> validIds = accounts
+            .Select(a => a.Id?.Trim() ?? string.Empty)
+            .Where(id => id.Length != 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        bool changed = EnsurePresetListShape(presetList);
+        changed |= NormalizePresetIds(presetList, validIds);
+        if (changed)
+        {
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            return (presetList, saveResult.Success ? accountLoadResult : saveResult);
+        }
+
+        return (presetList, accountLoadResult.Success ? AppDataOperationResult.Ok() : accountLoadResult);
+    }
+
+    /// <summary>
+    /// 브라우저 즐겨찾기 목록을 저장하며 URL 정규화와 중복 제거를 함께 수행합니다.
+    /// </summary>
+    public static void SaveBrowserFavorites(IEnumerable<BrowserFavorite> favorites)
+        => SaveBrowserFavoritesAsync(favorites).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 브라우저 즐겨찾기 목록을 저장하며 URL 정규화와 중복 제거를 함께 수행합니다.
+    /// </summary>
+    public static async Task<AppDataOperationResult> SaveBrowserFavoritesAsync(IEnumerable<BrowserFavorite> favorites)
+    {
+        try
+        {
+            List<BrowserFavorite> normalizedFavorites = NormalizeBrowserFavorites(favorites);
+            string json = JsonSerializer.Serialize(normalizedFavorites, AppDataJsonSerializerContext.Default.ListBrowserFavorite);
+            return await WriteTextToLocalFolderAsync(BrowserFavoritesFileName, json).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
+    }
+
+    /// <summary>
+    /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
+    /// </summary>
+    public static IList<BrowserFavorite> LoadBrowserFavorites()
+        => LoadBrowserFavoritesAsync().GetAwaiter().GetResult().Favorites;
+
+    /// <summary>
+    /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
+    /// </summary>
+    public static async Task<(IList<BrowserFavorite> Favorites, AppDataOperationResult Result)> LoadBrowserFavoritesAsync()
+    {
+        (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(BrowserFavoritesFileName).ConfigureAwait(false);
+        if (!readResult.Success)
+            return ([], readResult);
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            List<BrowserFavorite> emptyFavorites = [];
+            AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(emptyFavorites).ConfigureAwait(false);
+            return (emptyFavorites, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+        }
+
+        try
+        {
+            List<BrowserFavorite> parsedFavorites = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.ListBrowserFavorite) ?? [];
+            List<BrowserFavorite> normalizedFavorites = NormalizeBrowserFavorites(parsedFavorites);
+            bool changed = parsedFavorites.Count != normalizedFavorites.Count;
+            if (!changed)
+            {
+                for (int i = 0; i < parsedFavorites.Count; i++)
+                {
+                    BrowserFavorite parsed = parsedFavorites[i];
+                    BrowserFavorite normalized = normalizedFavorites[i];
+                    if (!string.Equals(parsed.Name, normalized.Name, StringComparison.Ordinal)
+                        || !string.Equals(parsed.Url, normalized.Url, StringComparison.Ordinal)
+                        || !string.Equals(parsed.FaviconUrl, normalized.FaviconUrl, StringComparison.Ordinal))
+                    {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+
+            if (changed)
+            {
+                AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(normalizedFavorites).ConfigureAwait(false);
+                return (normalizedFavorites, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+            }
+
+            return (normalizedFavorites, AppDataOperationResult.Ok());
+        }
+        catch (Exception ex)
+        {
+            List<BrowserFavorite> emptyFavorites = [];
+            AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(emptyFavorites).ConfigureAwait(false);
+            return (emptyFavorites, saveResult.Success ? AppDataOperationResult.Fail(ex) : saveResult);
+        }
+    }
+
+    private static bool EnsurePresetListShape(PresetList presetList)
+    {
+        bool changed = false;
+
+        if (presetList.Presets is null || presetList.Presets.Length != 4)
+        {
+            Preset[] existing = presetList.Presets ?? [];
+            Preset[] normalized = new Preset[4];
+
+            for (int i = 0; i < normalized.Length; i++)
+                normalized[i] = i < existing.Length ? existing[i] ?? new Preset() : new Preset();
+
+            presetList.Presets = normalized;
+            changed = true;
+        }
+
+        for (int p = 0; p < presetList.Presets.Length; p++)
+        {
+            Preset preset = presetList.Presets[p] ?? new Preset();
+            if (presetList.Presets[p] is null)
+            {
+                presetList.Presets[p] = preset;
+                changed = true;
+            }
+
+            if (preset.Items is null || preset.Items.Length != 3)
+            {
+                PresetItem[] existingItems = preset.Items ?? [];
+                PresetItem[] normalizedItems = new PresetItem[3];
+
+                for (int i = 0; i < normalizedItems.Length; i++)
+                    normalizedItems[i] = i < existingItems.Length ? existingItems[i] ?? new PresetItem() : new PresetItem();
+
+                preset.Items = normalizedItems;
+                changed = true;
+            }
+
+            for (int i = 0; i < preset.Items.Length; i++)
+            {
+                if (preset.Items[i] is null)
+                {
+                    preset.Items[i] = new PresetItem();
+                    changed = true;
+                }
+
+                if (preset.Items[i].Id is null)
+                {
+                    preset.Items[i].Id = string.Empty;
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    private static bool NormalizePresetIds(PresetList presetList, HashSet<string> validIds)
+    {
+        bool changed = false;
+
+        // 전제: Presets = 4개, 각 preset = 3개
+        // container.Presets: PresetItem[4][3] 형태(또는 동등 구조)라고 가정
+        for (int p = 0; p < presetList.Presets.Length; p++)
+        {
+            var preset = presetList.Presets[p];
+            var items = preset.Items;
+            for (int i = 0; i < items.Length; i++)
+            {
+                PresetItem item = items[i] ?? new PresetItem();
+                if (items[i] is null)
+                {
+                    items[i] = item;
+                    changed = true;
+                }
+
+                string normalizedId = item.Id?.Trim() ?? string.Empty;
+                if (!string.Equals(item.Id, normalizedId, StringComparison.Ordinal))
+                {
+                    item.Id = normalizedId;
+                    changed = true;
+                }
+
+                // 정책: id가 없거나, 계정 목록에 없으면 ""로
+                if (normalizedId.Length != 0 && !validIds.Contains(normalizedId))
+                {
+                    item.Id = "";
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    /// <summary>
+    /// 즐겨찾기 목록을 저장 가능한 형태로 정규화하고, 잘못된 URL과 중복 항목을 제거합니다.
+    /// </summary>
+    private static List<BrowserFavorite> NormalizeBrowserFavorites(IEnumerable<BrowserFavorite>? favorites)
+    {
+        List<BrowserFavorite> normalized = [];
+        HashSet<string> seenUrls = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (BrowserFavorite? favorite in favorites ?? [])
+        {
+            string rawUrl = favorite?.Url?.Trim() ?? string.Empty;
+            if (!Uri.TryCreate(rawUrl, UriKind.Absolute, out Uri? uri))
+                continue;
+
+            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+                continue;
+
+            string normalizedUrl = uri.AbsoluteUri;
+            if (!seenUrls.Add(normalizedUrl))
+                continue;
+
+            string name = favorite?.Name?.Trim() ?? string.Empty;
+            if (name.Length == 0)
+                name = normalizedUrl;
+
+            string faviconUrl = favorite?.FaviconUrl?.Trim() ?? string.Empty;
+            if (!Uri.TryCreate(faviconUrl, UriKind.Absolute, out _))
+                faviconUrl = string.Empty;
+
+            normalized.Add(new BrowserFavorite(name, normalizedUrl, faviconUrl));
+        }
+
+        return normalized;
+    }
+
+    private static async Task<AppDataOperationResult> WriteTextToLocalFolderAsync(string fileName, string content)
+    {
+        try
+        {
+            StorageFolder folder = ApplicationData.Current.LocalFolder;
+
+            StorageFile file = await folder
+                .CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting)
+                .AsTask()
+                .ConfigureAwait(false);
+
+            Debug.WriteLine($"[AppDataManager] WriteTextToLocalFolder FileName: {fileName}, Length: {content.Length}");
+            await FileIO.WriteTextAsync(file, content)
+                .AsTask()
+                .ConfigureAwait(false);
+
+            return AppDataOperationResult.Ok();
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
+    }
+
+    private static async Task<(string? Content, AppDataOperationResult Result)> ReadTextFromLocalFolderAsync(string fileName)
+    {
+        try
+        {
+            StorageFolder folder = ApplicationData.Current.LocalFolder;
+
+            IStorageItem? item = await folder
                 .TryGetItemAsync(fileName)
                 .AsTask()
-                .GetAwaiter()
-                .GetResult();
+                .ConfigureAwait(false);
 
             if (item is not StorageFile file)
-                return null;
+                return (null, AppDataOperationResult.Ok());
 
-            return FileIO.ReadTextAsync(file)
+            string? content = await FileIO.ReadTextAsync(file)
                 .AsTask()
-                .GetAwaiter()
-                .GetResult();
+                .ConfigureAwait(false);
+
+            return (content, AppDataOperationResult.Ok());
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            return (null, AppDataOperationResult.Fail(ex));
         }
     }
 
     private static ApplicationDataContainer LocalSettings
         => ApplicationData.Current.LocalSettings;
 
-    private static T GetValue<T>(string key, T defaultValue)
+    /// <summary>
+    /// 저장 가능한 계정 형태로 정규화하고 중복/공백 ID를 제거합니다.
+    /// </summary>
+    private static List<Account> NormalizeAccountsForPersistence(IEnumerable<Account>? accounts)
+        => NormalizeAccountsForPersistence(accounts, requireCredentialPair: false, out _);
+
+    /// <summary>
+    /// 계정 목록을 정규화하면서 필요 시 비밀번호와 1:1 관계가 없는 계정도 제거합니다.
+    /// </summary>
+    private static List<Account> NormalizeAccountsForPersistence(
+        IEnumerable<Account>? accounts,
+        bool requireCredentialPair,
+        out bool changed)
+    {
+        changed = false;
+        List<Account> normalizedAccounts = [];
+        HashSet<string> seenIds = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (Account? account in accounts ?? [])
+        {
+            if (account is null)
+            {
+                changed = true;
+                continue;
+            }
+
+            string id = account.Id?.Trim() ?? string.Empty;
+            string nickname = account.Nickname?.Trim() ?? string.Empty;
+            string groupName = account.GroupName?.Trim() ?? string.Empty;
+
+            if (!string.Equals(account.Id ?? string.Empty, id, StringComparison.Ordinal) ||
+                !string.Equals(account.Nickname ?? string.Empty, nickname, StringComparison.Ordinal) ||
+                !string.Equals(account.GroupName ?? string.Empty, groupName, StringComparison.Ordinal))
+            {
+                changed = true;
+            }
+
+            if (id.Length == 0)
+            {
+                changed = true;
+                continue;
+            }
+
+            if (!seenIds.Add(id))
+            {
+                changed = true;
+                continue;
+            }
+
+            if (requireCredentialPair && string.IsNullOrWhiteSpace(PasswordVaultHelper.GetPassword(id)))
+            {
+                changed = true;
+                continue;
+            }
+
+            normalizedAccounts.Add(new Account(id, nickname, groupName));
+        }
+
+        return normalizedAccounts;
+    }
+
+    /// <summary>
+    /// 비밀번호 업데이트 입력을 정규화하고 마지막 입력 기준으로 중복 ID를 정리합니다.
+    /// </summary>
+    private static List<AccountCredential> NormalizeCredentials(IEnumerable<AccountCredential>? credentials)
+    {
+        Dictionary<string, string> normalized = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (AccountCredential credential in credentials ?? [])
+        {
+            string userName = credential.UserName?.Trim() ?? string.Empty;
+            string password = credential.Password ?? string.Empty;
+
+            if (userName.Length == 0 || password.Length == 0)
+                continue;
+
+            normalized[userName] = password;
+        }
+
+        return normalized
+            .Select(pair => new AccountCredential(pair.Key, pair.Value))
+            .ToList();
+    }
+
+    /// <summary>
+    /// 비밀번호 저장 중간에 실패했을 때 이전 자격 증명 상태로 되돌립니다.
+    /// </summary>
+    private static void RollbackCredentialUpserts(IReadOnlyDictionary<string, string?> previousPasswords)
+    {
+        foreach ((string userName, string? previousPassword) in previousPasswords)
+        {
+            if (string.IsNullOrWhiteSpace(previousPassword))
+            {
+                PasswordVaultHelper.Delete(userName);
+                continue;
+            }
+
+            PasswordVaultHelper.Save(userName, previousPassword);
+        }
+    }
+
+    /// <summary>
+    /// 계정 저장 후 프리셋 참조와 자격 증명을 현재 계정 목록 기준으로 다시 정리합니다.
+    /// </summary>
+    private static async Task SyncAccountsAndPresetsAfterSaveAsync(IReadOnlyList<Account> accounts)
+    {
+        try
+        {
+            PasswordVaultHelper.RemoveOrphans(accounts.Select(account => account.Id));
+            AppDataOperationResult presetSyncResult = await NormalizePresetListAgainstAccountsAsync(accounts).ConfigureAwait(false);
+
+            if (!presetSyncResult.Success)
+                Debug.WriteLine($"[AppDataManager] Preset sync failed: {presetSyncResult.Exception}");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AppDataManager] Account dependency sync failed: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// 현재 계정 목록에 없는 프리셋 ID를 비워서 프리셋 유효성을 유지합니다.
+    /// </summary>
+    private static async Task<AppDataOperationResult> NormalizePresetListAgainstAccountsAsync(IEnumerable<Account> accounts)
+    {
+        try
+        {
+            (string? json, AppDataOperationResult readResult) = await ReadTextFromLocalFolderAsync(PresetListFileName).ConfigureAwait(false);
+            if (!readResult.Success)
+                return readResult;
+
+            PresetList presetList;
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                presetList = new PresetList();
+            }
+            else
+            {
+                try
+                {
+                    presetList = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.PresetList) ?? new PresetList();
+                }
+                catch
+                {
+                    presetList = new PresetList();
+                }
+            }
+
+            HashSet<string> validIds = accounts
+                .Select(account => account.Id?.Trim() ?? string.Empty)
+                .Where(id => id.Length > 0)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            bool changed = EnsurePresetListShape(presetList);
+            changed |= NormalizePresetIds(presetList, validIds);
+
+            if (!changed)
+                return AppDataOperationResult.Ok();
+
+            return await SavePresetListAsync(presetList).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return AppDataOperationResult.Fail(ex);
+        }
+    }
+
+    private static T LoadLocalSetting<T>(string key, T defaultValue)
     {
         if (LocalSettings.Values.TryGetValue(key, out object? value) && value is T typed)
         {
@@ -182,10 +738,19 @@ public static class AppDataManager
         return defaultValue;
     }
 
-    private static void SetValue<T>(string key, T value)
+    private static void SaveLocalSetting<T>(string key, T value)
     {
         ValidateSupportedLocalSettingsType(key, value);
-        LocalSettings.Values[key] = value;
+
+        try
+        {
+            LocalSettings.Values[key] = value;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AppDataManager] SaveLocalSetting failed. Key: {key}, Error: {ex}");
+            throw;
+        }
     }
 
     private static void ValidateSupportedLocalSettingsType(string key, object? value)

@@ -1,0 +1,21 @@
+namespace Core.Extract;
+
+public interface IExtractor
+{
+    string Name { get; }
+
+    bool CanHandle(string archivePath);
+
+    Task ExtractAsync(
+        string archivePath,
+        string destinationPath,
+        IProgress<ExtractionProgress>? progress = null,
+        CancellationToken ct = default);
+}
+
+public sealed record ExtractionProgress(
+    string ExtractorName,
+    int Percentage,
+    int ProcessedEntries,
+    int? TotalEntries,
+    string? CurrentArchive);

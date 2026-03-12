@@ -1,4 +1,4 @@
-﻿namespace GersangStation.Test;
+﻿namespace Core.Test;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -12,8 +12,8 @@ public class PureDownloadTests {
     public TestContext TestContext { get; set; }
 
     private const string DownloadUrl = "http://ak-gersangkr.xcache.kinxcdn.com/FullClient/Gersang_Install.7z";
-    private string _tempFolderPath;
-    private string _destinationPath;
+    private string? _tempFolderPath;
+    private string? _destinationPath;
 
     [TestInitialize]
     public void Setup() {
@@ -44,7 +44,7 @@ public class PureDownloadTests {
             response.EnsureSuccessStatusCode();
 
             using(var stream = await response.Content.ReadAsStreamAsync())
-            using(var fileStream = new FileStream(_destinationPath, FileMode.Create, FileAccess.Write, FileShare.None)) {
+            using(var fileStream = new FileStream(_destinationPath!, FileMode.Create, FileAccess.Write, FileShare.None)) {
                 await stream.CopyToAsync(fileStream);
             }
         }

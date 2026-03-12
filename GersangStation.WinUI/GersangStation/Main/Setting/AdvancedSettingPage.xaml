@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.AdvancedSettingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main.Setting"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    NavigationCacheMode="Disabled"
+    mc:Ignorable="d">
+
+    <Grid Padding="16">
+        <StackPanel HorizontalAlignment="Left" Spacing="12">
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="고급 설정" />
+            <TextBlock Opacity="0.72" Text="디버깅이나 테스트용 기능이 필요할 때만 개발자 도구를 켜세요." />
+            <ToggleSwitch
+                x:Name="ToggleSwitch_DeveloperTool"
+                Header="개발자 도구"
+                OffContent="비활성화"
+                OnContent="활성화"
+                Toggled="ToggleSwitch_DeveloperTool_Toggled" />
+        </StackPanel>
+    </Grid>
+</Page>

@@ -1,7 +1,8 @@
-﻿using Core;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-using System;
+using System.Diagnostics;
+using Windows.ApplicationModel;
+using Windows.Storage;
 
 namespace GersangStation
 {
@@ -10,8 +11,8 @@ namespace GersangStation
     /// </summary>
     public partial class App : Application
     {
-        private Window? _window;
-        
+        public static Window? CurrentWindow { get; private set; }
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -19,6 +20,8 @@ namespace GersangStation
         public App()
         {
             InitializeComponent();
+            Debug.WriteLine($"PFN: {Package.Current.Id.FamilyName}");
+            Debug.WriteLine($"LocalFolder Path: {ApplicationData.Current.LocalFolder.Path}");
         }
 
         /// <summary>
@@ -27,25 +30,7 @@ namespace GersangStation
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            Windows.Storage.ApplicationData.Current.LocalSettings.Values.Clear();
-
-            if (AppDataManager.IsSetupCompleted)
-            {
-                OpenMainWindow();
-                return;
-            }
-
-            OpenSetupWindow();
-        }
-
-        private void OpenSetupWindow()
-        {
-            var setupWindow = new Setup.SetupWindow();
-            setupWindow.SetupCompleted += SetupWindow_SetupCompleted;
-            setupWindow.Closed += CurrentWindow_Closed;
-
-            _window = setupWindow;
-            CenterAndActivateWindow(_window);
+            OpenMainWindow();
         }
 
         private void OpenMainWindow()
@@ -53,12 +38,15 @@ namespace GersangStation
             var mainWindow = new Main.MainWindow();
             mainWindow.Closed += CurrentWindow_Closed;
 
-            _window = mainWindow;
-            CenterAndActivateWindow(_window);
+            CurrentWindow = mainWindow;
+            CenterAndActivateWindow(CurrentWindow);
         }
 
         private static void CenterAndActivateWindow(Window window)
         {
+            // 타이틀바 더블 클릭으로 인한 최대화 방지
+            window.PreventMaximizeOnTitleBarDoubleClick();
+
             AppWindow appWindow = window.AppWindow;
             var displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
             if (displayArea is not null)
@@ -68,30 +56,36 @@ namespace GersangStation
                 appWindow.Move(new Windows.Graphics.PointInt32(centeredX, centeredY));
             }
 
-            window.Activate();
-        }
+            /*
+            HD:             1280 × 720
+            HD+:            1600 × 900
+            FHD (Full HD):  1920 × 1080
+            QHD (Quad HD):  2560 × 1440
+            4K UHD:         3840 × 2160
+            8K UHD:         7680 × 4320 
+            */
+            appWindow.Resize(new Windows.Graphics.SizeInt32(1600, 900));
 
-        private void SetupWindow_SetupCompleted(object? sender, EventArgs e)
-        {
-            AppDataManager.IsSetupCompleted = true;
-
-            // 1) 먼저 MainWindow 열기
-            OpenMainWindow();
-
-            // 2) 그 다음 SetupWindow 닫기
-            if (sender is Setup.SetupWindow setupWindow)
+            appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
+            if (appWindow.Presenter is OverlappedPresenter presenter)
             {
-                setupWindow.SetupCompleted -= SetupWindow_SetupCompleted;
-                setupWindow.Close();
+                presenter.PreferredMaximumWidth = 1600;
+                presenter.PreferredMaximumHeight = 900;
+                presenter.IsResizable = false;
+                presenter.IsMaximizable = false;
+                presenter.IsMinimizable = true;
             }
+
+            appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+            appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+
+            window.Activate();
         }
 
         private void CurrentWindow_Closed(object sender, WindowEventArgs args)
         {
-            if (ReferenceEquals(sender, _window))
-            {
-                _window = null;
-            }
+            if (ReferenceEquals(sender, CurrentWindow))
+                CurrentWindow = null;
         }
     }
 }
