@@ -708,7 +708,8 @@ public partial class Form1 : MaterialForm {
             return false;
         }
 
-        foreach(JsonElement sponsor in sponsors) {
+        for(int i = sponsors.Count - 1; i >= 0; i--) {
+            JsonElement sponsor = sponsors[i];
             string? text = GetSponsorDisplayText(sponsor);
             if(!string.IsNullOrWhiteSpace(text)) {
                 materialListBox_sponsor.AddItem(new MaterialListBoxItem(text));
