@@ -2,7 +2,7 @@ using System.IO.Compression;
 
 namespace Core.Extract;
 
-public sealed class ZipFileExtractor : IExtractor
+public sealed class ZipFileExtractor : IExtractor, IExtractorSupportProbe
 {
     /// <summary>
     /// Zip 추출 실패 지점을 구분합니다.
@@ -45,28 +45,36 @@ public sealed class ZipFileExtractor : IExtractor
 
     public bool CanHandle(string archivePath)
     {
+        return ProbeSupport(archivePath).CanHandle;
+    }
+
+    /// <summary>
+    /// Zip 아카이브를 현재 추출기가 처리할 수 있는지 실패 이유와 함께 반환합니다.
+    /// </summary>
+    public ExtractorSupportProbeResult ProbeSupport(string archivePath)
+    {
         if (string.IsNullOrWhiteSpace(archivePath))
-            return false;
+            return new(false, "archive path is empty.");
 
         if (!File.Exists(archivePath))
-            return false;
+            return new(false, $"archive file does not exist: {archivePath}");
 
         try
         {
             using ZipArchive _ = ZipFile.OpenRead(archivePath);
-            return true;
+            return new(true, string.Empty);
         }
-        catch (InvalidDataException)
+        catch (InvalidDataException ex)
         {
-            return false;
+            return new(false, $"archive is not a valid zip file: {archivePath}", ex);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            return false;
+            return new(false, $"archive could not be opened due to I/O failure: {archivePath}", ex);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
-            return false;
+            return new(false, $"access denied while opening archive: {archivePath}", ex);
         }
     }
 

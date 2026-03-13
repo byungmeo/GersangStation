@@ -8,7 +8,7 @@ namespace Core.Extract;
 /// 7za 커맨드라인(7za.exe)을 사용해 압축을 풉니다.
 /// .gsz 파일 압축 해제 시 파일 정합성을 보장할 수 없으므로, 7z 파일 압축 해제에만 사용 권장
 /// </summary>
-public sealed class NativeSevenZipExtractor : IExtractor
+public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
 {
     public enum ExtractionFailureStage
     {
@@ -88,9 +88,24 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
     public bool CanHandle(string archivePath)
     {
-        return !string.IsNullOrWhiteSpace(archivePath)
-            && File.Exists(archivePath)
-            && File.Exists(_sevenZipExePath);
+        return ProbeSupport(archivePath).CanHandle;
+    }
+
+    /// <summary>
+    /// 7za 추출기가 현재 아카이브를 처리할 수 있는지 실패 이유와 함께 반환합니다.
+    /// </summary>
+    public ExtractorSupportProbeResult ProbeSupport(string archivePath)
+    {
+        if (string.IsNullOrWhiteSpace(archivePath))
+            return new(false, "archive path is empty.");
+
+        if (!File.Exists(archivePath))
+            return new(false, $"archive file does not exist: {archivePath}");
+
+        if (!File.Exists(_sevenZipExePath))
+            return new(false, $"7za executable does not exist: {_sevenZipExePath}");
+
+        return new(true, string.Empty);
     }
 
     public async Task ExtractAsync(

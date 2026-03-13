@@ -230,15 +230,22 @@ public sealed class ExtractorWorker
     {
         await foreach (ExtractJob job in _channel.Reader.ReadAllAsync(_ct))
         {
-            if (!_extractor.CanHandle(job.ArchivePath))
+            ExtractorSupportProbeResult? supportProbeResult = (_extractor as IExtractorSupportProbe)?.ProbeSupport(job.ArchivePath);
+            if (!(supportProbeResult?.CanHandle ?? _extractor.CanHandle(job.ArchivePath)))
             {
+                string reason = supportProbeResult?.Reason is { Length: > 0 }
+                    ? supportProbeResult.Reason
+                    : $"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'.";
+                Exception innerException = supportProbeResult?.Exception
+                    ?? new NotSupportedException(reason);
+
                 throw new ExtractorWorkerException(
-                    $"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'.",
+                    reason,
                     _extractor.Name,
                     job.ArchivePath,
                     job.DestinationPath,
                     ExtractorWorkerFailureStage.ValidateArchiveSupport,
-                    new NotSupportedException($"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'."));
+                    innerException);
             }
 
             Exception? lastException = null;
