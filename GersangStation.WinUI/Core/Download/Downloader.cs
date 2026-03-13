@@ -213,83 +213,99 @@ public sealed class Downloader
             long totalBytes = serverMeta.TotalBytes.Value;
             long localSize = 0;
 
-            var existingState = ClassifyExistingArtifacts(
-                destinationPath,
-                tempPath,
-                metaPath,
-                serverMeta,
-                out long existingLength);
-
-            switch (existingState)
+            try
             {
-                case ExistingArtifactState.CompletedAndReusable:
-                    // final 파일과 metadata가 현재 서버와 동일하다면,
-                    // 최종 archive를 다시 받을 필요가 없다.
-                    if (existingLength == totalBytes)
-                    {
-                        LogDownload(destinationPath, $"SKIP_COMPLETED bytes={totalBytes}");
-                        progress?.Report(new DownloadProgress(totalBytes, totalBytes, null));
-                        return;
-                    }
+                var existingState = ClassifyExistingArtifacts(
+                    destinationPath,
+                    tempPath,
+                    metaPath,
+                    serverMeta,
+                    out long existingLength);
 
-                    LogDownload(
-                        destinationPath,
-                        $"ARTIFACT_RESET reason=completed file size mismatch existing={existingLength} total={totalBytes}");
+                switch (existingState)
+                {
+                    case ExistingArtifactState.CompletedAndReusable:
+                        // final 파일과 metadata가 현재 서버와 동일하다면,
+                        // 최종 archive를 다시 받을 필요가 없다.
+                        if (existingLength == totalBytes)
+                        {
+                            LogDownload(destinationPath, $"SKIP_COMPLETED bytes={totalBytes}");
+                            progress?.Report(new DownloadProgress(totalBytes, totalBytes, null));
+                            return;
+                        }
 
-                    if (!options.Overwrite)
-                    {
-                        throw new DownloadOperationException(
-                            $"Destination file already exists and overwrite is disabled: {destinationPath}",
-                            url,
-                            destinationPath,
-                            DownloadFailureStage.PrepareArtifacts,
-                            new IOException($"Destination file already exists: {destinationPath}"));
-                    }
-
-                    DeleteFileIfExists(destinationPath);
-                    DeleteFileIfExists(metaPath);
-                    break;
-
-                case ExistingArtifactState.PartialAndReusable:
-                    if (existingLength > totalBytes)
-                    {
                         LogDownload(
                             destinationPath,
-                            $"ARTIFACT_RESET reason=temp larger than server total existing={existingLength} total={totalBytes}");
+                            $"ARTIFACT_RESET reason=completed file size mismatch existing={existingLength} total={totalBytes}");
 
+                        if (!options.Overwrite)
+                        {
+                            throw new DownloadOperationException(
+                                $"Destination file already exists and overwrite is disabled: {destinationPath}",
+                                url,
+                                destinationPath,
+                                DownloadFailureStage.PrepareArtifacts,
+                                new IOException($"Destination file already exists: {destinationPath}"));
+                        }
+
+                        DeleteFileIfExists(destinationPath);
+                        DeleteFileIfExists(metaPath);
+                        break;
+
+                    case ExistingArtifactState.PartialAndReusable:
+                        if (existingLength > totalBytes)
+                        {
+                            LogDownload(
+                                destinationPath,
+                                $"ARTIFACT_RESET reason=temp larger than server total existing={existingLength} total={totalBytes}");
+
+                            DeleteFileIfExists(tempPath);
+                            DeleteFileIfExists(metaPath);
+                        }
+                        else
+                        {
+                            localSize = existingLength;
+                            LogDownload(destinationPath, $"TEMP_REUSE existingTemp={localSize}");
+                        }
+                        break;
+
+                    case ExistingArtifactState.InvalidArtifacts:
+                        LogDownload(destinationPath, "ARTIFACT_RESET reason=invalid local artifact state");
+
+                        // final 파일이 남아 있는데 이를 안전하게 재사용할 수 없고
+                        // caller도 덮어쓰기를 허용하지 않았다면 즉시 실패한다.
+                        if (File.Exists(destinationPath) && !options.Overwrite)
+                        {
+                            throw new DownloadOperationException(
+                                $"Destination file already exists and overwrite is disabled: {destinationPath}",
+                                url,
+                                destinationPath,
+                                DownloadFailureStage.PrepareArtifacts,
+                                new IOException($"Destination file already exists: {destinationPath}"));
+                        }
+
+                        DeleteFileIfExists(destinationPath);
                         DeleteFileIfExists(tempPath);
                         DeleteFileIfExists(metaPath);
-                    }
-                    else
-                    {
-                        localSize = existingLength;
-                        LogDownload(destinationPath, $"TEMP_REUSE existingTemp={localSize}");
-                    }
-                    break;
+                        break;
 
-                case ExistingArtifactState.InvalidArtifacts:
-                    LogDownload(destinationPath, "ARTIFACT_RESET reason=invalid local artifact state");
-
-                    // final 파일이 남아 있는데 이를 안전하게 재사용할 수 없고
-                    // caller도 덮어쓰기를 허용하지 않았다면 즉시 실패한다.
-                    if (File.Exists(destinationPath) && !options.Overwrite)
-                    {
-                        throw new DownloadOperationException(
-                            $"Destination file already exists and overwrite is disabled: {destinationPath}",
-                            url,
-                            destinationPath,
-                            DownloadFailureStage.PrepareArtifacts,
-                            new IOException($"Destination file already exists: {destinationPath}"));
-                    }
-
-                    DeleteFileIfExists(destinationPath);
-                    DeleteFileIfExists(tempPath);
-                    DeleteFileIfExists(metaPath);
-                    break;
-
-                case ExistingArtifactState.None:
-                default:
-                    break;
+                    case ExistingArtifactState.None:
+                    default:
+                        break;
+                }
+            }
+            catch (DownloadOperationException)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new DownloadOperationException(
+                    $"Failed to prepare existing download artifacts for '{destinationPath}'.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.PrepareArtifacts,
+                    ex);
             }
 
             // 새로 시작하는 경우 현재 서버 metadata를 기록해 둔다.
