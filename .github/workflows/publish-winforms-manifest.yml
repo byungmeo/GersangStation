@@ -89,39 +89,41 @@ jobs:
           script: |
             const version = process.env.VERSION;
             const assetName = process.env.ASSET_NAME;
-            const tag = `winforms-v${version}`;
+            const manifestTag = `winforms-v${version}`;
+            const compatibilityTag = version;
 
             let release;
             try {
               const response = await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                tag
+                tag: compatibilityTag
               });
               release = response.data;
             } catch (error) {
-              core.setFailed(`Release not found for tag ${tag}: ${error.message}`);
+              core.setFailed(`Release not found for compatibility tag ${compatibilityTag}: ${error.message}`);
               return;
             }
 
             if (release.draft) {
-              core.setFailed(`Release ${tag} is still a draft.`);
+              core.setFailed(`Release ${compatibilityTag} is still a draft.`);
               return;
             }
 
             if (release.prerelease) {
-              core.setFailed(`Release ${tag} is a prerelease. Stable WinForms manifest publishing expects a non-prerelease release.`);
+              core.setFailed(`Release ${compatibilityTag} is a prerelease. Stable WinForms manifest publishing expects a non-prerelease compatibility release.`);
               return;
             }
 
             const matchingAssets = release.assets.filter((asset) => asset.name === assetName);
             if (matchingAssets.length !== 1) {
-              core.setFailed(`Expected exactly one asset named "${assetName}" on ${tag}, found ${matchingAssets.length}.`);
+              core.setFailed(`Expected exactly one asset named "${assetName}" on compatibility release ${compatibilityTag}, found ${matchingAssets.length}.`);
               return;
             }
 
             const asset = matchingAssets[0];
-            core.setOutput("tag", tag);
+            core.setOutput("tag", manifestTag);
+            core.setOutput("compatibility_tag", compatibilityTag);
             core.setOutput("release_html_url", release.html_url);
             core.setOutput("release_published_at", release.published_at);
             core.setOutput("asset_name", asset.name);
@@ -156,6 +158,7 @@ jobs:
           MESSAGE: ${{ inputs.message }}
           IS_MANDATORY: ${{ inputs.is_mandatory }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_COMPATIBILITY_TAG: ${{ steps.release.outputs.compatibility_tag }}
           RELEASE_PUBLISHED_AT: ${{ steps.release.outputs.release_published_at }}
           RELEASE_HTML_URL: ${{ steps.release.outputs.release_html_url }}
           ASSET_NAME: ${{ steps.release.outputs.asset_name }}
@@ -178,6 +181,7 @@ jobs:
               "release": {
                   "version": os.environ["VERSION"],
                   "tag": os.environ["RELEASE_TAG"],
+                  "compatibility_tag": os.environ["RELEASE_COMPATIBILITY_TAG"],
                   "published_at": os.environ["RELEASE_PUBLISHED_AT"],
                   "is_mandatory": os.environ["IS_MANDATORY"].lower() == "true",
                   "title": os.environ["TITLE"],
