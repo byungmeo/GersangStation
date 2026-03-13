@@ -11,32 +11,11 @@ on:
         description: "Announcement title"
         required: true
         type: string
-      summary:
-        description: "Announcement summary"
-        required: true
-        type: string
-      published_at:
-        description: "Published time in UTC ISO 8601 (e.g. 2026-03-13T03:40:00Z)"
-        required: true
-        type: string
       show_popup:
         description: "Show popup on next app start"
         required: true
         type: boolean
         default: true
-      severity:
-        description: "Announcement severity"
-        required: true
-        type: choice
-        default: info
-        options:
-          - info
-          - warning
-          - critical
-      expires_at:
-        description: "Optional expiry time in UTC ISO 8601"
-        required: false
-        type: string
       dry_run:
         description: "Validate only without committing manifest"
         required: true
@@ -61,9 +40,6 @@ jobs:
         env:
           DISCUSSION_NUMBER: ${{ inputs.discussion_number }}
           TITLE: ${{ inputs.title }}
-          SUMMARY: ${{ inputs.summary }}
-          PUBLISHED_AT: ${{ inputs.published_at }}
-          EXPIRES_AT: ${{ inputs.expires_at }}
           DRY_RUN: ${{ inputs.dry_run }}
           REF_NAME: ${{ github.ref_name }}
         run: |
@@ -84,37 +60,12 @@ jobs:
             exit 1
           fi
 
-          if [[ -z "${SUMMARY// }" ]]; then
-            echo "summary must not be empty."
-            exit 1
-          fi
-
-          export PUBLISHED_AT EXPIRES_AT
-          python - <<'PY'
-          import os
-          from datetime import datetime
-
-          def validate_iso8601(name, value, required):
-              if not value:
-                  if required:
-                      raise SystemExit(f"{name} is required.")
-                  return
-              datetime.fromisoformat(value.replace("Z", "+00:00"))
-
-          validate_iso8601("published_at", os.environ["PUBLISHED_AT"], True)
-          validate_iso8601("expires_at", os.environ["EXPIRES_AT"], False)
-          PY
-
       - name: Generate announcements manifest
         shell: bash
         env:
           DISCUSSION_NUMBER: ${{ inputs.discussion_number }}
           TITLE: ${{ inputs.title }}
-          SUMMARY: ${{ inputs.summary }}
-          PUBLISHED_AT: ${{ inputs.published_at }}
           SHOW_POPUP: ${{ inputs.show_popup }}
-          SEVERITY: ${{ inputs.severity }}
-          EXPIRES_AT: ${{ inputs.expires_at }}
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -133,12 +84,9 @@ jobs:
               "announcement": {
                   "id": discussion_number,
                   "title": os.environ["TITLE"].strip(),
-                  "summary": os.environ["SUMMARY"].strip(),
                   "url": f"https://github.com/byungmeo/GersangStation/discussions/{discussion_number}",
-                  "published_at": os.environ["PUBLISHED_AT"].strip(),
-                  "expires_at": os.environ["EXPIRES_AT"].strip() or None,
-                  "show_popup": os.environ["SHOW_POPUP"].lower() == "true",
-                  "severity": os.environ["SEVERITY"]
+                  "published_at": generated_at,
+                  "show_popup": os.environ["SHOW_POPUP"].lower() == "true"
               }
           }
 
