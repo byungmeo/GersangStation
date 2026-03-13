@@ -32,6 +32,7 @@ public sealed class Downloader
     public enum DownloadFailureStage
     {
         MetadataLookup,
+        PrepareArtifacts,
         Transfer
     }
 
@@ -236,7 +237,14 @@ public sealed class Downloader
                         $"ARTIFACT_RESET reason=completed file size mismatch existing={existingLength} total={totalBytes}");
 
                     if (!options.Overwrite)
-                        throw new IOException($"Destination file already exists: {destinationPath}");
+                    {
+                        throw new DownloadOperationException(
+                            $"Destination file already exists and overwrite is disabled: {destinationPath}",
+                            url,
+                            destinationPath,
+                            DownloadFailureStage.PrepareArtifacts,
+                            new IOException($"Destination file already exists: {destinationPath}"));
+                    }
 
                     DeleteFileIfExists(destinationPath);
                     DeleteFileIfExists(metaPath);
@@ -265,7 +273,14 @@ public sealed class Downloader
                     // final 파일이 남아 있는데 이를 안전하게 재사용할 수 없고
                     // caller도 덮어쓰기를 허용하지 않았다면 즉시 실패한다.
                     if (File.Exists(destinationPath) && !options.Overwrite)
-                        throw new IOException($"Destination file already exists: {destinationPath}");
+                    {
+                        throw new DownloadOperationException(
+                            $"Destination file already exists and overwrite is disabled: {destinationPath}",
+                            url,
+                            destinationPath,
+                            DownloadFailureStage.PrepareArtifacts,
+                            new IOException($"Destination file already exists: {destinationPath}"));
+                    }
 
                     DeleteFileIfExists(destinationPath);
                     DeleteFileIfExists(tempPath);
@@ -357,7 +372,14 @@ public sealed class Downloader
                         if (!IsResponseForExpectedFile(serverMeta, responseMeta))
                         {
                             if (responseMeta.TotalBytes is null || responseMeta.TotalBytes <= 0)
-                                throw new IOException("Download response metadata did not provide Content-Length.");
+                            {
+                                throw new DownloadOperationException(
+                                    "Download response metadata did not provide Content-Length.",
+                                    url,
+                                    destinationPath,
+                                    DownloadFailureStage.Transfer,
+                                    new IOException("Download response metadata did not provide Content-Length."));
+                            }
 
                             LogDownload(destinationPath, "TEMP_RESET reason=response metadata changed during download");
 
@@ -497,7 +519,12 @@ public sealed class Downloader
                         if (localSize > totalBytes)
                         {
                             LogDownload(destinationPath, $"FAIL received={localSize} expected={totalBytes} reason=downloaded size exceeded expected size");
-                            throw new IOException($"Downloaded size exceeded expected size. Received {localSize:N0}/{totalBytes:N0} bytes.");
+                            throw new DownloadOperationException(
+                                $"Downloaded size exceeded expected size. Received {localSize:N0}/{totalBytes:N0} bytes.",
+                                url,
+                                destinationPath,
+                                DownloadFailureStage.Transfer,
+                                new IOException($"Downloaded size exceeded expected size. Received {localSize:N0}/{totalBytes:N0} bytes."));
                         }
 
                         // 스트림이 조기에 끝났으면 재시도 루프로 돌아간다.
