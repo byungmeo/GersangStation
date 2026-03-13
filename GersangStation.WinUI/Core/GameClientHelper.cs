@@ -37,6 +37,7 @@ public static class GameClientHelper
     public enum InstallPathValidationFailureReason
     {
         EmptyPath,
+        InvalidPathFormat,
         MissingDirectory,
         MissingRunExe,
         MissingOnlineMapDirectory,
@@ -131,7 +132,8 @@ public static class GameClientHelper
 
         try
         {
-            string root = Path.GetPathRoot(anyPathInDrive) ?? string.Empty;
+            string normalizedPath = Path.GetFullPath((anyPathInDrive ?? string.Empty).Trim());
+            string root = Path.GetPathRoot(normalizedPath) ?? string.Empty;
             if (root.Length == 0)
             {
                 return new SymbolSupportResult(
@@ -159,14 +161,14 @@ public static class GameClientHelper
                     Exception: ex);
             }
         }
-        catch
+        catch (Exception ex)
         {
             return new SymbolSupportResult(
                 Success: false,
                 CanUseSymbol: false,
                 ResolvedFormat: unknownFormat,
                 FailureStage: SymbolProbeFailureStage.ResolveDriveRoot,
-                Exception: null);
+                Exception: ex);
         }
     }
 
@@ -244,10 +246,23 @@ public static class GameClientHelper
 
     private static InstallPathValidationResult ValidateInstallPathCore(GameServer? server, string installPath, bool allowSymbolDirectory)
     {
-        string path = installPath.Trim();
-        if (string.IsNullOrEmpty(path))
+        string rawPath = (installPath ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(rawPath))
         {
             return CreateInstallPathFailure("❌ 설치 경로가 비어있습니다.", InstallPathValidationFailureReason.EmptyPath);
+        }
+
+        string path;
+        try
+        {
+            path = Path.GetFullPath(rawPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return CreateInstallPathFailure(
+                "❌ 설치 경로 형식이 올바르지 않습니다.",
+                InstallPathValidationFailureReason.InvalidPathFormat,
+                ex);
         }
 
         if (!Directory.Exists(path))
@@ -428,7 +443,7 @@ public static class GameClientHelper
         int clientNumber,
         string clientPrefix)
     {
-        orgInstallPath = orgInstallPath.Trim();
+        orgInstallPath = (orgInstallPath ?? string.Empty).Trim();
         InstallPathValidationResult mainPathValidation = TryValidateInstallPath(orgInstallPath);
         if (!mainPathValidation.Success)
         {
@@ -441,13 +456,28 @@ public static class GameClientHelper
                 destinationPath: destPath);
         }
 
-        destPath = destPath.Trim();
+        destPath = (destPath ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(destPath))
         {
             return CreateFailureResult(
                 $"{clientPrefix}유효하지 않은 목적지 경로",
                 clientNumber,
                 MultiClientCreationFailureStage.ValidateDestinationPath,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        try
+        {
+            destPath = Path.GetFullPath(destPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}목적지 경로 형식이 올바르지 않습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateDestinationPath,
+                ex,
                 sourcePath: orgInstallPath,
                 destinationPath: destPath);
         }
