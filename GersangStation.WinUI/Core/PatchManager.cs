@@ -83,6 +83,38 @@ public sealed record PatchRunOptions(
     PatchArchiveReuseMode ArchiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible,
     bool ApplyMultiClientPatch = false);
 
+public enum LatestVersionResolutionFailureStage
+{
+    ReadmeLookup,
+    ProbeVersionInfo
+}
+
+/// <summary>
+/// 최신 패치 버전 확인 실패 시 단계와 서버/버전 문맥을 함께 보존합니다.
+/// </summary>
+public sealed class LatestVersionResolutionException : InvalidOperationException
+{
+    public GameServer Server { get; }
+    public int? Version { get; }
+    public string? VersionInfoUrl { get; }
+    public LatestVersionResolutionFailureStage Stage { get; }
+
+    public LatestVersionResolutionException(
+        string message,
+        GameServer server,
+        LatestVersionResolutionFailureStage stage,
+        Exception innerException,
+        int? version = null,
+        string? versionInfoUrl = null)
+        : base(message, innerException)
+    {
+        Server = server;
+        Version = version;
+        VersionInfoUrl = versionInfoUrl;
+        Stage = stage;
+    }
+}
+
 /*
 public sealed record PatchProgress(
     int TotalCount,
@@ -758,20 +790,52 @@ public sealed class PatchManager
     /// </summary>
     public static async Task<int> GetLatestServerVersionAsync(GameServer server, CancellationToken ct = default)
     {
-        // Readme 에서 가장 최근 버전 5개를 추출한 뒤 내림차순 정렬
-        List<int> latestVersionList = await PatchReadmeHelper.GetLatestVersionList(server, 5, ct);
+        List<int> latestVersionList;
+        try
+        {
+            // Readme 에서 가장 최근 버전 5개를 추출한 뒤 내림차순 정렬
+            latestVersionList = await PatchReadmeHelper.GetLatestVersionList(server, 5, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new LatestVersionResolutionException(
+                $"Failed to resolve latest patch versions from readme for server '{server}'.",
+                server,
+                LatestVersionResolutionFailureStage.ReadmeLookup,
+                ex);
+        }
+
         latestVersionList.Sort((x, y) => y.CompareTo(x));
 
         // 최신 버전부터 차례대로 순회하여 VersionInfo이 존재하는 버전이 실질적인 최신 버전
         int latestVersion = 0;
         foreach (var version in latestVersionList)
         {
-            Uri versionInfoUrl = new(GameServerHelper.GetVersionInfoUrl(server, version));
-            using var response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-            if (response.StatusCode == HttpStatusCode.OK)
+            string versionInfoUrl = GameServerHelper.GetVersionInfoUrl(server, version);
+            try
             {
-                latestVersion = version;
-                break;
+                Uri versionInfoUri = new(versionInfoUrl);
+                using var response = await HttpClientProvider.Http.GetAsync(versionInfoUri, HttpCompletionOption.ResponseHeadersRead, ct);
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    latestVersion = version;
+                    break;
+                }
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                    continue;
+
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new LatestVersionResolutionException(
+                    $"Failed to probe patch version info. server='{server}', version={version}, url='{versionInfoUrl}'",
+                    server,
+                    LatestVersionResolutionFailureStage.ProbeVersionInfo,
+                    ex,
+                    version,
+                    versionInfoUrl);
             }
         }
 
