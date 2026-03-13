@@ -32,6 +32,7 @@
 - Default issue workflow is: create a GitHub issue, create a related branch, then make all commits on that branch with the issue reference in the commit message.
 - When working on a branch that is clearly tied to an issue, include the issue reference in every commit message using the `[#{issueNumber}]` prefix format unless the user explicitly asks for a different convention.
 - If the current branch is not clearly tied to an issue, do not invent an issue number. Ask the user or proceed without the issue prefix if necessary.
+- At the end of every coding task, always recommend a commit message. Base the recommendation on the full set of uncommitted changes at that moment, so if the user skipped a commit for the previous task, the next recommendation must cover the accumulated work.
 
 ## Exception Handling Rules
 - Treat exception handling as a cross-cutting repository policy. When Codex or another AI adds or changes code that can fail, prefer routing failures into the centralized exception pipeline instead of adding ad hoc `catch (Exception)` blocks.

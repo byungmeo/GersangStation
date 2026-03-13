@@ -29,6 +29,35 @@ namespace Core.Download;
 /// </summary>
 public sealed class Downloader
 {
+    public enum DownloadFailureStage
+    {
+        MetadataLookup,
+        Transfer
+    }
+
+    /// <summary>
+    /// 다운로드 실패 시 URL, 대상 경로, 단계 정보를 함께 보존합니다.
+    /// </summary>
+    public sealed class DownloadOperationException : IOException
+    {
+        public Uri Url { get; }
+        public string DestinationPath { get; }
+        public DownloadFailureStage Stage { get; }
+
+        public DownloadOperationException(
+            string message,
+            Uri url,
+            string destinationPath,
+            DownloadFailureStage stage,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Url = url;
+            DestinationPath = destinationPath;
+            Stage = stage;
+        }
+    }
+
     private readonly HttpClient _http;
 
     // 동일한 최종 경로에 대해 동시에 다운로드가 수행되면
@@ -111,7 +140,21 @@ public sealed class Downloader
 
             // 먼저 서버 파일의 "전체 길이 + validator(ETag / Last-Modified)"를 조회한다.
             // Accept-Ranges는 resume 판정의 근거로 신뢰하지 않으므로 사용하지 않는다.
-            var serverMeta = await GetServerMetadataAsync(url, ct).ConfigureAwait(false);
+            ServerMetadata serverMeta;
+            try
+            {
+                serverMeta = await GetServerMetadataAsync(url, destinationPath, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new DownloadOperationException(
+                    $"Failed to read server metadata before downloading '{url}'.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.MetadataLookup,
+                    ex);
+            }
+
             LogDownload(
                 destinationPath,
                 $"SERVER total={serverMeta.TotalBytes?.ToString() ?? "null"}, etag={serverMeta.ETag ?? "null"}, lastModified={serverMeta.LastModifiedUtc?.ToString("O") ?? "null"}");
@@ -210,6 +253,7 @@ public sealed class Downloader
             long bytesAtLastReport = localSize;
             long msAtLastReport = 0;
             bool completed = false;
+            Exception? lastAttemptException = null;
 
             using (var fileStream = new FileStream(
                 tempPath,
@@ -417,6 +461,7 @@ public sealed class Downloader
                     }
                     catch (Exception ex)
                     {
+                        lastAttemptException = ex;
                         LogDownload(destinationPath, $"ATTEMPT_FAIL {attempt}/{options.MaxRetries} {ex.GetType().Name}: {ex.Message}");
                     }
 
@@ -443,6 +488,16 @@ public sealed class Downloader
             }
 
             LogDownload(destinationPath, $"FAIL exhausted retries received={localSize} expected={totalBytes}");
+            if (lastAttemptException is not null)
+            {
+                throw new DownloadOperationException(
+                    $"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.Transfer,
+                    lastAttemptException);
+            }
+
             throw new IOException($"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes.");
         }
         finally
@@ -461,8 +516,10 @@ public sealed class Downloader
     /// - Accept-Ranges는 서버가 보내더라도 신뢰하지 않는다.
     ///   실제 resume 성공 여부는 나중의 Range GET 응답을 직접 검증해서 판단한다.
     /// </summary>
-    private async Task<ServerMetadata> GetServerMetadataAsync(Uri url, CancellationToken ct)
+    private async Task<ServerMetadata> GetServerMetadataAsync(Uri url, string destinationPath, CancellationToken ct)
     {
+        Exception? headFailure = null;
+
         try
         {
             using var headReq = new HttpRequestMessage(HttpMethod.Head, url);
@@ -480,16 +537,29 @@ public sealed class Downloader
 
             if (meta.TotalBytes is not null && meta.TotalBytes > 0)
                 return meta;
+
+            LogDownload(destinationPath, "HEAD_METADATA_INSUFFICIENT fallback=range-probe");
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
+            headFailure = ex;
+            LogDownload(destinationPath, $"HEAD_METADATA_FAIL {ex.GetType().Name}: {ex.Message}");
         }
 
-        return await GetServerMetadataFromRangeProbeAsync(url, ct).ConfigureAwait(false);
+        try
+        {
+            return await GetServerMetadataFromRangeProbeAsync(url, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException && headFailure is not null)
+        {
+            throw new InvalidOperationException(
+                $"Both HEAD metadata lookup and range probe failed. HEAD: {headFailure.GetType().Name}: {headFailure.Message}",
+                ex);
+        }
     }
 
     /// <summary>
@@ -678,8 +748,11 @@ public sealed class Downloader
             return ExistingArtifactState.None;
         }
 
-        if (!TryReadMetadata(metaPath, out LocalMetadata? localMeta))
+        if (!TryReadMetadata(metaPath, out LocalMetadata? localMeta, out string? metadataFailureReason))
+        {
+            LogDownload(destinationPath, $"META_INVALID path={metaPath} reason={metadataFailureReason ?? "unknown"}");
             return ExistingArtifactState.InvalidArtifacts;
+        }
 
         // final과 temp가 동시에 존재하면 어떤 파일을 신뢰해야 하는지 불명확하므로 비정상 상태로 본다.
         if (hasFinal && hasTemp)
@@ -730,21 +803,32 @@ public sealed class Downloader
     /// </summary>
     private static bool TryReadMetadata(
         string metaPath,
-        out LocalMetadata? metadata)
+        out LocalMetadata? metadata,
+        out string? failureReason)
     {
         metadata = null;
+        failureReason = null;
 
         try
         {
             if (!File.Exists(metaPath))
+            {
+                failureReason = "metadata file not found";
                 return false;
+            }
 
             string[] lines = File.ReadAllLines(metaPath);
             if (lines.Length < 3)
+            {
+                failureReason = $"expected at least 3 lines but found {lines.Length}";
                 return false;
+            }
 
             if (!long.TryParse(lines[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out long totalBytes))
+            {
+                failureReason = $"invalid totalBytes value '{lines[0]}'";
                 return false;
+            }
 
             string? etag = string.IsNullOrWhiteSpace(lines[1]) ? null : lines[1];
 
@@ -758,6 +842,7 @@ public sealed class Downloader
                         DateTimeStyles.RoundtripKind,
                         out var parsed))
                 {
+                    failureReason = $"invalid lastModified value '{lines[2]}'";
                     return false;
                 }
 
@@ -767,8 +852,9 @@ public sealed class Downloader
             metadata = new LocalMetadata(totalBytes, etag, lastModifiedUtc);
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            failureReason = $"{ex.GetType().Name}: {ex.Message}";
             return false;
         }
     }
