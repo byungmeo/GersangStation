@@ -7,6 +7,10 @@ internal static class ClientCreator {
     public const int ReinstallRequiredBoundaryVersion = 34100;
     public const string ReinstallGuideUrl = "https://github.com/byungmeo/GersangStation/wiki/v34100-%EB%AF%B8%EB%A7%8C-%EB%B2%84%EC%A0%84-%EA%B4%80%EB%A0%A8";
     private const string SymbolGuideUrl = "https://github.com/byungmeo/GersangStation/discussions/39";
+    private enum MultiClientLayoutPolicy {
+        Legacy = 0,
+        V34100OrLater = 1
+    }
 
     public static bool RequiresReinstallForPatch(string currentVersion, string latestVersion) {
         return TryParseClientVersion(currentVersion, out int current)
@@ -15,7 +19,7 @@ internal static class ClientCreator {
             && latest >= ReinstallRequiredBoundaryVersion;
     }
 
-    public static bool RequiresReinstallForMultiClient(string currentVersion) {
+    public static bool UseLegacyMultiClientLayout(string currentVersion) {
         return TryParseClientVersion(currentVersion, out int current)
             && current < ReinstallRequiredBoundaryVersion;
     }
@@ -67,19 +71,13 @@ internal static class ClientCreator {
             return false;
         }
 
-        if(RequiresReinstallForMultiClient(currentVersion)) {
-            ShowReinstallRequiredDialog(owner,
-                $"현재 설치된 거상 클라이언트 버전이 v{ReinstallRequiredBoundaryVersion} 미만입니다."
-                + "\n구 다클라 생성 방식은 더 이상 지원되지 않습니다."
-                + "\n게임을 재설치한 뒤 다시 생성해주세요.",
-                "다클라 생성 방식 변경 안내");
-            return false;
-        }
-
         const bool overwriteConfig = false;
+        MultiClientLayoutPolicy layoutPolicy = UseLegacyMultiClientLayout(currentVersion)
+            ? MultiClientLayoutPolicy.Legacy
+            : MultiClientLayoutPolicy.V34100OrLater;
 
         if(!string.IsNullOrWhiteSpace(secondPath)) {
-            bool success = CreateSymbolClient(server, orgPath, secondPath, overwriteConfig, out string reason);
+            bool success = CreateSymbolClient(server, orgPath, secondPath, overwriteConfig, layoutPolicy, out string reason);
             if(!success) {
                 ShowCreateClientFailure(owner, reason);
                 return false;
@@ -87,7 +85,7 @@ internal static class ClientCreator {
         }
 
         if(!string.IsNullOrWhiteSpace(thirdPath)) {
-            bool success = CreateSymbolClient(server, orgPath, thirdPath, overwriteConfig, out string reason);
+            bool success = CreateSymbolClient(server, orgPath, thirdPath, overwriteConfig, layoutPolicy, out string reason);
             if(!success) {
                 ShowCreateClientFailure(owner, reason);
                 return false;
@@ -222,6 +220,16 @@ internal static class ClientCreator {
         Directory.CreateSymbolicLink(destDirPath, sourceDirPath);
     }
 
+    private static void RecreateSymbolicFile(string sourceFilePath, string destFilePath) {
+        if(File.Exists(destFilePath)) {
+            File.Delete(destFilePath);
+        } else if(Directory.Exists(destFilePath)) {
+            Directory.Delete(destFilePath, true);
+        }
+
+        File.CreateSymbolicLink(destFilePath, sourceFilePath);
+    }
+
     private static void CopyAssetsDirectoryWithConfigPolicy(string sourceAssetsPath, string destAssetsPath, bool overwriteConfig) {
         EnsureRealDirectory(destAssetsPath);
 
@@ -244,7 +252,7 @@ internal static class ClientCreator {
         }
     }
 
-    private static bool CreateSymbolClient(Server server, string orgInstallPath, string destPath, bool overwriteConfig, out string reason) {
+    private static bool CreateSymbolClient(Server server, string orgInstallPath, string destPath, bool overwriteConfig, MultiClientLayoutPolicy layoutPolicy, out string reason) {
         reason = string.Empty;
 
         orgInstallPath = orgInstallPath.Trim();
@@ -289,6 +297,28 @@ internal static class ClientCreator {
         foreach(string orgFilePath in Directory.GetFiles(orgOnlinePath)) {
             string fileName = Path.GetFileName(orgFilePath);
             string destFilePath = Path.Combine(destOnlinePath, fileName);
+            if(layoutPolicy == MultiClientLayoutPolicy.Legacy) {
+                bool isConfigFile =
+                    fileName.Equals("KeySetting.dat", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.Equals("PetSetting.dat", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.Equals("AKinteractive.cfg", StringComparison.OrdinalIgnoreCase) ||
+                    fileName.Equals("CombineInfo.txt", StringComparison.OrdinalIgnoreCase);
+
+                if(isConfigFile) {
+                    if(overwriteConfig || !File.Exists(destFilePath) || (File.GetAttributes(destFilePath) & FileAttributes.ReparsePoint) != 0) {
+                        if(File.Exists(destFilePath)) {
+                            File.Delete(destFilePath);
+                        }
+
+                        File.Copy(orgFilePath, destFilePath, overwrite: false);
+                    }
+                } else {
+                    RecreateSymbolicFile(orgFilePath, destFilePath);
+                }
+
+                continue;
+            }
+
             File.Copy(orgFilePath, destFilePath, overwrite: true);
         }
 
@@ -307,7 +337,7 @@ internal static class ClientCreator {
             }
 
             string destDirPath = Path.Combine(destPath, dirName);
-            if(dirName == "Assets") {
+            if(layoutPolicy == MultiClientLayoutPolicy.V34100OrLater && dirName == "Assets") {
                 CopyAssetsDirectoryWithConfigPolicy(eachDirPath, destDirPath, overwriteConfig);
                 continue;
             }
@@ -316,13 +346,28 @@ internal static class ClientCreator {
         }
 
         foreach(string orgFilePath in Directory.GetFiles(orgInstallPath)) {
+            string fileName = Path.GetFileName(orgFilePath);
             string extension = Path.GetExtension(orgFilePath);
             if(extension == ".tmp" || extension == ".bmp" || extension == ".dmp") {
                 continue;
             }
 
-            string fileName = Path.GetFileName(orgFilePath);
             string destFilePath = Path.Combine(destPath, fileName);
+            if(layoutPolicy == MultiClientLayoutPolicy.Legacy) {
+                bool isConfigFile = fileName.Equals("config.ln", StringComparison.OrdinalIgnoreCase);
+                if(!isConfigFile || overwriteConfig || !File.Exists(destFilePath)) {
+                    if(File.Exists(destFilePath) && (!isConfigFile || overwriteConfig)) {
+                        File.Delete(destFilePath);
+                    }
+
+                    if(!File.Exists(destFilePath)) {
+                        File.Copy(orgFilePath, destFilePath, overwrite: false);
+                    }
+                }
+
+                continue;
+            }
+
             File.Copy(orgFilePath, destFilePath, overwrite: true);
         }
 
