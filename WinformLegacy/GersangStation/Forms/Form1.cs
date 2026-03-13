@@ -1438,26 +1438,8 @@ public partial class Form1 : MaterialForm {
     }
 
     private bool ValidationPath(string client_path, Server server) {
-        string iniName;
-        if(server == Server.Main) { iniName = "GerSangKR.ini"; } else { iniName = "GerSangKRTest.ini"; }
-
-        if(!File.Exists(client_path + "\\" + "Gersang.exe")) {
-            this.BeginInvoke(() => {
-                MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : Gersang.exe 파일이 없습니다.", "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            });
-            return false;
-        }
-
-        if(!File.Exists(client_path + "\\" + iniName)) {
-            string message;
-            if(server == Server.Main) { message = "본섭 경로가 아닙니다."; } else { message = "테섭 또는 천라 경로가 아닙니다."; }
-            this.BeginInvoke(() => {
-                MessageBox.Show(this, "거상 경로를 다시 설정해주세요.\n원인 : " + message, "실행 불가", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            });
-            return false;
-        }
-
-        return true;
+        bool isOrg = currentClient == Client.Client1;
+        return ClientCreator.IsValidPath(this, client_path, isOrg, server);
     }
 
     private void OpenGersangStarterInstallDialog() {

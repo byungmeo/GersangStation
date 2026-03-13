@@ -42,7 +42,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - `GersangStation/Forms/Form_ShortcutSetting.cs`: four shortcut slots and titles.
 - `GersangStation/Modules/ConfigManager.cs`: appSettings bootstrap, migration from older config files, runtime save helpers.
 - `GersangStation/Modules/WinFormsManifestLoader.cs`: WinForms manifest DTOs and JSON fetch helper for manifest-first release metadata loading.
-- `GersangStation/Modules/ClientCreator.cs`: path validation, drive-format checks, symbolic-link-based client cloning.
+- `GersangStation/Modules/ClientCreator.cs`: WinUI-aligned path validation, `v34100` reinstall guidance gate, and symbolic-link-based client cloning with the post-34100 layout policy.
 - `GersangStation/Modules/ClipMouse.cs`: Win32 cursor clipping thread, hotkey registration, game window detection.
 - `GersangStation/Properties/App.config`: shipped default config keys and values.
 - `GersangStation/Properties/PublishProfiles/FolderRelease_win-x64.pubxml`: current single-file release publish settings.
@@ -65,6 +65,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - Preserve the existing semicolon-delimited formats for `account_list`, `shortcut_name`, and `current_comboBox_index_preset_*`.
 - Do not change account encryption/storage format without an explicit migration plan. Passwords are DPAPI-protected per current Windows user.
 - Preserve the symbolic-client safety rules in `ClientCreator`: `Online\\KeySetting.dat`, `PetSetting.dat`, `AKinteractive.cfg`, and `CombineInfo.txt` are intentionally copied as real files instead of symlinked files.
+- Current legacy policy now treats pre-`v34100` clients as reinstall-required for new multi-client generation, and patching from `<34100` to `>=34100` must stop with the reinstall guide instead of attempting in-place migration.
 - Be conservative around WebView2 automation, registry edits, shell shortcuts, Win32 interop, symlinks, and background-thread UI access. These areas need Windows-specific smoke testing after changes.
 - Do not replace legacy APIs only to satisfy warnings if runtime behavior is uncertain. Stability matters more than analyzer cleanliness in this repo.
 - Do not treat update/version/announcement behavior as local-only logic. Several user-visible features currently depend on GitHub repository content and URL conventions.

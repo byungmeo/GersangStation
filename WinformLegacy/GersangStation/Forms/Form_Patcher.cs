@@ -25,6 +25,8 @@ public partial class Form_Patcher : MaterialForm {
 
     private readonly object listLock = new object();
     Dictionary<string, string> list_retry = new Dictionary<string, string>();
+    private bool patchSucceeded;
+    private string patchFailureMessage = string.Empty;
 
     private BackgroundWorker worker = new BackgroundWorker();
 
@@ -78,20 +80,30 @@ public partial class Form_Patcher : MaterialForm {
             version_current = textBox_currentVersion.Text;
         }
 
-        if(false == ClientCreator.IsValidPath(this, path_main, true)) {
+        if(false == ClientCreator.IsValidPath(this, path_main, true, server)) {
             return;
         }
 
         if(path_client_2 != "") {
-            bool isValid = ClientCreator.IsValidPath(this, path_client_2, false);
+            bool isValid = ClientCreator.IsValidPath(this, path_client_2, false, server);
             if(!isValid)
                 return;
         }
 
         if(path_client_3 != "") {
-            bool isValid = ClientCreator.IsValidPath(this, path_client_3, false);
+            bool isValid = ClientCreator.IsValidPath(this, path_client_3, false, server);
             if(!isValid)
                 return;
+        }
+
+        if(ClientCreator.RequiresReinstallForPatch(version_current, version_latest)) {
+            ClientCreator.ShowReinstallRequiredDialog(this,
+                $"현재 설치된 거상 클라이언트 버전이 v{ClientCreator.ReinstallRequiredBoundaryVersion} 미만이고,"
+                + $"\n최신 버전은 v{ClientCreator.ReinstallRequiredBoundaryVersion} 이상입니다."
+                + "\n이 구간은 기존 패치 방식이 더 이상 지원되지 않습니다."
+                + "\n게임을 재설치한 뒤 다시 진행해주세요.",
+                "재설치 필요 안내");
+            return;
         }
 
         int equal = 1;
@@ -110,6 +122,8 @@ public partial class Form_Patcher : MaterialForm {
         worker.DoWork += new DoWorkEventHandler((object? sender, DoWorkEventArgs e) => StartPatch(equal));
         worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
         worker.ProgressChanged += ProgressChanged;
+        patchSucceeded = true;
+        patchFailureMessage = string.Empty;
         materialButton_startPatch.Enabled = false;
         materialButton_startPatch.Text = "패치 진행중...";
         worker.RunWorkerAsync();
@@ -126,9 +140,17 @@ public partial class Form_Patcher : MaterialForm {
     }
 
     private void Worker_RunWorkerCompleted(object? sender, RunWorkerCompletedEventArgs e) {
-        materialButton_startPatch.Text = "패치 완료";
-        MessageBox.Show(this, "패치가 모두 완료되었습니다.", "패치 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        this.DialogResult = DialogResult.OK;
+        if(patchSucceeded) {
+            materialButton_startPatch.Text = "패치 완료";
+            MessageBox.Show(this, "패치가 모두 완료되었습니다.", "패치 완료", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            this.DialogResult = DialogResult.OK;
+            return;
+        }
+
+        materialButton_startPatch.Text = "패치 실패";
+        if(!string.IsNullOrWhiteSpace(patchFailureMessage)) {
+            MessageBox.Show(this, patchFailureMessage, "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     public void StartPatch(int equal) {
@@ -154,7 +176,8 @@ public partial class Form_Patcher : MaterialForm {
         bool isSuccess = DownloadAll(list_patchFile);
         if(!isSuccess) {
             Logger.Log("패치 파일 다운로드 실패로 인한 패치 종료");
-            MessageBox.Show(this, "패치 파일 다운로드에 실패하였습니다.\n문의 또는 로그를 확인 바랍니다.", "패치 실패", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            patchSucceeded = false;
+            patchFailureMessage = "패치 파일 다운로드에 실패하였습니다.\n문의 또는 로그를 확인 바랍니다.";
             ProgressChanged(this, new ProgressChangedEventArgs(100, $"패치 실패"));
             return; // 다운로드 실패 시 패치 적용하지 않음.
         }
@@ -168,7 +191,14 @@ public partial class Form_Patcher : MaterialForm {
         if(materialCheckbox_apply.Checked && useSymbolic) {
             Logger.Log("다클라 패치 시작");
             ProgressChanged(this, new ProgressChangedEventArgs(80, $"다클라 패치 적용 중..."));
-            ClientCreator.CreateClient(this, path_main, path_client_2, path_client_3);
+            bool created = ClientCreator.CreateClient(this, path_main, path_client_2, path_client_3, server);
+            if(!created) {
+                Logger.Log("다클라 패치 적용 실패");
+                patchSucceeded = false;
+                patchFailureMessage = "메인 클라이언트 패치는 완료되었지만 다클라 재구성에 실패했습니다.";
+                ProgressChanged(this, new ProgressChangedEventArgs(100, $"다클라 재구성 실패"));
+                return;
+            }
         }
 
         //패치 후 파일 삭제

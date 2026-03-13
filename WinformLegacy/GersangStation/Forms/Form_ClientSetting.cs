@@ -104,6 +104,24 @@ public partial class Form_ClientSetting : MaterialForm {
             return;
         }
 
+        if(!ClientCreator.IsValidPath(this, path, true, server)) {
+            return;
+        }
+
+        string currentVersion = VersionChecker.GetCurrentVersion(this, path);
+        if(string.IsNullOrWhiteSpace(currentVersion)) {
+            return;
+        }
+
+        if(ClientCreator.RequiresReinstallForMultiClient(currentVersion)) {
+            ClientCreator.ShowReinstallRequiredDialog(this,
+                $"현재 설치된 거상 클라이언트 버전이 v{ClientCreator.ReinstallRequiredBoundaryVersion} 미만입니다."
+                + "\n구 다클라 생성 방식은 더 이상 지원되지 않습니다."
+                + "\n게임을 재설치한 뒤 다시 생성해주세요.",
+                "다클라 생성 방식 변경 안내");
+            return;
+        }
+
         string secondName = "";
         string thirdName = "";
 
@@ -189,7 +207,7 @@ public partial class Form_ClientSetting : MaterialForm {
             string secondPath = mainClientPath + "\\..\\" + secondName;
             string thirdPath = mainClientPath + "\\..\\" + thirdName;
             try {
-                if(false == ClientCreator.CreateClient(this, path, secondPath, thirdPath)) {
+                if(false == ClientCreator.CreateClient(this, path, secondPath, thirdPath, server)) {
                     backgroundForm.Dispose();
                     return;
                 }
