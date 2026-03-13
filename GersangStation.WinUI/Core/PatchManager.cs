@@ -317,6 +317,7 @@ public sealed class PatchManager
     {
         ResolveLatestVersion,
         ResetTempDirectory,
+        PrepareTempDirectory,
         BuildPatchItems,
         DownloadPatchItem,
         ExtractPatchItem,
@@ -448,10 +449,29 @@ public sealed class PatchManager
             }
 
             if (!deleted)
-                throw new IOException($"Failed to delete existing patch temp directory: {tempRoot}");
+            {
+                throw new PatchOperationException(
+                    $"Failed to delete existing patch temp directory '{tempRoot}'.",
+                    targetServer,
+                    PatchFailureStage.ResetTempDirectory,
+                    new IOException($"Failed to delete existing patch temp directory: {tempRoot}"),
+                    targetPath: tempRoot);
+            }
         }
 
-        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            Directory.CreateDirectory(tempRoot);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new PatchOperationException(
+                $"Failed to prepare patch temp directory '{tempRoot}'.",
+                targetServer,
+                PatchFailureStage.PrepareTempDirectory,
+                ex,
+                targetPath: tempRoot);
+        }
 
         List<PatchItem> items;
         try
