@@ -637,7 +637,7 @@ public sealed class Downloader
 
         try
         {
-            return await GetServerMetadataFromRangeProbeAsync(url, ct).ConfigureAwait(false);
+            return await GetServerMetadataFromRangeProbeAsync(url, destinationPath, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -676,7 +676,7 @@ public sealed class Downloader
     /// 이 probe는 resume 허용 여부를 판정하기 위한 것이 아니라,
     /// HEAD 대신 전체 길이와 validator를 확보하기 위한 fallback이다.
     /// </summary>
-    private async Task<ServerMetadata> GetServerMetadataFromRangeProbeAsync(Uri url, CancellationToken ct)
+    private async Task<ServerMetadata> GetServerMetadataFromRangeProbeAsync(Uri url, string destinationPath, CancellationToken ct)
     {
         using var getReq = new HttpRequestMessage(HttpMethod.Get, url);
         getReq.Headers.Range = new RangeHeaderValue(0, 0);
@@ -686,10 +686,10 @@ public sealed class Downloader
             HttpCompletionOption.ResponseHeadersRead,
             ct).ConfigureAwait(false);
 
-        Debug.WriteLine($"Probe URL: {url}");
-        Debug.WriteLine($"Request Range: {getReq.Headers.Range}");
-        Debug.WriteLine($"StatusCode: {(int)getRes.StatusCode} {getRes.StatusCode}");
-        Debug.WriteLine($"Final RequestUri: {getRes.RequestMessage?.RequestUri}");
+        LogDownload(destinationPath, $"RANGE_PROBE url={url}");
+        LogDownload(destinationPath, $"RANGE_PROBE_REQUEST range={getReq.Headers.Range}");
+        LogDownload(destinationPath, $"RANGE_PROBE_RESPONSE status={(int)getRes.StatusCode} {getRes.StatusCode}");
+        LogDownload(destinationPath, $"RANGE_PROBE_FINAL_URI {getRes.RequestMessage?.RequestUri}");
 
         if (getRes.StatusCode == HttpStatusCode.NotFound)
         {
