@@ -25,6 +25,9 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - `GersangStation.WinUI` is distributed through Microsoft Store as a Release/MSIX package.
 - `WinformLegacy` is distributed as a WinExe build, then packaged and uploaded through GitHub Releases.
 - Do not assume both apps share the same versioning scheme, release cadence, packaging metadata, or update channel unless the user explicitly asks to unify them.
+- New WinForms release tags should use `winforms-v{version}`.
+- New WinUI release tags should use `winui-v{version}`.
+- Historical bare numeric tags such as `1.6.3` should be interpreted as WinForms legacy tags when historical release behavior needs to be analyzed.
 
 ## Project Map
 
