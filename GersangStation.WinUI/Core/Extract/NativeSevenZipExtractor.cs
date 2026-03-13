@@ -10,6 +10,53 @@ namespace Core.Extract;
 /// </summary>
 public sealed class NativeSevenZipExtractor : IExtractor
 {
+    public enum ExtractionFailureStage
+    {
+        AnalyzeArchive,
+        RunSevenZip,
+        ReplicateDirectory
+    }
+
+    /// <summary>
+    /// 7za 기반 추출 실패 시 단계, 경로, 종료 코드를 함께 전달합니다.
+    /// </summary>
+    public sealed class ExtractionOperationException : IOException
+    {
+        public string ArchivePath { get; }
+        public string DestinationPath { get; }
+        public ExtractionFailureStage Stage { get; }
+        public int? ExitCode { get; }
+
+        public ExtractionOperationException(
+            string message,
+            string archivePath,
+            string destinationPath,
+            ExtractionFailureStage stage,
+            Exception innerException,
+            int? exitCode = null)
+            : base(message, innerException)
+        {
+            ArchivePath = archivePath;
+            DestinationPath = destinationPath;
+            Stage = stage;
+            ExitCode = exitCode;
+        }
+
+        public ExtractionOperationException(
+            string message,
+            string archivePath,
+            string destinationPath,
+            ExtractionFailureStage stage,
+            int exitCode)
+            : base(message)
+        {
+            ArchivePath = archivePath;
+            DestinationPath = destinationPath;
+            Stage = stage;
+            ExitCode = exitCode;
+        }
+    }
+
     private static readonly Regex ExtractionProgressRegex = new(
         @"^\s*(?<percent>\d{1,3})%\s*(?<processed>\d+)?(?:\s*-\s*(?<entry>.+))?$",
         RegexOptions.Compiled);
@@ -44,7 +91,21 @@ public sealed class NativeSevenZipExtractor : IExtractor
 
         Directory.CreateDirectory(destinationRoot);
 
-        int? totalEntries = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
+        int? totalEntries;
+        try
+        {
+            totalEntries = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to inspect archive '{archivePath}' before extraction.",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.AnalyzeArchive,
+                ex);
+        }
+
         WriteLog($"[7ZA][LIST][PARSED] TotalEntries={totalEntries?.ToString() ?? "null"}");
 
         var psi = new ProcessStartInfo
@@ -60,6 +121,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
         string currentArchive = Path.GetFileName(archivePath);
+        List<string> stderrLines = [];
 
         bool hasReportedCompletion = false;
         process.OutputDataReceived += (_, args) =>
@@ -98,6 +160,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         process.ErrorDataReceived += (_, args) =>
         {
             if (string.IsNullOrWhiteSpace(args.Data)) return;
+            stderrLines.Add(args.Data);
             WriteLog($"[7ZA][ERR] {args.Data}");
         };
 
@@ -122,7 +185,18 @@ public sealed class NativeSevenZipExtractor : IExtractor
         ct.ThrowIfCancellationRequested();
 
         if (process.ExitCode != 0)
-            throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}.");
+        {
+            string stderrSummary = stderrLines.Count == 0
+                ? "stderr unavailable"
+                : string.Join(" | ", stderrLines.TakeLast(5));
+
+            throw new ExtractionOperationException(
+                $"7za extraction failed with exitCode={process.ExitCode}. stderr={stderrSummary}",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.RunSevenZip,
+                process.ExitCode);
+        }
 
         WriteLog("[7ZA][PROGRESS][COMPLETE] exitCode=0");
 
@@ -189,7 +263,14 @@ public sealed class NativeSevenZipExtractor : IExtractor
         }
 
         if (failedDestinations.Count > 0)
-            throw new IOException($"Replication failed for {failedDestinations.Count} destination(s): {string.Join(", ", failedDestinations)}");
+        {
+            throw new ExtractionOperationException(
+                $"Replication failed for {failedDestinations.Count} destination(s): {string.Join(", ", failedDestinations)}",
+                archivePath,
+                string.Join(", ", destinationRoots),
+                ExtractionFailureStage.ReplicateDirectory,
+                new IOException("Failed to replicate extracted contents to one or more destinations."));
+        }
     }
 
     private static async Task ReplicateDirectoryAsync(
