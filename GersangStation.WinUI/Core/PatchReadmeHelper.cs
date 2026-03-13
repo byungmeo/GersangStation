@@ -60,6 +60,8 @@ public static partial class PatchReadmeHelper
     /// </summary>
     public static async Task<List<int>> GetLatestVersionList(GameServer server, int count, CancellationToken ct = default)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+
         string readmeUrl = GameServerHelper.GetReadMeUrl(server);
         string readmeText = await DownloadReadMeAsync(server, readmeUrl, ct);
         List<PatchReadmeInfoItem> items = Parse(server, readmeUrl, readmeText, count);
@@ -69,7 +71,14 @@ public static partial class PatchReadmeHelper
     private static List<PatchReadmeInfoItem> Parse(GameServer server, string readmeUrl, string readmeText, int count = int.MaxValue)
     {
         if (string.IsNullOrWhiteSpace(readmeText))
-            return [];
+        {
+            throw new PatchReadmeException(
+                $"Patch readme content was empty. url='{readmeUrl}'",
+                server,
+                readmeUrl,
+                PatchReadmeFailureStage.ParseReadme,
+                new InvalidDataException("Patch readme content was empty."));
+        }
 
         List<PatchReadmeInfoItem> result = [];
 
@@ -86,6 +95,16 @@ public static partial class PatchReadmeHelper
                 readmeUrl,
                 PatchReadmeFailureStage.ParseReadme,
                 ex);
+        }
+
+        if (matches.Count == 0)
+        {
+            throw new PatchReadmeException(
+                $"Patch readme did not contain any recognizable patch blocks. url='{readmeUrl}'",
+                server,
+                readmeUrl,
+                PatchReadmeFailureStage.ParseReadme,
+                new InvalidDataException("No recognizable patch blocks were found in the patch readme."));
         }
 
         foreach (Match match in matches.Cast<Match>())
