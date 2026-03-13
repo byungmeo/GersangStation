@@ -22,8 +22,27 @@ internal static class Program {
 
     [STAThread]
     static void Main() {
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (_, e) => Logger.Log("Application.ThreadException", e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => {
+            if(e.ExceptionObject is Exception ex) {
+                Logger.Log("AppDomain.CurrentDomain.UnhandledException", ex);
+            } else {
+                Logger.Log($"AppDomain.CurrentDomain.UnhandledException (non-exception): {e.ExceptionObject}");
+            }
+        };
+        TaskScheduler.UnobservedTaskException += (_, e) => {
+            Logger.Log("TaskScheduler.UnobservedTaskException", e.Exception);
+            e.SetObserved();
+        };
+        Logger.Log("Program.Main start");
+
         Process current = Process.GetCurrentProcess();
-        Process[] processes = Process.GetProcessesByName("GersangStation");
+        string currentProcessPath = current.MainModule?.FileName ?? Application.ExecutablePath;
+        Process[] processes = Process
+            .GetProcessesByName("GersangStation")
+            .Where(process => IsSameLegacyProcess(process, current.Id, currentProcessPath))
+            .ToArray();
 
         // 중복 실행인 경우 기존 프로세스를 찾아 창을 활성화 시킨다.
         if(processes.Length > 1) {
@@ -77,8 +96,23 @@ internal static class Program {
             // Application.SetHighDpiMode(HighDpiMode.SystemAware); // 창은 기본 모니터의 DPI를 한 번 쿼리하고 모든 모니터의 애플리케이션에 이를 사용합니다.
             // Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); // PerMonitor와 비슷하지만 자식 창 DPI 변경 알림, comctl32.dll 컨트롤 크기 조정 개선, 대화 상자 크기 조정이 가능합니다.
 
+            Logger.Log("Application.Run(new Form1())");
             Application.Run(new Form1());
             ClipMouse.Stop(true);
+        }
+    }
+
+    private static bool IsSameLegacyProcess(Process process, int currentProcessId, string currentProcessPath) {
+        try {
+            if(process.Id == currentProcessId) {
+                return true;
+            }
+
+            string? processPath = process.MainModule?.FileName;
+            return string.Equals(processPath, currentProcessPath, StringComparison.OrdinalIgnoreCase);
+        } catch(Exception ex) {
+            Logger.Log($"IsSameLegacyProcess skipped. pid={process.Id}, name={process.ProcessName}, message={ex.Message}");
+            return false;
         }
     }
 }

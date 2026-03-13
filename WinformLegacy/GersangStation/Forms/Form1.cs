@@ -81,7 +81,6 @@ public partial class Form1 : MaterialForm {
     private bool isWebFunctionDeactivated = false;
     private bool isGameStartLogin = false;
     private string? announcementUrl = null;
-
     WebView2? webView_main = null;
 
     public Form1() {
@@ -123,6 +122,7 @@ public partial class Form1 : MaterialForm {
     }
 
     private async void Form1_Load(object sender, EventArgs e) {
+        Logger.Log("Form1_Load start");
         webView_main = new WebView2() {
             Visible = true,
             Dock = DockStyle.Fill,
@@ -131,14 +131,16 @@ public partial class Form1 : MaterialForm {
 
         var path = Path.Combine(Path.GetTempPath(), $"GersangStation");
         try {
-            Logger.Log($"Webivew2 UserDataFolder {path}");
+            Logger.Log($"WebView2 UserDataFolder {path}");
             CoreWebView2EnvironmentOptions opt = new() {
                 //
             };
             var env = await CoreWebView2Environment.CreateAsync(userDataFolder: path, options: opt);
             await webView_main.EnsureCoreWebView2Async(env);
             await webView_main.CoreWebView2.Profile.ClearBrowsingDataAsync();
+            Logger.Log("Form1_Load WebView2 initialization success");
         } catch(WebView2RuntimeNotFoundException ex) {
+            Logger.Log("Form1_Load WebView2RuntimeNotFoundException", ex);
             DialogResult dr = MessageBox.Show("거상 스테이션 실행을 위해 WebView2 런타임 설치가 필요합니다.\n설치 하시겠습니까? (Microsoft 공식 다운로드 링크 접속)", "런타임 설치 필요", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if(dr == DialogResult.Yes) {
                 Process.Start(new ProcessStartInfo("https://go.microsoft.com/fwlink/p/?LinkId=2124703") { UseShellExecute = true });
@@ -146,6 +148,7 @@ public partial class Form1 : MaterialForm {
             System.Windows.Forms.Application.Exit();
             return;
         } catch(Exception ex) {
+            Logger.Log($"Form1_Load exception. HResult=0x{ex.HResult:X8}, userDataFolder={path}, inner={ex.InnerException?.Message}", ex);
             Logger.Log("Form1_Load 중 예외 발생", ex);
         }
     }
