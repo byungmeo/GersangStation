@@ -166,8 +166,23 @@ public static class AppDataManager
         {
             foreach (AccountCredential credential in normalizedCredentials)
             {
-                previousPasswords[credential.UserName] = PasswordVaultHelper.GetPassword(credential.UserName);
-                PasswordVaultHelper.Save(credential.UserName, credential.Password);
+                PasswordVaultHelper.PasswordVaultReadResult readResult =
+                    PasswordVaultHelper.TryGetPassword(credential.UserName);
+                if (!readResult.Success)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), readResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+                }
+
+                previousPasswords[credential.UserName] = readResult.HasCredential ? readResult.Password : null;
+
+                PasswordVaultHelper.PasswordVaultOperationResult saveCredentialResult =
+                    PasswordVaultHelper.TrySave(credential.UserName, credential.Password);
+                if (!saveCredentialResult.Success)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), saveCredentialResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+                }
             }
         }
         catch (Exception ex)
@@ -207,15 +222,30 @@ public static class AppDataManager
 
         if (string.IsNullOrWhiteSpace(json))
         {
-            PasswordVaultHelper.RemoveOrphans([]);
-            return ([], Ok(nameof(LoadAccountsAsync), AccountsFileName));
+            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult = PasswordVaultHelper.TryRemoveOrphans([]);
+            return removeOrphansResult.Success
+                ? ([], Ok(nameof(LoadAccountsAsync), AccountsFileName))
+                : ([], Fail(nameof(LoadAccountsAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
         }
 
         try
         {
             List<Account> result = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.ListAccount) ?? [];
-            List<Account> normalizedAccounts = NormalizeAccountsForPersistence(result, requireCredentialPair: true, out bool changed);
-            PasswordVaultHelper.RemoveOrphans(normalizedAccounts.Select(account => account.Id));
+            (IReadOnlyList<string> credentialUserNames, PasswordVaultHelper.PasswordVaultOperationResult credentialListResult) =
+                PasswordVaultHelper.TryGetAllUserNames();
+
+            bool changed;
+            List<Account> normalizedAccounts = credentialListResult.Success
+                ? NormalizeAccountsForPersistence(result, credentialUserNames, requireCredentialPair: true, out changed)
+                : NormalizeAccountsForPersistence(result, credentialUserNames: null, requireCredentialPair: false, out changed);
+
+            if (!credentialListResult.Success)
+                return (normalizedAccounts, Fail(nameof(LoadAccountsAsync), credentialListResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+
+            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult =
+                PasswordVaultHelper.TryRemoveOrphans(normalizedAccounts.Select(account => account.Id));
+            if (!removeOrphansResult.Success)
+                return (normalizedAccounts, Fail(nameof(LoadAccountsAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
 
             if (changed)
             {
@@ -635,13 +665,23 @@ public static class AppDataManager
     /// 저장 가능한 계정 형태로 정규화하고 중복/공백 ID를 제거합니다.
     /// </summary>
     private static List<Account> NormalizeAccountsForPersistence(IEnumerable<Account>? accounts)
-        => NormalizeAccountsForPersistence(accounts, requireCredentialPair: false, out _);
+        => NormalizeAccountsForPersistence(accounts, credentialUserNames: null, requireCredentialPair: false, out _);
 
     /// <summary>
     /// 계정 목록을 정규화하면서 필요 시 비밀번호와 1:1 관계가 없는 계정도 제거합니다.
     /// </summary>
     private static List<Account> NormalizeAccountsForPersistence(
         IEnumerable<Account>? accounts,
+        bool requireCredentialPair,
+        out bool changed)
+        => NormalizeAccountsForPersistence(accounts, credentialUserNames: null, requireCredentialPair, out changed);
+
+    /// <summary>
+    /// 계정 목록을 정규화하면서 필요 시 비밀번호와 1:1 관계가 없는 계정도 제거합니다.
+    /// </summary>
+    private static List<Account> NormalizeAccountsForPersistence(
+        IEnumerable<Account>? accounts,
+        IReadOnlyCollection<string>? credentialUserNames,
         bool requireCredentialPair,
         out bool changed)
     {
@@ -680,7 +720,9 @@ public static class AppDataManager
                 continue;
             }
 
-            if (requireCredentialPair && string.IsNullOrWhiteSpace(PasswordVaultHelper.GetPassword(id)))
+            if (requireCredentialPair &&
+                credentialUserNames is not null &&
+                !credentialUserNames.Contains(id, StringComparer.OrdinalIgnoreCase))
             {
                 changed = true;
                 continue;
@@ -724,11 +766,20 @@ public static class AppDataManager
         {
             if (string.IsNullOrWhiteSpace(previousPassword))
             {
-                PasswordVaultHelper.Delete(userName);
+                PasswordVaultHelper.PasswordVaultOperationResult deleteResult = PasswordVaultHelper.TryDelete(userName);
+                if (!deleteResult.Success)
+                {
+                    Debug.WriteLine($"[AppDataManager] Credential rollback delete failed. UserName: {userName}, Error: {deleteResult.Exception}");
+                }
+
                 continue;
             }
 
-            PasswordVaultHelper.Save(userName, previousPassword);
+            PasswordVaultHelper.PasswordVaultOperationResult saveResult = PasswordVaultHelper.TrySave(userName, previousPassword);
+            if (!saveResult.Success)
+            {
+                Debug.WriteLine($"[AppDataManager] Credential rollback save failed. UserName: {userName}, Error: {saveResult.Exception}");
+            }
         }
     }
 
@@ -739,7 +790,11 @@ public static class AppDataManager
     {
         try
         {
-            PasswordVaultHelper.RemoveOrphans(accounts.Select(account => account.Id));
+            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult =
+                PasswordVaultHelper.TryRemoveOrphans(accounts.Select(account => account.Id));
+            if (!removeOrphansResult.Success)
+                return Fail(nameof(SyncAccountsAndPresetsAfterSaveAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName);
+
             return await NormalizePresetListAgainstAccountsAsync(accounts).ConfigureAwait(false);
         }
         catch (Exception ex)

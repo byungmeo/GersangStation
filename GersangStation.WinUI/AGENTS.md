@@ -28,6 +28,11 @@
 - When a cross-cutting repository rule changes, update this `AGENTS.md`.
 - When a detailed app policy changes, update `.codex\skills\gersangstation-winui-policy\SKILL.md` or one of its reference files in the same change.
 
+## Git Workflow Rules
+- Default issue workflow is: create a GitHub issue, create a related branch, then make all commits on that branch with the issue reference in the commit message.
+- When working on a branch that is clearly tied to an issue, include the issue reference in every commit message using the `[#{issueNumber}]` prefix format unless the user explicitly asks for a different convention.
+- If the current branch is not clearly tied to an issue, do not invent an issue number. Ask the user or proceed without the issue prefix if necessary.
+
 ## Exception Handling Rules
 - Treat exception handling as a cross-cutting repository policy. When Codex or another AI adds or changes code that can fail, prefer routing failures into the centralized exception pipeline instead of adding ad hoc `catch (Exception)` blocks.
 - Do not silently swallow exceptions. Avoid empty `catch` blocks and avoid patterns that only log to `Debug.WriteLine` without either recovering, returning a meaningful result, or forwarding the exception to `App.ExceptionHandler`.
