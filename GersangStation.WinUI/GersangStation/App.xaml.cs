@@ -1,6 +1,9 @@
+using GersangStation.Diagnostics;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Storage;
 
@@ -12,6 +15,8 @@ namespace GersangStation
     public partial class App : Application
     {
         public static Window? CurrentWindow { get; private set; }
+        public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcherQueue { get; private set; }
+        public static AppExceptionHandler ExceptionHandler { get; } = new();
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -20,6 +25,8 @@ namespace GersangStation
         public App()
         {
             InitializeComponent();
+            UiDispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+            RegisterGlobalExceptionHandlers();
             Debug.WriteLine($"PFN: {Package.Current.Id.FamilyName}");
             Debug.WriteLine($"LocalFolder Path: {ApplicationData.Current.LocalFolder.Path}");
         }
@@ -28,9 +35,16 @@ namespace GersangStation
         /// Invoked when the application is launched.
         /// </summary>
         /// <param name="args">Details about the launch request and process.</param>
-        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            OpenMainWindow();
+            try
+            {
+                OpenMainWindow();
+            }
+            catch (Exception ex)
+            {
+                await ExceptionHandler.HandleAsync(ex, "App.OnLaunched", isFatal: true);
+            }
         }
 
         private void OpenMainWindow()
@@ -86,6 +100,48 @@ namespace GersangStation
         {
             if (ReferenceEquals(sender, CurrentWindow))
                 CurrentWindow = null;
+        }
+
+        /// <summary>
+        /// 앱 전역 예외 이벤트를 등록합니다.
+        /// </summary>
+        private void RegisterGlobalExceptionHandlers()
+        {
+            UnhandledException += OnUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnCurrentDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnTaskSchedulerUnobservedTaskException;
+        }
+
+        /// <summary>
+        /// WinUI UI 스레드에서 처리되지 않은 예외를 공통 처리기로 전달합니다.
+        /// </summary>
+        private async void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        {
+            e.Handled = true;
+            await ExceptionHandler.HandleAsync(e.Exception, "Microsoft.UI.Xaml.Application.UnhandledException", isFatal: true);
+        }
+
+        /// <summary>
+        /// 앱 도메인 수준의 처리되지 않은 예외를 공통 처리기로 전달합니다.
+        /// </summary>
+        private void OnCurrentDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+        {
+            Exception exception = e.ExceptionObject as Exception
+                ?? new Exception($"Non-Exception object was thrown: {e.ExceptionObject}");
+
+            ExceptionHandler
+                .HandleAsync(exception, "AppDomain.CurrentDomain.UnhandledException", isFatal: e.IsTerminating)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        /// <summary>
+        /// 관찰되지 않은 Task 예외를 공통 처리기로 전달하고 GC 종료 크래시를 방지합니다.
+        /// </summary>
+        private void OnTaskSchedulerUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            e.SetObserved();
+            _ = ExceptionHandler.HandleAsync(e.Exception, "TaskScheduler.UnobservedTaskException", isFatal: false);
         }
     }
 }
