@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Diagnostics;
 
 namespace GersangStation.Modules;
 
@@ -12,9 +13,12 @@ internal static class WinFormsManifestLoader {
 
     public static async Task<WinFormsManifest?> LoadAsync(string url, CancellationToken cancellationToken = default) {
         using HttpResponseMessage response = await httpClient.GetAsync(url, cancellationToken);
+        Trace.WriteLine($"Manifest HTTP 응답: {(int)response.StatusCode} {response.ReasonPhrase}");
         response.EnsureSuccessStatusCode();
         await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        return await JsonSerializer.DeserializeAsync<WinFormsManifest>(stream, serializerOptions, cancellationToken);
+        WinFormsManifest? manifest = await JsonSerializer.DeserializeAsync<WinFormsManifest>(stream, serializerOptions, cancellationToken);
+        Trace.WriteLine($"Manifest JSON 역직렬화 결과: {(manifest == null ? "null" : "success")}");
+        return manifest;
     }
 }
 

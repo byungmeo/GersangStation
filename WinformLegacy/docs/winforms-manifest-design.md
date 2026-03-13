@@ -9,7 +9,9 @@
 - 업데이트 안내 메시지 표시
 - 다운로드 URL 결정
 - 공지사항 표시 및 "새 공지" 팝업 판단
-- 후원자 목록 표시
+- 공지사항 표시 및 "새 공지" 팝업 판단
+
+후원자 목록은 당분간 기존 `README.md` 파싱 방식을 유지한다.
 
 이 문서는 `스키마 설계`만 다룬다.
 호스팅 위치는 나중에 결정하되, 스키마는 아래 두 방식 모두 지원하도록 설계한다.
@@ -25,7 +27,7 @@
 4. 사용자가 보는 문자열은 manifest에 직접 담을 수 있게 한다.
 5. 앱이 "한 번만 보여줄 공지"를 안정적으로 판단할 수 있도록 `announcement.id`를 둔다.
 6. 다운로드 자산 검증을 위해 `sha256`을 포함한다.
-7. 후원자 목록도 manifest에 포함할 수 있게 한다. 추후 GitHub Discussions 연동으로 바꾸더라도 스키마는 유지할 수 있어야 한다.
+7. v1 적용 범위는 `release`와 `announcements`에 집중한다. 후원자 목록은 별도 정책 확정 전까지 `README.md` fallback을 유지한다.
 
 ## 권장 파일명
 
@@ -77,19 +79,6 @@
 - `show_popup`: 앱 시작 시 팝업 후보인지 여부
 - `severity`: `"info" | "warning" | "critical"`
 
-### `sponsors`
-
-- `last_updated_at`: 마지막 갱신 시각
-- `items`: 배열
-
-각 항목 필드:
-
-- `id`: 후원 항목 고유 ID
-- `name`: 표시 이름
-- `date`: 후원 날짜 (`YYYY-MM-DD`)
-- `message`: 후원 내용 또는 비고. 예: `"☕☕🥖"` 또는 `"10$"`
-- `url`: 선택 링크. 없으면 null
-
 ### `links`
 
 앱에서 직접 열 수 있는 보조 링크 집합.
@@ -134,25 +123,6 @@
       "severity": "warning"
     }
   ],
-  "sponsors": {
-    "last_updated_at": "2026-03-09T00:00:00Z",
-    "items": [
-      {
-        "id": "2026-03-09-pocarisweet",
-        "name": "포카리스윁",
-        "date": "2026-03-09",
-        "message": "☕☕🥖",
-        "url": null
-      },
-      {
-        "id": "2026-01-05-skins",
-        "name": "Skins",
-        "date": "2026-01-05",
-        "message": "🍗",
-        "url": null
-      }
-    ]
-  },
   "links": {
     "release_page": "https://github.com/byungmeo/GersangStation/releases/tag/winforms-v1.6.4",
     "support_discussion": "https://github.com/byungmeo/GersangStation/discussions",
@@ -201,7 +171,7 @@
   - `announcements[0].show_popup == true`
   - 로컬 저장값 `last_seen_announcement_id != announcements[0].id`
 - 후원 목록:
-  - `sponsors.items`를 순회해 `"date [name] message"` 형태로 표시
+  - 현재는 계속 `README.md` fallback 파싱 결과를 사용
 
 ## 저장값 변경 제안
 
@@ -219,35 +189,11 @@
 - manifest 공지를 읽을 수 있으면 `last_seen_announcement_id`와 `prev_announcement`를 함께 갱신한다.
 - manifest 공지를 못 읽으면 기존 `prev_announcement` 기반 README 공지 파싱으로 fallback 한다.
 
-## 후원자 목록 정책 제안
+## 후원자 목록 정책 메모
 
-후원자 목록은 두 가지 방향이 가능하다.
-
-### A안: manifest에 직접 포함
-
-장점:
-
-- 구현이 가장 단순하다
-- README/Discussion/API 의존이 없다
-- 레거시 유지보수 목적에 잘 맞는다
-
-단점:
-
-- 후원 목록 수정 시 manifest 갱신이 필요하다
-
-### B안: GitHub Discussions 본문 또는 댓글에서 읽고, manifest에는 링크만 둠
-
-장점:
-
-- GitHub 웹 UI에서 직접 관리 가능하다
-- 후원 페이지와 앱 데이터 소스를 맞출 수 있다
-
-단점:
-
-- GraphQL 또는 HTML 크롤링 의존이 생긴다
-- 레거시 유지보수 앱 입장에서 구조가 더 복잡해진다
-
-현재 방향으로는 A안을 기본 권장한다.
+- 현재 적용 범위에서는 후원자 목록을 manifest로 옮기지 않는다.
+- 앱은 계속 루트 `README.md`의 `<summary>후원해주신 분들</summary>` 블록을 파싱한다.
+- 추후 GitHub Discussions 본문/댓글 또는 별도 sponsor manifest로 옮길 수 있지만, 그 전까지는 현행 방식 유지가 운영상 가장 단순하다.
 
 ## 전환 메모
 

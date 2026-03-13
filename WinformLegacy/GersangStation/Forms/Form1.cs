@@ -397,7 +397,6 @@ public partial class Form1 : MaterialForm {
                 }
 
                 Logger.Log("GitHubClient 관련 에러 : ", ex);
-                Trace.WriteLine(ex.Message);
             }
         }
 #endif
@@ -581,12 +580,8 @@ public partial class Form1 : MaterialForm {
                 state.AnnouncementsLoaded = ApplyManifestAnnouncement(manifest.Announcements[0]);
             }
 
-            if(manifest.Sponsors?.Items != null && manifest.Sponsors.Items.Count > 0) {
-                state.SponsorsLoaded = ApplyManifestSponsors(manifest.Sponsors.Items);
-            }
         } catch(Exception ex) {
             Logger.Log("Manifest 로딩 실패", ex);
-            Trace.WriteLine(ex.Message);
         }
 
         return state;
@@ -640,8 +635,6 @@ public partial class Form1 : MaterialForm {
 
         string versionLatestText = latestGitHubVersion.Revision > 0 ? latestGitHubVersion.ToString(4) : latestGitHubVersion.ToString(3);
         SetLatestVersionLabel(versionLatestText);
-        Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
-        Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
 
         string message = ExtractDialogMessage(release.Body);
         ShowUpdatePrompt(localVersion, latestGitHubVersion, "업데이트 안내", message, url_release, false);
