@@ -9,6 +9,39 @@ namespace Core;
 /// </summary>
 public sealed class GameInstallManager
 {
+    public enum GameInstallFailureStage
+    {
+        DownloadArchive,
+        ExtractArchive,
+        DeleteArtifacts
+    }
+
+    /// <summary>
+    /// 전체 클라이언트 설치 중 실패한 단계와 경로를 함께 보존합니다.
+    /// </summary>
+    public sealed class GameInstallOperationException : InvalidOperationException
+    {
+        public GameServer Server { get; }
+        public GameInstallFailureStage Stage { get; }
+        public string InstallPath { get; }
+        public string ArchivePath { get; }
+
+        public GameInstallOperationException(
+            string message,
+            GameServer server,
+            GameInstallFailureStage stage,
+            string installPath,
+            string archivePath,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Server = server;
+            Stage = stage;
+            InstallPath = installPath;
+            ArchivePath = archivePath;
+        }
+    }
+
     private readonly Downloader _downloader = new(HttpClientProvider.Http);
     private readonly NativeSevenZipExtractor _extractor = new();
 
@@ -78,14 +111,27 @@ public sealed class GameInstallManager
             });
         }
 
-        await _downloader.DownloadFileAsync(
-            archiveUrl,
-            archivePath,
-            new DownloadOptions(
-                Overwrite: true,
-                ExistingArtifactMode: archiveReuseMode),
-            downloadProgress,
-            ct).ConfigureAwait(false);
+        try
+        {
+            await _downloader.DownloadFileAsync(
+                archiveUrl,
+                archivePath,
+                new DownloadOptions(
+                    Overwrite: true,
+                    ExistingArtifactMode: archiveReuseMode),
+                downloadProgress,
+                ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GameInstallOperationException(
+                $"Failed to download the full client archive for server '{targetServer}'.",
+                targetServer,
+                GameInstallFailureStage.DownloadArchive,
+                normalizedInstallPath,
+                archivePath,
+                ex);
+        }
 
         state.Update(s =>
         {
@@ -94,11 +140,24 @@ public sealed class GameInstallManager
         });
         ReportProgressSnapshot();
 
-        await _extractor.ExtractAsync(
-            archivePath,
-            normalizedInstallPath,
-            extractionProgress,
-            ct).ConfigureAwait(false);
+        try
+        {
+            await _extractor.ExtractAsync(
+                archivePath,
+                normalizedInstallPath,
+                extractionProgress,
+                ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GameInstallOperationException(
+                $"Failed to extract the full client archive for server '{targetServer}'.",
+                targetServer,
+                GameInstallFailureStage.ExtractArchive,
+                normalizedInstallPath,
+                archivePath,
+                ex);
+        }
 
         state.Update(s =>
         {
@@ -106,7 +165,20 @@ public sealed class GameInstallManager
         });
         ReportProgressSnapshot();
 
-        DeleteArchiveArtifacts(targetServer, normalizedInstallPath);
+        try
+        {
+            DeleteArchiveArtifacts(targetServer, normalizedInstallPath);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GameInstallOperationException(
+                $"Failed to delete temporary full client artifacts for server '{targetServer}'.",
+                targetServer,
+                GameInstallFailureStage.DeleteArtifacts,
+                normalizedInstallPath,
+                archivePath,
+                ex);
+        }
     }
 
     /// <summary>
