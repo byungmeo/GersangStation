@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Diagnostics;
 
 namespace GersangStation.Modules;
 
@@ -11,18 +11,30 @@ internal static class WinFormsManifestLoader {
         PropertyNameCaseInsensitive = true
     };
 
-    public static async Task<WinFormsManifest?> LoadAsync(string url, CancellationToken cancellationToken = default) {
+    public static Task<WinFormsReleaseManifest?> LoadReleaseAsync(string url, CancellationToken cancellationToken = default) {
+        return LoadAsync<WinFormsReleaseManifest>(url, cancellationToken);
+    }
+
+    public static Task<WinFormsAnnouncementManifest?> LoadAnnouncementsAsync(string url, CancellationToken cancellationToken = default) {
+        return LoadAsync<WinFormsAnnouncementManifest>(url, cancellationToken);
+    }
+
+    public static Task<WinFormsSponsorsManifest?> LoadSponsorsAsync(string url, CancellationToken cancellationToken = default) {
+        return LoadAsync<WinFormsSponsorsManifest>(url, cancellationToken);
+    }
+
+    private static async Task<TManifest?> LoadAsync<TManifest>(string url, CancellationToken cancellationToken) where TManifest : WinFormsManifestDocument {
         using HttpResponseMessage response = await httpClient.GetAsync(url, cancellationToken);
-        Trace.WriteLine($"Manifest HTTP 응답: {(int)response.StatusCode} {response.ReasonPhrase}");
+        Trace.WriteLine($"Manifest HTTP 응답: {(int)response.StatusCode} {response.ReasonPhrase} ({typeof(TManifest).Name})");
         response.EnsureSuccessStatusCode();
         await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        WinFormsManifest? manifest = await JsonSerializer.DeserializeAsync<WinFormsManifest>(stream, serializerOptions, cancellationToken);
-        Trace.WriteLine($"Manifest JSON 역직렬화 결과: {(manifest == null ? "null" : "success")}");
+        TManifest? manifest = await JsonSerializer.DeserializeAsync<TManifest>(stream, serializerOptions, cancellationToken);
+        Trace.WriteLine($"Manifest JSON 역직렬화 결과: {(manifest == null ? "null" : "success")} ({typeof(TManifest).Name})");
         return manifest;
     }
 }
 
-internal sealed class WinFormsManifest {
+internal abstract class WinFormsManifestDocument {
     [JsonPropertyName("schema_version")]
     public int SchemaVersion { get; set; }
 
@@ -34,13 +46,19 @@ internal sealed class WinFormsManifest {
 
     [JsonPropertyName("generated_at")]
     public string GeneratedAt { get; set; } = string.Empty;
+}
 
+internal sealed class WinFormsReleaseManifest : WinFormsManifestDocument {
     [JsonPropertyName("release")]
     public WinFormsManifestRelease? Release { get; set; }
+}
 
-    [JsonPropertyName("announcements")]
-    public List<WinFormsManifestAnnouncement>? Announcements { get; set; }
+internal sealed class WinFormsAnnouncementManifest : WinFormsManifestDocument {
+    [JsonPropertyName("announcement")]
+    public WinFormsManifestAnnouncement? Announcement { get; set; }
+}
 
+internal sealed class WinFormsSponsorsManifest : WinFormsManifestDocument {
     [JsonPropertyName("sponsors")]
     public WinFormsManifestSponsors? Sponsors { get; set; }
 }
@@ -119,22 +137,5 @@ internal sealed class WinFormsManifestSponsors {
     public string LastUpdatedAt { get; set; } = string.Empty;
 
     [JsonPropertyName("items")]
-    public List<WinFormsManifestSponsorItem>? Items { get; set; }
-}
-
-internal sealed class WinFormsManifestSponsorItem {
-    [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
-
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
-
-    [JsonPropertyName("date")]
-    public string Date { get; set; } = string.Empty;
-
-    [JsonPropertyName("message")]
-    public string Message { get; set; } = string.Empty;
-
-    [JsonPropertyName("url")]
-    public string? Url { get; set; }
+    public List<JsonElement>? Items { get; set; }
 }

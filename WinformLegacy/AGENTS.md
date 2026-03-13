@@ -41,12 +41,12 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - `GersangStation/Forms/Form_Browser.cs`: WebView2 popup browser and shortcut save flow.
 - `GersangStation/Forms/Form_ShortcutSetting.cs`: four shortcut slots and titles.
 - `GersangStation/Modules/ConfigManager.cs`: appSettings bootstrap, migration from older config files, runtime save helpers.
-- `GersangStation/Modules/WinFormsManifestLoader.cs`: WinForms manifest DTOs and JSON fetch helper for manifest-first release metadata loading.
+- `GersangStation/Modules/WinFormsManifestLoader.cs`: WinForms release/announcement/sponsors manifest DTOs and JSON fetch helpers.
 - `GersangStation/Modules/ClientCreator.cs`: WinUI-aligned path validation, `v34100` patch reinstall guidance gate, and symbolic-link-based client cloning with legacy/pre-`34100` and post-`34100` layout policies.
 - `GersangStation/Modules/ClipMouse.cs`: Win32 cursor clipping thread, hotkey registration, game window detection.
 - `GersangStation/Properties/App.config`: shipped default config keys and values.
 - `GersangStation/Properties/PublishProfiles/FolderRelease_win-x64.pubxml`: current single-file release publish settings.
-- `..\README.md`: repository-level content source for in-app announcements and sponsor list parsing.
+- `..\README.md`: historical repository content reference only. Runtime announcement/sponsor loading no longer depends on it.
 
 ## Domain Terms
 
@@ -75,7 +75,17 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 
 - This section documents the current implementation, not a permanent rule. It is expected to change if versioning or release architecture is redesigned.
 - `Form1.LoadComponent()` uses `Octokit` against the `byungmeo/GersangStation` GitHub repository.
-- Current bridge implementation tries `winforms_manifest_url` first for release and announcement data, then falls back per section to the old GitHub Release + root `README.md` parsing path when manifest data is unavailable.
+- Current bridge implementation tries separate URLs first:
+  - `winforms_release_manifest_url`
+  - `winforms_announcement_manifest_url`
+  - `winforms_sponsors_manifest_url`
+- `winforms_manifest_url` remains only as a legacy fallback key for release/announcement loading.
+- Shared repo workflows are split by responsibility:
+  - `.github/workflows/publish-winforms-release-manifest.yml`
+  - `.github/workflows/publish-winforms-announcements-manifest.yml`
+  - `.github/workflows/publish-winforms-sponsors-manifest.yml`
+- WinForms announcements manifest is intentionally single-entry. The announcement workflow accepts only the GitHub Discussions number, title, and popup flag; it derives the URL as `https://github.com/byungmeo/GersangStation/discussions/<number>` and uses the workflow run time as `published_at`.
+- WinForms sponsors manifest stores README-compatible display lines. The sponsors workflow accepts `sponsor_date`, `sponsor_name`, and `sponsor_message`, validates the date as `yyyy-mm-dd`, and appends lines in the format `{후원 날짜} [{후원자명}] {후원내용}`.
 - Program update detection still has a GitHub Releases fallback path and now skips unsupported tag formats until it finds a parseable stable release tag.
 - Because the current legacy client only understands numeric `TagName` values, compatibility releases for legacy users must keep a numeric non-prerelease tag until the old update path can be retired safely.
 - The in-app version labels and update prompt come from:
@@ -84,14 +94,11 @@ Use `$winforms-app` for WinForms-specific work in this repository.
   - release `Body`
 - Release notes may contain a dialog-only block delimited by `<!--DIALOG-->` and `<!--END-->`. The updater extracts only that block for the user-facing message when present.
 - The patch note button and manual update flow open `https://github.com/byungmeo/GersangStation/releases/latest`.
-- Announcement text is parsed from the repository root `README.md`, starting at the `# 공지사항` marker.
-- The current parser expects announcement lines shaped like:
-  - `['YY.MM.DD] 제목 {discussionNumber}`
-- The discussion number inside `{...}` is turned into a GitHub Discussions URL under `https://github.com/byungmeo/GersangStation/discussions/<number>`.
+- Announcement text is now loaded only from `winforms-announcements-manifest.json`.
 - `prev_announcement` in config stores the last seen discussion URL and drives the legacy "new announcement" popup behavior.
 - `last_seen_announcement_id` is the new manifest-friendly popup marker; bridge code writes both when possible for backward compatibility.
-- Sponsor data is intentionally still parsed from the repository root `README.md`, starting at `<summary>후원해주신 분들</summary>` and splitting on `<br>`.
-- If the repository owner/name, README marker strings, release tag format, release body marker format, or GitHub Discussions link structure changes, this WinForms app will need code updates.
+- Sponsor data is now loaded only from `winforms-sponsors-manifest.json`. Root `README.md` sponsor parsing is no longer part of the runtime path.
+- If the repository owner/name, release tag format, release body marker format, or GitHub Discussions link structure changes, this WinForms app will need code updates.
 
 ## Build And Publish
 

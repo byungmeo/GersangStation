@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using File = System.IO.File;
 
@@ -388,14 +389,13 @@ public partial class Form1 : MaterialForm {
         linkLabel_announcement.Text = "디버그 모드";
 #else
         ManifestLoadState manifestLoadState = await TryLoadManifestAsync();
-        if(!manifestLoadState.ReleaseLoaded || !manifestLoadState.AnnouncementsLoaded || !manifestLoadState.SponsorsLoaded) {
+        if(!manifestLoadState.AnnouncementsLoaded) {
+            linkLabel_announcement.Text = "공지사항 로딩 실패";
+        }
+        if(!manifestLoadState.ReleaseLoaded) {
             try {
                 await LoadLegacyGitHubDataAsync(manifestLoadState);
             } catch(Exception ex) {
-                if(!manifestLoadState.AnnouncementsLoaded) {
-                    linkLabel_announcement.Text = "공지사항 로딩 실패";
-                }
-
                 Logger.Log("GitHubClient 관련 에러 : ", ex);
             }
         }
@@ -561,27 +561,53 @@ public partial class Form1 : MaterialForm {
 
     private async Task<ManifestLoadState> TryLoadManifestAsync() {
         ManifestLoadState state = new ManifestLoadState();
-        string manifestUrl = ConfigManager.GetConfig("winforms_manifest_url");
-        if(string.IsNullOrWhiteSpace(manifestUrl)) {
-            return state;
+        string releaseManifestUrl = GetManifestUrl(
+            "winforms_release_manifest_url",
+            "winforms_manifest_url");
+        string announcementManifestUrl = GetManifestUrl(
+            "winforms_announcement_manifest_url",
+            "winforms_manifest_url");
+        string sponsorsManifestUrl = GetManifestUrl(
+            "winforms_sponsors_manifest_url");
+
+        if(!string.IsNullOrWhiteSpace(releaseManifestUrl)) {
+            try {
+                WinFormsReleaseManifest? manifest = await WinFormsManifestLoader.LoadReleaseAsync(releaseManifestUrl);
+                if(manifest != null
+                    && string.Equals(manifest.Product, "winforms", StringComparison.OrdinalIgnoreCase)
+                    && manifest.Release != null) {
+                    state.ReleaseLoaded = ApplyManifestRelease(manifest.Release);
+                }
+            } catch(Exception ex) {
+                Logger.Log("Release manifest 로딩 실패", ex);
+            }
         }
 
-        try {
-            WinFormsManifest? manifest = await WinFormsManifestLoader.LoadAsync(manifestUrl);
-            if(manifest == null || !string.Equals(manifest.Product, "winforms", StringComparison.OrdinalIgnoreCase)) {
-                return state;
+        if(!string.IsNullOrWhiteSpace(announcementManifestUrl)) {
+            try {
+                WinFormsAnnouncementManifest? manifest = await WinFormsManifestLoader.LoadAnnouncementsAsync(announcementManifestUrl);
+                if(manifest != null
+                    && string.Equals(manifest.Product, "winforms", StringComparison.OrdinalIgnoreCase)
+                    && manifest.Announcement != null) {
+                    state.AnnouncementsLoaded = ApplyManifestAnnouncement(manifest.Announcement);
+                }
+            } catch(Exception ex) {
+                Logger.Log("Announcement manifest 로딩 실패", ex);
             }
+        }
 
-            if(manifest.Release != null) {
-                state.ReleaseLoaded = ApplyManifestRelease(manifest.Release);
+        if(!string.IsNullOrWhiteSpace(sponsorsManifestUrl)) {
+            try {
+                WinFormsSponsorsManifest? manifest = await WinFormsManifestLoader.LoadSponsorsAsync(sponsorsManifestUrl);
+                if(manifest != null
+                    && string.Equals(manifest.Product, "winforms", StringComparison.OrdinalIgnoreCase)
+                    && manifest.Sponsors?.Items != null
+                    && manifest.Sponsors.Items.Count > 0) {
+                    state.SponsorsLoaded = ApplyManifestSponsors(manifest.Sponsors.Items);
+                }
+            } catch(Exception ex) {
+                Logger.Log("Sponsors manifest 로딩 실패", ex);
             }
-
-            if(manifest.Announcements != null && manifest.Announcements.Count > 0) {
-                state.AnnouncementsLoaded = ApplyManifestAnnouncement(manifest.Announcements[0]);
-            }
-
-        } catch(Exception ex) {
-            Logger.Log("Manifest 로딩 실패", ex);
         }
 
         return state;
@@ -592,17 +618,6 @@ public partial class Form1 : MaterialForm {
         if(!manifestLoadState.ReleaseLoaded) {
             IReadOnlyList<Release> releases = await client.Repository.Release.GetAll(github_owner, github_repo);
             CheckProgramUpdate(releases);
-        }
-
-        if(!manifestLoadState.AnnouncementsLoaded || !manifestLoadState.SponsorsLoaded) {
-            Readme readme = await client.Repository.Content.GetReadme(github_owner, github_repo);
-            if(!manifestLoadState.AnnouncementsLoaded) {
-                LoadAnnouncements(readme);
-            }
-
-            if(!manifestLoadState.SponsorsLoaded) {
-                LoadSponsors(readme);
-            }
         }
     }
 
@@ -677,9 +692,6 @@ public partial class Form1 : MaterialForm {
             SaveAnnouncementState(announcement.Id, announcement.Url);
 
             string popupMessage = $"새로운 공지사항이 게시되었습니다.\n공지제목 : {announcement.Title}";
-            if(!string.IsNullOrWhiteSpace(announcement.Summary)) {
-                popupMessage += $"\n{announcement.Summary.Trim()}";
-            }
             popupMessage += "\n확인하시겠습니까?";
 
             DialogResult dr = MessageBox.Show(popupMessage, "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
@@ -691,57 +703,40 @@ public partial class Form1 : MaterialForm {
         return true;
     }
 
-    private bool ApplyManifestSponsors(IReadOnlyList<WinFormsManifestSponsorItem> sponsors) {
+    private bool ApplyManifestSponsors(IReadOnlyList<JsonElement> sponsors) {
         if(sponsors.Count == 0) {
             return false;
         }
 
-        foreach(WinFormsManifestSponsorItem sponsor in sponsors) {
-            string text = $"{sponsor.Date} [{sponsor.Name}] {sponsor.Message}".Trim();
-            materialListBox_sponsor.AddItem(new MaterialListBoxItem(text));
+        foreach(JsonElement sponsor in sponsors) {
+            string? text = GetSponsorDisplayText(sponsor);
+            if(!string.IsNullOrWhiteSpace(text)) {
+                materialListBox_sponsor.AddItem(new MaterialListBoxItem(text));
+            }
         }
         materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
         return true;
     }
 
-    private void LoadAnnouncements(Readme r) {
-        string content = r.Content;
-        string[] announcements = content.Substring(content.LastIndexOf("# 공지사항")).Split('\n');
-        if(announcements.Length <= 1) {
-            linkLabel_announcement.Text = "공지사항이 없습니다";
-        } else {
-            try {
-                string latestAnnouncement = announcements[1];
-                string title = latestAnnouncement.Split('{')[0];
-                int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
-                int length = latestAnnouncement.LastIndexOf('}') - startIndex;
-                string pageNumber = latestAnnouncement.Substring(startIndex, length);
-                string url = $"https://github.com/{github_owner}/{github_repo}/discussions/" + pageNumber;
-                SetAnnouncementLink(title, url);
-
-                string prevLink = ConfigManager.GetConfig("prev_announcement");
-                if(prevLink == "" || prevLink != url) {
-                    SaveAnnouncementState(pageNumber, url);
-                    DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']') + 1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
-                    if(dr == DialogResult.Yes) {
-                        Trace.Write(pageNumber + "번 공지사항 접속");
-                        OpenUrl(url);
-                    }
-                }
-            } catch {
-                linkLabel_announcement.Text = "공지사항 로딩 실패";
-            }
+    private static string? GetSponsorDisplayText(JsonElement sponsor) {
+        if(sponsor.ValueKind == JsonValueKind.String) {
+            string? text = sponsor.GetString();
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
         }
-    }
 
-    private void LoadSponsors(Readme r) {
-        string content = r.Content;
-        string[] sponsors = content.Substring(content.LastIndexOf("<summary>후원해주신 분들</summary>")).Split("<br>");
-
-        for(int i = 1; i < sponsors.Length - 1; i++) {
-            materialListBox_sponsor.AddItem(new MaterialListBoxItem(sponsors[i]));
+        if(sponsor.ValueKind != JsonValueKind.Object) {
+            return null;
         }
-        materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
+
+        string date = sponsor.TryGetProperty("date", out JsonElement dateElement) ? dateElement.GetString()?.Trim() ?? string.Empty : string.Empty;
+        string name = sponsor.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString()?.Trim() ?? string.Empty : string.Empty;
+        string message = sponsor.TryGetProperty("message", out JsonElement messageElement) ? messageElement.GetString()?.Trim() ?? string.Empty : string.Empty;
+
+        if(string.IsNullOrWhiteSpace(date) || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(message)) {
+            return null;
+        }
+
+        return $"{date} [{name}] {message}";
     }
 
     private static string GetLocalVersionText() {
@@ -826,6 +821,19 @@ public partial class Form1 : MaterialForm {
 
     private void SetLatestVersionLabel(string version) {
         label_version_latest.Text = $"최신 버전 : {version}";
+    }
+
+    private static string GetManifestUrl(string primaryKey, string? fallbackKey = null) {
+        string url = ConfigManager.GetConfig(primaryKey);
+        if(!string.IsNullOrWhiteSpace(url)) {
+            return url;
+        }
+
+        if(!string.IsNullOrWhiteSpace(fallbackKey)) {
+            return ConfigManager.GetConfig(fallbackKey);
+        }
+
+        return string.Empty;
     }
 
     private void SetAnnouncementLink(string title, string url) {
