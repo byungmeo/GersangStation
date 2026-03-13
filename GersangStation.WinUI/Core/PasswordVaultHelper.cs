@@ -6,6 +6,14 @@ namespace Core;
 
 public static class PasswordVaultHelper
 {
+    public enum PasswordVaultMoveFailureStage
+    {
+        ValidateArguments,
+        ReadExistingCredential,
+        SaveNewCredential,
+        DeleteOldCredential
+    }
+
     /// <summary>
     /// 자격 증명 저장소 작업 결과를 나타냅니다.
     /// </summary>
@@ -43,6 +51,21 @@ public static class PasswordVaultHelper
 
         public static PasswordVaultReadResult Fail(Exception exception)
             => new(false, false, null, exception);
+    }
+
+    /// <summary>
+    /// 자격 증명 ID 변경 결과를 단계별 실패 문맥과 함께 반환합니다.
+    /// </summary>
+    public readonly record struct PasswordVaultMoveResult(
+        bool Success,
+        PasswordVaultMoveFailureStage? FailureStage = null,
+        Exception? Exception = null)
+    {
+        public static PasswordVaultMoveResult Ok()
+            => new(true);
+
+        public static PasswordVaultMoveResult Fail(PasswordVaultMoveFailureStage stage, Exception? exception = null)
+            => new(false, stage, exception);
     }
 
     private static readonly PasswordVault _vault = new();
@@ -172,25 +195,42 @@ public static class PasswordVaultHelper
 
     public static bool Move(string currentUserName, string newUserName)
     {
+        PasswordVaultMoveResult result = TryMove(currentUserName, newUserName);
+        return result.Success;
+    }
+
+    /// <summary>
+    /// 자격 증명 ID를 변경하고 실패 단계를 결과로 반환합니다.
+    /// </summary>
+    public static PasswordVaultMoveResult TryMove(string currentUserName, string newUserName)
+    {
         currentUserName = currentUserName?.Trim() ?? string.Empty;
         newUserName = newUserName?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(currentUserName) || string.IsNullOrWhiteSpace(newUserName))
-            return false;
+            return PasswordVaultMoveResult.Fail(PasswordVaultMoveFailureStage.ValidateArguments);
 
         if (string.Equals(currentUserName, newUserName, StringComparison.OrdinalIgnoreCase))
-            return true;
+            return PasswordVaultMoveResult.Ok();
 
         PasswordVaultReadResult readResult = TryGetPassword(currentUserName);
         if (!readResult.Success || string.IsNullOrWhiteSpace(readResult.Password))
-            return false;
+            return PasswordVaultMoveResult.Fail(
+                PasswordVaultMoveFailureStage.ReadExistingCredential,
+                readResult.Exception);
 
         PasswordVaultOperationResult saveResult = TrySave(newUserName, readResult.Password);
         if (!saveResult.Success)
-            return false;
+            return PasswordVaultMoveResult.Fail(
+                PasswordVaultMoveFailureStage.SaveNewCredential,
+                saveResult.Exception);
 
         PasswordVaultOperationResult deleteResult = TryDelete(currentUserName);
-        return deleteResult.Success;
+        return deleteResult.Success
+            ? PasswordVaultMoveResult.Ok()
+            : PasswordVaultMoveResult.Fail(
+                PasswordVaultMoveFailureStage.DeleteOldCredential,
+                deleteResult.Exception);
     }
 
     public static bool Delete(string userName)
