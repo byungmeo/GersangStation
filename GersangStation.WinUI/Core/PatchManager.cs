@@ -118,12 +118,14 @@ public sealed class LatestVersionResolutionException : InvalidOperationException
 
 public enum ClientVersionReadFailureStage
 {
+    ResolveVsnPath,
     OpenVsnFile,
     DecodeVsnContents
 }
 
 public enum ClientVersionWriteFailureStage
 {
+    ResolveVsnPath,
     ResolveVsnDirectory,
     CreateVsnDirectory,
     WriteVsnFile
@@ -953,8 +955,21 @@ public sealed class PatchManager
     /// </summary>
     public static ClientVersionReadResult TryGetCurrentClientVersion(string clientPath)
     {
-        string normalizedClientPath = clientPath?.Trim() ?? string.Empty;
-        string vsnPath = Path.Combine(normalizedClientPath, "Online", "vsn.dat");
+        string vsnPath;
+        try
+        {
+            vsnPath = GetVsnPath(clientPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return new ClientVersionReadResult(
+                false,
+                null,
+                clientPath?.Trim() ?? string.Empty,
+                ClientVersionReadFailureStage.ResolveVsnPath,
+                ex);
+        }
+
         if (!File.Exists(vsnPath))
             return new ClientVersionReadResult(
                 false,
@@ -1159,10 +1174,20 @@ public sealed class PatchManager
     /// </summary>
     public static ClientVersionWriteResult TryWriteClientVersion(string clientPath, int version)
     {
-        if (string.IsNullOrWhiteSpace(clientPath))
-            throw new ArgumentException("Client path is required.", nameof(clientPath));
+        string vsnPath;
+        try
+        {
+            vsnPath = GetVsnPath(clientPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return new ClientVersionWriteResult(
+                false,
+                clientPath?.Trim() ?? string.Empty,
+                ClientVersionWriteFailureStage.ResolveVsnPath,
+                ex);
+        }
 
-        string vsnPath = Path.Combine(clientPath, "Online", "vsn.dat");
         string? vsnDirectory = Path.GetDirectoryName(vsnPath);
         if (string.IsNullOrWhiteSpace(vsnDirectory))
         {
@@ -1220,6 +1245,18 @@ public sealed class PatchManager
             clientPath,
             "PatchTemp",
             $"{currentVersion}-{targetVersion}");
+    }
+
+    /// <summary>
+    /// 클라이언트 루트 기준 Online/vsn.dat 경로를 정규화해 반환합니다.
+    /// </summary>
+    private static string GetVsnPath(string clientPath)
+    {
+        if (string.IsNullOrWhiteSpace(clientPath))
+            throw new ArgumentException("Client path is required.", nameof(clientPath));
+
+        string normalizedClientPath = Path.GetFullPath(clientPath.Trim());
+        return Path.Combine(normalizedClientPath, "Online", "vsn.dat");
     }
 
     // URL 경로로 사용하기 위해 주어진 상대 경로를 정규화 (\ -> /)
