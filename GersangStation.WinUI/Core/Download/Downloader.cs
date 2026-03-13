@@ -200,7 +200,14 @@ public sealed class Downloader
                 $"SERVER total={serverMeta.TotalBytes?.ToString() ?? "null"}, etag={serverMeta.ETag ?? "null"}, lastModified={serverMeta.LastModifiedUtc?.ToString("O") ?? "null"}");
 
             if (serverMeta.TotalBytes is null || serverMeta.TotalBytes <= 0)
-                throw new InvalidOperationException("Server did not provide Content-Length.");
+            {
+                throw new DownloadOperationException(
+                    "Server metadata did not provide Content-Length before download started.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.MetadataLookup,
+                    new IOException("Server did not provide Content-Length."));
+            }
 
             long totalBytes = serverMeta.TotalBytes.Value;
             long localSize = 0;
@@ -538,7 +545,12 @@ public sealed class Downloader
                     lastAttemptException);
             }
 
-            throw new IOException($"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes.");
+            throw new DownloadOperationException(
+                $"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes.",
+                url,
+                destinationPath,
+                DownloadFailureStage.Transfer,
+                new IOException($"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes."));
         }
         finally
         {
