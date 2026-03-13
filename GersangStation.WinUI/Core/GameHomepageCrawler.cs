@@ -40,6 +40,40 @@ public readonly record struct GameEventLoadOptions(
 /// </summary>
 public static class GameHomepageCrawler
 {
+    /// <summary>
+    /// 거상 홈페이지 크롤링 실패 지점을 구분합니다.
+    /// </summary>
+    public enum CrawlerFailureStage
+    {
+        FetchEventListHtml,
+        ParseEventListHtml,
+        FetchHomepageHtml,
+        ParseHomepageNotices
+    }
+
+    /// <summary>
+    /// 거상 홈페이지 크롤링 실패 시 단계와 URL 문맥을 함께 보존합니다.
+    /// </summary>
+    public sealed class GameHomepageCrawlerException : InvalidOperationException
+    {
+        public CrawlerFailureStage Stage { get; }
+        public string Url { get; }
+        public int? Page { get; }
+
+        public GameHomepageCrawlerException(
+            string message,
+            CrawlerFailureStage stage,
+            string url,
+            Exception innerException,
+            int? page = null)
+            : base(message, innerException)
+        {
+            Stage = stage;
+            Url = url;
+            Page = page;
+        }
+    }
+
     private const int MaxPagesToScan = 3;
     private static readonly Uri BaseUri = new("https://www.gersang.co.kr");
     private static readonly DateOnly PlaceholderEventEndDate = new(2999, 12, 31);
@@ -72,7 +106,22 @@ public static class GameHomepageCrawler
     {
         ArgumentNullException.ThrowIfNull(httpClient);
 
-        string firstPageHtml = await GetEventListPageHtmlAsync(httpClient, 1, ct);
+        string firstPageUrl = BuildEventListUrl(1);
+        string firstPageHtml;
+        try
+        {
+            firstPageHtml = await GetEventListPageHtmlAsync(httpClient, 1, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GameHomepageCrawlerException(
+                $"Failed to fetch event list page 1 from '{firstPageUrl}'.",
+                CrawlerFailureStage.FetchEventListHtml,
+                firstPageUrl,
+                ex,
+                page: 1);
+        }
+
         int lastPage = ParseLastPage(firstPageHtml);
 
         List<GameEventInfo> result = [];
@@ -80,11 +129,43 @@ public static class GameHomepageCrawler
 
         for (int page = 1; page <= lastPage; page++)
         {
-            string html = page == 1
-                ? firstPageHtml
-                : await GetEventListPageHtmlAsync(httpClient, page, ct);
+            string pageUrl = BuildEventListUrl(page);
+            string html;
+            if (page == 1)
+            {
+                html = firstPageHtml;
+            }
+            else
+            {
+                try
+                {
+                    html = await GetEventListPageHtmlAsync(httpClient, page, ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new GameHomepageCrawlerException(
+                        $"Failed to fetch event list page {page} from '{pageUrl}'.",
+                        CrawlerFailureStage.FetchEventListHtml,
+                        pageUrl,
+                        ex,
+                        page);
+                }
+            }
 
-            List<GameEventInfo> items = ParseEventsFromListPage(html, page);
+            List<GameEventInfo> items;
+            try
+            {
+                items = ParseEventsFromListPage(html, page);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new GameHomepageCrawlerException(
+                    $"Failed to parse event list page {page} from '{pageUrl}'.",
+                    CrawlerFailureStage.ParseEventListHtml,
+                    pageUrl,
+                    ex,
+                    page);
+            }
 
             foreach (GameEventInfo item in items)
             {
@@ -109,8 +190,34 @@ public static class GameHomepageCrawler
     {
         ArgumentNullException.ThrowIfNull(httpClient);
 
-        string html = await GetHomepageHtmlAsync(httpClient, ct);
-        return ParseHomepageNotices(html);
+        const string homepageUrl = "https://www.gersang.co.kr";
+
+        string html;
+        try
+        {
+            html = await GetHomepageHtmlAsync(httpClient, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GameHomepageCrawlerException(
+                $"Failed to fetch homepage notices from '{homepageUrl}'.",
+                CrawlerFailureStage.FetchHomepageHtml,
+                homepageUrl,
+                ex);
+        }
+
+        try
+        {
+            return ParseHomepageNotices(html);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GameHomepageCrawlerException(
+                $"Failed to parse homepage notices from '{homepageUrl}'.",
+                CrawlerFailureStage.ParseHomepageNotices,
+                homepageUrl,
+                ex);
+        }
     }
 
     /// <summary>
@@ -170,13 +277,16 @@ public static class GameHomepageCrawler
         HttpClient httpClient,
         int page,
         CancellationToken ct)
-        => GetHtmlAsync(httpClient, $"https://www.gersang.co.kr/news/event.gs?GSserKey=&page={page}", ct);
+        => GetHtmlAsync(httpClient, BuildEventListUrl(page), ct);
 
     /// <summary>
     /// 메인 홈페이지 HTML을 내려받습니다.
     /// </summary>
     private static Task<string> GetHomepageHtmlAsync(HttpClient httpClient, CancellationToken ct)
         => GetHtmlAsync(httpClient, "https://www.gersang.co.kr", ct);
+
+    private static string BuildEventListUrl(int page)
+        => $"https://www.gersang.co.kr/news/event.gs?GSserKey=&page={page}";
 
     /// <summary>
     /// 공통 헤더를 포함해 HTML 문서를 내려받습니다.
@@ -238,7 +348,7 @@ public static class GameHomepageCrawler
         HtmlNode? noticeContainer = doc.DocumentNode.SelectSingleNode(
             "//div[contains(concat(' ', normalize-space(@class), ' '), ' inner_wrap ') and contains(concat(' ', normalize-space(@class), ' '), ' notice ')]");
         if (noticeContainer is null)
-            return [];
+            throw new InvalidDataException("Homepage notice container was not found in the HTML document.");
 
         List<GameHomepageNoticeInfo> result = [];
         HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
