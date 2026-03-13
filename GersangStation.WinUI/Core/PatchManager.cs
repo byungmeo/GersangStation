@@ -115,6 +115,25 @@ public sealed class LatestVersionResolutionException : InvalidOperationException
     }
 }
 
+public enum ClientVersionReadFailureStage
+{
+    OpenVsnFile,
+    DecodeVsnContents
+}
+
+/// <summary>
+/// 설치된 클라이언트 버전 읽기 결과를 파일 경로와 실패 문맥과 함께 반환합니다.
+/// </summary>
+public sealed record ClientVersionReadResult(
+    bool Success,
+    int? Version,
+    string VsnPath,
+    ClientVersionReadFailureStage? FailureStage,
+    Exception? Exception)
+{
+    public bool FileExists => File.Exists(VsnPath);
+}
+
 /*
 public sealed record PatchProgress(
     int TotalCount,
@@ -837,17 +856,51 @@ public sealed class PatchManager
 
 
     /// <summary>
+    /// 설치 경로의 Online/vsn.dat을 읽어 현재 클라이언트 버전을 상세 결과와 함께 반환합니다.
+    /// </summary>
+    public static ClientVersionReadResult TryGetCurrentClientVersion(string clientPath)
+    {
+        string normalizedClientPath = clientPath?.Trim() ?? string.Empty;
+        string vsnPath = Path.Combine(normalizedClientPath, "Online", "vsn.dat");
+        if (!File.Exists(vsnPath))
+            return new ClientVersionReadResult(false, null, vsnPath, null, null);
+
+        try
+        {
+            using var stream = File.OpenRead(vsnPath);
+
+            try
+            {
+                int version = DecodeVersionFromVsn(stream);
+                return new ClientVersionReadResult(true, version, vsnPath, null, null);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return new ClientVersionReadResult(
+                    false,
+                    null,
+                    vsnPath,
+                    ClientVersionReadFailureStage.DecodeVsnContents,
+                    ex);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ClientVersionReadResult(
+                false,
+                null,
+                vsnPath,
+                ClientVersionReadFailureStage.OpenVsnFile,
+                ex);
+        }
+    }
+
+    /// <summary>
     /// 설치 경로의 Online/vsn.dat을 읽어 현재 클라이언트 버전을 반환합니다.
+    /// 파일이 없거나 읽기에 실패하면 null을 반환합니다.
     /// </summary>
     public static int? GetCurrentClientVersion(string clientPath)
-    {
-        string vsnPath = Path.Combine(clientPath, "Online", "vsn.dat");
-        if (!File.Exists(vsnPath))
-            return null;
-
-        using var stream = File.OpenRead(vsnPath);
-        return DecodeVersionFromVsn(stream);
-    }
+        => TryGetCurrentClientVersion(clientPath).Version;
 
     // 거상 패치 흐름
     // 1. Readme가 가장 먼저 올라온다
