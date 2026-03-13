@@ -1,5 +1,6 @@
 using Core;
 using Core.Models;
+using GersangStation.Diagnostics;
 using GersangStation.Main.Setting;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
@@ -317,12 +318,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 break;
         }
 
-        string clientInstallPath = GetClientInstallPath(server, clientIndex);
-
-        bool requiresPatch = await CheckAndHandleRequiredPatchAsync(window, server, clientInstallPath);
-        if (requiresPatch)
-            return;
-
         accountId = accountId?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(accountId))
@@ -330,6 +325,15 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             await ShowWarningDialogAsync("계정을 먼저 선택해 주세요", "선택한 클라이언트에 사용할 계정이 없습니다.");
             return;
         }
+
+        if (!await EnsureAccountReadyForLaunchAsync(window, server, accountId))
+            return;
+
+        string clientInstallPath = GetClientInstallPath(server, clientIndex);
+
+        bool requiresPatch = await CheckAndHandleRequiredPatchAsync(window, server, clientInstallPath);
+        if (requiresPatch)
+            return;
 
         if (_gameStarter?.ActiveClientCount >= 3)
         {
@@ -443,12 +447,38 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(clientInstallPath) || !Directory.Exists(clientInstallPath))
             return false;
 
-        int? currentVersion = PatchManager.GetCurrentClientVersion(clientInstallPath);
-        if (currentVersion is null || currentVersion <= 0)
-            return false;
+        ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(clientInstallPath);
+        if (!currentVersionResult.Success)
+        {
+            await ShowClientVersionCheckRequiredDialogAsync(window, server, currentVersionResult);
+            return true;
+        }
 
-        int latestVersion = await PatchManager.GetLatestServerVersionAsync(server);
-        if (latestVersion <= 0 || currentVersion >= latestVersion)
+        int currentVersion = currentVersionResult.Version ?? 0;
+        if (currentVersion <= 0)
+        {
+            await ShowWarningDialogAsync(
+                "클라이언트 버전 확인 필요",
+                $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트 버전을 확인하지 못했습니다.\n설치 경로가 올바른지 확인해 주세요.");
+            return true;
+        }
+
+        int latestVersion;
+        try
+        {
+            latestVersion = await PatchManager.GetLatestServerVersionAsync(server);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            bool shouldContinue = await ShowLatestVersionCheckFailedDialogAsync(server);
+            if (!shouldContinue)
+                return true;
+
+            Debug.WriteLine($"[StationPage] Latest version check failed but user chose to continue. Server: {server}, Error: {ex}");
+            return false;
+        }
+
+        if (currentVersion >= latestVersion)
             return false;
 
         ContentDialog dialog = new()
@@ -477,6 +507,133 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 게임 실행 전에 선택한 계정의 비밀번호 상태를 확인합니다.
+    /// </summary>
+    private async Task<bool> EnsureAccountReadyForLaunchAsync(MainWindow window, GameServer server, string accountId)
+    {
+        PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(accountId);
+        if (!passwordResult.Success)
+        {
+            await App.ExceptionHandler.ShowRecoverableAsync(
+                new InvalidOperationException(
+                    $"윈도우 자격 증명 관리자에서 계정 비밀번호를 읽지 못했습니다. AccountId='{accountId}'",
+                    passwordResult.Exception),
+                "StationPage.EnsureAccountReadyForLaunch");
+            return false;
+        }
+
+        if (passwordResult.HasCredential)
+            return true;
+
+        Account? brokenAccount = Accounts.FirstOrDefault(account =>
+            string.Equals(account.Id?.Trim(), accountId, StringComparison.OrdinalIgnoreCase));
+
+        if (brokenAccount is null)
+        {
+            await ShowWarningDialogAsync("계정을 다시 선택해 주세요", "선택한 계정 정보를 찾지 못했습니다. 계정을 다시 선택해 주세요.");
+            return false;
+        }
+
+        return await HandleBrokenAccountCredentialAsync(window, server, brokenAccount);
+    }
+
+    /// <summary>
+    /// 계정은 남아 있지만 비밀번호가 없는 깨진 계정을 정리하고 설정 페이지로 유도합니다.
+    /// </summary>
+    private async Task<bool> HandleBrokenAccountCredentialAsync(MainWindow window, GameServer server, Account brokenAccount)
+    {
+        List<Account> nextAccounts = Accounts
+            .Where(account => !string.Equals(account.Id?.Trim(), brokenAccount.Id?.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult saveResult) =
+            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts);
+        if (!saveResult.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "계정 정리 실패",
+                "비밀번호가 없는 깨진 계정을 정리하지 못했습니다.",
+                saveResult);
+            return false;
+        }
+
+        Accounts = savedAccounts;
+        RefreshStateFromStorage();
+        RefreshClientAvailabilityState();
+        Bindings.Update();
+
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = "계정 다시 등록 필요",
+            Content =
+                $"계정 '{brokenAccount.DisplayNickname}'의 저장된 비밀번호를 찾지 못했습니다.\n" +
+                "이 계정은 깨진 상태로 판단되어 목록에서 제거했습니다.\n\n" +
+                "계정 설정 페이지에서 다시 등록해 주세요.",
+            PrimaryButtonText = "계정 설정",
+            CloseButtonText = "확인",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            window.NavigateToSettingPage(SettingSection.Account);
+
+        return false;
+    }
+
+    /// <summary>
+    /// 설치된 클라이언트의 vsn.dat을 읽지 못했을 때 경로 확인을 안내합니다.
+    /// </summary>
+    private async Task ShowClientVersionCheckRequiredDialogAsync(
+        MainWindow window,
+        GameServer server,
+        ClientVersionReadResult result)
+    {
+        string message = result.Exception is FileNotFoundException
+            ? $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트의 버전 파일(vsn.dat)을 찾지 못했습니다.\n설치 경로가 올바른지 확인해 주세요."
+            : $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트 버전을 읽지 못했습니다.\n설치 경로와 클라이언트 파일 상태를 확인해 주세요.";
+
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = "설치 경로 확인 필요",
+            Content = message,
+            PrimaryButtonText = "경로 설정",
+            CloseButtonText = "취소",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        {
+            window.NavigateToSettingPage(
+                SettingSection.InstallPath,
+                new GameServerSettingNavigationParameter { Server = server });
+        }
+    }
+
+    /// <summary>
+    /// 최신 패치 버전을 확인하지 못했을 때 사용자에게 계속 실행 여부를 묻습니다.
+    /// </summary>
+    private async Task<bool> ShowLatestVersionCheckFailedDialogAsync(GameServer server)
+    {
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = "최신 버전 확인 실패",
+            Content =
+                $"{GameServerHelper.GetServerDisplayName(server)} 최신 패치 정보를 확인하지 못했습니다.\n" +
+                "패치가 필요한 상태인지 판단할 수 없습니다.\n\n" +
+                "그래도 게임을 실행할까요?",
+            PrimaryButtonText = "그래도 실행",
+            CloseButtonText = "취소",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    /// <summary>
     /// 실행 제한 사유를 사용자에게 경고 다이얼로그로 알립니다.
     /// </summary>
     private async Task ShowWarningDialogAsync(string title, string content)
@@ -500,13 +657,32 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         GameServer server = AppDataManager.SelectedServer = (GameServer)SelectedServerIndex;
         string clientInstallPath = GetClientInstallPath(server, clientIndex: 0);
-        int currentVersion = PatchManager.GetCurrentClientVersion(clientInstallPath) ?? 0;
-        int latestVersion = await PatchManager.GetLatestServerVersionAsync(server);
-        string currentStr = currentVersion <= 0 ? "확인불가" : $"v{currentVersion}";
-        string latestStr = latestVersion <= 0 ? "확인불가" : $"v{latestVersion}";
+        ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(clientInstallPath);
+        int currentVersion = currentVersionResult.Success ? currentVersionResult.Version ?? 0 : 0;
+
+        int latestVersion = 0;
+        bool latestVersionAvailable = false;
+        try
+        {
+            latestVersion = await PatchManager.GetLatestServerVersionAsync(server);
+            latestVersionAvailable = true;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[StationPage] UpdateServer latest version check failed. Server: {server}, Error: {ex}");
+        }
+
+        string currentStr = currentVersionResult.Success && currentVersion > 0
+            ? $"v{currentVersion}"
+            : currentVersionResult.Exception is FileNotFoundException
+                ? "확인 필요"
+                : "확인 실패";
+        string latestStr = latestVersionAvailable && latestVersion > 0 ? $"v{latestVersion}" : "확인 실패";
         TextBlock_Version.Text = $"설치 버전: {currentStr} | 최신 버전: {latestStr}";
-        Button_RefreshVersion.Visibility = currentVersion < latestVersion ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
-        Button_Patch.Visibility = currentVersion < latestVersion ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        bool canCompareVersions = currentVersionResult.Success && currentVersion > 0 && latestVersionAvailable && latestVersion > 0;
+        bool needsPatch = canCompareVersions && currentVersion < latestVersion;
+        Button_RefreshVersion.Visibility = needsPatch ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        Button_Patch.Visibility = needsPatch ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
     }
 
     private async void ComboBox_Server_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -736,13 +912,27 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (!GameClientHelper.IsValidCloneInstallPath(server, clonePath, out string cloneReason))
             return new ClientLaunchAvailability(ClientLaunchStatus.MultiClientSetupRequired, cloneReason);
 
-        int? mainVersion = PatchManager.GetCurrentClientVersion(mainInstallPath);
-        int? cloneVersion = PatchManager.GetCurrentClientVersion(clonePath);
+        ClientVersionReadResult mainVersionResult = PatchManager.TryGetCurrentClientVersion(mainInstallPath);
+        if (!mainVersionResult.Success || (mainVersionResult.Version ?? 0) <= 0)
+        {
+            return new ClientLaunchAvailability(
+                ClientLaunchStatus.MultiClientSetupRequired,
+                BuildVersionCheckFailureDetail("메인 클라이언트", mainVersionResult));
+        }
+
+        ClientVersionReadResult cloneVersionResult = PatchManager.TryGetCurrentClientVersion(clonePath);
+        if (!cloneVersionResult.Success || (cloneVersionResult.Version ?? 0) <= 0)
+        {
+            return new ClientLaunchAvailability(
+                ClientLaunchStatus.MultiClientSetupRequired,
+                BuildVersionCheckFailureDetail("복제 클라이언트", cloneVersionResult));
+        }
+
+        int mainVersion = mainVersionResult.Version!.Value;
+        int cloneVersion = cloneVersionResult.Version!.Value;
         if (mainVersion != cloneVersion)
         {
-            string detail = mainVersion > 0 && cloneVersion > 0
-                ? $"메인 버전(v{mainVersion})과 복제 버전(v{cloneVersion})이 다릅니다."
-                : "메인 클라이언트와 복제 클라이언트 버전이 일치하지 않습니다.";
+            string detail = $"메인 버전(v{mainVersion})과 복제 버전(v{cloneVersion})이 다릅니다.";
             return new ClientLaunchAvailability(ClientLaunchStatus.MultiClientSetupRequired, detail);
         }
 
@@ -851,8 +1041,22 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (!GameClientHelper.IsValidInstallPath(server, installPath, out string reason))
             return (false, $"메인 클라이언트 경로가 유효하지 않아 다클라를 만들 수 없습니다. {reason}");
 
-        int currentClientVersion = PatchManager.GetCurrentClientVersion(installPath) ?? 0;
-        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(server);
+        ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(installPath);
+        if (!currentVersionResult.Success || (currentVersionResult.Version ?? 0) <= 0)
+            return (false, BuildVersionCheckFailureDetail("메인 클라이언트", currentVersionResult));
+
+        int currentClientVersion = currentVersionResult.Version!.Value;
+
+        int latestClientVersion;
+        try
+        {
+            latestClientVersion = await PatchManager.GetLatestServerVersionAsync(server);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return (false, $"최신 패치 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요. ({ex.Message})");
+        }
+
         GameClientHelper.MultiClientLayoutPolicy layoutPolicy =
             currentClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
             && (latestClientVersion <= 0 || latestClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion)
@@ -880,6 +1084,19 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
         AppDataManager.SaveServerClientSettings(server, settings);
         return (true, string.Empty);
+    }
+
+    /// <summary>
+    /// 클라이언트 버전 파일을 읽지 못했을 때 실행 가능 상태 문구에 사용할 안내를 만듭니다.
+    /// </summary>
+    private static string BuildVersionCheckFailureDetail(string clientLabel, ClientVersionReadResult result)
+    {
+        if (result.Exception is FileNotFoundException)
+            return $"{clientLabel}의 버전 파일(vsn.dat)을 찾지 못했습니다. 설치 경로를 확인해 주세요.";
+
+        return result.Exception is null
+            ? $"{clientLabel}의 버전을 확인하지 못했습니다."
+            : $"{clientLabel}의 버전을 확인하지 못했습니다. {result.Exception.Message}";
     }
 
     #region EventFlipView

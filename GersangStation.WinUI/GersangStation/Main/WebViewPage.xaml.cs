@@ -217,6 +217,12 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         if (ComboBox_Account.SelectedItem is Account account && _webviewManager is not null)
         {
             TryLoginResult result = await _webviewManager.TryLogin(account.Id);
+            if (result == TryLoginResult.NotFoundPw)
+            {
+                await ShowSimpleDialogAsync(
+                    "비밀번호가 필요합니다",
+                    $"계정 '{account.DisplayNickname}'의 저장된 비밀번호를 찾지 못했습니다.\n계정 설정에서 비밀번호를 다시 입력해 주세요.");
+            }
         }
     }
 

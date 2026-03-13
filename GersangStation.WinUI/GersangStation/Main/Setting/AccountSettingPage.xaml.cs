@@ -387,13 +387,18 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         string nickname = string.IsNullOrWhiteSpace(Editor.Nickname) ? id : Editor.Nickname.Trim();
         string originalId = Editor.OriginalId.Trim();
 
-        if (Editor.IsEditingExisting &&
-            !Editor.IsChangingPassword &&
-            string.IsNullOrWhiteSpace(PasswordVaultHelper.GetPassword(originalId)))
+        if (Editor.IsEditingExisting && !Editor.IsChangingPassword)
         {
-            return IsIdChanged
-                ? "아이디를 변경하려면 새 패스워드를 함께 입력해주세요. 저장된 비밀번호를 찾을 수 없습니다."
-                : "저장된 비밀번호를 찾을 수 없습니다. 새 패스워드를 함께 입력해주세요.";
+            PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(originalId);
+            if (!passwordResult.Success)
+                return "윈도우 자격 증명 관리자에서 저장된 비밀번호를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.";
+
+            if (!passwordResult.HasCredential || string.IsNullOrWhiteSpace(passwordResult.Password))
+            {
+                return IsIdChanged
+                    ? "아이디를 변경하려면 새 패스워드를 함께 입력해주세요. 저장된 비밀번호를 찾을 수 없습니다."
+                    : "저장된 비밀번호를 찾을 수 없습니다. 새 패스워드를 함께 입력해주세요.";
+            }
         }
 
         IList<Account> currentAccounts = AppDataManager.LoadAccounts();
@@ -434,7 +439,15 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (!IsIdChanged)
             return updates;
 
-        string? existingPassword = PasswordVaultHelper.GetPassword(originalId);
+        PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(originalId);
+        if (!passwordResult.Success)
+        {
+            throw new InvalidOperationException(
+                "윈도우 자격 증명 관리자에서 저장된 비밀번호를 읽지 못했어요. 잠시 후 다시 시도해 주세요.",
+                passwordResult.Exception);
+        }
+
+        string? existingPassword = passwordResult.HasCredential ? passwordResult.Password : null;
         if (string.IsNullOrWhiteSpace(existingPassword))
         {
             throw new InvalidOperationException(
