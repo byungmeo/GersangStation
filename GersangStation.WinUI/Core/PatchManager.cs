@@ -829,9 +829,18 @@ public sealed class PatchManager
         if (string.IsNullOrWhiteSpace(args.DestPath2) && string.IsNullOrWhiteSpace(args.DestPath3))
             return;
 
-        bool success = GameClientHelper.CreateSymbolMultiClient(args, out string reason);
-        if (!success)
-            throw new InvalidOperationException($"다클라 패치 적용 실패: {reason}");
+        CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
+        if (!result.Success)
+        {
+            if (result.Exception is not null)
+            {
+                throw new InvalidOperationException(
+                    $"다클라 패치 적용 실패: {result.Reason}",
+                    result.Exception);
+            }
+
+            throw new InvalidOperationException($"다클라 패치 적용 실패: {result.Reason}");
+        }
     }
 
     /// <summary>
