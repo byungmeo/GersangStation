@@ -1,5 +1,6 @@
 using Core;
 using Core.Models;
+using GersangStation.Diagnostics;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -211,7 +212,18 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         IsLoadingPatchInfo = true;
         try
         {
-            ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(_selectedGameServer);
+            (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
+                await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
+
+            if (!loadResult.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(
+                    XamlRoot,
+                    "설정 불러오기 실패",
+                    "패치 설정을 준비하는 동안 서버 설정을 모두 불러오지 못했습니다.",
+                    loadResult);
+            }
+
             LoadPatchOptions(clientSetting);
             _currentClientVersion = PatchManager.GetCurrentClientVersion(clientSetting.InstallPath);
             _latestServerVersion = null;
@@ -313,17 +325,38 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     /// <summary>
     /// 다클라 설정 파일 덮어쓰기 옵션을 현재 서버 설정에 즉시 반영합니다.
     /// </summary>
-    private void PersistOverwriteMultiClientConfigSetting()
+    private async void PersistOverwriteMultiClientConfigSetting()
     {
         if (_suppressClientSettingsPersistence)
             return;
 
-        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(_selectedGameServer);
+        (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
+            await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
+
+        if (!loadResult.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "설정 불러오기 실패",
+                "다클라 덮어쓰기 옵션을 저장하기 전에 현재 서버 설정을 불러오지 못했습니다.",
+                loadResult);
+        }
+
         if (clientSetting.OverwriteMultiClientConfig == ShouldOverwriteMultiClientConfig)
             return;
 
         clientSetting.OverwriteMultiClientConfig = ShouldOverwriteMultiClientConfig;
-        AppDataManager.SaveServerClientSettings(_selectedGameServer, clientSetting);
+        AppDataManager.AppDataOperationResult saveResult =
+            await AppDataManager.SaveServerClientSettingsAsync(_selectedGameServer, clientSetting);
+
+        if (!saveResult.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "설정 저장 실패",
+                "다클라 덮어쓰기 옵션을 저장하지 못했습니다.",
+                saveResult);
+        }
     }
 
     /// <summary>
@@ -447,7 +480,17 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             return;
 
         PatchManager patchManager = new();
-        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(_selectedGameServer);
+        (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
+            await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
+
+        if (!loadResult.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "설정 불러오기 실패",
+                "패치를 시작하기 전에 서버 설정을 모두 불러오지 못했습니다.",
+                loadResult);
+        }
 
         int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(_selectedGameServer);
         string tempRoot = PatchManager.GetPatchTempRoot(
@@ -567,7 +610,18 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private async void ComboBox_CurrentVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(_selectedGameServer);
-        ClientSettings clientSetting = AppDataManager.LoadServerClientSettings(_selectedGameServer);
+        (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
+            await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
+
+        if (!loadResult.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "설정 불러오기 실패",
+                "임시 파일 경로를 계산하기 전에 서버 설정을 불러오지 못했습니다.",
+                loadResult);
+        }
+
         var selectedPatchItem = ComboBox_CurrentVersion.SelectedItem as PatchReadmeInfoItem;
         int selectedCurrentClientVersion = selectedPatchItem?.Version ?? 0;
         TempPath = $"임시 파일 경로: {PatchManager.GetPatchTempRoot(clientSetting.InstallPath, selectedCurrentClientVersion, latestClientVersion)}";

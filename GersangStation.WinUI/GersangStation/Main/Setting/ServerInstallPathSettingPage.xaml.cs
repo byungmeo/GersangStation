@@ -1,6 +1,7 @@
 using Core;
 using Core.Models;
 using GersangStation.Controls;
+using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -86,7 +87,7 @@ namespace GersangStation.Main.Setting
                 npc.PropertyChanged += ClientSettings_PropertyChanged;
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
@@ -96,7 +97,7 @@ namespace GersangStation.Main.Setting
                 int index => (GameServer)index,
                 _ => GameServer.Korea_Live
             };
-            ClientSettings = AppDataManager.LoadServerClientSettings(currentGameServer);
+            await LoadClientSettingsAsync();
             CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
             TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
         }
@@ -120,8 +121,10 @@ namespace GersangStation.Main.Setting
             ContentDialogResult result = await saveDialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
-                AppDataManager.SaveServerClientSettings(currentGameServer, ClientSettings);
-                IsDirty = false;
+                if (await SaveClientSettingsAsync())
+                    IsDirty = false;
+                else
+                    CanLeaveThisPage = false;
             }
             else if (result == ContentDialogResult.Secondary)
             {
@@ -183,10 +186,42 @@ namespace GersangStation.Main.Setting
             Expander_MultiClient.IsExpanded = toggleSwitch.IsOn;
         }
 
-        private void Button_Save_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        private async void Button_Save_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            AppDataManager.SaveServerClientSettings(currentGameServer, ClientSettings);
-            IsDirty = false;
+            if (await SaveClientSettingsAsync())
+                IsDirty = false;
+        }
+
+        private async Task LoadClientSettingsAsync()
+        {
+            (ClientSettings settings, AppDataManager.AppDataOperationResult result) =
+                await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
+
+            ClientSettings = settings;
+            if (!result.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(
+                    XamlRoot,
+                    "설정 불러오기 실패",
+                    "서버별 설치 경로 설정을 모두 불러오지 못했습니다.",
+                    result);
+            }
+        }
+
+        private async Task<bool> SaveClientSettingsAsync()
+        {
+            AppDataManager.AppDataOperationResult result =
+                await AppDataManager.SaveServerClientSettingsAsync(currentGameServer, ClientSettings);
+
+            if (result.Success)
+                return true;
+
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "설정 저장 실패",
+                "서버별 설치 경로 설정을 저장하지 못했습니다.",
+                result);
+            return false;
         }
 
         private async void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

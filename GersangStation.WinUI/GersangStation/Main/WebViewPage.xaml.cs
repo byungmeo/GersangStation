@@ -1,5 +1,6 @@
 using Core;
 using Core.Models;
+using GersangStation.Diagnostics;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -372,13 +373,22 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     /// </summary>
     private async Task LoadFavoritesAsync()
     {
-        (IList<BrowserFavorite> favorites, _) = await AppDataManager.LoadBrowserFavoritesAsync();
+        (IList<BrowserFavorite> favorites, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadBrowserFavoritesAsync();
 
         Favorites.Clear();
         foreach (BrowserFavorite favorite in favorites)
             Favorites.Add(favorite);
 
         UpdateFavoriteButtonState();
+
+        if (!result.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "즐겨찾기 불러오기 실패",
+                "저장된 즐겨찾기 목록을 모두 불러오지 못했습니다.",
+                result);
+        }
     }
 
     /// <summary>
@@ -397,7 +407,11 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         }
 
         ReplaceFavorites(previousFavorites);
-        await ShowSimpleDialogAsync("즐겨찾기 저장 실패", "즐겨찾기를 저장할 수 없습니다.");
+        await AppDataOperationDialog.ShowFailureAsync(
+            XamlRoot,
+            "즐겨찾기 저장 실패",
+            "즐겨찾기 정보를 저장하지 못했습니다.",
+            result);
     }
 
     private List<BrowserFavorite> SnapshotFavorites()

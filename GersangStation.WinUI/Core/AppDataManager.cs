@@ -1,5 +1,6 @@
 using Core.Models;
 using System.Diagnostics;
+using System.IO;
 using System.Text.Json;
 using Windows.Storage;
 
@@ -7,10 +8,54 @@ namespace Core;
 
 public static class AppDataManager
 {
+    /// <summary>
+    /// 앱 데이터 작업 실패를 원인 범주별로 구분합니다.
+    /// </summary>
+    public enum AppDataErrorKind
+    {
+        None,
+        Validation,
+        Serialization,
+        Storage,
+        CredentialVault,
+        Unexpected
+    }
+
+    /// <summary>
+    /// AppDataManager 작업의 성공 여부와 실패 메타데이터를 함께 전달합니다.
+    /// </summary>
     public readonly record struct AppDataOperationResult(bool Success, Exception? Exception)
     {
-        public static AppDataOperationResult Ok() => new(true, null);
-        public static AppDataOperationResult Fail(Exception exception) => new(false, exception);
+        public string Operation { get; init; } = string.Empty;
+        public string Target { get; init; } = string.Empty;
+        public AppDataErrorKind ErrorKind { get; init; } = Success ? AppDataErrorKind.None : AppDataErrorKind.Unexpected;
+
+        public static AppDataOperationResult Ok(string operation = "", string target = "")
+            => new(true, null)
+            {
+                Operation = operation,
+                Target = target,
+                ErrorKind = AppDataErrorKind.None
+            };
+
+        public static AppDataOperationResult Fail(string operation, Exception exception, string target = "")
+            => new(false, exception)
+            {
+                Operation = operation,
+                Target = target,
+                ErrorKind = ClassifyErrorKind(exception)
+            };
+
+        public static AppDataOperationResult Fail(string operation, Exception exception, AppDataErrorKind errorKind, string target = "")
+            => new(false, exception)
+            {
+                Operation = operation,
+                Target = target,
+                ErrorKind = errorKind
+            };
+
+        public string GetMessageOrDefault(string fallbackMessage)
+            => Exception?.Message ?? fallbackMessage;
     }
 
     public readonly record struct AccountCredential(string UserName, string Password);
@@ -68,6 +113,24 @@ public static class AppDataManager
 
     public static event EventHandler<bool>? DeveloperToolEnabledChanged;
 
+    private static AppDataOperationResult Ok(string operation, string target = "")
+        => AppDataOperationResult.Ok(operation, target);
+
+    private static AppDataOperationResult Fail(string operation, Exception exception, string target = "")
+        => AppDataOperationResult.Fail(operation, exception, target);
+
+    private static AppDataOperationResult Fail(string operation, Exception exception, AppDataErrorKind errorKind, string target = "")
+        => AppDataOperationResult.Fail(operation, exception, errorKind, target);
+
+    private static AppDataErrorKind ClassifyErrorKind(Exception exception)
+        => exception switch
+        {
+            JsonException or NotSupportedException => AppDataErrorKind.Serialization,
+            IOException or UnauthorizedAccessException => AppDataErrorKind.Storage,
+            ArgumentException or InvalidOperationException => AppDataErrorKind.Validation,
+            _ => AppDataErrorKind.Unexpected
+        };
+
     public static void SaveAccounts(IEnumerable<Account> accounts)
         => SaveAccountsAsync(accounts).GetAwaiter().GetResult();
 
@@ -81,7 +144,7 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SaveAccountsAsync), ex, AppDataErrorKind.Serialization, AccountsFileName);
         }
     }
 
@@ -110,7 +173,7 @@ public static class AppDataManager
         catch (Exception ex)
         {
             RollbackCredentialUpserts(previousPasswords);
-            return (normalizedAccounts, AppDataOperationResult.Fail(ex));
+            return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), ex, AppDataErrorKind.CredentialVault, AccountsFileName));
         }
 
         AppDataOperationResult saveResult = await SaveAccountsAsync(normalizedAccounts).ConfigureAwait(false);
@@ -120,8 +183,14 @@ public static class AppDataManager
             return (normalizedAccounts, saveResult);
         }
 
-        await SyncAccountsAndPresetsAfterSaveAsync(normalizedAccounts).ConfigureAwait(false);
-        return (normalizedAccounts, AppDataOperationResult.Ok());
+        AppDataOperationResult syncResult = await SyncAccountsAndPresetsAfterSaveAsync(normalizedAccounts).ConfigureAwait(false);
+        if (!syncResult.Success)
+        {
+            Debug.WriteLine(
+                $"[AppDataManager] Non-blocking account dependency sync failed. Operation: {syncResult.Operation}, Target: {syncResult.Target}, Kind: {syncResult.ErrorKind}, Exception: {syncResult.Exception}");
+        }
+
+        return (normalizedAccounts, Ok(nameof(SaveAccountsWithCredentialsAsync), AccountsFileName));
     }
 
     public static IList<Account> LoadAccounts()
@@ -139,7 +208,7 @@ public static class AppDataManager
         if (string.IsNullOrWhiteSpace(json))
         {
             PasswordVaultHelper.RemoveOrphans([]);
-            return ([], AppDataOperationResult.Ok());
+            return ([], Ok(nameof(LoadAccountsAsync), AccountsFileName));
         }
 
         try
@@ -151,14 +220,14 @@ public static class AppDataManager
             if (changed)
             {
                 AppDataOperationResult saveResult = await SaveAccountsAsync(normalizedAccounts).ConfigureAwait(false);
-                return (normalizedAccounts, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+                return (normalizedAccounts, saveResult.Success ? Ok(nameof(LoadAccountsAsync), AccountsFileName) : saveResult);
             }
 
-            return (normalizedAccounts, AppDataOperationResult.Ok());
+            return (normalizedAccounts, Ok(nameof(LoadAccountsAsync), AccountsFileName));
         }
         catch (Exception ex)
         {
-            return ([], AppDataOperationResult.Fail(ex));
+            return ([], Fail(nameof(LoadAccountsAsync), ex, AppDataErrorKind.Serialization, AccountsFileName));
         }
     }
 
@@ -172,16 +241,16 @@ public static class AppDataManager
             return (new AllServerClientSettings(), readResult);
 
         if (string.IsNullOrWhiteSpace(json))
-            return (new AllServerClientSettings(), AppDataOperationResult.Ok());
+            return (new AllServerClientSettings(), Ok(nameof(LoadAllServerClientSettingsAsync), ClientSettingsFileName));
 
         try
         {
             var result = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.AllServerClientSettings);
-            return (result ?? new AllServerClientSettings(), AppDataOperationResult.Ok());
+            return (result ?? new AllServerClientSettings(), Ok(nameof(LoadAllServerClientSettingsAsync), ClientSettingsFileName));
         }
         catch (Exception ex)
         {
-            return (new AllServerClientSettings(), AppDataOperationResult.Fail(ex));
+            return (new AllServerClientSettings(), Fail(nameof(LoadAllServerClientSettingsAsync), ex, AppDataErrorKind.Serialization, ClientSettingsFileName));
         }
     }
 
@@ -192,8 +261,8 @@ public static class AppDataManager
     {
         var (all, result) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
         if (!all.Servers.TryGetValue(server, out var s))
-            return (new ClientSettings(), result.Success ? AppDataOperationResult.Ok() : result);
-        return (s, result.Success ? AppDataOperationResult.Ok() : result);
+            return (new ClientSettings(), result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
+        return (s, result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
     }
 
     private static void SaveAllServerClientSettings(AllServerClientSettings settings)
@@ -208,7 +277,7 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SaveAllServerClientSettingsAsync), ex, AppDataErrorKind.Serialization, ClientSettingsFileName);
         }
     }
 
@@ -244,7 +313,7 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SavePresetListAsync), ex, AppDataErrorKind.Serialization, PresetListFileName);
         }
     }
 
@@ -278,7 +347,7 @@ public static class AppDataManager
         {
             presetList = new PresetList();
             AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
-            return (presetList, saveResult.Success ? AppDataOperationResult.Fail(ex) : saveResult);
+            return (presetList, saveResult.Success ? Fail(nameof(LoadPresetListAsync), ex, AppDataErrorKind.Serialization, PresetListFileName) : saveResult);
         }
 
         var (accounts, accountLoadResult) = await LoadAccountsAsync().ConfigureAwait(false);
@@ -295,7 +364,7 @@ public static class AppDataManager
             return (presetList, saveResult.Success ? accountLoadResult : saveResult);
         }
 
-        return (presetList, accountLoadResult.Success ? AppDataOperationResult.Ok() : accountLoadResult);
+        return (presetList, accountLoadResult.Success ? Ok(nameof(LoadPresetListAsync), PresetListFileName) : accountLoadResult);
     }
 
     /// <summary>
@@ -317,7 +386,7 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SaveBrowserFavoritesAsync), ex, AppDataErrorKind.Serialization, BrowserFavoritesFileName);
         }
     }
 
@@ -340,7 +409,7 @@ public static class AppDataManager
         {
             List<BrowserFavorite> emptyFavorites = [];
             AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(emptyFavorites).ConfigureAwait(false);
-            return (emptyFavorites, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+            return (emptyFavorites, saveResult.Success ? Ok(nameof(LoadBrowserFavoritesAsync), BrowserFavoritesFileName) : saveResult);
         }
 
         try
@@ -367,16 +436,16 @@ public static class AppDataManager
             if (changed)
             {
                 AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(normalizedFavorites).ConfigureAwait(false);
-                return (normalizedFavorites, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+                return (normalizedFavorites, saveResult.Success ? Ok(nameof(LoadBrowserFavoritesAsync), BrowserFavoritesFileName) : saveResult);
             }
 
-            return (normalizedFavorites, AppDataOperationResult.Ok());
+            return (normalizedFavorites, Ok(nameof(LoadBrowserFavoritesAsync), BrowserFavoritesFileName));
         }
         catch (Exception ex)
         {
             List<BrowserFavorite> emptyFavorites = [];
             AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(emptyFavorites).ConfigureAwait(false);
-            return (emptyFavorites, saveResult.Success ? AppDataOperationResult.Fail(ex) : saveResult);
+            return (emptyFavorites, saveResult.Success ? Fail(nameof(LoadBrowserFavoritesAsync), ex, AppDataErrorKind.Serialization, BrowserFavoritesFileName) : saveResult);
         }
     }
 
@@ -525,11 +594,11 @@ public static class AppDataManager
                 .AsTask()
                 .ConfigureAwait(false);
 
-            return AppDataOperationResult.Ok();
+            return Ok(nameof(WriteTextToLocalFolderAsync), fileName);
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(WriteTextToLocalFolderAsync), ex, AppDataErrorKind.Storage, fileName);
         }
     }
 
@@ -545,17 +614,17 @@ public static class AppDataManager
                 .ConfigureAwait(false);
 
             if (item is not StorageFile file)
-                return (null, AppDataOperationResult.Ok());
+                return (null, Ok(nameof(ReadTextFromLocalFolderAsync), fileName));
 
             string? content = await FileIO.ReadTextAsync(file)
                 .AsTask()
                 .ConfigureAwait(false);
 
-            return (content, AppDataOperationResult.Ok());
+            return (content, Ok(nameof(ReadTextFromLocalFolderAsync), fileName));
         }
         catch (Exception ex)
         {
-            return (null, AppDataOperationResult.Fail(ex));
+            return (null, Fail(nameof(ReadTextFromLocalFolderAsync), ex, AppDataErrorKind.Storage, fileName));
         }
     }
 
@@ -666,19 +735,16 @@ public static class AppDataManager
     /// <summary>
     /// 계정 저장 후 프리셋 참조와 자격 증명을 현재 계정 목록 기준으로 다시 정리합니다.
     /// </summary>
-    private static async Task SyncAccountsAndPresetsAfterSaveAsync(IReadOnlyList<Account> accounts)
+    private static async Task<AppDataOperationResult> SyncAccountsAndPresetsAfterSaveAsync(IReadOnlyList<Account> accounts)
     {
         try
         {
             PasswordVaultHelper.RemoveOrphans(accounts.Select(account => account.Id));
-            AppDataOperationResult presetSyncResult = await NormalizePresetListAgainstAccountsAsync(accounts).ConfigureAwait(false);
-
-            if (!presetSyncResult.Success)
-                Debug.WriteLine($"[AppDataManager] Preset sync failed: {presetSyncResult.Exception}");
+            return await NormalizePresetListAgainstAccountsAsync(accounts).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[AppDataManager] Account dependency sync failed: {ex}");
+            return Fail(nameof(SyncAccountsAndPresetsAfterSaveAsync), ex, AppDataErrorKind.CredentialVault, AccountsFileName);
         }
     }
 
@@ -694,6 +760,7 @@ public static class AppDataManager
                 return readResult;
 
             PresetList presetList;
+            Exception? deserializeException = null;
             if (string.IsNullOrWhiteSpace(json))
             {
                 presetList = new PresetList();
@@ -704,8 +771,9 @@ public static class AppDataManager
                 {
                     presetList = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.PresetList) ?? new PresetList();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    deserializeException = ex;
                     presetList = new PresetList();
                 }
             }
@@ -719,13 +787,21 @@ public static class AppDataManager
             changed |= NormalizePresetIds(presetList, validIds);
 
             if (!changed)
-                return AppDataOperationResult.Ok();
+                return deserializeException is null
+                    ? Ok(nameof(NormalizePresetListAgainstAccountsAsync), PresetListFileName)
+                    : Fail(nameof(NormalizePresetListAgainstAccountsAsync), deserializeException, AppDataErrorKind.Serialization, PresetListFileName);
 
-            return await SavePresetListAsync(presetList).ConfigureAwait(false);
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            if (!saveResult.Success)
+                return saveResult;
+
+            return deserializeException is null
+                ? Ok(nameof(NormalizePresetListAgainstAccountsAsync), PresetListFileName)
+                : Fail(nameof(NormalizePresetListAgainstAccountsAsync), deserializeException, AppDataErrorKind.Serialization, PresetListFileName);
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(NormalizePresetListAgainstAccountsAsync), ex, PresetListFileName);
         }
     }
 
