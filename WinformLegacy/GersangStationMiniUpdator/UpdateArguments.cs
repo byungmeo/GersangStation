@@ -10,6 +10,8 @@ internal sealed class UpdateArguments
 
     public string? TargetVersion { get; private set; }
 
+    public string? ReleaseNotesUrl { get; private set; }
+
     public int? MainProcessId { get; private set; }
 
     public bool RestartAfterUpdate { get; private set; } = true;
@@ -50,6 +52,17 @@ internal sealed class UpdateArguments
                     break;
                 case "--version":
                     options.TargetVersion = value.Trim();
+                    break;
+                case "--release-url":
+                    string releaseNotesUrl = value.Trim();
+                    if (!Uri.IsWellFormedUriString(releaseNotesUrl, UriKind.Absolute))
+                    {
+                        errorMessage = $"유효하지 않은 릴리즈 URL입니다: {value}";
+                        options = null;
+                        return false;
+                    }
+
+                    options.ReleaseNotesUrl = releaseNotesUrl;
                     break;
                 case "--pid":
                     if (!int.TryParse(value, out int processId) || processId <= 0)
@@ -121,7 +134,7 @@ internal sealed class UpdateArguments
         return string.Join(Environment.NewLine, new[]
         {
             "사용법:",
-            "  GersangStationMiniUpdator.exe --package <zip URL 또는 zip 경로> --target-dir <프로그램 폴더> --target-exe <실행 파일 경로> [--version <버전>] [--pid <메인앱 PID>] [--restart true|false]"
+            "  GersangStationMiniUpdator.exe --package <zip URL 또는 zip 경로> --target-dir <프로그램 폴더> --target-exe <실행 파일 경로> [--version <버전>] [--release-url <릴리즈 URL>] [--pid <메인앱 PID>] [--restart true|false]"
         });
     }
 }

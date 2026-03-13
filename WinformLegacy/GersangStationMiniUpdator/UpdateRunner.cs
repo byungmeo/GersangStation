@@ -68,6 +68,8 @@ internal sealed class UpdateRunner
                 RestartTargetApplication();
             }
 
+            OpenReleaseNotesIfNeeded();
+
             Report(UpdateStage.Completed, "업데이트가 완료되었습니다.", 100);
         }
         finally
@@ -237,6 +239,22 @@ internal sealed class UpdateRunner
         {
             FileName = options.TargetExecutablePath,
             WorkingDirectory = Path.GetDirectoryName(options.TargetExecutablePath) ?? options.TargetDirectory,
+            UseShellExecute = true
+        };
+
+        Process.Start(startInfo);
+    }
+
+    private void OpenReleaseNotesIfNeeded()
+    {
+        if (string.IsNullOrWhiteSpace(options.ReleaseNotesUrl))
+        {
+            return;
+        }
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = options.ReleaseNotesUrl,
             UseShellExecute = true
         };
 

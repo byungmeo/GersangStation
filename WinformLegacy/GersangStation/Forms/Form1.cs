@@ -81,6 +81,7 @@ public partial class Form1 : MaterialForm {
     private bool isWebFunctionDeactivated = false;
     private bool isGameStartLogin = false;
     private string? announcementUrl = null;
+    private string currentReleaseNotesUrl = url_release;
     WebView2? webView_main = null;
 
     public Form1() {
@@ -655,7 +656,8 @@ public partial class Form1 : MaterialForm {
         SetLatestVersionLabel(versionLatestText);
 
         string message = ExtractDialogMessage(release.Body);
-        ShowUpdatePrompt(localVersion, latestGitHubVersion, "업데이트 안내", message, url_release, false, null, versionLatestText);
+        currentReleaseNotesUrl = string.IsNullOrWhiteSpace(release.HtmlUrl) ? url_release : release.HtmlUrl;
+        ShowUpdatePrompt(localVersion, latestGitHubVersion, "업데이트 안내", message, currentReleaseNotesUrl, false, null, versionLatestText);
     }
 
     private bool ApplyManifestRelease(WinFormsManifestRelease release) {
@@ -676,6 +678,7 @@ public partial class Form1 : MaterialForm {
         string message = string.IsNullOrWhiteSpace(release.Message) ? "새 버전이 게시되었습니다." : release.Message.Trim();
         string updateUrl = GetUpdateUrl(release);
         string? packageUrl = GetUpdatePackageUrl(release);
+        currentReleaseNotesUrl = updateUrl;
         ShowUpdatePrompt(localVersion, latestVersion, title, message, updateUrl, release.IsMandatory, packageUrl, release.Version);
         return true;
     }
@@ -814,7 +817,7 @@ public partial class Form1 : MaterialForm {
                     : message + "\n\n필수 업데이트 버전입니다. 확인을 누르면 업데이트 페이지로 이동합니다.";
                 MessageBox.Show(mandatoryMessage,
                     title, MessageBoxButtons.OK, MessageBoxIcon.Information);
-                if(TryStartMiniUpdator(packageUrl, targetVersion, out string? updaterError)) {
+                if(TryStartMiniUpdator(packageUrl, updateUrl, targetVersion, out string? updaterError)) {
                     System.Windows.Forms.Application.Exit();
                     return;
                 }
@@ -835,7 +838,7 @@ public partial class Form1 : MaterialForm {
                 title, MessageBoxButtons.YesNo, MessageBoxIcon.Information);
 
             if(dr == DialogResult.Yes) {
-                if(TryStartMiniUpdator(packageUrl, targetVersion, out string? updaterError)) {
+                if(TryStartMiniUpdator(packageUrl, updateUrl, targetVersion, out string? updaterError)) {
                     System.Windows.Forms.Application.Exit();
                     return;
                 }
@@ -917,7 +920,7 @@ public partial class Form1 : MaterialForm {
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
-    private static bool TryStartMiniUpdator(string? packageUrl, string? targetVersion, out string? errorMessage) {
+    private static bool TryStartMiniUpdator(string? packageUrl, string? releaseNotesUrl, string? targetVersion, out string? errorMessage) {
         errorMessage = null;
 
         if(string.IsNullOrWhiteSpace(packageUrl) || !Uri.IsWellFormedUriString(packageUrl, UriKind.Absolute)) {
@@ -947,6 +950,11 @@ public partial class Form1 : MaterialForm {
             startInfo.ArgumentList.Add(Process.GetCurrentProcess().Id.ToString());
             startInfo.ArgumentList.Add("--restart");
             startInfo.ArgumentList.Add("true");
+
+            if(!string.IsNullOrWhiteSpace(releaseNotesUrl) && Uri.IsWellFormedUriString(releaseNotesUrl, UriKind.Absolute)) {
+                startInfo.ArgumentList.Add("--release-url");
+                startInfo.ArgumentList.Add(releaseNotesUrl.Trim());
+            }
 
             if(!string.IsNullOrWhiteSpace(targetVersion)) {
                 startInfo.ArgumentList.Add("--version");
@@ -1082,7 +1090,7 @@ public partial class Form1 : MaterialForm {
     }
 
     private void materialButton_patchNote_Click(object sender, EventArgs e) {
-        Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
+        OpenUrl(currentReleaseNotesUrl);
     }
 
     private void materialButton_blog_Click(object sender, EventArgs e) {
