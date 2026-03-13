@@ -4,9 +4,9 @@
   "channel": "stable",
   "generated_at": "2026-03-13T09:34:54Z",
   "release": {
-    "version": "1.6.3",
-    "tag": "winforms-v1.6.3",
-    "compatibility_tag": "1.6.3",
+    "version": "1.7.1",
+    "tag": "winforms-v1.7.1",
+    "compatibility_tag": "1.7.1",
     "published_at": "2026-02-03T13:24:29Z",
     "is_mandatory": false,
     "title": "테스트",
