@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "product": "winforms",
+  "channel": "stable",
+  "generated_at": "2026-03-13T05:30:00Z",
+  "release": {
+    "version": "1.6.4",
+    "tag": "winforms-v1.6.4",
+    "compatibility_tag": "1.6.4",
+    "published_at": "2026-03-13T05:20:00Z",
+    "is_mandatory": false,
+    "title": "업데이트 안내",
+    "message": "테스트용 release manifest 입니다. 브리지 버전 동작을 확인합니다.",
+    "notes_url": "https://github.com/byungmeo/GersangStation/releases/tag/1.6.3",
+    "download": {
+      "asset_name": "GersangStation-winforms-v1.6.3.zip",
+      "url": "https://github.com/byungmeo/GersangStation/releases/download/1.6.3/GersangStation-winforms-v1.6.3.zip",
+      "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "size": 18350241
+    }
+  }
+}
