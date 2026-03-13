@@ -12,6 +12,7 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
 {
     public enum ExtractionFailureStage
     {
+        ResolveExecutable,
         PrepareDestinationRoot,
         AnalyzeArchive,
         RunSevenZip,
@@ -79,10 +80,13 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private readonly string _sevenZipExePath;
+    private readonly FileNotFoundException? _sevenZipResolutionException;
 
     public NativeSevenZipExtractor(string? sevenZipExePath = null)
     {
-        _sevenZipExePath = ResolveSevenZipExecutablePath(sevenZipExePath);
+        SevenZipResolutionResult resolutionResult = ResolveSevenZipExecutablePath(sevenZipExePath);
+        _sevenZipExePath = resolutionResult.Path;
+        _sevenZipResolutionException = resolutionResult.Exception;
     }
 
     public string Name => "Native 7-Zip CLI (7za)";
@@ -102,6 +106,9 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
 
         if (!File.Exists(archivePath))
             return new(false, $"archive file does not exist: {archivePath}");
+
+        if (_sevenZipResolutionException is not null)
+            return new(false, _sevenZipResolutionException.Message, _sevenZipResolutionException);
 
         if (!File.Exists(_sevenZipExePath))
             return new(false, $"7za executable does not exist: {_sevenZipExePath}");
@@ -131,6 +138,8 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
                 ExtractionFailureStage.PrepareDestinationRoot,
                 ex);
         }
+
+        EnsureSevenZipExecutableAvailable(archivePath, destinationRoot);
 
         int? totalEntries;
         try
@@ -212,23 +221,33 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
             WriteLog($"[7ZA][ERR] {args.Data}");
         };
 
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        using var cancellationRegistration = ct.Register(() =>
+        try
         {
-            try
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            using var cancellationRegistration = ct.Register(() =>
             {
                 if (!process.HasExited)
-                    process.Kill(entireProcessTree: true);
-            }
-            catch
-            {
-            }
-        });
+                    TryKillProcess(process);
+            });
 
-        await process.WaitForExitAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to execute 7za for archive '{archivePath}'.",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.RunSevenZip,
+                ex);
+        }
 
         ct.ThrowIfCancellationRequested();
 
@@ -466,10 +485,59 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
             process.ExitCode);
     }
 
-    private static string ResolveSevenZipExecutablePath(string? explicitPath)
+    /// <summary>
+    /// 현재 인스턴스가 사용할 7za 실행 파일이 실제로 준비됐는지 확인합니다.
+    /// </summary>
+    private void EnsureSevenZipExecutableAvailable(string archivePath, string destinationPath)
     {
-        if (!string.IsNullOrWhiteSpace(explicitPath) && File.Exists(explicitPath))
-            return explicitPath;
+        if (_sevenZipResolutionException is not null)
+        {
+            throw new ExtractionOperationException(
+                "Failed to resolve 7za.exe before extraction started.",
+                archivePath,
+                destinationPath,
+                ExtractionFailureStage.ResolveExecutable,
+                _sevenZipResolutionException);
+        }
+
+        if (!File.Exists(_sevenZipExePath))
+        {
+            throw new ExtractionOperationException(
+                $"7za executable does not exist: {_sevenZipExePath}",
+                archivePath,
+                destinationPath,
+                ExtractionFailureStage.ResolveExecutable,
+                new FileNotFoundException("7za executable was not found.", _sevenZipExePath));
+        }
+    }
+
+    private static void TryKillProcess(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch
+        {
+        }
+    }
+
+    private sealed record SevenZipResolutionResult(string Path, FileNotFoundException? Exception);
+
+    private static SevenZipResolutionResult ResolveSevenZipExecutablePath(string? explicitPath)
+    {
+        if (!string.IsNullOrWhiteSpace(explicitPath))
+        {
+            if (File.Exists(explicitPath))
+                return new SevenZipResolutionResult(explicitPath, null);
+
+            return new SevenZipResolutionResult(
+                explicitPath,
+                new FileNotFoundException(
+                    $"7za executable was not found at the configured path: {explicitPath}",
+                    explicitPath));
+        }
 
         string[] localCandidates =
         [
@@ -483,11 +551,13 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
             if (File.Exists(candidate))
             {
                 WriteLog($"Resolved 7za.exe Path: {candidate}");
-                return candidate;
+                return new SevenZipResolutionResult(candidate, null);
             }
         }
 
-        throw new FileNotFoundException("7za.exe not found.");
+        return new SevenZipResolutionResult(
+            localCandidates[0],
+            new FileNotFoundException("7za.exe not found.", localCandidates[0]));
     }
 
     private static void WriteLog(string message)
