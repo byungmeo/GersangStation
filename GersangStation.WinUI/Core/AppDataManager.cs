@@ -131,8 +131,17 @@ public static class AppDataManager
             _ => AppDataErrorKind.Unexpected
         };
 
-    public static void SaveAccounts(IEnumerable<Account> accounts)
+    /// <summary>
+    /// 계정 목록을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySaveAccounts(IEnumerable<Account> accounts)
         => SaveAccountsAsync(accounts).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SaveAccounts(IEnumerable<Account> accounts)
+        => TrySaveAccounts(accounts);
 
     public static async Task<AppDataOperationResult> SaveAccountsAsync(IEnumerable<Account> accounts)
     {
@@ -319,8 +328,14 @@ public static class AppDataManager
         return (s, result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
     }
 
-    private static void SaveAllServerClientSettings(AllServerClientSettings settings)
+    /// <summary>
+    /// 전체 서버 클라이언트 설정을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    private static AppDataOperationResult TrySaveAllServerClientSettings(AllServerClientSettings settings)
         => SaveAllServerClientSettingsAsync(settings).GetAwaiter().GetResult();
+
+    private static void SaveAllServerClientSettings(AllServerClientSettings settings)
+        => TrySaveAllServerClientSettings(settings);
 
     private static async Task<AppDataOperationResult> SaveAllServerClientSettingsAsync(AllServerClientSettings settings)
     {
@@ -335,8 +350,17 @@ public static class AppDataManager
         }
     }
 
-    public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
+    /// <summary>
+    /// 지정한 서버의 클라이언트 설정을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySaveServerClientSettings(GameServer server, ClientSettings settings)
         => SaveServerClientSettingsAsync(server, settings).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
+        => TrySaveServerClientSettings(server, settings);
 
     public static async Task<AppDataOperationResult> SaveServerClientSettingsAsync(GameServer server, ClientSettings settings)
     {
@@ -355,8 +379,17 @@ public static class AppDataManager
     // - PresetContainer에 저장된 Id가 계정 목록에 없으면 "" 로 정규화(선택 안 함)
     // - 정규화로 변경이 발생하면 즉시 SavePresetContainer()로 다시 저장
     // -------------------------
-    public static void SavePresetList(PresetList presetList)
+    /// <summary>
+    /// 프리셋 목록을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySavePresetList(PresetList presetList)
         => SavePresetListAsync(presetList).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SavePresetList(PresetList presetList)
+        => TrySavePresetList(presetList);
 
     public static async Task<AppDataOperationResult> SavePresetListAsync(PresetList presetList)
     {
@@ -433,8 +466,17 @@ public static class AppDataManager
     /// <summary>
     /// 브라우저 즐겨찾기 목록을 저장하며 URL 정규화와 중복 제거를 함께 수행합니다.
     /// </summary>
-    public static void SaveBrowserFavorites(IEnumerable<BrowserFavorite> favorites)
+    /// <summary>
+    /// 브라우저 즐겨찾기 목록을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySaveBrowserFavorites(IEnumerable<BrowserFavorite> favorites)
         => SaveBrowserFavoritesAsync(favorites).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SaveBrowserFavorites(IEnumerable<BrowserFavorite> favorites)
+        => TrySaveBrowserFavorites(favorites);
 
     /// <summary>
     /// 브라우저 즐겨찾기 목록을 저장하며 URL 정규화와 중복 제거를 함께 수행합니다.
