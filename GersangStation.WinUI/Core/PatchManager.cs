@@ -131,6 +131,11 @@ public enum ClientVersionWriteFailureStage
     WriteVsnFile
 }
 
+public enum DirectoryDeleteFailureStage
+{
+    DeleteDirectory
+}
+
 /// <summary>
 /// 설치된 클라이언트 버전 읽기 결과를 파일 경로와 실패 문맥과 함께 반환합니다.
 /// </summary>
@@ -151,6 +156,15 @@ public sealed record ClientVersionWriteResult(
     bool Success,
     string VsnPath,
     ClientVersionWriteFailureStage? FailureStage,
+    Exception? Exception);
+
+/// <summary>
+/// 디렉터리 삭제 재시도 결과를 실패 문맥과 함께 반환합니다.
+/// </summary>
+public sealed record DirectoryDeleteResult(
+    bool Success,
+    string Path,
+    DirectoryDeleteFailureStage? FailureStage,
     Exception? Exception);
 
 /*
@@ -452,28 +466,14 @@ public sealed class PatchManager
         {
             Debug.WriteLine($"[PatchManager] RestartFromScratch. Delete temp root: {tempRoot}");
 
-            bool deleted;
-            try
-            {
-                deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                throw new PatchOperationException(
-                    $"Failed to reset patch temp directory '{tempRoot}'.",
-                    targetServer,
-                    PatchFailureStage.ResetTempDirectory,
-                    ex,
-                    targetPath: tempRoot);
-            }
-
-            if (!deleted)
+            DirectoryDeleteResult deleteResult = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+            if (!deleteResult.Success)
             {
                 throw new PatchOperationException(
                     $"Failed to delete existing patch temp directory '{tempRoot}'.",
                     targetServer,
                     PatchFailureStage.ResetTempDirectory,
-                    new IOException($"Failed to delete existing patch temp directory: {tempRoot}"),
+                    deleteResult.Exception ?? new IOException($"Failed to delete existing patch temp directory: {tempRoot}"),
                     targetPath: tempRoot);
             }
         }
@@ -662,25 +662,10 @@ public sealed class PatchManager
             // 이어받기 / 새로 받기 선택이 가능해야 한다.
             if (patchSucceeded && options.DeleteTempFilesAfterPatch)
             {
-                bool deleted;
-                try
+                DirectoryDeleteResult deleteResult = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+                if (!deleteResult.Success)
                 {
-                    deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    throw new PatchOperationException(
-                        $"Failed to clean up patch temp directory '{tempRoot}' after a successful patch.",
-                        targetServer,
-                        PatchFailureStage.CleanupTempDirectory,
-                        ex,
-                        version: latestClientVersion,
-                        targetPath: tempRoot);
-                }
-
-                if (!deleted)
-                {
-                    Debug.WriteLine($"[PatchManager] Temp root cleanup failed after successful patch: {tempRoot}");
+                    Debug.WriteLine($"[PatchManager] Temp root cleanup failed after successful patch: {tempRoot}, Error: {deleteResult.Exception}");
                 }
             }
         }
@@ -1293,13 +1278,13 @@ public sealed class PatchManager
             ExistingArtifactMode: existingArtifactMode);
     }
 
-    private static async Task<bool> TryDeleteDirectoryIfExistsAsync(
+    private static async Task<DirectoryDeleteResult> TryDeleteDirectoryIfExistsAsync(
     string path,
     CancellationToken ct,
     int maxAttempts = 5)
     {
         if (!Directory.Exists(path))
-            return true;
+            return new DirectoryDeleteResult(true, path, null, null);
 
         Exception? lastException = null;
 
@@ -1312,7 +1297,10 @@ public sealed class PatchManager
                 if (Directory.Exists(path))
                     Directory.Delete(path, recursive: true);
 
-                return !Directory.Exists(path);
+                if (!Directory.Exists(path))
+                    return new DirectoryDeleteResult(true, path, null, null);
+
+                lastException = new IOException($"Directory still exists after delete attempt: {path}");
             }
             catch (IOException ex)
             {
@@ -1338,7 +1326,11 @@ public sealed class PatchManager
             $"path={path}, " +
             $"error={lastException}");
 
-        return !Directory.Exists(path);
+        return new DirectoryDeleteResult(
+            false,
+            path,
+            DirectoryDeleteFailureStage.DeleteDirectory,
+            lastException ?? new IOException($"Failed to delete directory: {path}"));
     }
 
     ///// <summary>
