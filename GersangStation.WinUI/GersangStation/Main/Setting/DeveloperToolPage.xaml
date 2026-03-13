@@ -37,7 +37,7 @@
 
             <StackPanel MaxWidth="720" Spacing="12">
                 <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="예외 처리 테스트" />
-                <TextBlock Opacity="0.72" Text="전역 예외 처리기와 상세 오류 창이 각 실행 환경에서 어떻게 동작하는지 확인합니다. 치명적 오류 테스트는 창을 닫은 뒤 앱이 종료됩니다." />
+                <TextBlock Opacity="0.72" Text="복구 가능한 오류는 상세 창으로 표시하고, 전역 미처리 예외는 crash 전용 경로로 처리되는지 확인합니다. 치명적 오류 테스트는 창을 닫은 뒤 앱이 종료됩니다." />
 
                 <Grid ColumnSpacing="12" RowSpacing="12">
                     <Grid.ColumnDefinitions>
@@ -56,13 +56,13 @@
                         Grid.Row="0"
                         Grid.Column="0"
                         Click="Button_RaiseHandledError_Click"
-                        Content="일반 오류 표시" />
+                        Content="복구 가능 오류 표시" />
 
                     <Button
                         Grid.Row="0"
                         Grid.Column="1"
                         Click="Button_RaiseFatalError_Click"
-                        Content="치명적 오류 표시"
+                        Content="치명적 crash UI"
                         Style="{ThemeResource AccentButtonStyle}" />
 
                     <Button
@@ -81,7 +81,7 @@
                         Grid.Row="2"
                         Grid.Column="0"
                         Click="Button_RaiseUnobservedTaskError_Click"
-                        Content="백그라운드 Task 오류" />
+                        Content="Unobserved Task 오류" />
 
                     <Button
                         Grid.Row="2"
@@ -105,7 +105,7 @@
                         Grid.Row="4"
                         Grid.Column="0"
                         Click="Button_RaiseNativeFallbackError_Click"
-                        Content="네이티브 fallback 오류" />
+                        Content="Win32 fallback 오류" />
                 </Grid>
             </StackPanel>
         </StackPanel>

@@ -43,7 +43,7 @@ namespace GersangStation
             }
             catch (Exception ex)
             {
-                await ExceptionHandler.HandleAsync(ex, "App.OnLaunched", isFatal: true);
+                await ExceptionHandler.HandleFatalUiExceptionAsync(ex, "App.OnLaunched");
             }
         }
 
@@ -113,26 +113,36 @@ namespace GersangStation
         }
 
         /// <summary>
-        /// WinUI UI 스레드에서 처리되지 않은 예외를 공통 처리기로 전달합니다.
+        /// WinUI UI 스레드에서 처리되지 않은 예외를 마지막 crash UI로 표시한 뒤 종료합니다.
         /// </summary>
         private async void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
         {
+            // 창을 보여줄 마지막 기회를 확보하기 위해 handled로 전환하되, 복구 시도는 하지 않습니다.
             e.Handled = true;
-            await ExceptionHandler.HandleAsync(e.Exception, "Microsoft.UI.Xaml.Application.UnhandledException", isFatal: true);
+            await ExceptionHandler.HandleFatalUiExceptionAsync(
+                e.Exception,
+                "Microsoft.UI.Xaml.Application.UnhandledException");
         }
 
         /// <summary>
-        /// 앱 도메인 수준의 처리되지 않은 예외를 공통 처리기로 전달합니다.
+        /// 앱 도메인 수준의 처리되지 않은 예외는 WinUI를 거치지 않고 저수준 fallback으로만 처리합니다.
         /// </summary>
         private void OnCurrentDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
         {
             Exception exception = e.ExceptionObject as Exception
                 ?? new Exception($"Non-Exception object was thrown: {e.ExceptionObject}");
 
-            ExceptionHandler
-                .HandleAsync(exception, "AppDomain.CurrentDomain.UnhandledException", isFatal: e.IsTerminating)
-                .GetAwaiter()
-                .GetResult();
+            if (e.IsTerminating)
+            {
+                ExceptionHandler.HandleFatalProcessException(
+                    exception,
+                    "AppDomain.CurrentDomain.UnhandledException");
+                return;
+            }
+
+            _ = ExceptionHandler.ShowRecoverableAsync(
+                exception,
+                "AppDomain.CurrentDomain.UnhandledException");
         }
 
         /// <summary>

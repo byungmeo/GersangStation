@@ -67,10 +67,9 @@ public sealed partial class DeveloperToolPage : Page
     /// </summary>
     private async void Button_RaiseHandledError_Click(object sender, RoutedEventArgs e)
     {
-        await App.ExceptionHandler.HandleAsync(
+        await App.ExceptionHandler.ShowRecoverableAsync(
             new InvalidOperationException("DeveloperToolPage에서 수동으로 발생시킨 일반 오류입니다."),
-            "DeveloperToolPage.HandledSyncError",
-            isFatal: false);
+            "DeveloperToolPage.HandledSyncError");
     }
 
     /// <summary>
@@ -78,10 +77,9 @@ public sealed partial class DeveloperToolPage : Page
     /// </summary>
     private async void Button_RaiseFatalError_Click(object sender, RoutedEventArgs e)
     {
-        await App.ExceptionHandler.HandleAsync(
+        await App.ExceptionHandler.HandleFatalUiExceptionAsync(
             new InvalidOperationException("DeveloperToolPage에서 수동으로 발생시킨 치명적 오류입니다."),
-            "DeveloperToolPage.HandledFatalError",
-            isFatal: true);
+            "DeveloperToolPage.HandledFatalError");
     }
 
     /// <summary>
@@ -110,10 +108,9 @@ public sealed partial class DeveloperToolPage : Page
     private async void Button_RaiseHandledAsyncError_Click(object sender, RoutedEventArgs e)
     {
         await Task.Delay(TestDelay);
-        await App.ExceptionHandler.HandleAsync(
+        await App.ExceptionHandler.ShowRecoverableAsync(
             new IOException("비동기 흐름에서 수동으로 발생시킨 일반 오류입니다."),
-            "DeveloperToolPage.HandledAsyncError",
-            isFatal: false);
+            "DeveloperToolPage.HandledAsyncError");
     }
 
     /// <summary>

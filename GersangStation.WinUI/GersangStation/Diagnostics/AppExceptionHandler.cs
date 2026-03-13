@@ -13,6 +13,12 @@ namespace GersangStation.Diagnostics;
 /// </summary>
 public sealed class AppExceptionHandler
 {
+    private enum PresentationMode
+    {
+        Recoverable,
+        FatalUiCrash
+    }
+
     private static readonly TimeSpan DuplicateSuppressionWindow = TimeSpan.FromSeconds(2);
 
     private readonly SemaphoreSlim _presentationGate = new(1, 1);
@@ -22,24 +28,78 @@ public sealed class AppExceptionHandler
     private DateTimeOffset _lastPresentedAt;
 
     /// <summary>
-    /// 예외를 상세 정보 창으로 표시하고, 치명적 예외면 창을 닫은 뒤 앱을 종료합니다.
+    /// 경계 지점에서 포착한 예외를 표시합니다.
     /// </summary>
     public async Task HandleAsync(Exception exception, string context, bool isFatal)
-        => await HandleCoreAsync(exception, context, isFatal, preferNativeFallback: false).ConfigureAwait(false);
+    {
+        if (isFatal)
+        {
+            await HandleFatalUiExceptionAsync(exception, context).ConfigureAwait(false);
+            return;
+        }
+
+        await ShowRecoverableAsync(exception, context).ConfigureAwait(false);
+    }
 
     /// <summary>
-    /// WinUI 창을 건너뛰고 Win32 fallback 경로를 바로 테스트합니다.
+    /// 복구 가능한 경계 예외를 상세 정보 창으로 표시합니다.
     /// </summary>
-    public async Task HandleWithNativeFallbackAsync(Exception exception, string context, bool isFatal)
-        => await HandleCoreAsync(exception, context, isFatal, preferNativeFallback: true).ConfigureAwait(false);
+    public async Task ShowRecoverableAsync(Exception exception, string context)
+        => await HandleUiPresentationAsync(exception, context, PresentationMode.Recoverable, preferNativeFallback: false).ConfigureAwait(false);
 
-    private async Task HandleCoreAsync(Exception exception, string context, bool isFatal, bool preferNativeFallback)
+    /// <summary>
+    /// 전역 UI 미처리 예외를 마지막 crash UI로 표시한 뒤 앱을 종료합니다.
+    /// </summary>
+    public async Task HandleFatalUiExceptionAsync(Exception exception, string context)
+        => await HandleUiPresentationAsync(exception, context, PresentationMode.FatalUiCrash, preferNativeFallback: false).ConfigureAwait(false);
+
+    /// <summary>
+    /// WinUI를 신뢰할 수 없는 전역 프로세스 수준 예외를 저수준 fallback으로만 기록하고 안내합니다.
+    /// </summary>
+    public void HandleFatalProcessException(Exception exception, string context)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
         if (exception is OperationCanceledException)
             return;
 
+        if (ShouldSuppressDuplicate(exception, isFatal: true))
+            return;
+
+        string details = ExceptionDetailsBuilder.Build(exception, context, isFatal: true);
+        string? logPath = TryWriteCrashLog(details, isFatal: true);
+        string detailsWithLogPath = logPath is null
+            ? details
+            : $"{details}{Environment.NewLine}Crash Log: {logPath}";
+
+        Debug.WriteLine(detailsWithLogPath);
+        ShowNativeFallback(exception, context, logPath, isFatal: true, exitApplication: false);
+    }
+
+    /// <summary>
+    /// WinUI 창을 건너뛰고 Win32 fallback 경로를 바로 테스트합니다.
+    /// </summary>
+    public async Task HandleWithNativeFallbackAsync(Exception exception, string context, bool isFatal)
+    {
+        PresentationMode mode = isFatal
+            ? PresentationMode.FatalUiCrash
+            : PresentationMode.Recoverable;
+
+        await HandleUiPresentationAsync(exception, context, mode, preferNativeFallback: true).ConfigureAwait(false);
+    }
+
+    private async Task HandleUiPresentationAsync(
+        Exception exception,
+        string context,
+        PresentationMode presentationMode,
+        bool preferNativeFallback)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+
+        if (exception is OperationCanceledException)
+            return;
+
+        bool isFatal = presentationMode is PresentationMode.FatalUiCrash;
         if (ShouldSuppressDuplicate(exception, isFatal))
             return;
 
@@ -57,14 +117,14 @@ public sealed class AppExceptionHandler
             bool presented = !preferNativeFallback &&
                 await TryShowWindowAsync(exception, context, detailsWithLogPath, logPath, isFatal).ConfigureAwait(false);
             if (!presented)
-                ShowNativeFallback(exception, context, logPath, isFatal);
+                ShowNativeFallback(exception, context, logPath, isFatal, exitApplication: isFatal);
         }
         catch (Exception presentationException)
         {
             Debug.WriteLine(
                 $"[AppExceptionHandler] 예외 창 표시 중 추가 예외가 발생했습니다.{Environment.NewLine}{presentationException}");
 
-            ShowNativeFallback(exception, context, logPath, isFatal);
+            ShowNativeFallback(exception, context, logPath, isFatal, exitApplication: isFatal);
         }
         finally
         {
@@ -143,7 +203,12 @@ public sealed class AppExceptionHandler
     /// <summary>
     /// WinUI 창 표시가 실패했을 때 Win32 메시지 박스로 최소 정보를 안내합니다.
     /// </summary>
-    private static void ShowNativeFallback(Exception exception, string context, string? logPath, bool isFatal)
+    private static void ShowNativeFallback(
+        Exception exception,
+        string context,
+        string? logPath,
+        bool isFatal,
+        bool exitApplication)
     {
         string title = isFatal ? "GersangStation 치명적 오류" : "GersangStation 오류";
         string message =
@@ -161,7 +226,7 @@ public sealed class AppExceptionHandler
                 $"[AppExceptionHandler] 네이티브 오류 대화상자 표시도 실패했습니다.{Environment.NewLine}{message}");
         }
 
-        if (isFatal)
+        if (exitApplication)
             Application.Current.Exit();
     }
 

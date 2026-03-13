@@ -43,11 +43,14 @@
 - For fire-and-forget tasks, do not leave `_ = Task.Run(...)` or other unobserved tasks without centralized handling. Prefer `FireAndForgetHandled(...)` or `SafeExecution.RunHandledAsync(...)`.
 - For timers, prefer `SafeExecution.StartHandledTimer(...)` over raw `new Timer(...)` when the callback can throw.
 - For non-UI async/sync entry points that may fail, prefer `SafeExecution.RunHandledAsync(...)` so exceptions are routed to `AppExceptionHandler`.
+- Treat global unhandled exception hooks as crash-reporting boundaries, not recovery points. Prefer logging, minimal final user notification, and termination over trying to continue after `Application.UnhandledException` or `AppDomain.CurrentDomain.UnhandledException`.
+- For `AppDomain.CurrentDomain.UnhandledException`, avoid WinUI/XAML work and avoid blocking on async UI code. Prefer low-level fallback handling only.
 - If a method can validate input or environment without exceptions, prefer explicit checks and meaningful return values before relying on exception handling.
 - When code must catch a specific recoverable exception such as `IOException`, `UnauthorizedAccessException`, or `HttpRequestException`, either recover locally with a clear user-facing outcome or re-route the failure into the centralized exception handler.
 - Preserve original exception context. Do not use `throw ex;`. Use `throw;` for rethrow, or wrap with a domain-specific exception that keeps the original exception as `InnerException`.
 - When adding new background or scheduling mechanisms, extend the centralized exception utilities rather than inventing a new local handling pattern.
 - Keep `Core` free of app-specific UI wording. When `AppDataManager` returns `AppDataOperationResult`, translate it in the `GersangStation` app layer with the shared formatter/dialog helper instead of showing raw `Exception.Message` or generic one-line failure text.
+- Prefer contextual `ContentDialog`/`InfoBar` style feedback for recoverable UI errors. Reserve the detailed exception window for crash reporting, developer tooling, or explicit support diagnostics.
 - If a change introduces a new exception-handling pattern, update this file in the same change so future AI-assisted edits follow the same rule set.
 
 ## Validation
