@@ -17,6 +17,12 @@ public sealed class NativeSevenZipExtractor : IExtractor
         ReplicateDirectory
     }
 
+    private enum ArchiveListingFailureStage
+    {
+        RunListCommand,
+        ParseSummary
+    }
+
     /// <summary>
     /// 7za 기반 추출 실패 시 단계, 경로, 종료 코드를 함께 전달합니다.
     /// </summary>
@@ -57,6 +63,13 @@ public sealed class NativeSevenZipExtractor : IExtractor
         }
     }
 
+    private sealed record ArchiveListingProbeResult(
+        bool Success,
+        int? TotalEntries,
+        ArchiveListingFailureStage? FailureStage,
+        string? FailureReason,
+        int? ExitCode);
+
     private static readonly Regex ExtractionProgressRegex = new(
         @"^\s*(?<percent>\d{1,3})%\s*(?<processed>\d+)?(?:\s*-\s*(?<entry>.+))?$",
         RegexOptions.Compiled);
@@ -94,7 +107,14 @@ public sealed class NativeSevenZipExtractor : IExtractor
         int? totalEntries;
         try
         {
-            totalEntries = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
+            ArchiveListingProbeResult listingResult = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
+            totalEntries = listingResult.TotalEntries;
+            if (!listingResult.Success)
+            {
+                WriteLog(
+                    $"[7ZA][LIST][FALLBACK] stage={listingResult.FailureStage?.ToString() ?? "unknown"}, " +
+                    $"exitCode={listingResult.ExitCode?.ToString() ?? "null"}, reason={listingResult.FailureReason ?? "unknown"}");
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -326,7 +346,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         await sourceStream.CopyToAsync(destinationStream, bufferSize, ct).ConfigureAwait(false);
     }
 
-    private async Task<int?> TryGetTotalEntriesAsync(string archivePath, CancellationToken ct)
+    private async Task<ArchiveListingProbeResult> TryGetTotalEntriesAsync(string archivePath, CancellationToken ct)
     {
         var psi = new ProcessStartInfo
         {
@@ -349,7 +369,12 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (process.ExitCode != 0)
         {
             WriteLog($"[7ZA][LIST][ERR] exitCode={process.ExitCode}, stderr={stderr}");
-            return null;
+            return new ArchiveListingProbeResult(
+                false,
+                null,
+                ArchiveListingFailureStage.RunListCommand,
+                $"7za list command failed. stderr={stderr}",
+                process.ExitCode);
         }
 
         var lines = stdout
@@ -383,11 +408,16 @@ public sealed class NativeSevenZipExtractor : IExtractor
             }
 
             WriteLog($"[7ZA][LIST][PARSED] files={files}, folders={folders}, totalFiles={files}");
-            return files;
+            return new ArchiveListingProbeResult(true, files, null, null, process.ExitCode);
         }
 
         WriteLog("[7ZA][LIST][PARSED] summary not found in tail lines.");
-        return null;
+        return new ArchiveListingProbeResult(
+            false,
+            null,
+            ArchiveListingFailureStage.ParseSummary,
+            "summary not found in tail lines",
+            process.ExitCode);
     }
 
     private static string ResolveSevenZipExecutablePath(string? explicitPath)
