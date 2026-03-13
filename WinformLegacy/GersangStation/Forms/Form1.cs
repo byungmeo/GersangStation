@@ -708,12 +708,18 @@ public partial class Form1 : MaterialForm {
             return false;
         }
 
-        for(int i = sponsors.Count - 1; i >= 0; i--) {
-            JsonElement sponsor = sponsors[i];
+        List<string> sponsorTexts = new List<string>();
+        foreach(JsonElement sponsor in sponsors) {
             string? text = GetSponsorDisplayText(sponsor);
             if(!string.IsNullOrWhiteSpace(text)) {
-                materialListBox_sponsor.AddItem(new MaterialListBoxItem(text));
+                sponsorTexts.Add(text);
             }
+        }
+
+        sponsorTexts.Sort((left, right) => string.CompareOrdinal(GetSponsorSortKey(right), GetSponsorSortKey(left)));
+
+        foreach(string text in sponsorTexts) {
+            materialListBox_sponsor.AddItem(new MaterialListBoxItem(text));
         }
         materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
         return true;
@@ -738,6 +744,19 @@ public partial class Form1 : MaterialForm {
         }
 
         return $"{date} [{name}] {message}";
+    }
+
+    private static string GetSponsorSortKey(string sponsorText) {
+        if(string.IsNullOrWhiteSpace(sponsorText)) {
+            return string.Empty;
+        }
+
+        int firstSpaceIndex = sponsorText.IndexOf(' ');
+        if(firstSpaceIndex <= 0) {
+            return sponsorText.Trim();
+        }
+
+        return sponsorText.Substring(0, firstSpaceIndex).Trim();
     }
 
     private static string GetLocalVersionText() {
