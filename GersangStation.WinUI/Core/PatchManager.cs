@@ -1082,9 +1082,12 @@ public sealed class PatchManager
             AppDataManager.TryLoadServerClientSettings(targetServer);
         if (!loadResult.Success)
         {
-            throw new InvalidOperationException(
-                $"다클라 패치 설정을 불러오지 못했습니다. Target={loadResult.Target}, Operation={loadResult.Operation}, ErrorKind={loadResult.ErrorKind}",
-                loadResult.Exception);
+            throw loadResult.Exception is null
+                ? new IOException(
+                    $"다클라 패치 설정을 불러오지 못했습니다. Target={loadResult.Target}, Operation={loadResult.Operation}, ErrorKind={loadResult.ErrorKind}")
+                : new IOException(
+                    $"다클라 패치 설정을 불러오지 못했습니다. Target={loadResult.Target}, Operation={loadResult.Operation}, ErrorKind={loadResult.ErrorKind}",
+                    loadResult.Exception);
         }
 
         if (!clientSettings.UseMultiClient)
@@ -1107,14 +1110,9 @@ public sealed class PatchManager
         CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
         if (!result.Success)
         {
-            if (result.Exception is not null)
-            {
-                throw new InvalidOperationException(
-                    $"다클라 패치 적용 실패: {result.Reason}",
-                    result.Exception);
-            }
-
-            throw new InvalidOperationException($"다클라 패치 적용 실패: {result.Reason}");
+            throw result.Exception is null
+                ? new IOException($"다클라 패치 적용 실패: {result.Reason}")
+                : new IOException($"다클라 패치 적용 실패: {result.Reason}", result.Exception);
         }
     }
 
