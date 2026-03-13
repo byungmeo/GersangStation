@@ -919,7 +919,12 @@ public sealed class PatchManager
         string normalizedClientPath = clientPath?.Trim() ?? string.Empty;
         string vsnPath = Path.Combine(normalizedClientPath, "Online", "vsn.dat");
         if (!File.Exists(vsnPath))
-            return new ClientVersionReadResult(false, null, vsnPath, null, null);
+            return new ClientVersionReadResult(
+                false,
+                null,
+                vsnPath,
+                ClientVersionReadFailureStage.OpenVsnFile,
+                new FileNotFoundException($"vsn.dat file was not found. path={vsnPath}", vsnPath));
 
         try
         {
