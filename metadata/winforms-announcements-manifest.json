@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "product": "winforms",
+  "channel": "stable",
+  "generated_at": "2026-03-13T05:30:00Z",
+  "announcement": {
+    "id": "103",
+    "title": "[26.03.13] 브리지 manifest 테스트 공지",
+    "url": "https://github.com/byungmeo/GersangStation/discussions/103",
+    "published_at": "2026-03-13T05:15:00Z",
+    "show_popup": true
+  }
+}
