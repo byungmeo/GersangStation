@@ -35,6 +35,15 @@ public sealed class Downloader
         Transfer
     }
 
+    private enum MetadataReadFailureStage
+    {
+        MissingFile,
+        ReadFileContents,
+        ValidateLineCount,
+        ParseTotalBytes,
+        ParseLastModified
+    }
+
     /// <summary>
     /// 다운로드 실패 시 URL, 대상 경로, 단계 정보를 함께 보존합니다.
     /// </summary>
@@ -57,6 +66,13 @@ public sealed class Downloader
             Stage = stage;
         }
     }
+
+    private sealed record MetadataReadResult(
+        bool Success,
+        LocalMetadata? Metadata,
+        MetadataReadFailureStage? FailureStage,
+        string? FailureReason,
+        Exception? Exception);
 
     private readonly HttpClient _http;
 
@@ -748,11 +764,16 @@ public sealed class Downloader
             return ExistingArtifactState.None;
         }
 
-        if (!TryReadMetadata(metaPath, out LocalMetadata? localMeta, out string? metadataFailureReason))
+        MetadataReadResult metadataReadResult = TryReadMetadata(metaPath);
+        if (!metadataReadResult.Success)
         {
-            LogDownload(destinationPath, $"META_INVALID path={metaPath} reason={metadataFailureReason ?? "unknown"}");
+            LogDownload(
+                destinationPath,
+                $"META_INVALID path={metaPath} stage={metadataReadResult.FailureStage?.ToString() ?? "unknown"} reason={metadataReadResult.FailureReason ?? "unknown"}");
             return ExistingArtifactState.InvalidArtifacts;
         }
+
+        LocalMetadata localMeta = metadataReadResult.Metadata!;
 
         // final과 temp가 동시에 존재하면 어떤 파일을 신뢰해야 하는지 불명확하므로 비정상 상태로 본다.
         if (hasFinal && hasTemp)
@@ -760,7 +781,7 @@ public sealed class Downloader
 
         if (hasFinal)
         {
-            if (!IsMetadataReusable(localMeta!, serverMeta))
+            if (!IsMetadataReusable(localMeta, serverMeta))
                 return ExistingArtifactState.InvalidArtifacts;
 
             existingLength = new FileInfo(destinationPath).Length;
@@ -769,7 +790,7 @@ public sealed class Downloader
 
         if (hasTemp)
         {
-            if (!IsMetadataReusable(localMeta!, serverMeta))
+            if (!IsMetadataReusable(localMeta, serverMeta))
                 return ExistingArtifactState.InvalidArtifacts;
 
             existingLength = new FileInfo(tempPath).Length;
@@ -799,64 +820,84 @@ public sealed class Downloader
 
     /// <summary>
     /// local metadata 파일을 읽어 파싱한다.
-    /// 파일이 없거나 형식이 맞지 않으면 false를 반환한다.
+    /// 파일이 없거나 형식이 맞지 않으면 실패 단계와 이유를 함께 반환합니다.
     /// </summary>
-    private static bool TryReadMetadata(
-        string metaPath,
-        out LocalMetadata? metadata,
-        out string? failureReason)
+    private static MetadataReadResult TryReadMetadata(string metaPath)
     {
-        metadata = null;
-        failureReason = null;
+        if (!File.Exists(metaPath))
+        {
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.MissingFile,
+                "metadata file not found",
+                null);
+        }
 
+        string[] lines;
         try
         {
-            if (!File.Exists(metaPath))
-            {
-                failureReason = "metadata file not found";
-                return false;
-            }
-
-            string[] lines = File.ReadAllLines(metaPath);
-            if (lines.Length < 3)
-            {
-                failureReason = $"expected at least 3 lines but found {lines.Length}";
-                return false;
-            }
-
-            if (!long.TryParse(lines[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out long totalBytes))
-            {
-                failureReason = $"invalid totalBytes value '{lines[0]}'";
-                return false;
-            }
-
-            string? etag = string.IsNullOrWhiteSpace(lines[1]) ? null : lines[1];
-
-            DateTimeOffset? lastModifiedUtc = null;
-            if (!string.IsNullOrWhiteSpace(lines[2]))
-            {
-                if (!DateTimeOffset.TryParseExact(
-                        lines[2],
-                        "O",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.RoundtripKind,
-                        out var parsed))
-                {
-                    failureReason = $"invalid lastModified value '{lines[2]}'";
-                    return false;
-                }
-
-                lastModifiedUtc = parsed;
-            }
-
-            metadata = new LocalMetadata(totalBytes, etag, lastModifiedUtc);
-            return true;
+            lines = File.ReadAllLines(metaPath);
         }
         catch (Exception ex)
         {
-            failureReason = $"{ex.GetType().Name}: {ex.Message}";
-            return false;
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.ReadFileContents,
+                $"{ex.GetType().Name}: {ex.Message}",
+                ex);
         }
+
+        if (lines.Length < 3)
+        {
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.ValidateLineCount,
+                $"expected at least 3 lines but found {lines.Length}",
+                null);
+        }
+
+        if (!long.TryParse(lines[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out long totalBytes))
+        {
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.ParseTotalBytes,
+                $"invalid totalBytes value '{lines[0]}'",
+                null);
+        }
+
+        string? etag = string.IsNullOrWhiteSpace(lines[1]) ? null : lines[1];
+
+        DateTimeOffset? lastModifiedUtc = null;
+        if (!string.IsNullOrWhiteSpace(lines[2]))
+        {
+            if (!DateTimeOffset.TryParseExact(
+                    lines[2],
+                    "O",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out DateTimeOffset parsed))
+            {
+                return new MetadataReadResult(
+                    false,
+                    null,
+                    MetadataReadFailureStage.ParseLastModified,
+                    $"invalid lastModified value '{lines[2]}'",
+                    null);
+            }
+
+            lastModifiedUtc = parsed;
+        }
+
+        return new MetadataReadResult(
+            true,
+            new LocalMetadata(totalBytes, etag, lastModifiedUtc),
+            null,
+            null,
+            null);
     }
 
     /// <summary>
