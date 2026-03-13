@@ -15,8 +15,16 @@ using File = System.IO.File;
 namespace GersangStation;
 
 public partial class Form1 : MaterialForm {
+    private sealed class ManifestLoadState {
+        public bool ReleaseLoaded { get; set; }
+        public bool AnnouncementsLoaded { get; set; }
+        public bool SponsorsLoaded { get; set; }
+    }
+
     private const int WM_ACTIVATEAPP = 0x001C;
     private const int WM_HOTKEY = 0x0312;
+    private const string github_owner = "byungmeo";
+    private const string github_repo = "GersangStation";
     protected override void WndProc(ref Message m) {
         if(m.Msg == WM_HOTKEY && bool.Parse(ConfigManager.GetConfig("use_clip_toggle_hotkey"))) {
             if(m.WParam == (IntPtr)ClipMouse.GetHotKeyId()) {
@@ -67,15 +75,17 @@ public partial class Form1 : MaterialForm {
     private const string url_main = "https://www.gersang.co.kr/main/index.gs?"; // 거상 홈페이지 메인
     private const string url_logout = "https://www.gersang.co.kr/member/logoutProc.gs"; // 로그아웃 링크
     private const string url_installStarter = "https://akgersang.xdn.kinxcdn.com//PatchFile/Gersang_Web/GersangStarterSetup.exe"; // 거상 스타터 다운로드 링크
-    private const string url_release = "https://github.com/byungmeo/GersangStation/releases/latest"; // 깃허브 릴리즈
+    private const string url_release = $"https://github.com/{github_owner}/{github_repo}/releases/latest"; // 깃허브 릴리즈
 
     private bool isWebFunctionDeactivated = false;
     private bool isGameStartLogin = false;
+    private string? announcementUrl = null;
 
     WebView2? webView_main = null;
 
     public Form1() {
         InitializeComponent();
+        linkLabel_announcement.LinkClicked += linkLabel_announcement_LinkClicked;
 
         // 0x8007139F 문제가 발생하지 않도록 문제 원인인 레지스트리값을 WebView2 로딩 전 삭제
         string registryPath = @"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers";
@@ -377,19 +387,18 @@ public partial class Form1 : MaterialForm {
 #if DEBUG
         linkLabel_announcement.Text = "디버그 모드";
 #else
-        // 깃허브에 있는 공지사항 및 릴리즈 정보 등을 가져옴
-        try {
-            GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
-            IReadOnlyList<Release> releases = await client.Repository.Release.GetAll("byungmeo", "GersangStation");
-            Readme r = await client.Repository.Content.GetReadme("byungmeo", "GersangStation");
+        ManifestLoadState manifestLoadState = await TryLoadManifestAsync();
+        if(!manifestLoadState.ReleaseLoaded || !manifestLoadState.AnnouncementsLoaded || !manifestLoadState.SponsorsLoaded) {
+            try {
+                await LoadLegacyGitHubDataAsync(manifestLoadState);
+            } catch(Exception ex) {
+                if(!manifestLoadState.AnnouncementsLoaded) {
+                    linkLabel_announcement.Text = "공지사항 로딩 실패";
+                }
 
-            CheckProgramUpdate(releases);
-            LoadAnnouncements(r);
-            LoadSponsors(r);
-        } catch(Exception ex) {
-            linkLabel_announcement.Text = "공지사항 로딩 실패";
-            Logger.Log("GitHubClient 관련 에러 : ", ex);
-            Trace.WriteLine(ex.Message);
+                Logger.Log("GitHubClient 관련 에러 : ", ex);
+                Trace.WriteLine(ex.Message);
+            }
         }
 #endif
     }
@@ -551,52 +560,155 @@ public partial class Form1 : MaterialForm {
         ClipMouse.RegisterHotKey(this.Handle, hotKey);
     }
 
-    private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
-        //버전 업데이트 시 Properties -> AssemblyInfo.cs 의 AssemblyVersion과 AssemblyFileVersion을 바꿔주세요.
-        string version_current = Assembly.GetExecutingAssembly().GetName().Version.ToString().Substring(0, 7);
-        Trace.WriteLine(version_current);
-
-        int ver_idx;
-        for(ver_idx = 0; ver_idx < releases.Count; ++ver_idx) {
-            if(releases[ver_idx].Prerelease == false)
-                break;
+    private async Task<ManifestLoadState> TryLoadManifestAsync() {
+        ManifestLoadState state = new ManifestLoadState();
+        string manifestUrl = ConfigManager.GetConfig("winforms_manifest_url");
+        if(string.IsNullOrWhiteSpace(manifestUrl)) {
+            return state;
         }
-        Release release = releases[ver_idx];
-        string version_latest = release.TagName;
-        label_version_current.Text = label_version_current.Text.Replace("0.0.0.0", version_current);
-        label_version_latest.Text = label_version_latest.Text.Replace("0.0.0.0", version_latest);
 
-        //깃허브에 게시된 마지막 버전과 현재 버전을 초기화 합니다.
-        //Version latestGitHubVersion = new Version(releases[0].TagName);
-        Version latestGitHubVersion = new Version(version_latest);
-        Version localVersion = new Version(version_current);
+        try {
+            WinFormsManifest? manifest = await WinFormsManifestLoader.LoadAsync(manifestUrl);
+            if(manifest == null || !string.Equals(manifest.Product, "winforms", StringComparison.OrdinalIgnoreCase)) {
+                return state;
+            }
+
+            if(manifest.Release != null) {
+                state.ReleaseLoaded = ApplyManifestRelease(manifest.Release);
+            }
+
+            if(manifest.Announcements != null && manifest.Announcements.Count > 0) {
+                state.AnnouncementsLoaded = ApplyManifestAnnouncement(manifest.Announcements[0]);
+            }
+
+            if(manifest.Sponsors?.Items != null && manifest.Sponsors.Items.Count > 0) {
+                state.SponsorsLoaded = ApplyManifestSponsors(manifest.Sponsors.Items);
+            }
+        } catch(Exception ex) {
+            Logger.Log("Manifest 로딩 실패", ex);
+            Trace.WriteLine(ex.Message);
+        }
+
+        return state;
+    }
+
+    private async Task LoadLegacyGitHubDataAsync(ManifestLoadState manifestLoadState) {
+        GitHubClient client = new GitHubClient(new ProductHeaderValue("Byungmeo"));
+        if(!manifestLoadState.ReleaseLoaded) {
+            IReadOnlyList<Release> releases = await client.Repository.Release.GetAll(github_owner, github_repo);
+            CheckProgramUpdate(releases);
+        }
+
+        if(!manifestLoadState.AnnouncementsLoaded || !manifestLoadState.SponsorsLoaded) {
+            Readme readme = await client.Repository.Content.GetReadme(github_owner, github_repo);
+            if(!manifestLoadState.AnnouncementsLoaded) {
+                LoadAnnouncements(readme);
+            }
+
+            if(!manifestLoadState.SponsorsLoaded) {
+                LoadSponsors(readme);
+            }
+        }
+    }
+
+    private void CheckProgramUpdate(IReadOnlyList<Release> releases) {
+        string versionCurrentText = GetLocalVersionText();
+        SetCurrentVersionLabel(versionCurrentText);
+        if(!TryParseVersionTag(versionCurrentText, out Version localVersion)) {
+            return;
+        }
+
+        Release? release = null;
+        Version latestGitHubVersion = new Version(0, 0, 0, 0);
+        foreach(Release item in releases) {
+            if(item.Prerelease || item.Draft) {
+                continue;
+            }
+
+            if(!TryParseVersionTag(item.TagName, out latestGitHubVersion)) {
+                continue;
+            }
+
+            release = item;
+            break;
+        }
+
+        if(release == null) {
+            label_version_latest.Text = "최신 버전 : 확인 실패";
+            return;
+        }
+
+        string versionLatestText = latestGitHubVersion.Revision > 0 ? latestGitHubVersion.ToString(4) : latestGitHubVersion.ToString(3);
+        SetLatestVersionLabel(versionLatestText);
         Trace.WriteLine("깃허브에 마지막으로 게시된 버전 : " + latestGitHubVersion);
         Trace.WriteLine("현재 프로젝트 버전 : " + localVersion);
 
-        // 업데이트 알림
-        string msg = release.Body;
-        if(msg.Contains("<!--DIALOG-->") && msg.Contains("<!--END-->")) {
-            // <!--DIALOG-->와 <!--END--> 사이의 내용만 가져옵니다.
-            int start = msg.IndexOf("<!--DIALOG-->") + "<!--DIALOG-->".Length + 2;
-            int end = msg.IndexOf("<!--END-->") - start;
-            msg = msg.Substring(start, end);
+        string message = ExtractDialogMessage(release.Body);
+        ShowUpdatePrompt(localVersion, latestGitHubVersion, "업데이트 안내", message, url_release, false);
+    }
+
+    private bool ApplyManifestRelease(WinFormsManifestRelease release) {
+        string versionCurrentText = GetLocalVersionText();
+        SetCurrentVersionLabel(versionCurrentText);
+        if(!TryParseVersionTag(versionCurrentText, out Version localVersion)) {
+            return false;
         }
 
-        int versionComparison = localVersion.CompareTo(latestGitHubVersion);
-        if(versionComparison < 0) {
-            Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
+        if(!TryParseVersionTag(release.Version, out Version latestVersion)) {
+            return false;
+        }
 
-            DialogResult dr = MessageBox.Show(msg + "\n\n업데이트 하시겠습니까? (GitHub 접속)",
-                "업데이트 안내", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+        string versionLatestText = latestVersion.Revision > 0 ? latestVersion.ToString(4) : latestVersion.ToString(3);
+        SetLatestVersionLabel(versionLatestText);
 
-            if(dr == DialogResult.Yes) {
-                Process.Start(new ProcessStartInfo(url_release) { UseShellExecute = true });
+        string title = string.IsNullOrWhiteSpace(release.Title) ? "업데이트 안내" : release.Title.Trim();
+        string message = string.IsNullOrWhiteSpace(release.Message) ? "새 버전이 게시되었습니다." : release.Message.Trim();
+        string updateUrl = GetUpdateUrl(release);
+        ShowUpdatePrompt(localVersion, latestVersion, title, message, updateUrl, release.IsMandatory);
+        return true;
+    }
+
+    private bool ApplyManifestAnnouncement(WinFormsManifestAnnouncement announcement) {
+        if(string.IsNullOrWhiteSpace(announcement.Title) || string.IsNullOrWhiteSpace(announcement.Url)) {
+            return false;
+        }
+
+        SetAnnouncementLink(announcement.Title.Trim(), announcement.Url.Trim());
+
+        string previousAnnouncementId = ConfigManager.GetConfig("last_seen_announcement_id");
+        string previousAnnouncementUrl = ConfigManager.GetConfig("prev_announcement");
+        bool alreadySeen = (!string.IsNullOrWhiteSpace(announcement.Id) && previousAnnouncementId == announcement.Id)
+            || previousAnnouncementUrl == announcement.Url;
+
+        if(announcement.ShowPopup && !alreadySeen) {
+            SaveAnnouncementState(announcement.Id, announcement.Url);
+
+            string popupMessage = $"새로운 공지사항이 게시되었습니다.\n공지제목 : {announcement.Title}";
+            if(!string.IsNullOrWhiteSpace(announcement.Summary)) {
+                popupMessage += $"\n{announcement.Summary.Trim()}";
             }
-        } else if(versionComparison > 0) {
-            Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
-        } else {
-            Trace.WriteLine("현재 버전은 최신버전입니다!");
+            popupMessage += "\n확인하시겠습니까?";
+
+            DialogResult dr = MessageBox.Show(popupMessage, "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if(dr == DialogResult.Yes) {
+                OpenUrl(announcement.Url);
+            }
         }
+
+        return true;
+    }
+
+    private bool ApplyManifestSponsors(IReadOnlyList<WinFormsManifestSponsorItem> sponsors) {
+        if(sponsors.Count == 0) {
+            return false;
+        }
+
+        foreach(WinFormsManifestSponsorItem sponsor in sponsors) {
+            string text = $"{sponsor.Date} [{sponsor.Name}] {sponsor.Message}".Trim();
+            materialListBox_sponsor.AddItem(new MaterialListBoxItem(text));
+        }
+        materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
+        return true;
     }
 
     private void LoadAnnouncements(Readme r) {
@@ -611,21 +723,16 @@ public partial class Form1 : MaterialForm {
                 int startIndex = latestAnnouncement.LastIndexOf('{') + 1;
                 int length = latestAnnouncement.LastIndexOf('}') - startIndex;
                 string pageNumber = latestAnnouncement.Substring(startIndex, length);
-                string url = "https://github.com/byungmeo/GersangStation/discussions/" + pageNumber;
-                linkLabel_announcement.Text = title;
-                linkLabel_announcement.Click += (sender, e) => {
-                    Trace.Write(pageNumber + "번 공지사항 접속");
-                    Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-                };
+                string url = $"https://github.com/{github_owner}/{github_repo}/discussions/" + pageNumber;
+                SetAnnouncementLink(title, url);
 
-                // 만약 이전과 다른 공지사항이 새롭게 게시되었다면 사용자에게 메시지를 출력합니다.
                 string prevLink = ConfigManager.GetConfig("prev_announcement");
                 if(prevLink == "" || prevLink != url) {
-                    ConfigManager.SetConfig("prev_announcement", url);
+                    SaveAnnouncementState(pageNumber, url);
                     DialogResult dr = MessageBox.Show($"새로운 공지사항이 게시되었습니다.\n공지제목 :{title.Substring(title.LastIndexOf(']') + 1)}\n확인하시겠습니까?", "새로운 공지사항", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                     if(dr == DialogResult.Yes) {
                         Trace.Write(pageNumber + "번 공지사항 접속");
-                        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+                        OpenUrl(url);
                     }
                 }
             } catch {
@@ -638,11 +745,116 @@ public partial class Form1 : MaterialForm {
         string content = r.Content;
         string[] sponsors = content.Substring(content.LastIndexOf("<summary>후원해주신 분들</summary>")).Split("<br>");
 
-        // 첫 번째와 마지막은 태그라 무시
         for(int i = 1; i < sponsors.Length - 1; i++) {
             materialListBox_sponsor.AddItem(new MaterialListBoxItem(sponsors[i]));
         }
         materialListBox_sponsor.AddItem(new MaterialListBoxItem("감사합니다"));
+    }
+
+    private static string GetLocalVersionText() {
+        Version version = Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
+        return version.Revision > 0 ? version.ToString(4) : version.ToString(3);
+    }
+
+    private static bool TryParseVersionTag(string? versionText, out Version version) {
+        version = new Version(0, 0, 0, 0);
+        if(string.IsNullOrWhiteSpace(versionText)) {
+            return false;
+        }
+
+        string normalized = versionText.Trim();
+        const string winFormsTagPrefix = "winforms-v";
+        if(normalized.StartsWith(winFormsTagPrefix, StringComparison.OrdinalIgnoreCase)) {
+            normalized = normalized.Substring(winFormsTagPrefix.Length);
+        }
+
+        return Version.TryParse(normalized, out version);
+    }
+
+    private static string ExtractDialogMessage(string body) {
+        if(string.IsNullOrWhiteSpace(body)) {
+            return "새 버전이 게시되었습니다.";
+        }
+
+        if(body.Contains("<!--DIALOG-->") && body.Contains("<!--END-->")) {
+            int start = body.IndexOf("<!--DIALOG-->") + "<!--DIALOG-->".Length;
+            int end = body.IndexOf("<!--END-->", start);
+            if(end > start) {
+                string block = body.Substring(start, end - start).Trim();
+                if(!string.IsNullOrWhiteSpace(block)) {
+                    return block;
+                }
+            }
+        }
+
+        return body.Trim();
+    }
+
+    private void ShowUpdatePrompt(Version localVersion, Version latestVersion, string title, string message, string updateUrl, bool isMandatory) {
+        int versionComparison = localVersion.CompareTo(latestVersion);
+        if(versionComparison < 0) {
+            Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
+
+            if(isMandatory) {
+                MessageBox.Show(message + "\n\n필수 업데이트 버전입니다. 확인을 누르면 업데이트 페이지로 이동합니다.",
+                    title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                OpenUrl(updateUrl);
+                return;
+            }
+
+            DialogResult dr = MessageBox.Show(message + "\n\n업데이트 하시겠습니까? (업데이트 페이지 접속)",
+                title, MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+
+            if(dr == DialogResult.Yes) {
+                OpenUrl(updateUrl);
+            }
+        } else if(versionComparison > 0) {
+            Trace.WriteLine("깃허브에 릴리즈된 버전보다 최신입니다!");
+        } else {
+            Trace.WriteLine("현재 버전은 최신버전입니다!");
+        }
+    }
+
+    private static string GetUpdateUrl(WinFormsManifestRelease release) {
+        if(!string.IsNullOrWhiteSpace(release.NotesUrl)) {
+            return release.NotesUrl;
+        }
+
+        if(release.Download != null && !string.IsNullOrWhiteSpace(release.Download.Url)) {
+            return release.Download.Url;
+        }
+
+        return url_release;
+    }
+
+    private void SetCurrentVersionLabel(string version) {
+        label_version_current.Text = $"현재 버전 : {version}";
+    }
+
+    private void SetLatestVersionLabel(string version) {
+        label_version_latest.Text = $"최신 버전 : {version}";
+    }
+
+    private void SetAnnouncementLink(string title, string url) {
+        announcementUrl = url;
+        linkLabel_announcement.Text = title;
+        linkLabel_announcement.LinkBehavior = LinkBehavior.HoverUnderline;
+    }
+
+    private void SaveAnnouncementState(string? announcementId, string url) {
+        if(!string.IsNullOrWhiteSpace(announcementId)) {
+            ConfigManager.SetConfig("last_seen_announcement_id", announcementId);
+        }
+
+        ConfigManager.SetConfig("prev_announcement", url);
+    }
+
+    private static void OpenUrl(string? url) {
+        if(string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute)) {
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
     #endregion Component Initialize
 
@@ -790,6 +1002,10 @@ public partial class Form1 : MaterialForm {
 
     private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
         Process.Start(new ProcessStartInfo("https://logomakr.com/app") { UseShellExecute = true });
+    }
+
+    private void linkLabel_announcement_LinkClicked(object? sender, LinkLabelLinkClickedEventArgs e) {
+        OpenUrl(announcementUrl);
     }
 
     private void contextMenuStrip_tray_ItemClicked(object sender, ToolStripItemClickedEventArgs e) {

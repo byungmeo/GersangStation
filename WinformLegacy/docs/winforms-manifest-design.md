@@ -50,6 +50,7 @@
 
 - `version`: 사용자에게 보여줄 앱 버전. 예: `"1.6.4"`
 - `tag`: Git 태그. 예: `"winforms-v1.6.4"`
+- `compatibility_tag`: 구버전 레거시 클라이언트와 호환되는 숫자 태그. 예: `"1.6.4"`
 - `published_at`: 릴리즈 게시 시각 (UTC ISO 8601)
 - `is_mandatory`: 강제 업데이트 여부
 - `title`: 업데이트 다이얼로그 제목
@@ -108,6 +109,7 @@
   "release": {
     "version": "1.6.4",
     "tag": "winforms-v1.6.4",
+    "compatibility_tag": "1.6.4",
     "published_at": "2026-03-13T04:00:00Z",
     "is_mandatory": false,
     "title": "업데이트 안내",
@@ -175,6 +177,7 @@
 직접 입력하지 않고 workflow가 Release에서 자동으로 채우는 필드:
 
 - `release.tag`
+- `release.compatibility_tag`
 - `release.published_at`
 - `release.notes_url`
 - `release.download.url`
@@ -210,6 +213,11 @@
 
 - `last_seen_announcement_id`
 - 필요 시 하위 호환용으로 `prev_announcement`를 읽되, 새 값 저장은 `last_seen_announcement_id`만 사용
+
+현재 브리지 구현은 더 보수적으로 간다.
+
+- manifest 공지를 읽을 수 있으면 `last_seen_announcement_id`와 `prev_announcement`를 함께 갱신한다.
+- manifest 공지를 못 읽으면 기존 `prev_announcement` 기반 README 공지 파싱으로 fallback 한다.
 
 ## 후원자 목록 정책 제안
 
@@ -250,7 +258,8 @@
   - manifest 읽기
   - `winforms-v*` 태그 이해 또는 태그 직접 파싱 제거
   - `README.md` 파싱 실패 시에도 동작 유지
-- 새 workflow는 `winforms-v{version}` 태그가 붙은 non-draft, non-prerelease Release를 기준으로 manifest를 생성하는 것을 기본 전제로 한다.
+- 전환기에는 `winforms-v{version}` 태그와 별도로 숫자 태그도 유지할 수 있다.
+- 새 workflow는 manifest용 태그는 `winforms-v{version}`로 기록하되, 실제 GitHub Release metadata와 asset은 숫자 compatibility tag (`{version}`) 기준 non-draft, non-prerelease Release에서 읽어온다.
 
 ## 아직 결정하지 않은 항목
 

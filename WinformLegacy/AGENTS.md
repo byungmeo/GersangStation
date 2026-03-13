@@ -28,6 +28,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - New WinForms release tags should use `winforms-v{version}`.
 - New WinUI release tags should use `winui-v{version}`.
 - Historical bare numeric tags such as `1.6.3` should be interpreted as WinForms legacy tags when historical release behavior needs to be analyzed.
+- During the compatibility period, WinForms should continue to publish a bare numeric non-prerelease GitHub Release for legacy clients, even if `winforms-v{version}` is also created as a source-management tag.
 
 ## Project Map
 
@@ -40,6 +41,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - `GersangStation/Forms/Form_Browser.cs`: WebView2 popup browser and shortcut save flow.
 - `GersangStation/Forms/Form_ShortcutSetting.cs`: four shortcut slots and titles.
 - `GersangStation/Modules/ConfigManager.cs`: appSettings bootstrap, migration from older config files, runtime save helpers.
+- `GersangStation/Modules/WinFormsManifestLoader.cs`: WinForms manifest DTOs and JSON fetch helper for manifest-first release metadata loading.
 - `GersangStation/Modules/ClientCreator.cs`: path validation, drive-format checks, symbolic-link-based client cloning.
 - `GersangStation/Modules/ClipMouse.cs`: Win32 cursor clipping thread, hotkey registration, game window detection.
 - `GersangStation/Properties/App.config`: shipped default config keys and values.
@@ -72,7 +74,9 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 
 - This section documents the current implementation, not a permanent rule. It is expected to change if versioning or release architecture is redesigned.
 - `Form1.LoadComponent()` uses `Octokit` against the `byungmeo/GersangStation` GitHub repository.
-- Program update detection reads GitHub Releases and selects the latest non-prerelease release.
+- Current bridge implementation tries `winforms_manifest_url` first for release/announcement/sponsor data, then falls back per section to the old GitHub Release + root `README.md` parsing path when manifest data is unavailable.
+- Program update detection still has a GitHub Releases fallback path and now skips unsupported tag formats until it finds a parseable stable release tag.
+- Because the current legacy client only understands numeric `TagName` values, compatibility releases for legacy users must keep a numeric non-prerelease tag until the old update path can be retired safely.
 - The in-app version labels and update prompt come from:
   - local assembly version in `GersangStation.csproj`
   - release `TagName`
@@ -83,7 +87,8 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - The current parser expects announcement lines shaped like:
   - `['YY.MM.DD] 제목 {discussionNumber}`
 - The discussion number inside `{...}` is turned into a GitHub Discussions URL under `https://github.com/byungmeo/GersangStation/discussions/<number>`.
-- `prev_announcement` in config stores the last seen discussion URL and drives the "new announcement" popup behavior.
+- `prev_announcement` in config stores the last seen discussion URL and drives the legacy "new announcement" popup behavior.
+- `last_seen_announcement_id` is the new manifest-friendly popup marker; bridge code writes both when possible for backward compatibility.
 - Sponsor data is also parsed from the repository root `README.md`, starting at `<summary>후원해주신 분들</summary>` and splitting on `<br>`.
 - If the repository owner/name, README marker strings, release tag format, release body marker format, or GitHub Discussions link structure changes, this WinForms app will need code updates.
 

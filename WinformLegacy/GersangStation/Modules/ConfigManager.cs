@@ -36,7 +36,9 @@ internal static class ConfigManager {
             { "directory_name_client_rnd_2", "CheonRa2" },
             { "directory_name_client_rnd_3", "CheonRa3" },
             { "is_auto_update", "True" },
+            { "winforms_manifest_url", "https://raw.githubusercontent.com/byungmeo/GersangStation/master/metadata/winforms-manifest.json" },
             { "prev_announcement", "" },
+            { "last_seen_announcement_id", "" },
             { "use_clip_mouse", "False" },
             { "use_clip_disable_hotkey", "True" }, // Alt 키 고정
             { "use_clip_toggle_hotkey", "False" },
