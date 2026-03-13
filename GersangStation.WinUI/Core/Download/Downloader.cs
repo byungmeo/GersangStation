@@ -162,9 +162,21 @@ public sealed class Downloader
 
         try
         {
-            string? directory = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrWhiteSpace(directory))
-                Directory.CreateDirectory(directory);
+            try
+            {
+                string? directory = Path.GetDirectoryName(destinationPath);
+                if (!string.IsNullOrWhiteSpace(directory))
+                    Directory.CreateDirectory(directory);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new DownloadOperationException(
+                    $"Failed to prepare destination directory for '{destinationPath}'.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.PrepareArtifacts,
+                    ex);
+            }
 
             string tempPath = $"{destinationPath}.gsdownload";
             string metaPath = GetMetadataPath(destinationPath);
@@ -174,9 +186,21 @@ public sealed class Downloader
             if (options.ExistingArtifactMode == DownloadExistingArtifactMode.RestartFromScratch)
             {
                 LogDownload(destinationPath, "ARTIFACT_RESET reason=user requested restart from scratch");
-                DeleteFileIfExists(destinationPath);
-                DeleteFileIfExists(tempPath);
-                DeleteFileIfExists(metaPath);
+                try
+                {
+                    DeleteFileIfExists(destinationPath);
+                    DeleteFileIfExists(tempPath);
+                    DeleteFileIfExists(metaPath);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new DownloadOperationException(
+                        $"Failed to reset existing download artifacts for '{destinationPath}'.",
+                        url,
+                        destinationPath,
+                        DownloadFailureStage.PrepareArtifacts,
+                        ex);
+                }
             }
 
             // 먼저 서버 파일의 "전체 길이 + validator(ETag / Last-Modified)"를 조회한다.
@@ -313,7 +337,13 @@ public sealed class Downloader
             // skip/resume/full download 여부를 판단한다.
             if (localSize == 0)
             {
-                WriteMetadata(metaPath, serverMeta);
+                WriteMetadataOrThrow(
+                    metaPath,
+                    serverMeta,
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.PrepareArtifacts,
+                    $"Failed to write download metadata for '{destinationPath}'.");
                 LogDownload(destinationPath, "META_WRITE fresh start");
             }
 
@@ -322,7 +352,12 @@ public sealed class Downloader
             if (localSize == totalBytes)
             {
                 LogDownload(destinationPath, $"FINALIZE_FROM_TEMP bytes={totalBytes}");
-                FinalizeTempFile(tempPath, destinationPath);
+                FinalizeTempFileOrThrow(
+                    tempPath,
+                    destinationPath,
+                    url,
+                    DownloadFailureStage.Transfer,
+                    "Failed to finalize previously completed temporary download file.");
                 progress?.Report(new DownloadProgress(totalBytes, totalBytes, null));
                 return;
             }
@@ -407,6 +442,8 @@ public sealed class Downloader
                                 metaPath,
                                 serverMeta,
                                 sw,
+                                url,
+                                destinationPath,
                                 ref localSize,
                                 ref bytesAtLastReport,
                                 ref msAtLastReport);
@@ -419,7 +456,13 @@ public sealed class Downloader
 
                         // 실제 GET 응답이 HEAD보다 더 풍부한 validator를 줄 수 있다.
                         // 이후 재시작에서도 같은 기준을 쓰도록 metadata를 최신값으로 갱신한다.
-                        WriteMetadata(metaPath, serverMeta);
+                        WriteMetadataOrThrow(
+                            metaPath,
+                            serverMeta,
+                            url,
+                            destinationPath,
+                            DownloadFailureStage.Transfer,
+                            $"Failed to refresh download metadata for '{destinationPath}'.");
                         LogDownload(destinationPath, "META_WRITE refreshed from download response");
 
                         if (localSize > 0)
@@ -452,6 +495,8 @@ public sealed class Downloader
                                     metaPath,
                                     serverMeta,
                                     sw,
+                                    url,
+                                    destinationPath,
                                     ref localSize,
                                     ref bytesAtLastReport,
                                     ref msAtLastReport);
@@ -468,6 +513,8 @@ public sealed class Downloader
                                     metaPath,
                                     serverMeta,
                                     sw,
+                                    url,
+                                    destinationPath,
                                     ref localSize,
                                     ref bytesAtLastReport,
                                     ref msAtLastReport);
@@ -491,6 +538,8 @@ public sealed class Downloader
                                     metaPath,
                                     serverMeta,
                                     sw,
+                                    url,
+                                    destinationPath,
                                     ref localSize,
                                     ref bytesAtLastReport,
                                     ref msAtLastReport);
@@ -557,9 +606,12 @@ public sealed class Downloader
 
                     // 일부 쓰기가 성공했을 수 있으므로 실제 temp 파일 길이를 기준으로 resume 위치를 보정한다.
                     // 드물지만 temp 파일이 사라졌다면 0부터 다시 시작한다.
-                    localSize = File.Exists(tempPath)
-                        ? new FileInfo(tempPath).Length
-                        : 0;
+                    localSize = GetExistingFileLengthOrZero(
+                        tempPath,
+                        url,
+                        destinationPath,
+                        DownloadFailureStage.Transfer,
+                        "Failed to inspect temporary download file after a retryable transfer failure.");
 
                     fileStream.Seek(localSize, SeekOrigin.Begin);
 
@@ -573,7 +625,12 @@ public sealed class Downloader
             if (completed)
             {
                 LogDownload(destinationPath, $"FINALIZE_SUCCESS bytes={totalBytes}");
-                FinalizeTempFile(tempPath, destinationPath);
+                FinalizeTempFileOrThrow(
+                    tempPath,
+                    destinationPath,
+                    url,
+                    DownloadFailureStage.Transfer,
+                    "Failed to finalize downloaded temporary file.");
                 return;
             }
 
@@ -809,6 +866,36 @@ public sealed class Downloader
     }
 
     /// <summary>
+    /// local metadata 파일을 기록하고, 실패 시 다운로드 단계 문맥을 보존한 예외로 변환합니다.
+    /// </summary>
+    private static void WriteMetadataOrThrow(
+        string metaPath,
+        ServerMetadata serverMeta,
+        Uri url,
+        string destinationPath,
+        DownloadFailureStage stage,
+        string message)
+    {
+        try
+        {
+            WriteMetadata(metaPath, serverMeta);
+        }
+        catch (DownloadOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                message,
+                url,
+                destinationPath,
+                stage,
+                ex);
+        }
+    }
+
+    /// <summary>
     /// 현재 남아 있는 local metadata가 "지금 내려받으려는 서버 파일"과 같은 원본을 가리키는지 판정한다.
     ///
     /// 정책:
@@ -1022,18 +1109,32 @@ public sealed class Downloader
         string metaPath,
         ServerMetadata serverMeta,
         Stopwatch sw,
+        Uri url,
+        string destinationPath,
         ref long localSize,
         ref long bytesAtLastReport,
         ref long msAtLastReport)
     {
-        fileStream.SetLength(0);
-        fileStream.Seek(0, SeekOrigin.Begin);
-        localSize = 0;
+        try
+        {
+            fileStream.SetLength(0);
+            fileStream.Seek(0, SeekOrigin.Begin);
+            localSize = 0;
 
-        WriteMetadata(metaPath, serverMeta);
+            WriteMetadata(metaPath, serverMeta);
 
-        bytesAtLastReport = 0;
-        msAtLastReport = sw.ElapsedMilliseconds;
+            bytesAtLastReport = 0;
+            msAtLastReport = sw.ElapsedMilliseconds;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                $"Failed to reset temporary download state for '{destinationPath}'.",
+                url,
+                destinationPath,
+                DownloadFailureStage.Transfer,
+                ex);
+        }
     }
 
     /// <summary>
@@ -1067,6 +1168,35 @@ public sealed class Downloader
     }
 
     /// <summary>
+    /// temp 파일을 최종 파일로 교체하고, 실패 시 다운로드 단계 문맥을 보존한 예외로 변환합니다.
+    /// </summary>
+    private static void FinalizeTempFileOrThrow(
+        string tempPath,
+        string destinationPath,
+        Uri url,
+        DownloadFailureStage stage,
+        string message)
+    {
+        try
+        {
+            FinalizeTempFile(tempPath, destinationPath);
+        }
+        catch (DownloadOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                message,
+                url,
+                destinationPath,
+                stage,
+                ex);
+        }
+    }
+
+    /// <summary>
     /// 지정한 파일이 존재할 때만 조용히 삭제한다.
     /// local artifact 정리 시 사용한다.
     /// </summary>
@@ -1074,6 +1204,34 @@ public sealed class Downloader
     {
         if (File.Exists(path))
             File.Delete(path);
+    }
+
+    /// <summary>
+    /// 파일이 존재하면 현재 길이를 읽고, 없으면 0을 반환합니다.
+    /// 실패 시 다운로드 단계 문맥을 보존한 예외로 변환합니다.
+    /// </summary>
+    private static long GetExistingFileLengthOrZero(
+        string path,
+        Uri url,
+        string destinationPath,
+        DownloadFailureStage stage,
+        string message)
+    {
+        try
+        {
+            return File.Exists(path)
+                ? new FileInfo(path).Length
+                : 0;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                message,
+                url,
+                destinationPath,
+                stage,
+                ex);
+        }
     }
 
     /// <summary>
