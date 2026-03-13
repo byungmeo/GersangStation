@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -24,13 +25,28 @@ internal static class WinFormsManifestLoader {
     }
 
     private static async Task<TManifest?> LoadAsync<TManifest>(string url, CancellationToken cancellationToken) where TManifest : WinFormsManifestDocument {
-        using HttpResponseMessage response = await httpClient.GetAsync(url, cancellationToken);
+        string requestUrl = AddCacheBustingQuery(url);
+        using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+        request.Headers.CacheControl = new CacheControlHeaderValue() {
+            NoCache = true,
+            NoStore = true,
+            MustRevalidate = true
+        };
+        request.Headers.Pragma.ParseAdd("no-cache");
+        request.Headers.TryAddWithoutValidation("Expires", "0");
+
+        using HttpResponseMessage response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         Trace.WriteLine($"Manifest HTTP 응답: {(int)response.StatusCode} {response.ReasonPhrase} ({typeof(TManifest).Name})");
         response.EnsureSuccessStatusCode();
         await using Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
         TManifest? manifest = await JsonSerializer.DeserializeAsync<TManifest>(stream, serializerOptions, cancellationToken);
         Trace.WriteLine($"Manifest JSON 역직렬화 결과: {(manifest == null ? "null" : "success")} ({typeof(TManifest).Name})");
         return manifest;
+    }
+
+    private static string AddCacheBustingQuery(string url) {
+        string separator = url.Contains('?') ? "&" : "?";
+        return $"{url}{separator}_ts={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
     }
 }
 
