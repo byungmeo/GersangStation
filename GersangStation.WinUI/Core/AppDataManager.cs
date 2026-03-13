@@ -208,8 +208,17 @@ public static class AppDataManager
         return (normalizedAccounts, Ok(nameof(SaveAccountsWithCredentialsAsync), AccountsFileName));
     }
 
+    /// <summary>
+    /// 저장된 계정 목록을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (IList<Account> Accounts, AppDataOperationResult Result) TryLoadAccounts()
+        => LoadAccountsAsync().GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장된 계정 목록만 필요한 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
     public static IList<Account> LoadAccounts()
-        => LoadAccountsAsync().GetAwaiter().GetResult().Accounts;
+        => TryLoadAccounts().Accounts;
 
     /// <summary>
     /// 저장된 계정 목록을 불러오고, 비밀번호가 없는 계정이나 중복/공백 ID를 정리합니다.
@@ -261,8 +270,14 @@ public static class AppDataManager
         }
     }
 
+    /// <summary>
+    /// 전체 서버 클라이언트 설정을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    private static (AllServerClientSettings Settings, AppDataOperationResult Result) TryLoadAllServerClientSettings()
+        => LoadAllServerClientSettingsAsync().GetAwaiter().GetResult();
+
     private static AllServerClientSettings LoadAllServerClientSettings()
-        => LoadAllServerClientSettingsAsync().GetAwaiter().GetResult().Settings;
+        => TryLoadAllServerClientSettings().Settings;
 
     private static async Task<(AllServerClientSettings Settings, AppDataOperationResult Result)> LoadAllServerClientSettingsAsync()
     {
@@ -284,8 +299,17 @@ public static class AppDataManager
         }
     }
 
+    /// <summary>
+    /// 지정한 서버의 클라이언트 설정을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (ClientSettings Settings, AppDataOperationResult Result) TryLoadServerClientSettings(GameServer server)
+        => LoadServerClientSettingsAsync(server).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 지정한 서버의 클라이언트 설정만 필요한 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
     public static ClientSettings LoadServerClientSettings(GameServer server)
-        => LoadServerClientSettingsAsync(server).GetAwaiter().GetResult().Settings;
+        => TryLoadServerClientSettings(server).Settings;
 
     public static async Task<(ClientSettings Settings, AppDataOperationResult Result)> LoadServerClientSettingsAsync(GameServer server)
     {
@@ -348,12 +372,21 @@ public static class AppDataManager
     }
 
     /// <summary>
+    /// 프리셋 목록을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (PresetList PresetList, AppDataOperationResult Result) TryLoadPresetList()
+        => LoadPresetListAsync().GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 프리셋 목록만 필요한 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static PresetList LoadPresetList()
+        => TryLoadPresetList().PresetList;
+
+    /// <summary>
     /// PresetContainer를 불러오고, Accounts 기준으로 Id 유효성 검사 후
     /// 없는 Id는 ""로 정규화합니다. 정규화로 변경이 발생하면 재저장합니다.
     /// </summary>
-    public static PresetList LoadPresetList()
-        => LoadPresetListAsync().GetAwaiter().GetResult().PresetList;
-
     public static async Task<(PresetList PresetList, AppDataOperationResult Result)> LoadPresetListAsync()
     {
         PresetList presetList;
@@ -421,11 +454,20 @@ public static class AppDataManager
     }
 
     /// <summary>
-    /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
+    /// 브라우저 즐겨찾기 목록을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (IList<BrowserFavorite> Favorites, AppDataOperationResult Result) TryLoadBrowserFavorites()
+        => LoadBrowserFavoritesAsync().GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 브라우저 즐겨찾기 목록만 필요한 기존 호출부를 위한 편의 래퍼입니다.
     /// </summary>
     public static IList<BrowserFavorite> LoadBrowserFavorites()
-        => LoadBrowserFavoritesAsync().GetAwaiter().GetResult().Favorites;
+        => TryLoadBrowserFavorites().Favorites;
 
+    /// <summary>
+    /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
+    /// </summary>
     /// <summary>
     /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
     /// </summary>
