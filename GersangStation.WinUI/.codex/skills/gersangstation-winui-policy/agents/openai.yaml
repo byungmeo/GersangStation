@@ -1,0 +1,4 @@
+interface:
+  display_name: "GersangStation WinUI Policy"
+  short_description: "Help with GersangStation WinUI policy work"
+  default_prompt: "Use this skill when changing GersangStation WinUI app behavior, launch rules, packaging, or privacy policy flows."
