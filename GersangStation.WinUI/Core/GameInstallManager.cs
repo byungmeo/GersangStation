@@ -231,9 +231,9 @@ public sealed class GameInstallManager
     public static void DeleteArchiveArtifacts(GameServer targetServer, string installPath)
     {
         string archivePath = GetArchivePath(targetServer, installPath);
-        DeleteFileIfExists(archivePath);
-        DeleteFileIfExists($"{archivePath}.gsdownload");
-        DeleteFileIfExists($"{archivePath}.meta");
+        DeleteFileIfExists(archivePath, "archive");
+        DeleteFileIfExists($"{archivePath}.gsdownload", "temporary download file");
+        DeleteFileIfExists($"{archivePath}.meta", "metadata file");
     }
 
     /// <summary>
@@ -248,10 +248,21 @@ public sealed class GameInstallManager
             : fileName;
     }
 
-    private static void DeleteFileIfExists(string path)
+    private static void DeleteFileIfExists(string path, string artifactName)
     {
-        if (File.Exists(path))
+        if (!File.Exists(path))
+            return;
+
+        try
+        {
             File.Delete(path);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new IOException(
+                $"Failed to delete {artifactName}. path={path}",
+                ex);
+        }
     }
 }
 
