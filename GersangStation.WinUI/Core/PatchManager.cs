@@ -1046,7 +1046,15 @@ public sealed class PatchManager
         if (!options.ApplyMultiClientPatch)
             return;
 
-        ClientSettings clientSettings = AppDataManager.LoadServerClientSettings(targetServer);
+        (ClientSettings clientSettings, AppDataManager.AppDataOperationResult loadResult) =
+            AppDataManager.TryLoadServerClientSettings(targetServer);
+        if (!loadResult.Success)
+        {
+            throw new InvalidOperationException(
+                $"다클라 패치 설정을 불러오지 못했습니다. Target={loadResult.Target}, Operation={loadResult.Operation}, ErrorKind={loadResult.ErrorKind}",
+                loadResult.Exception);
+        }
+
         if (!clientSettings.UseMultiClient)
             return;
 
