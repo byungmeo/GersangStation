@@ -27,6 +27,13 @@ public static class GameClientHelper
         CopyTopLevelFiles
     }
 
+    public enum SymbolProbeFailureStage
+    {
+        ResolveDriveRoot,
+        ReadDriveFormat,
+        ReadDirectoryAttributes
+    }
+
     /// <summary>
     /// 다클라 생성 중 기술적 실패가 발생했을 때 단계와 경로 문맥을 함께 보존합니다.
     /// </summary>
@@ -54,6 +61,25 @@ public static class GameClientHelper
     }
 
     /// <summary>
+    /// 심볼릭 링크 지원 가능 여부 확인 결과를 포맷 및 실패 문맥과 함께 반환합니다.
+    /// </summary>
+    public sealed record SymbolSupportResult(
+        bool Success,
+        bool CanUseSymbol,
+        string ResolvedFormat,
+        SymbolProbeFailureStage? FailureStage,
+        Exception? Exception);
+
+    /// <summary>
+    /// 디렉터리 심볼릭 링크 여부 확인 결과를 실패 문맥과 함께 반환합니다.
+    /// </summary>
+    public sealed record SymbolDirectoryProbeResult(
+        bool Success,
+        bool IsSymbolDirectory,
+        SymbolProbeFailureStage? FailureStage,
+        Exception? Exception);
+
+    /// <summary>
     /// 현재 경로가 속해있는 드라이브의 포맷이 SymbolicLink를 사용할 수 있는지 여부를 반환합니다.
     /// </summary>
     /// <param name="anyPathInDrive">SymbolicLink 사용 가능 여부를 알고싶은 경로 문자열</param>
@@ -61,22 +87,9 @@ public static class GameClientHelper
     /// <returns>SymbolicLink 사용이 가능하면 true를 반환합니다.</returns>
     public static bool CanUseSymbol(string anyPathInDrive, out string resolvedFormat)
     {
-        resolvedFormat = "알 수 없음";
-
-        try
-        {
-            string root = Path.GetPathRoot(anyPathInDrive) ?? "";
-            if (root.Length == 0)
-                return false;
-
-            var di = new DriveInfo(root);
-            resolvedFormat = (di.DriveFormat ?? "").ToUpperInvariant();
-            return resolvedFormat == "NTFS" || resolvedFormat == "UDF";
-        }
-        catch
-        {
-            return false;
-        }
+        SymbolSupportResult result = TryCanUseSymbol(anyPathInDrive);
+        resolvedFormat = result.ResolvedFormat;
+        return result.CanUseSymbol;
     }
 
     /// <summary>
@@ -86,14 +99,75 @@ public static class GameClientHelper
     /// <returns>SymbolicLink라면 true를 반환합니다.</returns>
     public static bool IsSymbolDirectory(string dirPath)
     {
+        return TryIsSymbolDirectory(dirPath).IsSymbolDirectory;
+    }
+
+    /// <summary>
+    /// 현재 경로가 속한 드라이브에서 심볼릭 링크를 사용할 수 있는지 상세 결과와 함께 확인합니다.
+    /// </summary>
+    public static SymbolSupportResult TryCanUseSymbol(string anyPathInDrive)
+    {
+        const string unknownFormat = "알 수 없음";
+
         try
         {
-            var di = new DirectoryInfo(dirPath);
-            return (di.Attributes & FileAttributes.ReparsePoint) != 0;
+            string root = Path.GetPathRoot(anyPathInDrive) ?? string.Empty;
+            if (root.Length == 0)
+            {
+                return new SymbolSupportResult(
+                    Success: false,
+                    CanUseSymbol: false,
+                    ResolvedFormat: unknownFormat,
+                    FailureStage: SymbolProbeFailureStage.ResolveDriveRoot,
+                    Exception: null);
+            }
+
+            try
+            {
+                var di = new DriveInfo(root);
+                string resolvedFormat = (di.DriveFormat ?? string.Empty).ToUpperInvariant();
+                bool canUseSymbol = resolvedFormat == "NTFS" || resolvedFormat == "UDF";
+                return new SymbolSupportResult(true, canUseSymbol, resolvedFormat, null, null);
+            }
+            catch (Exception ex)
+            {
+                return new SymbolSupportResult(
+                    Success: false,
+                    CanUseSymbol: false,
+                    ResolvedFormat: unknownFormat,
+                    FailureStage: SymbolProbeFailureStage.ReadDriveFormat,
+                    Exception: ex);
+            }
         }
         catch
         {
-            return false;
+            return new SymbolSupportResult(
+                Success: false,
+                CanUseSymbol: false,
+                ResolvedFormat: unknownFormat,
+                FailureStage: SymbolProbeFailureStage.ResolveDriveRoot,
+                Exception: null);
+        }
+    }
+
+    /// <summary>
+    /// 특정 폴더가 심볼릭 링크 방식으로 생성된 것인지 상세 결과와 함께 반환합니다.
+    /// </summary>
+    public static SymbolDirectoryProbeResult TryIsSymbolDirectory(string dirPath)
+    {
+        try
+        {
+            var di = new DirectoryInfo(dirPath);
+            bool isSymbolDirectory = (di.Attributes & FileAttributes.ReparsePoint) != 0;
+            return new SymbolDirectoryProbeResult(true, isSymbolDirectory, null, null);
+        }
+        catch (Exception ex)
+        {
+            return new SymbolDirectoryProbeResult(
+                Success: false,
+                IsSymbolDirectory: false,
+                FailureStage: SymbolProbeFailureStage.ReadDirectoryAttributes,
+                Exception: ex);
         }
     }
 
