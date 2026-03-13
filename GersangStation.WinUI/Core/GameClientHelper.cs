@@ -350,8 +350,19 @@ public static class GameClientHelper
     /// </summary>
     private static void EnsureRealDirectory(string dirPath)
     {
-        if (Directory.Exists(dirPath) && IsSymbolDirectory(dirPath))
-            Directory.Delete(dirPath);
+        if (Directory.Exists(dirPath))
+        {
+            SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(dirPath);
+            if (!symbolDirectoryResult.Success)
+            {
+                throw new IOException(
+                    $"Failed to inspect whether '{dirPath}' is a symbolic directory.",
+                    symbolDirectoryResult.Exception);
+            }
+
+            if (symbolDirectoryResult.IsSymbolDirectory)
+                Directory.Delete(dirPath);
+        }
         else if (File.Exists(dirPath))
             File.Delete(dirPath);
 
@@ -441,10 +452,22 @@ public static class GameClientHelper
                 destinationPath: destPath);
         }
 
-        if (!CanUseSymbol(destPath, out _))
+        SymbolSupportResult symbolSupportResult = TryCanUseSymbol(destPath);
+        if (!symbolSupportResult.Success)
         {
             return CreateFailureResult(
-                $"{clientPrefix}Symbol을 지원하지 않는 드라이브",
+                $"{clientPrefix}목적지 드라이브의 심볼릭 링크 지원 여부를 확인하지 못했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateDestinationPath,
+                symbolSupportResult.Exception,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        if (!symbolSupportResult.CanUseSymbol)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}Symbol을 지원하지 않는 드라이브입니다. Format={symbolSupportResult.ResolvedFormat}",
                 clientNumber,
                 MultiClientCreationFailureStage.ValidateDestinationPath,
                 sourcePath: orgInstallPath,
@@ -452,14 +475,29 @@ public static class GameClientHelper
         }
 
         string destOnlineMapPath = Path.Combine(destPath, "Online", "Map");
-        if (Directory.Exists(destOnlineMapPath) && !IsSymbolDirectory(destOnlineMapPath))
+        if (Directory.Exists(destOnlineMapPath))
         {
-            return CreateFailureResult(
-                $"{clientPrefix}이미 경로에 복사-붙여넣기로 생성한 클라이언트 존재",
-                clientNumber,
-                MultiClientCreationFailureStage.ValidateDestinationPath,
-                sourcePath: orgInstallPath,
-                destinationPath: destPath);
+            SymbolDirectoryProbeResult destMapProbeResult = TryIsSymbolDirectory(destOnlineMapPath);
+            if (!destMapProbeResult.Success)
+            {
+                return CreateFailureResult(
+                    $"{clientPrefix}기존 다클라 경로의 심볼릭 링크 상태를 확인하지 못했습니다.",
+                    clientNumber,
+                    MultiClientCreationFailureStage.ValidateDestinationPath,
+                    destMapProbeResult.Exception,
+                    sourcePath: orgInstallPath,
+                    destinationPath: destPath);
+            }
+
+            if (!destMapProbeResult.IsSymbolDirectory)
+            {
+                return CreateFailureResult(
+                    $"{clientPrefix}이미 경로에 복사-붙여넣기로 생성한 클라이언트 존재",
+                    clientNumber,
+                    MultiClientCreationFailureStage.ValidateDestinationPath,
+                    sourcePath: orgInstallPath,
+                    destinationPath: destPath);
+            }
         }
 
         string orgOnlinePath = orgInstallPath + @"\Online";
