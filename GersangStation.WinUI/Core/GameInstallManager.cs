@@ -12,10 +12,19 @@ public sealed class GameInstallManager
     public enum GameInstallFailureStage
     {
         PrepareInstallDirectory,
+        ResolveArchivePath,
         DownloadArchive,
         ValidateArchiveSupport,
         ExtractArchive,
         DeleteArtifacts
+    }
+
+    public enum GameInstallHelperFailureStage
+    {
+        ResolveArchivePath,
+        DeleteArchive,
+        DeleteTempDownload,
+        DeleteMetadata
     }
 
     /// <summary>
@@ -43,6 +52,24 @@ public sealed class GameInstallManager
             ArchivePath = archivePath;
         }
     }
+
+    /// <summary>
+    /// 설치 아카이브 경로 계산 결과를 실패 문맥과 함께 반환합니다.
+    /// </summary>
+    public sealed record GameInstallArchivePathResult(
+        bool Success,
+        string ArchivePath,
+        GameInstallHelperFailureStage? FailureStage,
+        Exception? Exception);
+
+    /// <summary>
+    /// 설치 아티팩트 정리 결과를 실패 문맥과 함께 반환합니다.
+    /// </summary>
+    public sealed record GameInstallArtifactCleanupResult(
+        bool Success,
+        string ArchivePath,
+        GameInstallHelperFailureStage? FailureStage,
+        Exception? Exception);
 
     private readonly Downloader _downloader = new(HttpClientProvider.Http);
     private readonly NativeSevenZipExtractor _extractor = new();
@@ -77,8 +104,20 @@ public sealed class GameInstallManager
                 ex);
         }
 
+        GameInstallArchivePathResult archivePathResult = TryGetArchivePath(targetServer, normalizedInstallPath);
+        if (!archivePathResult.Success)
+        {
+            throw new GameInstallOperationException(
+                $"Failed to resolve the full client archive path for server '{targetServer}'.",
+                targetServer,
+                GameInstallFailureStage.ResolveArchivePath,
+                normalizedInstallPath,
+                archivePathResult.ArchivePath,
+                archivePathResult.Exception ?? new IOException("Archive path resolution failed."));
+        }
+
         Uri archiveUrl = new(GameServerHelper.GetFullClientUrl(targetServer));
-        string archivePath = GetArchivePath(targetServer, normalizedInstallPath);
+        string archivePath = archivePathResult.ArchivePath;
         GameInstallProgressState state = new();
 
         void ReportProgressSnapshot()
@@ -198,7 +237,12 @@ public sealed class GameInstallManager
 
         try
         {
-            DeleteArchiveArtifacts(targetServer, normalizedInstallPath);
+            GameInstallArtifactCleanupResult cleanupResult = TryDeleteArchiveArtifacts(targetServer, normalizedInstallPath);
+            if (!cleanupResult.Success)
+            {
+                throw cleanupResult.Exception
+                    ?? new IOException($"Failed to delete install artifacts. archivePath={cleanupResult.ArchivePath}");
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -215,14 +259,71 @@ public sealed class GameInstallManager
     /// <summary>
     /// 설치 경로 안에 저장되는 전체 클라이언트 압축 파일 경로를 반환합니다.
     /// </summary>
-    public static string GetArchivePath(GameServer targetServer, string installPath)
+    public static GameInstallArchivePathResult TryGetArchivePath(GameServer targetServer, string installPath)
     {
         if (string.IsNullOrWhiteSpace(installPath))
             throw new ArgumentException("installPath is required.", nameof(installPath));
 
-        return Path.Combine(
-            Path.GetFullPath(installPath.Trim()),
-            GetArchiveFileName(targetServer));
+        try
+        {
+            string archivePath = Path.Combine(
+                Path.GetFullPath(installPath.Trim()),
+                GetArchiveFileName(targetServer));
+
+            return new GameInstallArchivePathResult(true, archivePath, null, null);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new GameInstallArchivePathResult(
+                false,
+                string.Empty,
+                GameInstallHelperFailureStage.ResolveArchivePath,
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// 설치 경로 안에 저장되는 전체 클라이언트 압축 파일 경로를 반환합니다.
+    /// </summary>
+    public static string GetArchivePath(GameServer targetServer, string installPath)
+    {
+        GameInstallArchivePathResult result = TryGetArchivePath(targetServer, installPath);
+        if (!result.Success)
+            throw result.Exception ?? new IOException("Failed to resolve archive path.");
+
+        return result.ArchivePath;
+    }
+
+    /// <summary>
+    /// 이어받기용 설치 압축 파일과 다운로드 부속 파일을 삭제합니다.
+    /// </summary>
+    public static GameInstallArtifactCleanupResult TryDeleteArchiveArtifacts(GameServer targetServer, string installPath)
+    {
+        GameInstallArchivePathResult archivePathResult = TryGetArchivePath(targetServer, installPath);
+        if (!archivePathResult.Success)
+        {
+            return new GameInstallArtifactCleanupResult(
+                false,
+                archivePathResult.ArchivePath,
+                archivePathResult.FailureStage,
+                archivePathResult.Exception);
+        }
+
+        string archivePath = archivePathResult.ArchivePath;
+
+        GameInstallArtifactCleanupResult? deleteFailure = TryDeleteFileIfExists(archivePath, GameInstallHelperFailureStage.DeleteArchive, "archive");
+        if (deleteFailure is not null)
+            return deleteFailure;
+
+        deleteFailure = TryDeleteFileIfExists($"{archivePath}.gsdownload", GameInstallHelperFailureStage.DeleteTempDownload, "temporary download file");
+        if (deleteFailure is not null)
+            return deleteFailure;
+
+        deleteFailure = TryDeleteFileIfExists($"{archivePath}.meta", GameInstallHelperFailureStage.DeleteMetadata, "metadata file");
+        if (deleteFailure is not null)
+            return deleteFailure;
+
+        return new GameInstallArtifactCleanupResult(true, archivePath, null, null);
     }
 
     /// <summary>
@@ -230,10 +331,9 @@ public sealed class GameInstallManager
     /// </summary>
     public static void DeleteArchiveArtifacts(GameServer targetServer, string installPath)
     {
-        string archivePath = GetArchivePath(targetServer, installPath);
-        DeleteFileIfExists(archivePath, "archive");
-        DeleteFileIfExists($"{archivePath}.gsdownload", "temporary download file");
-        DeleteFileIfExists($"{archivePath}.meta", "metadata file");
+        GameInstallArtifactCleanupResult result = TryDeleteArchiveArtifacts(targetServer, installPath);
+        if (!result.Success)
+            throw result.Exception ?? new IOException($"Failed to delete install artifacts. archivePath={result.ArchivePath}");
     }
 
     /// <summary>
@@ -248,20 +348,26 @@ public sealed class GameInstallManager
             : fileName;
     }
 
-    private static void DeleteFileIfExists(string path, string artifactName)
+    private static GameInstallArtifactCleanupResult? TryDeleteFileIfExists(
+        string path,
+        GameInstallHelperFailureStage failureStage,
+        string artifactName)
     {
         if (!File.Exists(path))
-            return;
+            return null;
 
         try
         {
             File.Delete(path);
+            return null;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            throw new IOException(
-                $"Failed to delete {artifactName}. path={path}",
-                ex);
+            return new GameInstallArtifactCleanupResult(
+                false,
+                path,
+                failureStage,
+                new IOException($"Failed to delete {artifactName}. path={path}", ex));
         }
     }
 }
