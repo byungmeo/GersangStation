@@ -11,6 +11,7 @@ public sealed class GameInstallManager
 {
     public enum GameInstallFailureStage
     {
+        PrepareInstallDirectory,
         DownloadArchive,
         ValidateArchiveSupport,
         ExtractArchive,
@@ -59,8 +60,22 @@ public sealed class GameInstallManager
         if (string.IsNullOrWhiteSpace(installPath))
             throw new ArgumentException("installPath is required.", nameof(installPath));
 
-        string normalizedInstallPath = Path.GetFullPath(installPath.Trim());
-        Directory.CreateDirectory(normalizedInstallPath);
+        string normalizedInstallPath;
+        try
+        {
+            normalizedInstallPath = Path.GetFullPath(installPath.Trim());
+            Directory.CreateDirectory(normalizedInstallPath);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GameInstallOperationException(
+                $"Failed to prepare install directory '{installPath}'.",
+                targetServer,
+                GameInstallFailureStage.PrepareInstallDirectory,
+                installPath,
+                archivePath: string.Empty,
+                ex);
+        }
 
         Uri archiveUrl = new(GameServerHelper.GetFullClientUrl(targetServer));
         string archivePath = GetArchivePath(targetServer, normalizedInstallPath);
