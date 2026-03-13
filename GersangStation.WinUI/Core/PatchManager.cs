@@ -86,7 +86,8 @@ public sealed record PatchRunOptions(
 public enum LatestVersionResolutionFailureStage
 {
     ReadmeLookup,
-    ProbeVersionInfo
+    ProbeVersionInfo,
+    NoPublishedVersionInfo
 }
 
 /// <summary>
@@ -1026,8 +1027,16 @@ public sealed class PatchManager
 
         latestVersionList.Sort((x, y) => y.CompareTo(x));
 
+        if (latestVersionList.Count == 0)
+        {
+            throw new LatestVersionResolutionException(
+                $"Patch readme did not provide any version candidates for server '{server}'.",
+                server,
+                LatestVersionResolutionFailureStage.NoPublishedVersionInfo,
+                new InvalidDataException("Patch readme did not contain any version candidates."));
+        }
+
         // 최신 버전부터 차례대로 순회하여 VersionInfo이 존재하는 버전이 실질적인 최신 버전
-        int latestVersion = 0;
         foreach (var version in latestVersionList)
         {
             string versionInfoUrl = GameServerHelper.GetVersionInfoUrl(server, version);
@@ -1036,10 +1045,7 @@ public sealed class PatchManager
                 Uri versionInfoUri = new(versionInfoUrl);
                 using var response = await HttpClientProvider.Http.GetAsync(versionInfoUri, HttpCompletionOption.ResponseHeadersRead, ct);
                 if (response.StatusCode == HttpStatusCode.OK)
-                {
-                    latestVersion = version;
-                    break;
-                }
+                    return version;
 
                 if (response.StatusCode == HttpStatusCode.NotFound)
                     continue;
@@ -1058,7 +1064,12 @@ public sealed class PatchManager
             }
         }
 
-        return latestVersion;
+        throw new LatestVersionResolutionException(
+            $"No published version info was found for the latest readme candidates on server '{server}'.",
+            server,
+            LatestVersionResolutionFailureStage.NoPublishedVersionInfo,
+            new FileNotFoundException(
+                $"VersionInfo was not found for any candidate version from the patch readme. Candidates={string.Join(", ", latestVersionList)}"));
     }
 
     public static int DecodeVersionFromVsn(ReadOnlySpan<byte> bytes)
