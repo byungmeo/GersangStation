@@ -12,6 +12,7 @@ public sealed class GameInstallManager
     public enum GameInstallFailureStage
     {
         DownloadArchive,
+        ValidateArchiveSupport,
         ExtractArchive,
         DeleteArtifacts
     }
@@ -139,6 +140,21 @@ public sealed class GameInstallManager
             s.DownloadPercent = 100;
         });
         ReportProgressSnapshot();
+
+        ExtractorSupportProbeResult? supportProbeResult = (_extractor as IExtractorSupportProbe)?.ProbeSupport(archivePath);
+        if (!(supportProbeResult?.CanHandle ?? _extractor.CanHandle(archivePath)))
+        {
+            Exception innerException = supportProbeResult?.Exception
+                ?? new NotSupportedException(supportProbeResult?.Reason ?? $"Extractor '{_extractor.Name}' cannot handle archive '{archivePath}'.");
+
+            throw new GameInstallOperationException(
+                $"Failed to validate the downloaded archive for extraction on server '{targetServer}'.",
+                targetServer,
+                GameInstallFailureStage.ValidateArchiveSupport,
+                normalizedInstallPath,
+                archivePath,
+                innerException);
+        }
 
         try
         {
