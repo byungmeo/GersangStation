@@ -35,6 +35,13 @@ public sealed class Downloader
         Transfer
     }
 
+    private enum MetadataLookupFailureStage
+    {
+        HeadRequest,
+        RangeProbe,
+        HeadAndRangeProbe
+    }
+
     private enum MetadataReadFailureStage
     {
         MissingFile,
@@ -63,6 +70,23 @@ public sealed class Downloader
         {
             Url = url;
             DestinationPath = destinationPath;
+            Stage = stage;
+        }
+    }
+
+    private sealed class MetadataLookupException : InvalidOperationException
+    {
+        public Uri Url { get; }
+        public MetadataLookupFailureStage Stage { get; }
+
+        public MetadataLookupException(
+            string message,
+            Uri url,
+            MetadataLookupFailureStage stage,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Url = url;
             Stage = stage;
         }
     }
@@ -535,6 +559,7 @@ public sealed class Downloader
     private async Task<ServerMetadata> GetServerMetadataAsync(Uri url, string destinationPath, CancellationToken ct)
     {
         Exception? headFailure = null;
+        bool headWasInsufficient = false;
 
         try
         {
@@ -554,6 +579,7 @@ public sealed class Downloader
             if (meta.TotalBytes is not null && meta.TotalBytes > 0)
                 return meta;
 
+            headWasInsufficient = true;
             LogDownload(destinationPath, "HEAD_METADATA_INSUFFICIENT fallback=range-probe");
         }
         catch (OperationCanceledException)
@@ -562,7 +588,11 @@ public sealed class Downloader
         }
         catch (Exception ex)
         {
-            headFailure = ex;
+            headFailure = new MetadataLookupException(
+                $"HEAD metadata lookup failed for '{url}'.",
+                url,
+                MetadataLookupFailureStage.HeadRequest,
+                ex);
             LogDownload(destinationPath, $"HEAD_METADATA_FAIL {ex.GetType().Name}: {ex.Message}");
         }
 
@@ -570,11 +600,33 @@ public sealed class Downloader
         {
             return await GetServerMetadataFromRangeProbeAsync(url, ct).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException && headFailure is not null)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            throw new InvalidOperationException(
-                $"Both HEAD metadata lookup and range probe failed. HEAD: {headFailure.GetType().Name}: {headFailure.Message}",
+            MetadataLookupException rangeProbeFailure = new(
+                $"Range probe metadata lookup failed for '{url}'.",
+                url,
+                MetadataLookupFailureStage.RangeProbe,
                 ex);
+
+            if (headFailure is not null)
+            {
+                throw new MetadataLookupException(
+                    $"Both HEAD metadata lookup and range probe failed for '{url}'. HEAD: {headFailure.GetType().Name}: {headFailure.Message}",
+                    url,
+                    MetadataLookupFailureStage.HeadAndRangeProbe,
+                    rangeProbeFailure);
+            }
+
+            if (headWasInsufficient)
+            {
+                throw new MetadataLookupException(
+                    $"HEAD metadata was insufficient and range probe failed for '{url}'.",
+                    url,
+                    MetadataLookupFailureStage.RangeProbe,
+                    rangeProbeFailure);
+            }
+
+            throw rangeProbeFailure;
         }
     }
 
