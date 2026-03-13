@@ -232,6 +232,12 @@ public sealed class ExtractorWorker
 
 public sealed class PatchManager
 {
+    public enum VersionInfoFailureStage
+    {
+        DownloadVersionInfo,
+        ParseVersionInfo
+    }
+
     public enum PatchFailureStage
     {
         ResolveLatestVersion,
@@ -269,6 +275,32 @@ public sealed class PatchManager
             Version = version;
             TargetPath = targetPath;
             FileName = fileName;
+        }
+    }
+
+    /// <summary>
+    /// 개별 VersionInfo 조회/파싱 실패 시 버전과 URL 문맥을 함께 보존합니다.
+    /// </summary>
+    public sealed class VersionInfoException : InvalidOperationException
+    {
+        public GameServer Server { get; }
+        public int Version { get; }
+        public string VersionInfoUrl { get; }
+        public VersionInfoFailureStage Stage { get; }
+
+        public VersionInfoException(
+            string message,
+            GameServer server,
+            int version,
+            string versionInfoUrl,
+            VersionInfoFailureStage stage,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Server = server;
+            Version = version;
+            VersionInfoUrl = versionInfoUrl;
+            Stage = stage;
         }
     }
 
@@ -688,21 +720,59 @@ public sealed class PatchManager
 
     private static async Task<VersionInfo?> DownloadVersionInfo(GameServer server, int version, CancellationToken ct)
     {
-        var versionInfoUrl = new Uri(GameServerHelper.GetVersionInfoUrl(server, version));
-        using var response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, ct);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return null;
-        response.EnsureSuccessStatusCode();
-        string text = await response.Content.ReadAsStringAsync(ct);
-        bool makeResult = MakeVersionInfo(version, text, out VersionInfo ret);
-        if (!makeResult || ret.Rows.Count == 0)
-            return null;
-        return ret;
+        string versionInfoUrlText = GameServerHelper.GetVersionInfoUrl(server, version);
+        Uri versionInfoUrl = new(versionInfoUrlText);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new VersionInfoException(
+                $"Failed to download version info. server='{server}', version={version}, url='{versionInfoUrlText}'",
+                server,
+                version,
+                versionInfoUrlText,
+                VersionInfoFailureStage.DownloadVersionInfo,
+                ex);
+        }
+
+        using (response)
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            try
+            {
+                response.EnsureSuccessStatusCode();
+                string text = await response.Content.ReadAsStringAsync(ct);
+                VersionInfo ret = MakeVersionInfo(version, text);
+                if (ret.Rows.Count == 0)
+                {
+                    throw new InvalidDataException(
+                        $"Version info does not contain any patch rows. server='{server}', version={version}, url='{versionInfoUrlText}'");
+                }
+
+                return ret;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and VersionInfoException)
+            {
+                throw new VersionInfoException(
+                    $"Failed to parse version info. server='{server}', version={version}, url='{versionInfoUrlText}'",
+                    server,
+                    version,
+                    versionInfoUrlText,
+                    VersionInfoFailureStage.ParseVersionInfo,
+                    ex);
+            }
+        }
     }
 
-    private static bool MakeVersionInfo(int version, string sourceText, out VersionInfo info)
+    private static VersionInfo MakeVersionInfo(int version, string sourceText)
     {
-        info = new VersionInfo(version);
+        VersionInfo info = new(version);
 
         foreach (var line in sourceText.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
@@ -761,8 +831,7 @@ public sealed class PatchManager
             info.Rows.Add(row);
         }
 
-        // 실패하는 케이스가 있는지 조사 필요
-        return true;
+        return info;
     }
 
 
