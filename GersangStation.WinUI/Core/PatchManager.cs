@@ -151,6 +151,44 @@ public sealed record ExtractJob(
     Action? OnBeforeExtract = null,
     Action? OnAfterExtract = null);
 
+public enum ExtractorWorkerFailureStage
+{
+    ValidateArchiveSupport,
+    ExtractArchive
+}
+
+/// <summary>
+/// 추출 워커가 큐 처리 중 실패했을 때 extractor, 경로, 시도 횟수 문맥을 보존합니다.
+/// </summary>
+public sealed class ExtractorWorkerException : InvalidOperationException
+{
+    public string ExtractorName { get; }
+    public string ArchivePath { get; }
+    public string DestinationPath { get; }
+    public ExtractorWorkerFailureStage Stage { get; }
+    public int Attempt { get; }
+    public int MaxAttempts { get; }
+
+    public ExtractorWorkerException(
+        string message,
+        string extractorName,
+        string archivePath,
+        string destinationPath,
+        ExtractorWorkerFailureStage stage,
+        Exception? innerException = null,
+        int attempt = 0,
+        int maxAttempts = 0)
+        : base(message, innerException)
+    {
+        ExtractorName = extractorName;
+        ArchivePath = archivePath;
+        DestinationPath = destinationPath;
+        Stage = stage;
+        Attempt = attempt;
+        MaxAttempts = maxAttempts;
+    }
+}
+
 public sealed class ExtractorWorker
 {
     private readonly IExtractor _extractor;
@@ -194,8 +232,13 @@ public sealed class ExtractorWorker
         {
             if (!_extractor.CanHandle(job.ArchivePath))
             {
-                throw new NotSupportedException(
-                    $"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'.");
+                throw new ExtractorWorkerException(
+                    $"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'.",
+                    _extractor.Name,
+                    job.ArchivePath,
+                    job.DestinationPath,
+                    ExtractorWorkerFailureStage.ValidateArchiveSupport,
+                    new NotSupportedException($"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'."));
             }
 
             Exception? lastException = null;
@@ -240,9 +283,15 @@ public sealed class ExtractorWorker
 
             if (lastException is not null)
             {
-                throw new InvalidOperationException(
+                throw new ExtractorWorkerException(
                     $"Extraction failed after {_maxExtractAttempts} attempts. ArchivePath='{job.ArchivePath}'",
-                    lastException);
+                    _extractor.Name,
+                    job.ArchivePath,
+                    job.DestinationPath,
+                    ExtractorWorkerFailureStage.ExtractArchive,
+                    lastException,
+                    attempt: _maxExtractAttempts,
+                    maxAttempts: _maxExtractAttempts);
             }
         }
     }
