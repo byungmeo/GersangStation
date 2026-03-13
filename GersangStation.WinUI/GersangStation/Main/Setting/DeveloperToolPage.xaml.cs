@@ -147,6 +147,17 @@ public sealed partial class DeveloperToolPage : Page
     }
 
     /// <summary>
+    /// WinUI 창을 거치지 않고 Win32 fallback 메시지 박스를 바로 테스트합니다.
+    /// </summary>
+    private async void Button_RaiseNativeFallbackError_Click(object sender, RoutedEventArgs e)
+    {
+        await App.ExceptionHandler.HandleWithNativeFallbackAsync(
+            new InvalidOperationException("네이티브 fallback 경로를 테스트하기 위한 오류입니다."),
+            "DeveloperToolPage.NativeFallbackError",
+            isFatal: false);
+    }
+
+    /// <summary>
     /// 관찰되지 않은 Task 예외 경로를 최대한 재현합니다.
     /// </summary>
     private async void Button_RaiseUnobservedTaskError_Click(object sender, RoutedEventArgs e)

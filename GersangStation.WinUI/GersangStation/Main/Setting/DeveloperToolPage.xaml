@@ -49,6 +49,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <Button
@@ -99,6 +100,12 @@
                         Grid.Column="1"
                         Click="Button_RaiseHandledTimerError_Click"
                         Content="안전 Timer 오류" />
+
+                    <Button
+                        Grid.Row="4"
+                        Grid.Column="0"
+                        Click="Button_RaiseNativeFallbackError_Click"
+                        Content="네이티브 fallback 오류" />
                 </Grid>
             </StackPanel>
         </StackPanel>
