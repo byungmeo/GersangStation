@@ -1,0 +1,229 @@
+name: Publish WinForms Release Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "WinForms version (e.g. 1.6.4)"
+        required: true
+        type: string
+      title:
+        description: "Update dialog title"
+        required: true
+        type: string
+      message:
+        description: "Short update message shown in app"
+        required: true
+        type: string
+      is_mandatory:
+        description: "Force update"
+        required: true
+        type: boolean
+      asset_name:
+        description: "Release asset filename"
+        required: true
+        type: string
+      dry_run:
+        description: "Validate only without committing manifest"
+        required: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Validate workflow inputs
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          TITLE: ${{ inputs.title }}
+          MESSAGE: ${{ inputs.message }}
+          ASSET_NAME: ${{ inputs.asset_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "Invalid version format: $VERSION"
+            exit 1
+          fi
+
+          if [[ -z "${TITLE// }" ]]; then
+            echo "Title must not be empty."
+            exit 1
+          fi
+
+          if [[ -z "${MESSAGE// }" ]]; then
+            echo "Message must not be empty."
+            exit 1
+          fi
+
+          if [[ -z "${ASSET_NAME// }" ]]; then
+            echo "Asset name must not be empty."
+            exit 1
+          fi
+
+          if [[ "$DRY_RUN" != "true" && "$REF_NAME" != "master" ]]; then
+            echo "Non-dry-run execution is restricted to the master branch. Current branch: $REF_NAME"
+            exit 1
+          fi
+
+      - name: Resolve release metadata
+        id: release
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ inputs.version }}
+          ASSET_NAME: ${{ inputs.asset_name }}
+        with:
+          script: |
+            const version = process.env.VERSION;
+            const assetName = process.env.ASSET_NAME;
+            const manifestTag = `winforms-v${version}`;
+            const compatibilityTag = version;
+
+            let release;
+            try {
+              const response = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: compatibilityTag
+              });
+              release = response.data;
+            } catch (error) {
+              core.setFailed(`Release not found for compatibility tag ${compatibilityTag}: ${error.message}`);
+              return;
+            }
+
+            if (release.draft) {
+              core.setFailed(`Release ${compatibilityTag} is still a draft.`);
+              return;
+            }
+
+            if (release.prerelease) {
+              core.setFailed(`Release ${compatibilityTag} is a prerelease. Stable WinForms release manifest publishing expects a non-prerelease compatibility release.`);
+              return;
+            }
+
+            const matchingAssets = release.assets.filter((asset) => asset.name === assetName);
+            if (matchingAssets.length !== 1) {
+              core.setFailed(`Expected exactly one asset named "${assetName}" on compatibility release ${compatibilityTag}, found ${matchingAssets.length}.`);
+              return;
+            }
+
+            const asset = matchingAssets[0];
+            core.setOutput("tag", manifestTag);
+            core.setOutput("compatibility_tag", compatibilityTag);
+            core.setOutput("release_html_url", release.html_url);
+            core.setOutput("release_published_at", release.published_at);
+            core.setOutput("asset_name", asset.name);
+            core.setOutput("asset_size", String(asset.size));
+            core.setOutput("asset_download_url", asset.browser_download_url);
+
+      - name: Download release asset
+        shell: bash
+        env:
+          ASSET_NAME: ${{ steps.release.outputs.asset_name }}
+          ASSET_DOWNLOAD_URL: ${{ steps.release.outputs.asset_download_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp
+          curl -L --fail --output ".tmp/${ASSET_NAME}" "${ASSET_DOWNLOAD_URL}"
+
+      - name: Calculate asset checksum
+        id: checksum
+        shell: bash
+        env:
+          ASSET_NAME: ${{ steps.release.outputs.asset_name }}
+        run: |
+          set -euo pipefail
+          sha256="$(sha256sum ".tmp/${ASSET_NAME}" | awk '{print $1}')"
+          echo "sha256=${sha256}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release manifest
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          TITLE: ${{ inputs.title }}
+          MESSAGE: ${{ inputs.message }}
+          IS_MANDATORY: ${{ inputs.is_mandatory }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_COMPATIBILITY_TAG: ${{ steps.release.outputs.compatibility_tag }}
+          RELEASE_PUBLISHED_AT: ${{ steps.release.outputs.release_published_at }}
+          RELEASE_HTML_URL: ${{ steps.release.outputs.release_html_url }}
+          ASSET_NAME: ${{ steps.release.outputs.asset_name }}
+          ASSET_SIZE: ${{ steps.release.outputs.asset_size }}
+          ASSET_DOWNLOAD_URL: ${{ steps.release.outputs.asset_download_url }}
+          ASSET_SHA256: ${{ steps.checksum.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+          manifest = {
+              "schema_version": 1,
+              "product": "winforms",
+              "channel": "stable",
+              "generated_at": generated_at,
+              "release": {
+                  "version": os.environ["VERSION"],
+                  "tag": os.environ["RELEASE_TAG"],
+                  "compatibility_tag": os.environ["RELEASE_COMPATIBILITY_TAG"],
+                  "published_at": os.environ["RELEASE_PUBLISHED_AT"],
+                  "is_mandatory": os.environ["IS_MANDATORY"].lower() == "true",
+                  "title": os.environ["TITLE"],
+                  "message": os.environ["MESSAGE"],
+                  "notes_url": os.environ["RELEASE_HTML_URL"],
+                  "download": {
+                      "asset_name": os.environ["ASSET_NAME"],
+                      "url": os.environ["ASSET_DOWNLOAD_URL"],
+                      "sha256": os.environ["ASSET_SHA256"],
+                      "size": int(os.environ["ASSET_SIZE"])
+                  }
+              }
+          }
+
+          os.makedirs("metadata", exist_ok=True)
+          with open("metadata/winforms-release-manifest.json", "w", encoding="utf-8", newline="\n") as file:
+              json.dump(manifest, file, ensure_ascii=False, indent=2)
+              file.write("\n")
+          PY
+
+      - name: Upload release manifest preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: winforms-release-manifest-${{ inputs.version }}
+          path: metadata/winforms-release-manifest.json
+
+      - name: Commit release manifest
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metadata/winforms-release-manifest.json
+
+          if git diff --cached --quiet; then
+            echo "Release manifest did not change."
+            exit 0
+          fi
+
+          git commit -m "chore(winforms): update release manifest for v${VERSION}"
+          git push origin "HEAD:${REF_NAME}"
