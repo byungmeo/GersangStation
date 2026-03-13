@@ -26,7 +26,7 @@ public static class SafeExecution
         }
         catch (Exception ex)
         {
-            await App.ExceptionHandler.HandleAsync(ex, context, isFatal).ConfigureAwait(false);
+            await ReportAsync(ex, context, isFatal).ConfigureAwait(false);
         }
     }
 
@@ -47,7 +47,7 @@ public static class SafeExecution
         }
         catch (Exception ex)
         {
-            await App.ExceptionHandler.HandleAsync(ex, context, isFatal).ConfigureAwait(false);
+            await ReportAsync(ex, context, isFatal).ConfigureAwait(false);
         }
     }
 
@@ -121,8 +121,15 @@ public static class SafeExecution
         }
         catch (Exception ex)
         {
-            await App.ExceptionHandler.HandleAsync(ex, context, isFatal).ConfigureAwait(false);
+            await ReportAsync(ex, context, isFatal).ConfigureAwait(false);
         }
+    }
+
+    private static Task ReportAsync(Exception exception, string context, bool isFatal)
+    {
+        return isFatal
+            ? App.ExceptionHandler.HandleFatalUiExceptionAsync(exception, context)
+            : App.ExceptionHandler.ShowRecoverableAsync(exception, context);
     }
 
     private sealed record TimerState(Action Action, string Context, bool IsFatal);

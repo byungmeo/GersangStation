@@ -28,7 +28,7 @@ public sealed class AppExceptionHandler
     private DateTimeOffset _lastPresentedAt;
 
     /// <summary>
-    /// 경계 지점에서 포착한 예외를 표시합니다.
+    /// 기존 호출부 호환성을 위해 남겨둔 진입점입니다. 새 코드는 역할별 메서드를 직접 사용합니다.
     /// </summary>
     public async Task HandleAsync(Exception exception, string context, bool isFatal)
     {

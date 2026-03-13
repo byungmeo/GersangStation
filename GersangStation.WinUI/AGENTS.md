@@ -43,6 +43,7 @@
 - For fire-and-forget tasks, do not leave `_ = Task.Run(...)` or other unobserved tasks without centralized handling. Prefer `FireAndForgetHandled(...)` or `SafeExecution.RunHandledAsync(...)`.
 - For timers, prefer `SafeExecution.StartHandledTimer(...)` over raw `new Timer(...)` when the callback can throw.
 - For non-UI async/sync entry points that may fail, prefer `SafeExecution.RunHandledAsync(...)` so exceptions are routed to `AppExceptionHandler`.
+- When calling `AppExceptionHandler` directly, prefer explicit intent methods such as `ShowRecoverableAsync(...)`, `HandleFatalUiExceptionAsync(...)`, or `HandleFatalProcessException(...)` over the legacy boolean-based `HandleAsync(..., isFatal)`.
 - Treat global unhandled exception hooks as crash-reporting boundaries, not recovery points. Prefer logging, minimal final user notification, and termination over trying to continue after `Application.UnhandledException` or `AppDomain.CurrentDomain.UnhandledException`.
 - For `AppDomain.CurrentDomain.UnhandledException`, avoid WinUI/XAML work and avoid blocking on async UI code. Prefer low-level fallback handling only.
 - If a method can validate input or environment without exceptions, prefer explicit checks and meaningful return values before relying on exception handling.

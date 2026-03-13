@@ -151,7 +151,9 @@ namespace GersangStation
         private void OnTaskSchedulerUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
             e.SetObserved();
-            _ = ExceptionHandler.HandleAsync(e.Exception, "TaskScheduler.UnobservedTaskException", isFatal: false);
+            _ = ExceptionHandler.ShowRecoverableAsync(
+                e.Exception,
+                "TaskScheduler.UnobservedTaskException");
         }
     }
 }
