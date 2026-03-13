@@ -13,8 +13,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
-    <AssemblyVersion>1.6.3</AssemblyVersion>
-    <FileVersion>1.6.3</FileVersion>
+    <AssemblyVersion>1.7.0</AssemblyVersion>
+    <FileVersion>1.7.0</FileVersion>
     <Copyright>Copyright © 2026 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
     <Company>Byungmeo</Company>
     <Authors>Byungmeo</Authors>
@@ -108,5 +108,33 @@
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		<Link>..\%(Filename)%(Extension)</Link>
 	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.exe">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.dll">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.deps.json">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.runtimeconfig.json">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
   </ItemGroup>
+
+  <Target Name="BuildMiniUpdator" BeforeTargets="Build;Publish">
+    <MSBuild
+      Projects="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
+      Targets="Build"
+      Properties="Configuration=$(Configuration);Platform=AnyCPU"
+      RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun" />
+  </Target>
 </Project>

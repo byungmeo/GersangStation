@@ -46,6 +46,8 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - `GersangStation/Modules/ClipMouse.cs`: Win32 cursor clipping thread, hotkey registration, game window detection.
 - `GersangStation/Properties/App.config`: shipped default config keys and values.
 - `GersangStation/Properties/PublishProfiles/FolderRelease_win-x64.pubxml`: current single-file release publish settings.
+- `GersangStationMiniUpdator/GersangStationMiniUpdator.csproj`: standalone WinForms updater for `GersangStationMini`, using a temp extraction folder and selective file apply.
+- `GersangStationMiniUpdator/UpdateRunner.cs`: zip acquisition, temp extraction, config-file skip policy, updater self-skip policy, and target app restart flow.
 - `..\README.md`: historical repository content reference only. Runtime announcement/sponsor loading no longer depends on it.
 
 ## Domain Terms
@@ -64,6 +66,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - If you add or rename a config key, update both `ConfigManager.Validation()` and `Properties/App.config`.
 - Preserve the existing semicolon-delimited formats for `account_list`, `shortcut_name`, and `current_comboBox_index_preset_*`.
 - Do not change account encryption/storage format without an explicit migration plan. Passwords are DPAPI-protected per current Windows user.
+- `GersangStationMiniUpdator` intentionally skips overwriting `*.config` files and its own files while running. Do not weaken that policy unless the user explicitly asks for a different updater model.
 - Preserve the symbolic-client safety rules in `ClientCreator`: `Online\\KeySetting.dat`, `PetSetting.dat`, `AKinteractive.cfg`, and `CombineInfo.txt` are intentionally copied as real files instead of symlinked files.
 - Current legacy policy keeps the old multi-client layout for pre-`v34100` clients, switches to the new layout at `v34100` and later, and still blocks patching from `<34100` to `>=34100` with the reinstall guide instead of attempting in-place migration.
 - Be conservative around WebView2 automation, registry edits, shell shortcuts, Win32 interop, symlinks, and background-thread UI access. These areas need Windows-specific smoke testing after changes.
@@ -110,6 +113,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
   - `System.IO.Hashing 10.0.2` not officially supporting `net6.0-windows7.0`
   - `MSB3277` `WindowsBase` version conflict from `WebView2.Wpf`
 - Publish configuration currently lives in `GersangStation/Properties/PublishProfiles/FolderRelease_win-x64.pubxml`.
+- Final release packaging can be generated with `scripts/Publish-GersangStationMiniRelease.ps1`, which publishes the app, injects the root `LICENSE`, removes shipped config files, and creates `GersangStation_v.<version>.zip` in the legacy release format.
 
 ## Verification Checklist
 

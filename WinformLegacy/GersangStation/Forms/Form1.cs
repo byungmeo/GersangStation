@@ -652,7 +652,7 @@ public partial class Form1 : MaterialForm {
         SetLatestVersionLabel(versionLatestText);
 
         string message = ExtractDialogMessage(release.Body);
-        ShowUpdatePrompt(localVersion, latestGitHubVersion, "업데이트 안내", message, url_release, false);
+        ShowUpdatePrompt(localVersion, latestGitHubVersion, "업데이트 안내", message, url_release, false, null, versionLatestText);
     }
 
     private bool ApplyManifestRelease(WinFormsManifestRelease release) {
@@ -672,7 +672,8 @@ public partial class Form1 : MaterialForm {
         string title = string.IsNullOrWhiteSpace(release.Title) ? "업데이트 안내" : release.Title.Trim();
         string message = string.IsNullOrWhiteSpace(release.Message) ? "새 버전이 게시되었습니다." : release.Message.Trim();
         string updateUrl = GetUpdateUrl(release);
-        ShowUpdatePrompt(localVersion, latestVersion, title, message, updateUrl, release.IsMandatory);
+        string? packageUrl = GetUpdatePackageUrl(release);
+        ShowUpdatePrompt(localVersion, latestVersion, title, message, updateUrl, release.IsMandatory, packageUrl, release.Version);
         return true;
     }
 
@@ -798,22 +799,49 @@ public partial class Form1 : MaterialForm {
         return body.Trim();
     }
 
-    private void ShowUpdatePrompt(Version localVersion, Version latestVersion, string title, string message, string updateUrl, bool isMandatory) {
+    private void ShowUpdatePrompt(Version localVersion, Version latestVersion, string title, string message, string updateUrl, bool isMandatory, string? packageUrl, string? targetVersion) {
         int versionComparison = localVersion.CompareTo(latestVersion);
         if(versionComparison < 0) {
             Trace.WriteLine("구버전입니다! 업데이트 메시지박스를 출력합니다!");
+            bool canAutoUpdate = !string.IsNullOrWhiteSpace(packageUrl) && Uri.IsWellFormedUriString(packageUrl, UriKind.Absolute);
 
             if(isMandatory) {
-                MessageBox.Show(message + "\n\n필수 업데이트 버전입니다. 확인을 누르면 업데이트 페이지로 이동합니다.",
+                string mandatoryMessage = canAutoUpdate
+                    ? message + "\n\n필수 업데이트 버전입니다. 확인을 누르면 자동 업데이트를 시작합니다."
+                    : message + "\n\n필수 업데이트 버전입니다. 확인을 누르면 업데이트 페이지로 이동합니다.";
+                MessageBox.Show(mandatoryMessage,
                     title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                if(TryStartMiniUpdator(packageUrl, targetVersion, out string? updaterError)) {
+                    System.Windows.Forms.Application.Exit();
+                    return;
+                }
+
+                if(!string.IsNullOrWhiteSpace(updaterError)) {
+                    MessageBox.Show("자동 업데이트를 시작하지 못했습니다.\n업데이트 페이지로 이동합니다.\n\n" + updaterError,
+                        title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
                 OpenUrl(updateUrl);
                 return;
             }
 
-            DialogResult dr = MessageBox.Show(message + "\n\n업데이트 하시겠습니까? (업데이트 페이지 접속)",
+            string optionalMessage = canAutoUpdate
+                ? message + "\n\n업데이트 하시겠습니까? (자동 업데이트 시작)"
+                : message + "\n\n업데이트 하시겠습니까? (업데이트 페이지 접속)";
+            DialogResult dr = MessageBox.Show(optionalMessage,
                 title, MessageBoxButtons.YesNo, MessageBoxIcon.Information);
 
             if(dr == DialogResult.Yes) {
+                if(TryStartMiniUpdator(packageUrl, targetVersion, out string? updaterError)) {
+                    System.Windows.Forms.Application.Exit();
+                    return;
+                }
+
+                if(!string.IsNullOrWhiteSpace(updaterError)) {
+                    MessageBox.Show("자동 업데이트를 시작하지 못했습니다.\n업데이트 페이지로 이동합니다.\n\n" + updaterError,
+                        title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
                 OpenUrl(updateUrl);
             }
         } else if(versionComparison > 0) {
@@ -833,6 +861,14 @@ public partial class Form1 : MaterialForm {
         }
 
         return url_release;
+    }
+
+    private static string? GetUpdatePackageUrl(WinFormsManifestRelease release) {
+        if(release.Download != null && !string.IsNullOrWhiteSpace(release.Download.Url)) {
+            return release.Download.Url.Trim();
+        }
+
+        return null;
     }
 
     private void SetCurrentVersionLabel(string version) {
@@ -876,6 +912,51 @@ public partial class Form1 : MaterialForm {
         }
 
         Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private static bool TryStartMiniUpdator(string? packageUrl, string? targetVersion, out string? errorMessage) {
+        errorMessage = null;
+
+        if(string.IsNullOrWhiteSpace(packageUrl) || !Uri.IsWellFormedUriString(packageUrl, UriKind.Absolute)) {
+            return false;
+        }
+
+        string updaterPath = Path.Combine(System.Windows.Forms.Application.StartupPath, "Updator", "GersangStationMiniUpdator.exe");
+        if(!File.Exists(updaterPath)) {
+            Trace.WriteLine($"MiniUpdator not found: {updaterPath}");
+            return false;
+        }
+
+        try {
+            ProcessStartInfo startInfo = new() {
+                FileName = updaterPath,
+                UseShellExecute = false,
+                WorkingDirectory = Path.GetDirectoryName(updaterPath) ?? System.Windows.Forms.Application.StartupPath
+            };
+
+            startInfo.ArgumentList.Add("--package");
+            startInfo.ArgumentList.Add(packageUrl);
+            startInfo.ArgumentList.Add("--target-dir");
+            startInfo.ArgumentList.Add(System.Windows.Forms.Application.StartupPath);
+            startInfo.ArgumentList.Add("--target-exe");
+            startInfo.ArgumentList.Add(System.Windows.Forms.Application.ExecutablePath);
+            startInfo.ArgumentList.Add("--pid");
+            startInfo.ArgumentList.Add(Process.GetCurrentProcess().Id.ToString());
+            startInfo.ArgumentList.Add("--restart");
+            startInfo.ArgumentList.Add("true");
+
+            if(!string.IsNullOrWhiteSpace(targetVersion)) {
+                startInfo.ArgumentList.Add("--version");
+                startInfo.ArgumentList.Add(targetVersion.Trim());
+            }
+
+            Process.Start(startInfo);
+            return true;
+        } catch(Exception ex) {
+            errorMessage = ex.Message;
+            Trace.WriteLine(ex);
+            return false;
+        }
     }
     #endregion Component Initialize
 
