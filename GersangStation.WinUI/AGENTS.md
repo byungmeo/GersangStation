@@ -16,8 +16,9 @@
   - `dotnet build .\GersangStation.WinUI.slnx -c Debug -p:Platform=x64`
 
 ## Test
+- The repository opts `dotnet test` into `Microsoft.Testing.Platform` via the root `global.json`. Keep that file in place when updating test infrastructure for .NET 10 SDK or later.
 - Run core tests with:
-  - `dotnet test .\Core\Core.Test\Core.Test.csproj -c Debug`
+  - `dotnet test --project .\Core\Core.Test\Core.Test.csproj -c Debug`
 
 ## Repository Skills
 - Use `.codex\skills\gersangstation-winui-policy\SKILL.md` when changing WinUI page or service responsibilities, game launch rules, multi-client layout behavior, privacy-policy assets or links, or release packaging settings.
