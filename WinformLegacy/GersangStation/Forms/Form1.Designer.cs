@@ -1156,7 +1156,7 @@
             Sizable = false;
             StartPosition = FormStartPosition.CenterScreen;
             Tag = "408, 295";
-            Text = "GersangStation";
+            Text = "GersangStation Mini";
             Load += Form1_Load;
             VisibleChanged += Form1_VisibleChanged;
             Resize += Form1_Resize;
