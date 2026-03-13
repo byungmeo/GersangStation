@@ -23,11 +23,11 @@ $projectPath = Join-Path $projectRoot 'GersangStation.csproj'
 $publishProfile = 'FolderRelease_win-x64'
 $targetFramework = 'net6.0-windows7.0'
 $publishBase = Join-Path $projectRoot "bin\$Configuration\$targetFramework\publish"
-$releaseFolderName = "거상 스테이션 v$Version"
+$releaseFolderName = "거상 스테이션 미니 v$Version"
 $expectedReleaseRoot = Join-Path $publishBase $releaseFolderName
 $releaseRoot = $null
 $appRoot = $null
-$zipPath = Join-Path $distributionRoot "GersangStation_v.$Version.zip"
+$zipPath = Join-Path $distributionRoot "GersangStation_mini_v.$Version.zip"
 $licenseSourcePath = Join-Path $repoRoot 'LICENSE'
 $guideSourceRoot = Join-Path $projectRoot 'Properties\PublishProfiles\Includes'
 $updatorBuildRoot = Join-Path $legacyRoot "GersangStationMiniUpdator\bin\$Configuration\net6.0-windows7.0"
@@ -61,7 +61,7 @@ try {
     }
 
     $releaseRoot = $releaseDirectory.FullName
-    $appRoot = Join-Path $releaseRoot 'GersangStation'
+    $appRoot = Join-Path $releaseRoot 'GersangStationMini'
 
     if (-not (Test-Path $appRoot)) {
         throw "출시 폴더를 찾을 수 없습니다: $appRoot"
