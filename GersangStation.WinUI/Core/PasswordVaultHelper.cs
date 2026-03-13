@@ -6,9 +6,26 @@ namespace Core;
 
 public static class PasswordVaultHelper
 {
+    public enum PasswordVaultOperationStatus
+    {
+        Succeeded,
+        NotFound,
+        IgnoredInvalidInput,
+        Failed
+    }
+
+    public enum PasswordVaultReadStatus
+    {
+        Found,
+        Missing,
+        IgnoredInvalidInput,
+        Failed
+    }
+
     public enum PasswordVaultMoveFailureStage
     {
         ValidateArguments,
+        SourceCredentialMissing,
         ReadExistingCredential,
         SaveNewCredential,
         DeleteOldCredential
@@ -17,21 +34,25 @@ public static class PasswordVaultHelper
     /// <summary>
     /// 자격 증명 저장소 작업 결과를 나타냅니다.
     /// </summary>
-    public readonly record struct PasswordVaultOperationResult(bool Success, Exception? Exception = null)
+    public readonly record struct PasswordVaultOperationResult(
+        bool Success,
+        PasswordVaultOperationStatus Status,
+        Exception? Exception = null)
     {
-        public bool NotFound { get; init; }
+        public bool NotFound => Status == PasswordVaultOperationStatus.NotFound;
+        public bool IgnoredInvalidInput => Status == PasswordVaultOperationStatus.IgnoredInvalidInput;
 
         public static PasswordVaultOperationResult Ok()
-            => new(true, null);
+            => new(true, PasswordVaultOperationStatus.Succeeded, null);
 
         public static PasswordVaultOperationResult Missing()
-            => new(true, null)
-            {
-                NotFound = true
-            };
+            => new(true, PasswordVaultOperationStatus.NotFound, null);
+
+        public static PasswordVaultOperationResult Ignored()
+            => new(true, PasswordVaultOperationStatus.IgnoredInvalidInput, null);
 
         public static PasswordVaultOperationResult Fail(Exception exception)
-            => new(false, exception);
+            => new(false, PasswordVaultOperationStatus.Failed, exception);
     }
 
     /// <summary>
@@ -39,18 +60,22 @@ public static class PasswordVaultHelper
     /// </summary>
     public readonly record struct PasswordVaultReadResult(
         bool Success,
+        PasswordVaultReadStatus Status,
         bool HasCredential,
         string? Password,
         Exception? Exception = null)
     {
         public static PasswordVaultReadResult Found(string password)
-            => new(true, true, password);
+            => new(true, PasswordVaultReadStatus.Found, true, password);
 
         public static PasswordVaultReadResult Missing()
-            => new(true, false, null);
+            => new(true, PasswordVaultReadStatus.Missing, false, null);
+
+        public static PasswordVaultReadResult Ignored()
+            => new(true, PasswordVaultReadStatus.IgnoredInvalidInput, false, null);
 
         public static PasswordVaultReadResult Fail(Exception exception)
-            => new(false, false, null, exception);
+            => new(false, PasswordVaultReadStatus.Failed, false, null, exception);
     }
 
     /// <summary>
@@ -117,7 +142,7 @@ public static class PasswordVaultHelper
         userName = userName?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
-            return PasswordVaultOperationResult.Ok();
+            return PasswordVaultOperationResult.Ignored();
 
         try
         {
@@ -144,7 +169,7 @@ public static class PasswordVaultHelper
         userName = userName?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(userName))
-            return PasswordVaultReadResult.Missing();
+            return PasswordVaultReadResult.Ignored();
 
         try
         {
@@ -214,10 +239,13 @@ public static class PasswordVaultHelper
             return PasswordVaultMoveResult.Ok();
 
         PasswordVaultReadResult readResult = TryGetPassword(currentUserName);
-        if (!readResult.Success || string.IsNullOrWhiteSpace(readResult.Password))
+        if (!readResult.Success)
             return PasswordVaultMoveResult.Fail(
                 PasswordVaultMoveFailureStage.ReadExistingCredential,
                 readResult.Exception);
+
+        if (!readResult.HasCredential || string.IsNullOrWhiteSpace(readResult.Password))
+            return PasswordVaultMoveResult.Fail(PasswordVaultMoveFailureStage.SourceCredentialMissing);
 
         PasswordVaultOperationResult saveResult = TrySave(newUserName, readResult.Password);
         if (!saveResult.Success)
@@ -247,7 +275,7 @@ public static class PasswordVaultHelper
         userName = userName?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(userName))
-            return PasswordVaultOperationResult.Ok();
+            return PasswordVaultOperationResult.Ignored();
 
         try
         {
