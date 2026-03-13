@@ -200,6 +200,46 @@ public sealed class ExtractorWorker
 
 public sealed class PatchManager
 {
+    public enum PatchFailureStage
+    {
+        ResolveLatestVersion,
+        ResetTempDirectory,
+        BuildPatchItems,
+        DownloadPatchItem,
+        ExtractPatchItem,
+        ApplyMultiClientPatch,
+        CleanupTempDirectory
+    }
+
+    /// <summary>
+    /// 패치 실행 중 실패한 단계와 대상을 함께 보존합니다.
+    /// </summary>
+    public sealed class PatchOperationException : InvalidOperationException
+    {
+        public GameServer Server { get; }
+        public PatchFailureStage Stage { get; }
+        public int? Version { get; }
+        public string? TargetPath { get; }
+        public string? FileName { get; }
+
+        public PatchOperationException(
+            string message,
+            GameServer server,
+            PatchFailureStage stage,
+            Exception innerException,
+            int? version = null,
+            string? targetPath = null,
+            string? fileName = null)
+            : base(message, innerException)
+        {
+            Server = server;
+            Stage = stage;
+            Version = version;
+            TargetPath = targetPath;
+            FileName = fileName;
+        }
+    }
+
     private sealed class VersionInfo(int Version)
     {
         public int Version { get; } = Version;
@@ -233,7 +273,19 @@ public sealed class PatchManager
             $"currentVersion: {currentClientVersion}\n\t" +
             $"clientPath: {originClientPath}");
 
-        int latestClientVersion = await GetLatestServerVersionAsync(targetServer, ct);
+        int latestClientVersion;
+        try
+        {
+            latestClientVersion = await GetLatestServerVersionAsync(targetServer, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new PatchOperationException(
+                $"Failed to resolve the latest patch version for server '{targetServer}'.",
+                targetServer,
+                PatchFailureStage.ResolveLatestVersion,
+                ex);
+        }
 
         string tempRoot = GetPatchTempRoot(originClientPath, currentClientVersion, latestClientVersion);
 
@@ -241,20 +293,47 @@ public sealed class PatchManager
         {
             Debug.WriteLine($"[PatchManager] RestartFromScratch. Delete temp root: {tempRoot}");
 
-            bool deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+            bool deleted;
+            try
+            {
+                deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new PatchOperationException(
+                    $"Failed to reset patch temp directory '{tempRoot}'.",
+                    targetServer,
+                    PatchFailureStage.ResetTempDirectory,
+                    ex,
+                    targetPath: tempRoot);
+            }
+
             if (!deleted)
                 throw new IOException($"Failed to delete existing patch temp directory: {tempRoot}");
         }
 
         Directory.CreateDirectory(tempRoot);
 
-        List<PatchItem> items = await BuildPatchItemsAsync(
-            targetServer,
-            currentClientVersion,
-            latestClientVersion,
-            originClientPath,
-            tempRoot,
-            ct);
+        List<PatchItem> items;
+        try
+        {
+            items = await BuildPatchItemsAsync(
+                targetServer,
+                currentClientVersion,
+                latestClientVersion,
+                originClientPath,
+                tempRoot,
+                ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new PatchOperationException(
+                $"Failed to build patch item list for server '{targetServer}'.",
+                targetServer,
+                PatchFailureStage.BuildPatchItems,
+                ex,
+                targetPath: tempRoot);
+        }
 
         Debug.WriteLine("패치 파일 목록(압축 푸는 순서대로 정렬):");
         foreach (PatchItem item in items)
@@ -319,56 +398,83 @@ public sealed class PatchManager
 
         try
         {
-            await ApplyPatchAsync(
-                items,
-                downloadOptions: downloadOptions,
-                onBeforeDownload: item =>
-                {
-                    state.Update(s =>
+            try
+            {
+                await ApplyPatchAsync(
+                    targetServer,
+                    items,
+                    downloadOptions: downloadOptions,
+                    onBeforeDownload: item =>
                     {
-                        s.DownloadingFileName = item.FileName;
-                        s.DownloadingPercent = 0;
-                    });
+                        state.Update(s =>
+                        {
+                            s.DownloadingFileName = item.FileName;
+                            s.DownloadingPercent = 0;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                onAfterDownload: item =>
-                {
-                    state.Update(s =>
+                        ReportProgressSnapshot();
+                    },
+                    onAfterDownload: item =>
                     {
-                        s.DownloadedCount++;
-                        s.DownloadingFileName = item.FileName;
-                        s.DownloadingPercent = 100;
-                    });
+                        state.Update(s =>
+                        {
+                            s.DownloadedCount++;
+                            s.DownloadingFileName = item.FileName;
+                            s.DownloadingPercent = 100;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                onBeforeExtract: item =>
-                {
-                    state.Update(s =>
+                        ReportProgressSnapshot();
+                    },
+                    onBeforeExtract: item =>
                     {
-                        s.ExtractingFileName = item.FileName;
-                        s.ExtractingPercent = 0;
-                    });
+                        state.Update(s =>
+                        {
+                            s.ExtractingFileName = item.FileName;
+                            s.ExtractingPercent = 0;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                onAfterExtract: item =>
-                {
-                    state.Update(s =>
+                        ReportProgressSnapshot();
+                    },
+                    onAfterExtract: item =>
                     {
-                        s.ExtractedCount++;
-                        s.ExtractingFileName = item.FileName;
-                        s.ExtractingPercent = 100;
-                    });
+                        state.Update(s =>
+                        {
+                            s.ExtractedCount++;
+                            s.ExtractingFileName = item.FileName;
+                            s.ExtractingPercent = 100;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                downloadProgress: downloadProgress,
-                extractionProgress: extractionProgress,
-                ct: ct).ConfigureAwait(false);
+                        ReportProgressSnapshot();
+                    },
+                    downloadProgress: downloadProgress,
+                    extractionProgress: extractionProgress,
+                    ct: ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and PatchOperationException)
+            {
+                throw new PatchOperationException(
+                    $"Failed to download or extract patch items for server '{targetServer}'.",
+                    targetServer,
+                    PatchFailureStage.DownloadPatchItem,
+                    ex,
+                    targetPath: tempRoot);
+            }
 
-            ApplyMultiClientPatchIfNeeded(targetServer, originClientPath, latestClientVersion, options);
+            try
+            {
+                ApplyMultiClientPatchIfNeeded(targetServer, originClientPath, latestClientVersion, options);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new PatchOperationException(
+                    $"Failed to apply multi-client patch updates for server '{targetServer}'.",
+                    targetServer,
+                    PatchFailureStage.ApplyMultiClientPatch,
+                    ex,
+                    version: latestClientVersion,
+                    targetPath: originClientPath);
+            }
+
             patchSucceeded = true;
         }
         finally
@@ -378,7 +484,22 @@ public sealed class PatchManager
             // 이어받기 / 새로 받기 선택이 가능해야 한다.
             if (patchSucceeded && options.DeleteTempFilesAfterPatch)
             {
-                bool deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+                bool deleted;
+                try
+                {
+                    deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new PatchOperationException(
+                        $"Failed to clean up patch temp directory '{tempRoot}' after a successful patch.",
+                        targetServer,
+                        PatchFailureStage.CleanupTempDirectory,
+                        ex,
+                        version: latestClientVersion,
+                        targetPath: tempRoot);
+                }
+
                 if (!deleted)
                 {
                     Debug.WriteLine($"[PatchManager] Temp root cleanup failed after successful patch: {tempRoot}");
@@ -388,15 +509,16 @@ public sealed class PatchManager
     }
 
     public async Task ApplyPatchAsync(
-    IReadOnlyList<PatchItem> items,
-    DownloadOptions downloadOptions,
-    Action<PatchItem>? onBeforeDownload = null,
-    Action<PatchItem>? onAfterDownload = null,
-    Action<PatchItem>? onBeforeExtract = null,
-    Action<PatchItem>? onAfterExtract = null,
-    IProgress<DownloadProgress>? downloadProgress = null,
-    IProgress<ExtractionProgress>? extractionProgress = null,
-    CancellationToken ct = default)
+        GameServer targetServer,
+        IReadOnlyList<PatchItem> items,
+        DownloadOptions downloadOptions,
+        Action<PatchItem>? onBeforeDownload = null,
+        Action<PatchItem>? onAfterDownload = null,
+        Action<PatchItem>? onBeforeExtract = null,
+        Action<PatchItem>? onAfterExtract = null,
+        IProgress<DownloadProgress>? downloadProgress = null,
+        IProgress<ExtractionProgress>? extractionProgress = null,
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(downloadOptions);
@@ -410,26 +532,63 @@ public sealed class PatchManager
             {
                 onBeforeDownload?.Invoke(item);
 
-                await _downloader.DownloadFileAsync(
-                    item.DownloadUrl,
-                    item.DownloadDestPath,
-                    downloadOptions,
-                    downloadProgress,
-                    cts.Token).ConfigureAwait(false);
+                try
+                {
+                    await _downloader.DownloadFileAsync(
+                        item.DownloadUrl,
+                        item.DownloadDestPath,
+                        downloadOptions,
+                        downloadProgress,
+                        cts.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new PatchOperationException(
+                        $"Failed to download patch item '{item.FileName}'.",
+                        targetServer,
+                        PatchFailureStage.DownloadPatchItem,
+                        ex,
+                        targetPath: item.DownloadDestPath,
+                        fileName: item.FileName);
+                }
 
                 onAfterDownload?.Invoke(item);
 
-                await worker.EnqueueAsync(
-                    new ExtractJob(
-                        item.DownloadDestPath,
-                        item.ExtractDestPath,
-                        extractionProgress,
-                        OnBeforeExtract: () => onBeforeExtract?.Invoke(item),
-                        OnAfterExtract: () => onAfterExtract?.Invoke(item))).ConfigureAwait(false);
+                try
+                {
+                    await worker.EnqueueAsync(
+                        new ExtractJob(
+                            item.DownloadDestPath,
+                            item.ExtractDestPath,
+                            extractionProgress,
+                            OnBeforeExtract: () => onBeforeExtract?.Invoke(item),
+                            OnAfterExtract: () => onAfterExtract?.Invoke(item))).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new PatchOperationException(
+                        $"Failed to queue extraction for patch item '{item.FileName}'.",
+                        targetServer,
+                        PatchFailureStage.ExtractPatchItem,
+                        ex,
+                        targetPath: item.ExtractDestPath,
+                        fileName: item.FileName);
+                }
             }
 
             worker.Complete();
-            await worker.Completion.ConfigureAwait(false);
+            try
+            {
+                await worker.Completion.ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new PatchOperationException(
+                    "Failed while extracting downloaded patch items.",
+                    targetServer,
+                    PatchFailureStage.ExtractPatchItem,
+                    ex);
+            }
         }
         catch
         {
@@ -526,38 +685,46 @@ public sealed class PatchManager
             string ZipCRC = string.Empty;
             int FileOption = 0;
             var cols = line.Split('\t');
-            for (int i = 0; i < cols.Length; ++i)
+            try
             {
-                switch (i)
+                for (int i = 0; i < cols.Length; ++i)
                 {
-                    case 0:
-                        Index = int.Parse(cols[i]);
-                        break;
-                    case 1:
-                        ZipFileName = cols[i];
-                        break;
-                    case 2:
-                        FileNameAfterUnZip = cols[i];
-                        break;
-                    case 3:
-                        RelativeDir = cols[i];
-                        break;
-                    case 4:
-                        ZipFileCheckSum = cols[i];
-                        break;
-                    case 5:
-                        OriginFileCheckSum = cols[i];
-                        break;
-                    case 6:
-                        ZipCRC = cols[i];
-                        break;
-                    case 7:
-                        FileOption = int.Parse(cols[i]);
-                        break;
-                    default:
-                        break;
+                    switch (i)
+                    {
+                        case 0:
+                            Index = int.Parse(cols[i]);
+                            break;
+                        case 1:
+                            ZipFileName = cols[i];
+                            break;
+                        case 2:
+                            FileNameAfterUnZip = cols[i];
+                            break;
+                        case 3:
+                            RelativeDir = cols[i];
+                            break;
+                        case 4:
+                            ZipFileCheckSum = cols[i];
+                            break;
+                        case 5:
+                            OriginFileCheckSum = cols[i];
+                            break;
+                        case 6:
+                            ZipCRC = cols[i];
+                            break;
+                        case 7:
+                            FileOption = int.Parse(cols[i]);
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Failed to parse version info. version={version}, line='{line}'", ex);
+            }
+
             VersionInfoRow row = new(Index, ZipFileName, FileNameAfterUnZip, RelativeDir, ZipFileCheckSum, OriginFileCheckSum, ZipCRC, FileOption);
             info.Rows.Add(row);
         }
@@ -600,7 +767,7 @@ public sealed class PatchManager
         foreach (var version in latestVersionList)
         {
             Uri versionInfoUrl = new(GameServerHelper.GetVersionInfoUrl(server, version));
-            var response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, HttpCompletionOption.ResponseHeadersRead, ct);
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 latestVersion = version;
