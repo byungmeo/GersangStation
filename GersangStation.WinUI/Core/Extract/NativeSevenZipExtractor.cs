@@ -12,6 +12,7 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
 {
     public enum ExtractionFailureStage
     {
+        PrepareDestinationRoot,
         AnalyzeArchive,
         RunSevenZip,
         ReplicateDirectory
@@ -117,7 +118,19 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
         if (string.IsNullOrWhiteSpace(archivePath)) throw new ArgumentException("archivePath is required.", nameof(archivePath));
         if (string.IsNullOrWhiteSpace(destinationRoot)) throw new ArgumentException("destinationRoot is required.", nameof(destinationRoot));
 
-        Directory.CreateDirectory(destinationRoot);
+        try
+        {
+            Directory.CreateDirectory(destinationRoot);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to prepare extraction destination '{destinationRoot}'.",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.PrepareDestinationRoot,
+                ex);
+        }
 
         int? totalEntries;
         try
@@ -261,10 +274,24 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
         if (destinationRoots.Count == 1)
             return;
 
-        string normalizedPrimaryRoot = Path.GetFullPath(primaryRoot)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string normalizedPrimaryRoot;
+        try
+        {
+            normalizedPrimaryRoot = Path.GetFullPath(primaryRoot)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to normalize primary replication destination '{primaryRoot}'.",
+                archivePath,
+                primaryRoot,
+                ExtractionFailureStage.ReplicateDirectory,
+                ex);
+        }
 
         var failedDestinations = new List<string>();
+        Exception? firstReplicationException = null;
 
         for (int i = 1; i < destinationRoots.Count; i++)
         {
@@ -277,22 +304,24 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
                 continue;
             }
 
-            string normalizedDestinationRoot = Path.GetFullPath(destinationRoot)
-                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-            if (string.Equals(normalizedPrimaryRoot, normalizedDestinationRoot, StringComparison.OrdinalIgnoreCase))
-                continue;
-
+            string normalizedDestinationRoot = destinationRoot;
             try
             {
+                normalizedDestinationRoot = Path.GetFullPath(destinationRoot)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                if (string.Equals(normalizedPrimaryRoot, normalizedDestinationRoot, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 Directory.CreateDirectory(normalizedDestinationRoot);
                 await ReplicateDirectoryAsync(
                     normalizedPrimaryRoot,
                     normalizedDestinationRoot,
                     ct).ConfigureAwait(false);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
+                firstReplicationException ??= ex;
                 failedDestinations.Add($"{normalizedDestinationRoot} ({ex.GetType().Name}: {ex.Message})");
             }
         }
@@ -304,7 +333,9 @@ public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
                 archivePath,
                 string.Join(", ", destinationRoots),
                 ExtractionFailureStage.ReplicateDirectory,
-                new IOException("Failed to replicate extracted contents to one or more destinations."));
+                firstReplicationException is null
+                    ? new IOException("Failed to replicate extracted contents to one or more destinations.")
+                    : new IOException("Failed to replicate extracted contents to one or more destinations.", firstReplicationException));
         }
     }
 
