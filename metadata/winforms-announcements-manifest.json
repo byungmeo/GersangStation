@@ -2,12 +2,12 @@
   "schema_version": 1,
   "product": "winforms",
   "channel": "stable",
-  "generated_at": "2026-03-13T08:19:51Z",
+  "generated_at": "2026-03-13T08:26:57Z",
   "announcement": {
     "id": "111",
-    "title": "테스트",
+    "title": "거상스테이션 2.0 리메이크 안내",
     "url": "https://github.com/byungmeo/GersangStation/discussions/111",
-    "published_at": "2026-03-13T08:19:51Z",
+    "published_at": "2026-03-13T08:26:57Z",
     "show_popup": true
   }
 }
