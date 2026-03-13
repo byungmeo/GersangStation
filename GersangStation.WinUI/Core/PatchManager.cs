@@ -121,6 +121,13 @@ public enum ClientVersionReadFailureStage
     DecodeVsnContents
 }
 
+public enum ClientVersionWriteFailureStage
+{
+    ResolveVsnDirectory,
+    CreateVsnDirectory,
+    WriteVsnFile
+}
+
 /// <summary>
 /// 설치된 클라이언트 버전 읽기 결과를 파일 경로와 실패 문맥과 함께 반환합니다.
 /// </summary>
@@ -133,6 +140,15 @@ public sealed record ClientVersionReadResult(
 {
     public bool FileExists => File.Exists(VsnPath);
 }
+
+/// <summary>
+/// 클라이언트 버전 쓰기 결과를 파일 경로와 실패 문맥과 함께 반환합니다.
+/// </summary>
+public sealed record ClientVersionWriteResult(
+    bool Success,
+    string VsnPath,
+    ClientVersionWriteFailureStage? FailureStage,
+    Exception? Exception);
 
 /*
 public sealed record PatchProgress(
@@ -1130,7 +1146,7 @@ public sealed class PatchManager
     /// <summary>
     /// 설치 경로의 Online/vsn.dat를 지정한 버전 값으로 다시 기록합니다.
     /// </summary>
-    public static void WriteClientVersion(string clientPath, int version)
+    public static ClientVersionWriteResult TryWriteClientVersion(string clientPath, int version)
     {
         if (string.IsNullOrWhiteSpace(clientPath))
             throw new ArgumentException("Client path is required.", nameof(clientPath));
@@ -1138,10 +1154,50 @@ public sealed class PatchManager
         string vsnPath = Path.Combine(clientPath, "Online", "vsn.dat");
         string? vsnDirectory = Path.GetDirectoryName(vsnPath);
         if (string.IsNullOrWhiteSpace(vsnDirectory))
-            throw new InvalidOperationException($"Failed to resolve vsn.dat directory. path={vsnPath}");
+        {
+            return new ClientVersionWriteResult(
+                false,
+                vsnPath,
+                ClientVersionWriteFailureStage.ResolveVsnDirectory,
+                new InvalidOperationException($"Failed to resolve vsn.dat directory. path={vsnPath}"));
+        }
 
-        Directory.CreateDirectory(vsnDirectory);
-        File.WriteAllBytes(vsnPath, EncodeVersionToVsn(version));
+        try
+        {
+            Directory.CreateDirectory(vsnDirectory);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ClientVersionWriteResult(
+                false,
+                vsnPath,
+                ClientVersionWriteFailureStage.CreateVsnDirectory,
+                ex);
+        }
+
+        try
+        {
+            File.WriteAllBytes(vsnPath, EncodeVersionToVsn(version));
+            return new ClientVersionWriteResult(true, vsnPath, null, null);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ClientVersionWriteResult(
+                false,
+                vsnPath,
+                ClientVersionWriteFailureStage.WriteVsnFile,
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// 설치 경로의 Online/vsn.dat를 지정한 버전 값으로 다시 기록합니다.
+    /// </summary>
+    public static void WriteClientVersion(string clientPath, int version)
+    {
+        ClientVersionWriteResult result = TryWriteClientVersion(clientPath, version);
+        if (!result.Success)
+            throw result.Exception ?? new IOException($"Failed to write vsn.dat. path={result.VsnPath}");
     }
 
     public static string GetPatchTempRoot(
