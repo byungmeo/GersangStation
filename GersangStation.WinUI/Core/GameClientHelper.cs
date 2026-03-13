@@ -34,6 +34,17 @@ public static class GameClientHelper
         ReadDirectoryAttributes
     }
 
+    public enum InstallPathValidationFailureReason
+    {
+        EmptyPath,
+        MissingDirectory,
+        MissingRunExe,
+        MissingOnlineMapDirectory,
+        ClonePathUsedAsMainPath,
+        ServerFileMismatch,
+        SymbolDirectoryProbeFailed
+    }
+
     /// <summary>
     /// 다클라 생성 중 기술적 실패가 발생했을 때 단계와 경로 문맥을 함께 보존합니다.
     /// </summary>
@@ -77,6 +88,15 @@ public static class GameClientHelper
         bool Success,
         bool IsSymbolDirectory,
         SymbolProbeFailureStage? FailureStage,
+        Exception? Exception);
+
+    /// <summary>
+    /// 설치 경로 유효성 검사 결과를 실패 사유와 예외 문맥까지 포함해 반환합니다.
+    /// </summary>
+    public sealed record InstallPathValidationResult(
+        bool Success,
+        string Reason,
+        InstallPathValidationFailureReason? FailureReason,
         Exception? Exception);
 
     /// <summary>
@@ -179,55 +199,93 @@ public static class GameClientHelper
     /// <param name="reason">유효성 검사 성공 또는 실패 사유</param>
     public static bool IsValidInstallPath(GameServer server, string installPath, out string reason)
     {
-        return IsValidInstallPathCore(server, installPath, allowSymbolDirectory: false, out reason);
+        InstallPathValidationResult result = TryValidateInstallPath(server, installPath);
+        reason = result.Reason;
+        return result.Success;
     }
 
     /// <summary>
     /// 서버 구분 없이 메인 클라이언트 경로 유효성을 검사합니다.
     /// </summary>
     public static bool IsValidInstallPath(string installPath, out string reason)
-        => IsValidInstallPathCore(server: null, installPath, allowSymbolDirectory: false, out reason);
+    {
+        InstallPathValidationResult result = TryValidateInstallPath(installPath);
+        reason = result.Reason;
+        return result.Success;
+    }
 
     /// <summary>
     /// 복제 클라이언트 경로가 현재 문맥에서 유효한지 여부를 반환합니다.
     /// </summary>
     public static bool IsValidCloneInstallPath(GameServer server, string installPath, out string reason)
-        => IsValidInstallPathCore(server, installPath, allowSymbolDirectory: true, out reason);
-
-    private static bool IsValidInstallPathCore(GameServer? server, string installPath, bool allowSymbolDirectory, out string reason)
     {
-        reason = string.Empty;
+        InstallPathValidationResult result = TryValidateCloneInstallPath(server, installPath);
+        reason = result.Reason;
+        return result.Success;
+    }
+
+    /// <summary>
+    /// 메인 클라이언트 경로 유효성을 상세 결과와 함께 검사합니다.
+    /// </summary>
+    public static InstallPathValidationResult TryValidateInstallPath(GameServer server, string installPath)
+        => ValidateInstallPathCore(server, installPath, allowSymbolDirectory: false);
+
+    /// <summary>
+    /// 서버 구분 없이 메인 클라이언트 경로 유효성을 상세 결과와 함께 검사합니다.
+    /// </summary>
+    public static InstallPathValidationResult TryValidateInstallPath(string installPath)
+        => ValidateInstallPathCore(server: null, installPath, allowSymbolDirectory: false);
+
+    /// <summary>
+    /// 복제 클라이언트 경로 유효성을 상세 결과와 함께 검사합니다.
+    /// </summary>
+    public static InstallPathValidationResult TryValidateCloneInstallPath(GameServer server, string installPath)
+        => ValidateInstallPathCore(server, installPath, allowSymbolDirectory: true);
+
+    private static InstallPathValidationResult ValidateInstallPathCore(GameServer? server, string installPath, bool allowSymbolDirectory)
+    {
         string path = installPath.Trim();
         if (string.IsNullOrEmpty(path))
         {
-            reason = "❌ 설치 경로가 비어있습니다.";
-            return false;
+            return CreateInstallPathFailure("❌ 설치 경로가 비어있습니다.", InstallPathValidationFailureReason.EmptyPath);
         }
 
         if (!Directory.Exists(path))
         {
-            reason = "❌ 존재하지 않는 폴더입니다.";
-            return false;
+            return CreateInstallPathFailure("❌ 존재하지 않는 폴더입니다.", InstallPathValidationFailureReason.MissingDirectory);
         }
 
         string runExe = Path.Combine(path, "Run.exe");
         if (!File.Exists(runExe))
         {
-            reason = "❌ 거상 실행 파일(Run.exe)을 찾지 못했습니다.";
-            return false;
+            return CreateInstallPathFailure("❌ 거상 실행 파일(Run.exe)을 찾지 못했습니다.", InstallPathValidationFailureReason.MissingRunExe);
         }
 
         string onlineMapDir = Path.Combine(path, "Online", "Map");
         if (!Directory.Exists(onlineMapDir))
         {
-            reason = @"❌ 거상 기본 폴더(\Online\Map)를 찾지 못했습니다.";
-            return false;
+            return CreateInstallPathFailure(
+                @"❌ 거상 기본 폴더(\Online\Map)를 찾지 못했습니다.",
+                InstallPathValidationFailureReason.MissingOnlineMapDirectory);
         }
 
-        if (!allowSymbolDirectory && IsSymbolDirectory(onlineMapDir))
+        if (!allowSymbolDirectory)
         {
-            reason = "❌ 메인 거상 경로가 아닙니다. 다클라 경로는 메인 경로가 될 수 없습니다.";
-            return false;
+            SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(onlineMapDir);
+            if (!symbolDirectoryResult.Success)
+            {
+                return CreateInstallPathFailure(
+                    "❌ 설치 경로의 심볼릭 링크 상태를 확인하지 못했습니다.",
+                    InstallPathValidationFailureReason.SymbolDirectoryProbeFailed,
+                    symbolDirectoryResult.Exception);
+            }
+
+            if (symbolDirectoryResult.IsSymbolDirectory)
+            {
+                return CreateInstallPathFailure(
+                    "❌ 메인 거상 경로가 아닙니다. 다클라 경로는 메인 경로가 될 수 없습니다.",
+                    InstallPathValidationFailureReason.ClonePathUsedAsMainPath);
+            }
         }
 
         if (server is GameServer gameServer)
@@ -235,12 +293,13 @@ public static class GameClientHelper
             string serverIni = Path.Combine(path, GameServerHelper.GetServerFileName(gameServer));
             if (!File.Exists(serverIni))
             {
-                reason = $"❌ 선택한 경로는 {GameServerHelper.GetServerDisplayName(gameServer)} 경로가 아닙니다.";
-                return false;
+                return CreateInstallPathFailure(
+                    $"❌ 선택한 경로는 {GameServerHelper.GetServerDisplayName(gameServer)} 경로가 아닙니다.",
+                    InstallPathValidationFailureReason.ServerFileMismatch);
             }
         }
 
-        return true;
+        return new InstallPathValidationResult(true, string.Empty, null, null);
     }
 
     /// <summary>
@@ -359,13 +418,14 @@ public static class GameClientHelper
         string clientPrefix)
     {
         orgInstallPath = orgInstallPath.Trim();
-        string mainPathReason = string.Empty;
-        if (string.IsNullOrEmpty(orgInstallPath) || !IsValidInstallPath(orgInstallPath, out mainPathReason))
+        InstallPathValidationResult mainPathValidation = TryValidateInstallPath(orgInstallPath);
+        if (!mainPathValidation.Success)
         {
             return CreateFailureResult(
-                $"{clientPrefix}유효하지 않은 메인 클라 경로: {mainPathReason}",
+                $"{clientPrefix}유효하지 않은 메인 클라 경로: {mainPathValidation.Reason}",
                 clientNumber,
                 MultiClientCreationFailureStage.ValidateMainInstallPath,
+                mainPathValidation.Exception,
                 sourcePath: orgInstallPath,
                 destinationPath: destPath);
         }
@@ -571,13 +631,14 @@ public static class GameClientHelper
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        string reason = string.Empty;
-        if (string.IsNullOrEmpty(args.InstallPath) || !IsValidInstallPath(args.InstallPath, out reason))
+        InstallPathValidationResult mainPathValidation = TryValidateInstallPath(args.InstallPath);
+        if (!mainPathValidation.Success)
         {
             return CreateFailureResult(
-                $"올바르지 않은 메인 클라 경로: {reason}",
+                $"올바르지 않은 메인 클라 경로: {mainPathValidation.Reason}",
                 clientNumber: null,
                 MultiClientCreationFailureStage.ValidateMainInstallPath,
+                mainPathValidation.Exception,
                 sourcePath: args.InstallPath);
         }
 
@@ -622,6 +683,12 @@ public static class GameClientHelper
 
     private static CreateSymbolMultiClientResult CreateSuccessResult()
         => new(true, string.Empty, null, null, null);
+
+    private static InstallPathValidationResult CreateInstallPathFailure(
+        string reason,
+        InstallPathValidationFailureReason failureReason,
+        Exception? exception = null)
+        => new(false, reason, failureReason, exception);
 
     private static CreateSymbolMultiClientResult CreateFailureResult(
         string reason,
