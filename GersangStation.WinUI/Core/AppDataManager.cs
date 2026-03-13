@@ -183,6 +183,20 @@ public static class AppDataManager
                     return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), readResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
                 }
 
+                if (readResult.Status == PasswordVaultHelper.PasswordVaultReadStatus.IgnoredInvalidInput)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (
+                        normalizedAccounts,
+                        Fail(
+                            nameof(SaveAccountsWithCredentialsAsync),
+                            CreateUnexpectedPasswordVaultStateException(
+                                $"Password vault read ignored a normalized account credential input. UserName='{credential.UserName}'",
+                                readResult.Exception),
+                            AppDataErrorKind.CredentialVault,
+                            AccountsFileName));
+                }
+
                 previousPasswords[credential.UserName] = readResult.HasCredential ? readResult.Password : null;
 
                 PasswordVaultHelper.PasswordVaultOperationResult saveCredentialResult =
@@ -191,6 +205,20 @@ public static class AppDataManager
                 {
                     RollbackCredentialUpserts(previousPasswords);
                     return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), saveCredentialResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+                }
+
+                if (saveCredentialResult.Status == PasswordVaultHelper.PasswordVaultOperationStatus.IgnoredInvalidInput)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (
+                        normalizedAccounts,
+                        Fail(
+                            nameof(SaveAccountsWithCredentialsAsync),
+                            CreateUnexpectedPasswordVaultStateException(
+                                $"Password vault save ignored a normalized account credential input. UserName='{credential.UserName}'",
+                                saveCredentialResult.Exception),
+                            AppDataErrorKind.CredentialVault,
+                            AccountsFileName));
                 }
             }
         }
@@ -855,6 +883,10 @@ public static class AppDataManager
                 {
                     Debug.WriteLine($"[AppDataManager] Credential rollback delete failed. UserName: {userName}, Error: {deleteResult.Exception}");
                 }
+                else if (deleteResult.Status == PasswordVaultHelper.PasswordVaultOperationStatus.IgnoredInvalidInput)
+                {
+                    Debug.WriteLine($"[AppDataManager] Credential rollback delete ignored unexpectedly. UserName: {userName}");
+                }
 
                 continue;
             }
@@ -864,8 +896,20 @@ public static class AppDataManager
             {
                 Debug.WriteLine($"[AppDataManager] Credential rollback save failed. UserName: {userName}, Error: {saveResult.Exception}");
             }
+            else if (saveResult.Status == PasswordVaultHelper.PasswordVaultOperationStatus.IgnoredInvalidInput)
+            {
+                Debug.WriteLine($"[AppDataManager] Credential rollback save ignored unexpectedly. UserName: {userName}");
+            }
         }
     }
+
+    /// <summary>
+    /// 정규화된 계정 자격 증명 경로에서 발생하면 안 되는 PasswordVault 상태를 예외로 변환합니다.
+    /// </summary>
+    private static Exception CreateUnexpectedPasswordVaultStateException(string message, Exception? innerException = null)
+        => innerException is null
+            ? new InvalidOperationException(message)
+            : new InvalidOperationException(message, innerException);
 
     /// <summary>
     /// 계정 저장 후 프리셋 참조와 자격 증명을 현재 계정 목록 기준으로 다시 정리합니다.
