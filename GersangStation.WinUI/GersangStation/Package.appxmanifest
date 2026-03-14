@@ -17,7 +17,7 @@
   <mp:PhoneIdentity PhoneProductId="f6396486-2156-43e1-b703-c284a582d1bc" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>GersangStation</DisplayName>
+    <DisplayName>ms-resource:AppDisplayName</DisplayName>
     <PublisherDisplayName>byungmeo</PublisherDisplayName>
     <Logo>Assets\Icons\StoreLogo.png</Logo>
   </Properties>
@@ -36,8 +36,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$" >
       <uap:VisualElements
-        DisplayName="GersangStation"
-        Description="GersangStation"
+        DisplayName="ms-resource:AppDisplayName"
+        Description="ms-resource:AppDescription"
         BackgroundColor="transparent"
         Square44x44Logo="Assets\Icons\Square44x44Logo.png" Square150x150Logo="Assets\Icons\Station-256x256.png">
         <uap:DefaultTile Square71x71Logo="Assets\Icons\Square71x71Logo.png" Square310x310Logo="Assets\Icons\Square310x310Logo.png" Wide310x150Logo="Assets\Icons\Wide310x150Logo.png">
