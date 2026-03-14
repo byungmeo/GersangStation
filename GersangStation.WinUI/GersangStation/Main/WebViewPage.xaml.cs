@@ -320,9 +320,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         _committedUrlText = target.AbsoluteUri;
         _isUserEditing = false;
 
-        // 여기서 WebView 이동 호출만 연결하면 됨.
-        // WebView2면 WebView.Source = target; 또는 CoreWebView2.Navigate(target.AbsoluteUri) 등.
-        WebView.Source = target;
+        _webviewManager?.Navigate(target);
         _ = WebView.Focus(FocusState.Programmatic);
     }
 
@@ -334,7 +332,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         if (!TryCreateBrowsableUri(favorite.Url, out Uri? targetUri))
             return;
 
-        WebView.Source = targetUri;
+        _webviewManager?.Navigate(targetUri!);
         _ = WebView.Focus(FocusState.Programmatic);
     }
 

@@ -1538,7 +1538,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         if (_webview is not null)
         {
-            _webview.Source = new Uri(Url_Gersang_Main);
+            NavigateToUri(new Uri(Url_Gersang_Main));
         }
     }
 
@@ -1561,7 +1561,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _pendingHtmlContent = null;
         _pendingNavigationUri = null;
-        _webview.Source = uri;
+        NavigateToUri(uri);
     }
 
     /// <summary>
@@ -1584,6 +1584,23 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         _pendingNavigationUri = null;
         _pendingHtmlContent = null;
         _webview.CoreWebView2?.NavigateToString(htmlContent);
+    }
+
+    /// <summary>
+    /// WebView2가 초기화된 경우 CoreWebView2.Navigate를 우선 사용해 fragment 이동도 명시적으로 반영합니다.
+    /// </summary>
+    private void NavigateToUri(Uri uri)
+    {
+        if (_webview is null)
+            return;
+
+        if (_webview.CoreWebView2 is CoreWebView2 core)
+        {
+            core.Navigate(uri.AbsoluteUri);
+            return;
+        }
+
+        _webview.Source = uri;
     }
     #endregion WebViewManager Core
 }

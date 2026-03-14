@@ -263,7 +263,7 @@ namespace GersangStation.Main.Setting
             return false;
         }
 
-        private void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        private async void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             if (!ClientSettings.UseSymbol)
                 return;
@@ -294,6 +294,9 @@ namespace GersangStation.Main.Setting
                     ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
                     : GameClientHelper.MultiClientLayoutPolicy.Legacy;
 
+            if (!await EnsureMultiClientWritePermissionAsync())
+                return;
+
             bool success = GameClientHelper.CreateSymbolMultiClient(new CreateSymbolMultiClientArgs
             {
                 InstallPath = TextBox_Path1.Text,
@@ -315,6 +318,30 @@ namespace GersangStation.Main.Setting
                 TeachingTip_General.Subtitle = reason;
             }
             TeachingTip_General.IsOpen = true;
+        }
+
+        /// <summary>
+        /// 활성화된 다클라 대상 경로에 대해 현재 사용자 쓰기 가능 여부를 실제 파일 생성으로 사전 점검합니다.
+        /// </summary>
+        private async Task<bool> EnsureMultiClientWritePermissionAsync()
+        {
+            if (ClientSettings.UseClient2)
+            {
+                DirectoryWriteProbeResult client2ProbeResult =
+                    PathWriteProbe.TryProbeDirectoryWriteAccess(ClientSettings.Client2Path);
+                if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client2ProbeResult))
+                    return false;
+            }
+
+            if (ClientSettings.UseClient3)
+            {
+                DirectoryWriteProbeResult client3ProbeResult =
+                    PathWriteProbe.TryProbeDirectoryWriteAccess(ClientSettings.Client3Path);
+                if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client3ProbeResult))
+                    return false;
+            }
+
+            return true;
         }
 
         private async void Button_SymbolErrorAction_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

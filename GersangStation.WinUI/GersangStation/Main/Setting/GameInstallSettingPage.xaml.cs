@@ -321,6 +321,10 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             return;
         }
 
+        DirectoryWriteProbeResult writeProbeResult = PathWriteProbe.TryProbeDirectoryWriteAccess(finalInstallPath);
+        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, writeProbeResult))
+            return;
+
         GameInstallManager installManager = new();
 
         _installCts?.Dispose();

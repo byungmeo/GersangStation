@@ -568,6 +568,14 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
         TempPath = $"임시 파일 경로: {tempRoot}";
 
+        DirectoryWriteProbeResult installWriteProbeResult = PathWriteProbe.TryProbeDirectoryWriteAccess(clientSetting.InstallPath);
+        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, installWriteProbeResult))
+            return;
+
+        DirectoryWriteProbeResult tempWriteProbeResult = PathWriteProbe.TryProbeDirectoryWriteAccess(tempRoot);
+        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, tempWriteProbeResult))
+            return;
+
         PatchArchiveReuseMode archiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible;
         if (Directory.Exists(tempRoot))
         {
