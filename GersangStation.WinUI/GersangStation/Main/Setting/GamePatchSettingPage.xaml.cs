@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -46,6 +47,9 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private CancellationTokenSource? _patchInfoLoadCts;
     private int? _currentClientVersion;
     private int? _latestServerVersion;
+    private string _currentInstallPath = string.Empty;
+    private string _currentVersionStatusMessage = string.Empty;
+    private string _latestVersionStatusMessage = string.Empty;
     private bool _suppressServerSelectionChanged;
     private bool _suppressClientSettingsPersistence;
 
@@ -225,20 +229,51 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             }
 
             LoadPatchOptions(clientSetting);
-            _currentClientVersion = PatchManager.GetCurrentClientVersion(clientSetting.InstallPath);
+            _currentInstallPath = clientSetting.InstallPath;
+            ApplyCurrentVersionState(clientSetting.InstallPath);
             _latestServerVersion = null;
-            
+            _latestVersionStatusMessage = string.Empty;
+            DisplayLatestVersion = string.Empty;
+
             SelectedVersionItem = null;
             Versions.Clear();
             RichTextBlock_PatchReadme.Blocks.Clear();
             NotifyPatchStateChanged();
 
-            List<PatchReadmeInfoItem> items = await PatchReadmeHelper.GetPatchInfoList(_selectedGameServer, currentLoadCts.Token);
+            List<PatchReadmeInfoItem> items;
+            try
+            {
+                items = await PatchReadmeHelper.GetPatchInfoList(_selectedGameServer, currentLoadCts.Token);
+            }
+            catch (OperationCanceledException) when (currentLoadCts.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GamePatchSettingPage] Failed to load patch info. Server: {_selectedGameServer}, Error: {ex}");
+                _latestServerVersion = null;
+                _latestVersionStatusMessage = "최신 버전을 확인할 수 없습니다. 지금은 패치를 진행할 수 없습니다.";
+                DisplayLatestVersion = "최신 버전 확인 불가";
+                NotifyPatchStateChanged();
+                return;
+            }
+
             currentLoadCts.Token.ThrowIfCancellationRequested();
 
             PatchReadmeInfoItem? latestPatchInfo = items.FirstOrDefault();
-            _latestServerVersion = latestPatchInfo?.Version;
-            DisplayLatestVersion = latestPatchInfo?.Display ?? string.Empty;
+            if (latestPatchInfo is null)
+            {
+                _latestServerVersion = null;
+                _latestVersionStatusMessage = "최신 버전을 확인할 수 없습니다. 지금은 패치를 진행할 수 없습니다.";
+                DisplayLatestVersion = "최신 버전 확인 불가";
+                NotifyPatchStateChanged();
+                return;
+            }
+
+            _latestServerVersion = latestPatchInfo.Version;
+            _latestVersionStatusMessage = string.Empty;
+            DisplayLatestVersion = latestPatchInfo.Display;
 
             Brush headerBrush = (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
             Brush contentBrush = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
@@ -323,6 +358,25 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     }
 
     /// <summary>
+    /// 현재 설치 경로에서 클라이언트 버전을 읽고, 읽기 실패 시 경로 재설정 유도 메시지를 준비합니다.
+    /// </summary>
+    private void ApplyCurrentVersionState(string installPath)
+    {
+        ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(installPath);
+        if (!currentVersionResult.Success || currentVersionResult.Version is null or <= 0)
+        {
+            _currentClientVersion = null;
+            _currentVersionStatusMessage = "현재 버전을 확인할 수 없습니다. 설치 경로를 다시 설정해주세요.";
+            Debug.WriteLine(
+                $"[GamePatchSettingPage] Failed to read current version. Server: {_selectedGameServer}, InstallPath: '{installPath}', Result: {currentVersionResult}");
+            return;
+        }
+
+        _currentClientVersion = currentVersionResult.Version.Value;
+        _currentVersionStatusMessage = string.Empty;
+    }
+
+    /// <summary>
     /// 다클라 설정 파일 덮어쓰기 옵션을 현재 서버 설정에 즉시 반영합니다.
     /// </summary>
     private async void PersistOverwriteMultiClientConfigSetting()
@@ -399,6 +453,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     /// </summary>
     private bool CanStartPatch
         => _currentClientVersion is int currentVersion
+            && _latestServerVersion is int
             && Versions.Any(item => item.Version == currentVersion)
             && !RequiresManualUpgradeLink()
             && SelectedVersionItem is not null;
@@ -420,13 +475,19 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     /// </summary>
     private string GetVersionWarningMessage()
     {
-        if (_currentClientVersion is null)
-            return "현재 버전을 불러올 수 없습니다. 경로를 다시 설정해주세요";
+        if (!string.IsNullOrWhiteSpace(_currentVersionStatusMessage))
+            return _currentVersionStatusMessage;
+
+        if (!string.IsNullOrWhiteSpace(_latestVersionStatusMessage))
+            return _latestVersionStatusMessage;
 
         if (RequiresManualUpgradeLink())
             return "v34100 이전 버전 클라이언트입니다. 삭제 후 재설치 하세요.";
 
-        return Versions.Any(item => item.Version == _currentClientVersion.Value)
+        if (_currentClientVersion is not int currentVersion)
+            return "현재 버전을 확인할 수 없습니다. 설치 경로를 다시 설정해주세요.";
+
+        return Versions.Any(item => item.Version == currentVersion)
             ? string.Empty
             : "클라이언트가 너무 오래되었습니다. 삭제 후 재설치 하세요.";
     }
@@ -492,7 +553,14 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 loadResult);
         }
 
-        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(_selectedGameServer);
+        if (_latestServerVersion is not int latestClientVersion)
+        {
+            await ShowSimpleDialogAsync(
+                "패치 불가",
+                "최신 버전을 확인할 수 없어 지금은 패치를 진행할 수 없습니다.");
+            return;
+        }
+
         string tempRoot = PatchManager.GetPatchTempRoot(
             clientSetting.InstallPath,
             SelectedVersionItem.Version,
@@ -607,24 +675,34 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         return true;
     }
 
-    private async void ComboBox_CurrentVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ComboBox_CurrentVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(_selectedGameServer);
-        (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
-            await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
-
-        if (!loadResult.Success)
+        if (_latestServerVersion is not int latestClientVersion)
         {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "설정 불러오기 실패",
-                "임시 파일 경로를 계산하기 전에 서버 설정을 불러오지 못했습니다.",
-                loadResult);
+            TempPath = "임시 파일 경로: 최신 버전을 확인할 수 없습니다.";
+            return;
         }
 
         var selectedPatchItem = ComboBox_CurrentVersion.SelectedItem as PatchReadmeInfoItem;
         int selectedCurrentClientVersion = selectedPatchItem?.Version ?? 0;
-        TempPath = $"임시 파일 경로: {PatchManager.GetPatchTempRoot(clientSetting.InstallPath, selectedCurrentClientVersion, latestClientVersion)}";
+        TempPath = $"임시 파일 경로: {PatchManager.GetPatchTempRoot(_currentInstallPath, selectedCurrentClientVersion, latestClientVersion)}";
+    }
+
+    /// <summary>
+    /// 페이지에서 사용하는 단순 안내 대화상자를 표시합니다.
+    /// </summary>
+    private async Task ShowSimpleDialogAsync(string title, string content)
+    {
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = title,
+            Content = content,
+            CloseButtonText = "확인",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        await dialog.ShowAsync();
     }
 
     #region SelectorBar

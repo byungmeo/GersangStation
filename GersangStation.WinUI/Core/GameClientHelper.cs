@@ -41,6 +41,7 @@ public static class GameClientHelper
         MissingDirectory,
         MissingRunExe,
         MissingOnlineMapDirectory,
+        MissingVsnDat,
         ClonePathUsedAsMainPath,
         ServerFileMismatch,
         SymbolDirectoryProbeFailed
@@ -282,6 +283,14 @@ public static class GameClientHelper
             return CreateInstallPathFailure(
                 @"❌ 거상 기본 폴더(\Online\Map)를 찾지 못했습니다.",
                 InstallPathValidationFailureReason.MissingOnlineMapDirectory);
+        }
+
+        string vsnPath = Path.Combine(path, "Online", "vsn.dat");
+        if (!File.Exists(vsnPath))
+        {
+            return CreateInstallPathFailure(
+                @"❌ 거상 버전 파일(\Online\vsn.dat)을 찾지 못했습니다.",
+                InstallPathValidationFailureReason.MissingVsnDat);
         }
 
         if (!allowSymbolDirectory)

@@ -1031,42 +1031,31 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// <summary>
     /// 선택한 슬롯에서 다클라 생성이 필요할 때 설정상 활성화된 복제 클라이언트를 함께 생성합니다.
     /// </summary>
-    private static async Task<(bool Success, string Reason)> TryCreateMissingMultiClientAsync(GameServer server, int clientIndex)
+    private static Task<(bool Success, string Reason)> TryCreateMissingMultiClientAsync(GameServer server, int clientIndex)
     {
         if (clientIndex == 0)
-            return (false, "1클라는 메인 클라이언트이므로 별도 생성이 필요하지 않습니다.");
+            return Task.FromResult((false, "1클라는 메인 클라이언트이므로 별도 생성이 필요하지 않습니다."));
 
         ClientSettings settings = AppDataManager.LoadServerClientSettings(server);
         string installPath = settings.InstallPath?.Trim() ?? string.Empty;
         if (!GameClientHelper.IsValidInstallPath(server, installPath, out string reason))
-            return (false, $"메인 클라이언트 경로가 유효하지 않아 다클라를 만들 수 없습니다. {reason}");
+            return Task.FromResult((false, $"메인 클라이언트 경로가 유효하지 않아 다클라를 만들 수 없습니다. {reason}"));
 
         ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(installPath);
         if (!currentVersionResult.Success || (currentVersionResult.Version ?? 0) <= 0)
-            return (false, BuildVersionCheckFailureDetail("메인 클라이언트", currentVersionResult));
+            return Task.FromResult((false, BuildVersionCheckFailureDetail("메인 클라이언트", currentVersionResult)));
 
         int currentClientVersion = currentVersionResult.Version!.Value;
 
-        int latestClientVersion;
-        try
-        {
-            latestClientVersion = await PatchManager.GetLatestServerVersionAsync(server);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            return (false, $"최신 패치 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요. ({ex.Message})");
-        }
-
         GameClientHelper.MultiClientLayoutPolicy layoutPolicy =
             currentClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
-            && (latestClientVersion <= 0 || latestClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion)
                 ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
                 : GameClientHelper.MultiClientLayoutPolicy.Legacy;
 
         bool shouldCreateClient2 = settings.UseMultiClient && settings.UseClient2;
         bool shouldCreateClient3 = settings.UseMultiClient && settings.UseClient3;
         if (!shouldCreateClient2 && !shouldCreateClient3)
-            return (false, "현재 서버 설정에서 다클라 사용이 비활성화되어 있습니다.");
+            return Task.FromResult((false, "현재 서버 설정에서 다클라 사용이 비활성화되어 있습니다."));
 
         bool success = GameClientHelper.CreateSymbolMultiClient(
             new CreateSymbolMultiClientArgs
@@ -1080,10 +1069,10 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             out reason);
 
         if (!success)
-            return (false, reason);
+            return Task.FromResult((false, reason));
 
         AppDataManager.SaveServerClientSettings(server, settings);
-        return (true, string.Empty);
+        return Task.FromResult((true, string.Empty));
     }
 
     /// <summary>
