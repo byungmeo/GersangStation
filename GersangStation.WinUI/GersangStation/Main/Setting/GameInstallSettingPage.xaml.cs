@@ -465,12 +465,21 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     /// <summary>
     /// 설치 진행 중에는 설정 페이지를 벗어나지 못하도록 막습니다.
     /// </summary>
-    public async Task<bool> ConfirmLeaveAsync()
+    public async Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation)
     {
         if (!IsBusy)
-            return true;
+        {
+            if (reason == LeaveReason.AppExit && XamlRoot is not null)
+                return await ExitConfirmationDialog.ShowAsync(XamlRoot);
 
-        await ShowDialogAsync("이동 불가", "작업 진행 중 페이지를 이동할 수 없습니다.");
+            return true;
+        }
+
+        await ShowDialogAsync(
+            reason == LeaveReason.AppExit ? "종료 불가" : "이동 불가",
+            reason == LeaveReason.AppExit
+                ? "작업 진행 중에는 프로그램을 종료할 수 없습니다."
+                : "작업 진행 중 페이지를 이동할 수 없습니다.");
         return false;
     }
 

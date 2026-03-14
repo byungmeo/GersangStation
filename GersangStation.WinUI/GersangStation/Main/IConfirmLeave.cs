@@ -1,9 +1,14 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 
-namespace GersangStation.Main
+namespace GersangStation.Main;
+
+public enum LeaveReason
 {
-    internal interface IConfirmLeave
-    {
-        Task<bool> ConfirmLeaveAsync();
-    }
+    Navigation,
+    AppExit
+}
+
+internal interface IConfirmLeave
+{
+    Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation);
 }

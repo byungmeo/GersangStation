@@ -89,10 +89,13 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             SyncNavigationSelection(ContentFrame.Content.GetType());
     }
 
-    public async Task<bool> ConfirmLeaveAsync()
+    public async Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation)
     {
         if (ContentFrame.Content is IConfirmLeave confirm)
-            return await confirm.ConfirmLeaveAsync();
+            return await confirm.ConfirmLeaveAsync(reason);
+
+        if (reason == LeaveReason.AppExit && XamlRoot is not null)
+            return await ExitConfirmationDialog.ShowAsync(XamlRoot);
 
         return true;
     }

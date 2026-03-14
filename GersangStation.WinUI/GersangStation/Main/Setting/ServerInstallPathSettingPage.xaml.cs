@@ -103,15 +103,20 @@ namespace GersangStation.Main.Setting
             TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
         }
 
-        private async Task<bool> ShowSaveDialog()
+        /// <summary>
+        /// 변경된 설치 경로 설정을 저장할지 사용자에게 묻습니다.
+        /// </summary>
+        private async Task<bool> ShowSaveDialog(LeaveReason reason)
         {
             bool CanLeaveThisPage = true;
 
             ContentDialog saveDialog = new()
             {
                 XamlRoot = XamlRoot,
-                Title = "저장",
-                Content = "변경 내용을 저장하시겠습니까?",
+                Title = reason == LeaveReason.AppExit ? "프로그램 종료" : "저장",
+                Content = reason == LeaveReason.AppExit
+                    ? "프로그램을 종료하기 전에 변경 내용을 저장하시겠습니까?"
+                    : "변경 내용을 저장하시겠습니까?",
                 IsPrimaryButtonEnabled = true,
                 PrimaryButtonText = "저장",
                 IsSecondaryButtonEnabled = true,
@@ -146,10 +151,16 @@ namespace GersangStation.Main.Setting
             e.Cancel = !await ConfirmLeaveAsync();
         }
 
-        public async Task<bool> ConfirmLeaveAsync()
+        /// <summary>
+        /// 설정 이탈 또는 프로그램 종료 전에 저장 여부를 확인합니다.
+        /// </summary>
+        public async Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation)
         {
             if (IsDirty)
-                return await ShowSaveDialog();
+                return await ShowSaveDialog(reason);
+
+            if (reason == LeaveReason.AppExit && XamlRoot is not null)
+                return await ExitConfirmationDialog.ShowAsync(XamlRoot);
 
             return true;
         }

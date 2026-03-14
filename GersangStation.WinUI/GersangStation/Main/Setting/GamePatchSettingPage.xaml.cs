@@ -655,15 +655,20 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         await LoadPatchInfoAsync();
     }
 
-    public async Task<bool> ConfirmLeaveAsync()
+    /// <summary>
+    /// 패치 작업 상태에 따라 페이지 이탈 또는 앱 종료 가능 여부를 판단합니다.
+    /// </summary>
+    public async Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation)
     {
         if (IsBusy)
         {
             ContentDialog contentDialog = new()
             {
                 XamlRoot = XamlRoot,
-                Title = "이동 불가",
-                Content = "작업 진행 중 페이지를 이동할 수 없습니다.",
+                Title = reason == LeaveReason.AppExit ? "종료 불가" : "이동 불가",
+                Content = reason == LeaveReason.AppExit
+                    ? "작업 진행 중에는 프로그램을 종료할 수 없습니다."
+                    : "작업 진행 중 페이지를 이동할 수 없습니다.",
                 IsPrimaryButtonEnabled = true,
                 PrimaryButtonText = "확인",
                 DefaultButton = ContentDialogButton.Primary
@@ -671,6 +676,9 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             await contentDialog.ShowAsync();
             return false;
         }
+
+        if (reason == LeaveReason.AppExit && XamlRoot is not null)
+            return await ExitConfirmationDialog.ShowAsync(XamlRoot);
 
         return true;
     }

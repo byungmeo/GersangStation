@@ -24,6 +24,7 @@ public sealed partial class MainWindow : Window
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
     private bool _isFirstRunPromptPending;
+    private bool _isCloseConfirmationPending;
     private bool _isWindowActive = true;
     private bool _suppressNavSelectionChanged = false;
     private int _previousSelectedIndex = 0;
@@ -188,26 +189,41 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 창 닫기 시 현재 페이지의 이탈 확인 로직을 먼저 실행하고, 거부되면 종료를 취소합니다.
+    /// 창 닫기 시 현재 페이지의 종료 확인 로직을 한 번만 실행하고, 승인되면 명시적으로 창을 닫습니다.
     /// </summary>
     private async void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         if (_allowForceClose)
             return;
 
-        if (ContentFrame.Content is not IConfirmLeave confirm)
-            return;
-
         // AppWindowClosingEventArgs는 deferral을 제공하지 않으므로
         // 일단 종료를 막고 확인 결과에 따라 명시적으로 다시 닫습니다.
         args.Cancel = true;
 
-        bool canLeave = await confirm.ConfirmLeaveAsync();
-        if (!canLeave)
+        if (_isCloseConfirmationPending)
             return;
 
-        _allowForceClose = true;
-        Close();
+        _isCloseConfirmationPending = true;
+
+        try
+        {
+            bool canClose = ContentFrame.Content switch
+            {
+                IConfirmLeave confirm => await confirm.ConfirmLeaveAsync(LeaveReason.AppExit),
+                _ when Root.XamlRoot is not null => await ExitConfirmationDialog.ShowAsync(Root.XamlRoot),
+                _ => true
+            };
+
+            if (!canClose)
+                return;
+
+            _allowForceClose = true;
+            Close();
+        }
+        finally
+        {
+            _isCloseConfirmationPending = false;
+        }
     }
 
     private async void MainSelectorBar_SelectionChanged(Microsoft.UI.Xaml.Controls.SelectorBar sender, Microsoft.UI.Xaml.Controls.SelectorBarSelectionChangedEventArgs args)
