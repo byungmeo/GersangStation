@@ -9,11 +9,14 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
@@ -69,6 +72,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private string _cachedLoginId = string.Empty;
+    private string _roughLoginRecoveryTargetId = string.Empty;
+    private bool _roughLoginRecoveryBypassUsed;
     private bool _tryingLogout = false;
     public bool TryingLogout
     {
@@ -114,6 +119,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private const string Url_Gersang_Main = "https://www.gersang.co.kr";
+    private const string Url_Gersang_Main_Apex = "https://gersang.co.kr";
     private const string Url_Gersang_Otp = "https://www.gersang.co.kr/member/otp.gs";
     private const string Url_Gersang_Logout = "https://www.gersang.co.kr/member/logoutProc.gs";
     private Uri? _pendingNavigationUri;
@@ -126,6 +132,31 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private static string InputPwScript(string pw) => $"document.getElementById('GSuserPW').value = '{pw}'";
     private static string InputOtpScript(string otpCode) => $"document.getElementById('GSotpNo').value = '{otpCode}'";
     private static string SocketStartScript(string serverParam) => $"startRetry = setTimeout(\"socketStart('{serverParam}')\", 2000);";
+    private const string DetectAuthenticatedDomStateScript =
+        """
+        (() => {
+            const headerMember = document.querySelector('.top_wrap .member');
+            const hasHeaderLoginLink = !!headerMember?.querySelector('a[href*="/member/login.gs"]');
+            const hasHeaderLogoutLink = !!headerMember?.querySelector('a[href*="logoutProc.gs"]');
+            const hasHeaderMyPageLink = !!headerMember?.querySelector('a[href*="/mypage/information.gs"]');
+
+            return {
+                HasHeaderLoginLink: hasHeaderLoginLink,
+                HasHeaderLogoutLink: hasHeaderLogoutLink,
+                HasHeaderMyPageLink: hasHeaderMyPageLink,
+                LocationHref: window.location.href
+            };
+        })()
+        """;
+
+    private sealed record DomLoginState(
+        bool HasHeaderLoginLink,
+        bool HasHeaderLogoutLink,
+        bool HasHeaderMyPageLink,
+        string? LocationHref)
+    {
+        public bool LooksAuthenticated => HasHeaderLogoutLink || HasHeaderMyPageLink;
+    }
 
     /// <summary>
     /// 예약만 된 게임 시작 세션을 취소하고 WebView 측 시작 상태를 정리합니다.
@@ -138,7 +169,17 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         _cachedGameStartId = string.Empty;
         _cachedGameStartClientIndex = -1;
         _cachedInstallPath = string.Empty;
+        ResetRoughLoginRecoveryState();
         TryingGameStart = false;
+    }
+
+    /// <summary>
+    /// memberID 쿠키를 모르는 rough 로그인 복구 상태를 초기화합니다.
+    /// </summary>
+    private void ResetRoughLoginRecoveryState()
+    {
+        _roughLoginRecoveryTargetId = string.Empty;
+        _roughLoginRecoveryBypassUsed = false;
     }
 
     /// <summary>
@@ -196,6 +237,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         _cachedGameStartId = string.Empty;
         _cachedGameStartClientIndex = -1;
         _cachedInstallPath = string.Empty;
+        ResetRoughLoginRecoveryState();
         IsBusy = false;
 
         Debug.WriteLine($"[WebViewManager] 실행 취소. server:{server}, clientIndex:{clientIndex}, reason:{reason}");
@@ -287,11 +329,20 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         TryingLogout = true;
     }
 
+    private static bool IsGersangHost(string host)
+    {
+        if (string.IsNullOrWhiteSpace(host))
+            return false;
+
+        return host.Equals("gersang.co.kr", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".gersang.co.kr", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsGersangDomain(Uri? uri)
     {
         return uri is not null
             && uri.Scheme == Uri.UriSchemeHttps
-            && uri.Host.Equals("www.gersang.co.kr", StringComparison.OrdinalIgnoreCase);
+            && IsGersangHost(uri.Host);
     }
 
     /// <summary>
@@ -331,13 +382,16 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (LoggedIn)
         {
-            if (LoggedInMemberId == id )
+            if (!string.IsNullOrWhiteSpace(LoggedInMemberId)
+                && string.Equals(LoggedInMemberId, id, StringComparison.Ordinal))
             {
                 // 로그인 하려는 아이디와 현재 로그인 된 아이디가 같으면 로그인 할 필요 없다
+                ResetRoughLoginRecoveryState();
                 Debug.WriteLine("이미 동일한 계정으로 로그인 되어 있으므로 로그인 과정을 스킵합니다.");
                 return TryLoginResult.Success;
             }
-            else
+
+            if (!string.IsNullOrWhiteSpace(LoggedInMemberId))
             {
                 // 로그아웃 해야 한다
                 Debug.WriteLine("다른 계정으로 로그인 되어 있으므로 로그아웃 후 로그인을 시도합니다.");
@@ -346,6 +400,22 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 await TryLogout();
                 return TryLoginResult.Success;
             }
+
+            if (string.Equals(_roughLoginRecoveryTargetId, id, StringComparison.Ordinal)
+                && !_roughLoginRecoveryBypassUsed)
+            {
+                _roughLoginRecoveryBypassUsed = true;
+                Debug.WriteLine("[WebViewManager] rough 로그인 복구 후에도 memberID를 확인하지 못했습니다. 무한 로그인을 막기 위해 현재 세션으로 진행합니다.");
+                return TryLoginResult.Success;
+            }
+
+            Debug.WriteLine("[WebViewManager] 로그인 상태는 확인됐지만 memberID 쿠키를 찾지 못했습니다. 선택된 계정으로 다시 로그인하기 위해 로그아웃합니다.");
+            _roughLoginRecoveryTargetId = id;
+            _roughLoginRecoveryBypassUsed = false;
+            TryingLogin = true;
+            _cachedLoginId = id;
+            await TryLogout();
+            return TryLoginResult.Success;
         }
             
         if (string.IsNullOrWhiteSpace(id))
@@ -517,23 +587,41 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (core is null)
             return;
 
-        string updatedLoggedInMemberId = string.Empty;
-        var cookies = await core.CookieManager.GetCookiesAsync(Url_Gersang_Main);
-        foreach (var c in cookies)
+        bool previousLoggedIn = LoggedIn;
+        string previousLoggedInMemberId = LoggedInMemberId;
+
+        (string updatedLoggedInMemberId, string cookieDebugSummary) =
+            await TryGetLoggedInMemberIdFromCookiesAsync(core);
+        DomLoginState? domLoginState = null;
+        bool isRoughLoggedIn = false;
+        if (string.IsNullOrWhiteSpace(updatedLoggedInMemberId)
+            && (TryingLogin || TryingGameStart))
         {
-            if (string.Equals(c.Name, "memberID", StringComparison.OrdinalIgnoreCase))
+            domLoginState = await TryDetectLoggedInFromDomAsync();
+            isRoughLoggedIn = domLoginState?.LooksAuthenticated == true;
+        }
+
+        bool updatedLoggedIn = !string.IsNullOrWhiteSpace(updatedLoggedInMemberId) || isRoughLoggedIn;
+        bool isLoggedInMemberIdChanged = !string.Equals(previousLoggedInMemberId, updatedLoggedInMemberId, StringComparison.Ordinal);
+        bool isLoggedInChanged = previousLoggedIn != updatedLoggedIn;
+        LoggedInMemberId = updatedLoggedInMemberId;
+        LoggedIn = updatedLoggedIn;
+        if (!string.IsNullOrWhiteSpace(updatedLoggedInMemberId))
+            ResetRoughLoginRecoveryState();
+        if (isLoggedInMemberIdChanged || isLoggedInChanged)
+            LoggedInChanged?.Invoke(this, EventArgs.Empty);
+        Debug.WriteLine($"TryingLogin: {TryingLogin}, IsLoggedIn: {LoggedIn}, LoggedInMemberId: {LoggedInMemberId}, RoughLoggedIn: {isRoughLoggedIn}");
+
+        if (string.IsNullOrWhiteSpace(updatedLoggedInMemberId))
+        {
+            Debug.WriteLine($"[WebViewManager] memberID 쿠키를 찾지 못했습니다. CurrentSource: {_currentSource}, CookieLookups: {cookieDebugSummary}");
+            if (domLoginState is not null)
             {
-                updatedLoggedInMemberId = c.Value;
-                break;
+                Debug.WriteLine(
+                    $"[WebViewManager] DOM 로그인 판정. LooksAuthenticated:{domLoginState.LooksAuthenticated}, HasHeaderLoginLink:{domLoginState.HasHeaderLoginLink}, HasHeaderLogoutLink:{domLoginState.HasHeaderLogoutLink}, HasHeaderMyPageLink:{domLoginState.HasHeaderMyPageLink}, Location:{domLoginState.LocationHref}");
             }
         }
 
-        bool isLoggedInMemberIdChanged = !string.Equals(LoggedInMemberId, updatedLoggedInMemberId, StringComparison.Ordinal);
-        LoggedInMemberId = updatedLoggedInMemberId;
-        LoggedIn = !string.IsNullOrWhiteSpace(LoggedInMemberId);
-        if (isLoggedInMemberIdChanged)
-            LoggedInChanged?.Invoke(this, EventArgs.Empty);
-        Debug.WriteLine($"TryingLogin: {TryingLogin}, IsLoggedIn: {LoggedIn}, LoggedInMemberId: {LoggedInMemberId}");
         if (LoggedIn)
         {
             TryingLogin = false;
@@ -576,6 +664,86 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 await TryGameStart(_cachedGameStartId, _cachedGameStartClientIndex);
             }
         }
+    }
+
+    /// <summary>
+    /// 현재 페이지와 거상 루트 도메인 후보들에서 로그인 식별 쿠키를 조회합니다.
+    /// </summary>
+    private async Task<(string MemberId, string DebugSummary)> TryGetLoggedInMemberIdFromCookiesAsync(CoreWebView2 core)
+    {
+        List<string> cookieDebugEntries = [];
+
+        foreach (string lookupUri in BuildCookieLookupUris(_currentSource))
+        {
+            IReadOnlyList<CoreWebView2Cookie> cookies = await core.CookieManager.GetCookiesAsync(lookupUri);
+            cookieDebugEntries.Add(
+                $"{lookupUri} => [{string.Join(", ", cookies.Select(cookie => $"{cookie.Name}@{cookie.Domain}{cookie.Path}"))}]");
+
+            foreach (CoreWebView2Cookie cookie in cookies)
+            {
+                if (string.Equals(cookie.Name, "memberID", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(cookie.Value))
+                {
+                    return (cookie.Value, string.Join(" | ", cookieDebugEntries));
+                }
+            }
+        }
+
+        return (string.Empty, string.Join(" | ", cookieDebugEntries));
+    }
+
+    /// <summary>
+    /// 쿠키가 비어 있을 때 현재 DOM이 인증 완료 상태처럼 보이는지 거칠게 판정합니다.
+    /// </summary>
+    private async Task<DomLoginState?> TryDetectLoggedInFromDomAsync()
+    {
+        try
+        {
+            string scriptResult = await _webview.ExecuteScriptAsync(DetectAuthenticatedDomStateScript);
+            if (string.IsNullOrWhiteSpace(scriptResult) || string.Equals(scriptResult, "null", StringComparison.Ordinal))
+                return null;
+
+            return JsonSerializer.Deserialize<DomLoginState>(scriptResult);
+        }
+        catch (JsonException ex)
+        {
+            Debug.WriteLine($"[WebViewManager] DOM 로그인 판정 JSON 파싱 실패: {ex}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[WebViewManager] DOM 로그인 판정 실패: {ex}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 현재 위치와 대표 URL을 조합해 memberID 쿠키가 저장될 수 있는 조회 후보를 만듭니다.
+    /// </summary>
+    private static IReadOnlyList<string> BuildCookieLookupUris(string? currentSource)
+    {
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+        List<string> candidates = [];
+
+        void Add(string? rawUri)
+        {
+            if (!Uri.TryCreate(rawUri, UriKind.Absolute, out Uri? uri))
+                return;
+
+            if (uri.Scheme != Uri.UriSchemeHttps || !IsGersangHost(uri.Host))
+                return;
+
+            string normalizedUri = uri.GetLeftPart(UriPartial.Path);
+            if (seen.Add(normalizedUri))
+                candidates.Add(normalizedUri);
+        }
+
+        Add(currentSource);
+        Add(Url_Gersang_Main);
+        Add(Url_Gersang_Main_Apex);
+        Add(Url_Gersang_Otp);
+
+        return candidates;
     }
     #endregion Gersang Homepage Controller
 
