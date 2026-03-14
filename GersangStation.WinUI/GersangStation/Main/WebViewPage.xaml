@@ -19,7 +19,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <Grid Grid.Row="0">
+            <Grid Grid.Row="0" Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
@@ -95,7 +95,7 @@
                     Grid.Column="5"
                     Margin="10,6,0,6"
                     Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-                    BorderBrush="LightGray"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
                     GotFocus="TextBox_Search_GotFocus"
                     KeyDown="TextBox_Search_KeyDown"
                     LostFocus="TextBox_Search_LostFocus"
@@ -127,7 +127,10 @@
                 </Button>
             </Grid>
 
-            <Grid Grid.Row="1" Visibility="{x:Bind FavoritesVisibility, Mode=OneWay}">
+            <Grid
+                Grid.Row="1"
+                Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}"
+                Visibility="{x:Bind FavoritesVisibility, Mode=OneWay}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
