@@ -31,7 +31,8 @@ public static class GameClientHelper
     {
         ResolveDriveRoot,
         ReadDriveFormat,
-        ReadDirectoryAttributes
+        ReadDirectoryAttributes,
+        ReadFileAttributes
     }
 
     public enum InstallPathValidationFailureReason
@@ -93,6 +94,15 @@ public static class GameClientHelper
         Exception? Exception);
 
     /// <summary>
+    /// 파일 심볼릭 링크 여부 확인 결과를 실패 문맥과 함께 반환합니다.
+    /// </summary>
+    public sealed record SymbolFileProbeResult(
+        bool Success,
+        bool IsSymbolFile,
+        SymbolProbeFailureStage? FailureStage,
+        Exception? Exception);
+
+    /// <summary>
     /// 설치 경로 유효성 검사 결과를 실패 사유와 예외 문맥까지 포함해 반환합니다.
     /// </summary>
     public sealed record InstallPathValidationResult(
@@ -115,13 +125,23 @@ public static class GameClientHelper
     }
 
     /// <summary>
-    /// 특정 폴더가 SymbolicLink 방식으로 생선된 것인지 여부를 반환합니다.
+    /// 특정 폴더가 SymbolicLink 방식으로 생성된 것인지 여부를 반환합니다.
     /// </summary>
     /// <param name="dirPath">확인하고 싶은 폴더 경로</param>
     /// <returns>SymbolicLink라면 true를 반환합니다.</returns>
     public static bool IsSymbolDirectory(string dirPath)
     {
         return TryIsSymbolDirectory(dirPath).IsSymbolDirectory;
+    }
+
+    /// <summary>
+    /// 특정 파일이 SymbolicLink 방식으로 생성된 것인지 여부를 반환합니다.
+    /// </summary>
+    /// <param name="filePath">확인하고 싶은 파일 경로</param>
+    /// <returns>SymbolicLink라면 true를 반환합니다.</returns>
+    public static bool IsSymbolFile(string filePath)
+    {
+        return TryIsSymbolFile(filePath).IsSymbolFile;
     }
 
     /// <summary>
@@ -178,6 +198,19 @@ public static class GameClientHelper
     /// </summary>
     public static SymbolDirectoryProbeResult TryIsSymbolDirectory(string dirPath)
     {
+        SymbolSupportResult symbolSupportResult = TryCanUseSymbol(dirPath);
+        if (!symbolSupportResult.Success)
+        {
+            return new SymbolDirectoryProbeResult(
+                Success: false,
+                IsSymbolDirectory: false,
+                FailureStage: symbolSupportResult.FailureStage,
+                Exception: symbolSupportResult.Exception);
+        }
+
+        if (!symbolSupportResult.CanUseSymbol)
+            return new SymbolDirectoryProbeResult(true, false, null, null);
+
         try
         {
             var di = new DirectoryInfo(dirPath);
@@ -190,6 +223,40 @@ public static class GameClientHelper
                 Success: false,
                 IsSymbolDirectory: false,
                 FailureStage: SymbolProbeFailureStage.ReadDirectoryAttributes,
+                Exception: ex);
+        }
+    }
+
+    /// <summary>
+    /// 특정 파일이 심볼릭 링크 방식으로 생성된 것인지 상세 결과와 함께 반환합니다.
+    /// </summary>
+    public static SymbolFileProbeResult TryIsSymbolFile(string filePath)
+    {
+        SymbolSupportResult symbolSupportResult = TryCanUseSymbol(filePath);
+        if (!symbolSupportResult.Success)
+        {
+            return new SymbolFileProbeResult(
+                Success: false,
+                IsSymbolFile: false,
+                FailureStage: symbolSupportResult.FailureStage,
+                Exception: symbolSupportResult.Exception);
+        }
+
+        if (!symbolSupportResult.CanUseSymbol)
+            return new SymbolFileProbeResult(true, false, null, null);
+
+        try
+        {
+            var fi = new FileInfo(filePath);
+            bool isSymbolFile = (fi.Attributes & FileAttributes.ReparsePoint) != 0;
+            return new SymbolFileProbeResult(true, isSymbolFile, null, null);
+        }
+        catch (Exception ex)
+        {
+            return new SymbolFileProbeResult(
+                Success: false,
+                IsSymbolFile: false,
+                FailureStage: SymbolProbeFailureStage.ReadFileAttributes,
                 Exception: ex);
         }
     }
@@ -356,7 +423,7 @@ public static class GameClientHelper
             if (!overwriteExistingFiles && File.Exists(tempPath))
                 continue;
 
-            file.CopyTo(tempPath, overwriteExistingFiles);
+            CopyFileWithSymbolAwareOverwrite(file.FullName, tempPath, overwriteExistingFiles);
         }
 
         if (!copySubDirs)
@@ -407,6 +474,31 @@ public static class GameClientHelper
     }
 
     /// <summary>
+    /// 목적지 파일이 심볼릭 링크인 경우 먼저 제거한 뒤 복사합니다.
+    /// </summary>
+    private static void CopyFileWithSymbolAwareOverwrite(string sourceFilePath, string destFilePath, bool overwrite)
+    {
+        if (!overwrite && File.Exists(destFilePath))
+            return;
+
+        if (overwrite && File.Exists(destFilePath))
+        {
+            SymbolFileProbeResult symbolFileResult = TryIsSymbolFile(destFilePath);
+            if (!symbolFileResult.Success)
+            {
+                throw new IOException(
+                    $"Failed to inspect whether '{destFilePath}' is a symbolic file.",
+                    symbolFileResult.Exception);
+            }
+
+            if (symbolFileResult.IsSymbolFile)
+                File.Delete(destFilePath);
+        }
+
+        File.Copy(sourceFilePath, destFilePath, overwrite);
+    }
+
+    /// <summary>
     /// 34100 이후 레이아웃에서 Assets\Config만 설정파일 덮어쓰기 정책을 적용해 재구성합니다.
     /// </summary>
     private static void CopyAssetsDirectoryWithConfigPolicy(string sourceAssetsPath, string destAssetsPath, bool overwriteConfig)
@@ -417,7 +509,7 @@ public static class GameClientHelper
         {
             string fileName = Path.GetFileName(sourceFilePath);
             string destFilePath = Path.Combine(destAssetsPath, fileName);
-            File.Copy(sourceFilePath, destFilePath, overwrite: true);
+            CopyFileWithSymbolAwareOverwrite(sourceFilePath, destFilePath, overwrite: true);
         }
 
         foreach (string sourceDirPath in Directory.GetDirectories(sourceAssetsPath))
@@ -585,7 +677,7 @@ public static class GameClientHelper
                 if (!overwrite && File.Exists(destFilePath))
                     continue;
 
-                File.Copy(orgFilePath, destFilePath, overwrite);
+                CopyFileWithSymbolAwareOverwrite(orgFilePath, destFilePath, overwrite);
             }
         }
         catch (Exception ex)
@@ -684,7 +776,7 @@ public static class GameClientHelper
                 if (!overwrite && File.Exists(destFilePath))
                     continue;
 
-                File.Copy(orgFilePath, destFilePath, overwrite);
+                CopyFileWithSymbolAwareOverwrite(orgFilePath, destFilePath, overwrite);
             }
         }
         catch (Exception ex)
