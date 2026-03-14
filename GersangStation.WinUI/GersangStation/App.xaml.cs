@@ -1,6 +1,9 @@
+using GersangStation.Diagnostics;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Storage;
 
@@ -12,6 +15,8 @@ namespace GersangStation
     public partial class App : Application
     {
         public static Window? CurrentWindow { get; private set; }
+        public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcherQueue { get; private set; }
+        public static AppExceptionHandler ExceptionHandler { get; } = new();
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -20,6 +25,8 @@ namespace GersangStation
         public App()
         {
             InitializeComponent();
+            UiDispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+            RegisterGlobalExceptionHandlers();
             Debug.WriteLine($"PFN: {Package.Current.Id.FamilyName}");
             Debug.WriteLine($"LocalFolder Path: {ApplicationData.Current.LocalFolder.Path}");
         }
@@ -28,9 +35,16 @@ namespace GersangStation
         /// Invoked when the application is launched.
         /// </summary>
         /// <param name="args">Details about the launch request and process.</param>
-        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            OpenMainWindow();
+            try
+            {
+                OpenMainWindow();
+            }
+            catch (Exception ex)
+            {
+                await ExceptionHandler.HandleFatalUiExceptionAsync(ex, "App.OnLaunched");
+            }
         }
 
         private void OpenMainWindow()
@@ -86,6 +100,60 @@ namespace GersangStation
         {
             if (ReferenceEquals(sender, CurrentWindow))
                 CurrentWindow = null;
+        }
+
+        /// <summary>
+        /// 앱 전역 예외 이벤트를 등록합니다.
+        /// </summary>
+        private void RegisterGlobalExceptionHandlers()
+        {
+            UnhandledException += OnUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnCurrentDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnTaskSchedulerUnobservedTaskException;
+        }
+
+        /// <summary>
+        /// WinUI UI 스레드에서 처리되지 않은 예외를 마지막 crash UI로 표시한 뒤 종료합니다.
+        /// </summary>
+        private async void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        {
+            // 창을 보여줄 마지막 기회를 확보하기 위해 handled로 전환하되, 복구 시도는 하지 않습니다.
+            e.Handled = true;
+            await ExceptionHandler.HandleFatalUiExceptionAsync(
+                e.Exception,
+                "Microsoft.UI.Xaml.Application.UnhandledException");
+        }
+
+        /// <summary>
+        /// 앱 도메인 수준의 처리되지 않은 예외는 WinUI를 거치지 않고 저수준 fallback으로만 처리합니다.
+        /// </summary>
+        private void OnCurrentDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+        {
+            Exception exception = e.ExceptionObject as Exception
+                ?? new Exception($"Non-Exception object was thrown: {e.ExceptionObject}");
+
+            if (e.IsTerminating)
+            {
+                ExceptionHandler.HandleFatalProcessException(
+                    exception,
+                    "AppDomain.CurrentDomain.UnhandledException");
+                return;
+            }
+
+            _ = ExceptionHandler.ShowRecoverableAsync(
+                exception,
+                "AppDomain.CurrentDomain.UnhandledException");
+        }
+
+        /// <summary>
+        /// 관찰되지 않은 Task 예외를 공통 처리기로 전달하고 GC 종료 크래시를 방지합니다.
+        /// </summary>
+        private void OnTaskSchedulerUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            e.SetObserved();
+            _ = ExceptionHandler.ShowRecoverableAsync(
+                e.Exception,
+                "TaskScheduler.UnobservedTaskException");
         }
     }
 }

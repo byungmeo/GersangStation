@@ -8,8 +8,70 @@ namespace Core.Extract;
 /// 7za 커맨드라인(7za.exe)을 사용해 압축을 풉니다.
 /// .gsz 파일 압축 해제 시 파일 정합성을 보장할 수 없으므로, 7z 파일 압축 해제에만 사용 권장
 /// </summary>
-public sealed class NativeSevenZipExtractor : IExtractor
+public sealed class NativeSevenZipExtractor : IExtractor, IExtractorSupportProbe
 {
+    public enum ExtractionFailureStage
+    {
+        ResolveExecutable,
+        PrepareDestinationRoot,
+        AnalyzeArchive,
+        RunSevenZip,
+        ReplicateDirectory
+    }
+
+    private enum ArchiveListingFailureStage
+    {
+        RunListCommand,
+        ParseSummary
+    }
+
+    /// <summary>
+    /// 7za 기반 추출 실패 시 단계, 경로, 종료 코드를 함께 전달합니다.
+    /// </summary>
+    public sealed class ExtractionOperationException : IOException
+    {
+        public string ArchivePath { get; }
+        public string DestinationPath { get; }
+        public ExtractionFailureStage Stage { get; }
+        public int? ExitCode { get; }
+
+        public ExtractionOperationException(
+            string message,
+            string archivePath,
+            string destinationPath,
+            ExtractionFailureStage stage,
+            Exception innerException,
+            int? exitCode = null)
+            : base(message, innerException)
+        {
+            ArchivePath = archivePath;
+            DestinationPath = destinationPath;
+            Stage = stage;
+            ExitCode = exitCode;
+        }
+
+        public ExtractionOperationException(
+            string message,
+            string archivePath,
+            string destinationPath,
+            ExtractionFailureStage stage,
+            int exitCode)
+            : base(message)
+        {
+            ArchivePath = archivePath;
+            DestinationPath = destinationPath;
+            Stage = stage;
+            ExitCode = exitCode;
+        }
+    }
+
+    private sealed record ArchiveListingProbeResult(
+        bool Success,
+        int? TotalEntries,
+        ArchiveListingFailureStage? FailureStage,
+        string? FailureReason,
+        int? ExitCode);
+
     private static readonly Regex ExtractionProgressRegex = new(
         @"^\s*(?<percent>\d{1,3})%\s*(?<processed>\d+)?(?:\s*-\s*(?<entry>.+))?$",
         RegexOptions.Compiled);
@@ -18,19 +80,40 @@ public sealed class NativeSevenZipExtractor : IExtractor
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private readonly string _sevenZipExePath;
+    private readonly FileNotFoundException? _sevenZipResolutionException;
 
     public NativeSevenZipExtractor(string? sevenZipExePath = null)
     {
-        _sevenZipExePath = ResolveSevenZipExecutablePath(sevenZipExePath);
+        SevenZipResolutionResult resolutionResult = ResolveSevenZipExecutablePath(sevenZipExePath);
+        _sevenZipExePath = resolutionResult.Path;
+        _sevenZipResolutionException = resolutionResult.Exception;
     }
 
     public string Name => "Native 7-Zip CLI (7za)";
 
     public bool CanHandle(string archivePath)
     {
-        return !string.IsNullOrWhiteSpace(archivePath)
-            && File.Exists(archivePath)
-            && File.Exists(_sevenZipExePath);
+        return ProbeSupport(archivePath).CanHandle;
+    }
+
+    /// <summary>
+    /// 7za 추출기가 현재 아카이브를 처리할 수 있는지 실패 이유와 함께 반환합니다.
+    /// </summary>
+    public ExtractorSupportProbeResult ProbeSupport(string archivePath)
+    {
+        if (string.IsNullOrWhiteSpace(archivePath))
+            return new(false, "archive path is empty.");
+
+        if (!File.Exists(archivePath))
+            return new(false, $"archive file does not exist: {archivePath}");
+
+        if (_sevenZipResolutionException is not null)
+            return new(false, _sevenZipResolutionException.Message, _sevenZipResolutionException);
+
+        if (!File.Exists(_sevenZipExePath))
+            return new(false, $"7za executable does not exist: {_sevenZipExePath}");
+
+        return new(true, string.Empty);
     }
 
     public async Task ExtractAsync(
@@ -42,9 +125,44 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (string.IsNullOrWhiteSpace(archivePath)) throw new ArgumentException("archivePath is required.", nameof(archivePath));
         if (string.IsNullOrWhiteSpace(destinationRoot)) throw new ArgumentException("destinationRoot is required.", nameof(destinationRoot));
 
-        Directory.CreateDirectory(destinationRoot);
+        try
+        {
+            Directory.CreateDirectory(destinationRoot);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to prepare extraction destination '{destinationRoot}'.",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.PrepareDestinationRoot,
+                ex);
+        }
 
-        int? totalEntries = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
+        EnsureSevenZipExecutableAvailable(archivePath, destinationRoot);
+
+        int? totalEntries;
+        try
+        {
+            ArchiveListingProbeResult listingResult = await TryGetTotalEntriesAsync(archivePath, ct).ConfigureAwait(false);
+            totalEntries = listingResult.TotalEntries;
+            if (!listingResult.Success)
+            {
+                WriteLog(
+                    $"[7ZA][LIST][FALLBACK] stage={listingResult.FailureStage?.ToString() ?? "unknown"}, " +
+                    $"exitCode={listingResult.ExitCode?.ToString() ?? "null"}, reason={listingResult.FailureReason ?? "unknown"}");
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to inspect archive '{archivePath}' before extraction.",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.AnalyzeArchive,
+                ex);
+        }
+
         WriteLog($"[7ZA][LIST][PARSED] TotalEntries={totalEntries?.ToString() ?? "null"}");
 
         var psi = new ProcessStartInfo
@@ -60,6 +178,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         using var process = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
         string currentArchive = Path.GetFileName(archivePath);
+        List<string> stderrLines = [];
 
         bool hasReportedCompletion = false;
         process.OutputDataReceived += (_, args) =>
@@ -98,31 +217,53 @@ public sealed class NativeSevenZipExtractor : IExtractor
         process.ErrorDataReceived += (_, args) =>
         {
             if (string.IsNullOrWhiteSpace(args.Data)) return;
+            stderrLines.Add(args.Data);
             WriteLog($"[7ZA][ERR] {args.Data}");
         };
 
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        using var cancellationRegistration = ct.Register(() =>
+        try
         {
-            try
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            using var cancellationRegistration = ct.Register(() =>
             {
                 if (!process.HasExited)
-                    process.Kill(entireProcessTree: true);
-            }
-            catch
-            {
-            }
-        });
+                    TryKillProcess(process);
+            });
 
-        await process.WaitForExitAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to execute 7za for archive '{archivePath}'.",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.RunSevenZip,
+                ex);
+        }
 
         ct.ThrowIfCancellationRequested();
 
         if (process.ExitCode != 0)
-            throw new InvalidDataException($"7za extraction failed with exitCode={process.ExitCode}.");
+        {
+            string stderrSummary = stderrLines.Count == 0
+                ? "stderr unavailable"
+                : string.Join(" | ", stderrLines.TakeLast(5));
+
+            throw new ExtractionOperationException(
+                $"7za extraction failed with exitCode={process.ExitCode}. stderr={stderrSummary}",
+                archivePath,
+                destinationRoot,
+                ExtractionFailureStage.RunSevenZip,
+                process.ExitCode);
+        }
 
         WriteLog("[7ZA][PROGRESS][COMPLETE] exitCode=0");
 
@@ -152,10 +293,24 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (destinationRoots.Count == 1)
             return;
 
-        string normalizedPrimaryRoot = Path.GetFullPath(primaryRoot)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string normalizedPrimaryRoot;
+        try
+        {
+            normalizedPrimaryRoot = Path.GetFullPath(primaryRoot)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ExtractionOperationException(
+                $"Failed to normalize primary replication destination '{primaryRoot}'.",
+                archivePath,
+                primaryRoot,
+                ExtractionFailureStage.ReplicateDirectory,
+                ex);
+        }
 
         var failedDestinations = new List<string>();
+        Exception? firstReplicationException = null;
 
         for (int i = 1; i < destinationRoots.Count; i++)
         {
@@ -168,28 +323,39 @@ public sealed class NativeSevenZipExtractor : IExtractor
                 continue;
             }
 
-            string normalizedDestinationRoot = Path.GetFullPath(destinationRoot)
-                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-            if (string.Equals(normalizedPrimaryRoot, normalizedDestinationRoot, StringComparison.OrdinalIgnoreCase))
-                continue;
-
+            string normalizedDestinationRoot = destinationRoot;
             try
             {
+                normalizedDestinationRoot = Path.GetFullPath(destinationRoot)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                if (string.Equals(normalizedPrimaryRoot, normalizedDestinationRoot, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 Directory.CreateDirectory(normalizedDestinationRoot);
                 await ReplicateDirectoryAsync(
                     normalizedPrimaryRoot,
                     normalizedDestinationRoot,
                     ct).ConfigureAwait(false);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
+                firstReplicationException ??= ex;
                 failedDestinations.Add($"{normalizedDestinationRoot} ({ex.GetType().Name}: {ex.Message})");
             }
         }
 
         if (failedDestinations.Count > 0)
-            throw new IOException($"Replication failed for {failedDestinations.Count} destination(s): {string.Join(", ", failedDestinations)}");
+        {
+            throw new ExtractionOperationException(
+                $"Replication failed for {failedDestinations.Count} destination(s): {string.Join(", ", failedDestinations)}",
+                archivePath,
+                string.Join(", ", destinationRoots),
+                ExtractionFailureStage.ReplicateDirectory,
+                firstReplicationException is null
+                    ? new IOException("Failed to replicate extracted contents to one or more destinations.")
+                    : new IOException("Failed to replicate extracted contents to one or more destinations.", firstReplicationException));
+        }
     }
 
     private static async Task ReplicateDirectoryAsync(
@@ -245,7 +411,7 @@ public sealed class NativeSevenZipExtractor : IExtractor
         await sourceStream.CopyToAsync(destinationStream, bufferSize, ct).ConfigureAwait(false);
     }
 
-    private async Task<int?> TryGetTotalEntriesAsync(string archivePath, CancellationToken ct)
+    private async Task<ArchiveListingProbeResult> TryGetTotalEntriesAsync(string archivePath, CancellationToken ct)
     {
         var psi = new ProcessStartInfo
         {
@@ -268,7 +434,12 @@ public sealed class NativeSevenZipExtractor : IExtractor
         if (process.ExitCode != 0)
         {
             WriteLog($"[7ZA][LIST][ERR] exitCode={process.ExitCode}, stderr={stderr}");
-            return null;
+            return new ArchiveListingProbeResult(
+                false,
+                null,
+                ArchiveListingFailureStage.RunListCommand,
+                $"7za list command failed. stderr={stderr}",
+                process.ExitCode);
         }
 
         var lines = stdout
@@ -302,17 +473,71 @@ public sealed class NativeSevenZipExtractor : IExtractor
             }
 
             WriteLog($"[7ZA][LIST][PARSED] files={files}, folders={folders}, totalFiles={files}");
-            return files;
+            return new ArchiveListingProbeResult(true, files, null, null, process.ExitCode);
         }
 
         WriteLog("[7ZA][LIST][PARSED] summary not found in tail lines.");
-        return null;
+        return new ArchiveListingProbeResult(
+            false,
+            null,
+            ArchiveListingFailureStage.ParseSummary,
+            "summary not found in tail lines",
+            process.ExitCode);
     }
 
-    private static string ResolveSevenZipExecutablePath(string? explicitPath)
+    /// <summary>
+    /// 현재 인스턴스가 사용할 7za 실행 파일이 실제로 준비됐는지 확인합니다.
+    /// </summary>
+    private void EnsureSevenZipExecutableAvailable(string archivePath, string destinationPath)
     {
-        if (!string.IsNullOrWhiteSpace(explicitPath) && File.Exists(explicitPath))
-            return explicitPath;
+        if (_sevenZipResolutionException is not null)
+        {
+            throw new ExtractionOperationException(
+                "Failed to resolve 7za.exe before extraction started.",
+                archivePath,
+                destinationPath,
+                ExtractionFailureStage.ResolveExecutable,
+                _sevenZipResolutionException);
+        }
+
+        if (!File.Exists(_sevenZipExePath))
+        {
+            throw new ExtractionOperationException(
+                $"7za executable does not exist: {_sevenZipExePath}",
+                archivePath,
+                destinationPath,
+                ExtractionFailureStage.ResolveExecutable,
+                new FileNotFoundException("7za executable was not found.", _sevenZipExePath));
+        }
+    }
+
+    private static void TryKillProcess(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+        }
+        catch
+        {
+        }
+    }
+
+    private sealed record SevenZipResolutionResult(string Path, FileNotFoundException? Exception);
+
+    private static SevenZipResolutionResult ResolveSevenZipExecutablePath(string? explicitPath)
+    {
+        if (!string.IsNullOrWhiteSpace(explicitPath))
+        {
+            if (File.Exists(explicitPath))
+                return new SevenZipResolutionResult(explicitPath, null);
+
+            return new SevenZipResolutionResult(
+                explicitPath,
+                new FileNotFoundException(
+                    $"7za executable was not found at the configured path: {explicitPath}",
+                    explicitPath));
+        }
 
         string[] localCandidates =
         [
@@ -326,11 +551,13 @@ public sealed class NativeSevenZipExtractor : IExtractor
             if (File.Exists(candidate))
             {
                 WriteLog($"Resolved 7za.exe Path: {candidate}");
-                return candidate;
+                return new SevenZipResolutionResult(candidate, null);
             }
         }
 
-        throw new FileNotFoundException("7za.exe not found.");
+        return new SevenZipResolutionResult(
+            localCandidates[0],
+            new FileNotFoundException("7za.exe not found.", localCandidates[0]));
     }
 
     private static void WriteLog(string message)

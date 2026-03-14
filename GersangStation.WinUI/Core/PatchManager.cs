@@ -83,6 +83,90 @@ public sealed record PatchRunOptions(
     PatchArchiveReuseMode ArchiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible,
     bool ApplyMultiClientPatch = false);
 
+public enum LatestVersionResolutionFailureStage
+{
+    ReadmeLookup,
+    ProbeVersionInfo,
+    NoPublishedVersionInfo
+}
+
+/// <summary>
+/// 최신 패치 버전 확인 실패 시 단계와 서버/버전 문맥을 함께 보존합니다.
+/// </summary>
+public sealed class LatestVersionResolutionException : InvalidOperationException
+{
+    public GameServer Server { get; }
+    public int? Version { get; }
+    public string? VersionInfoUrl { get; }
+    public LatestVersionResolutionFailureStage Stage { get; }
+
+    public LatestVersionResolutionException(
+        string message,
+        GameServer server,
+        LatestVersionResolutionFailureStage stage,
+        Exception innerException,
+        int? version = null,
+        string? versionInfoUrl = null)
+        : base(message, innerException)
+    {
+        Server = server;
+        Version = version;
+        VersionInfoUrl = versionInfoUrl;
+        Stage = stage;
+    }
+}
+
+public enum ClientVersionReadFailureStage
+{
+    ResolveVsnPath,
+    OpenVsnFile,
+    DecodeVsnContents
+}
+
+public enum ClientVersionWriteFailureStage
+{
+    ResolveVsnPath,
+    ResolveVsnDirectory,
+    CreateVsnDirectory,
+    WriteVsnFile
+}
+
+public enum DirectoryDeleteFailureStage
+{
+    DeleteDirectory
+}
+
+/// <summary>
+/// 설치된 클라이언트 버전 읽기 결과를 파일 경로와 실패 문맥과 함께 반환합니다.
+/// </summary>
+public sealed record ClientVersionReadResult(
+    bool Success,
+    int? Version,
+    string VsnPath,
+    ClientVersionReadFailureStage? FailureStage,
+    Exception? Exception)
+{
+    public bool FileExists => File.Exists(VsnPath);
+}
+
+/// <summary>
+/// 클라이언트 버전 쓰기 결과를 파일 경로와 실패 문맥과 함께 반환합니다.
+/// </summary>
+public sealed record ClientVersionWriteResult(
+    bool Success,
+    string VsnPath,
+    ClientVersionWriteFailureStage? FailureStage,
+    Exception? Exception);
+
+/// <summary>
+/// 디렉터리 삭제 재시도 결과를 실패 문맥과 함께 반환합니다.
+/// </summary>
+public sealed record DirectoryDeleteResult(
+    bool Success,
+    string Path,
+    DirectoryDeleteFailureStage? FailureStage,
+    Exception? Exception);
+
 /*
 public sealed record PatchProgress(
     int TotalCount,
@@ -99,6 +183,44 @@ public sealed record ExtractJob(
     IProgress<ExtractionProgress>? Progress = null,
     Action? OnBeforeExtract = null,
     Action? OnAfterExtract = null);
+
+public enum ExtractorWorkerFailureStage
+{
+    ValidateArchiveSupport,
+    ExtractArchive
+}
+
+/// <summary>
+/// 추출 워커가 큐 처리 중 실패했을 때 extractor, 경로, 시도 횟수 문맥을 보존합니다.
+/// </summary>
+public sealed class ExtractorWorkerException : InvalidOperationException
+{
+    public string ExtractorName { get; }
+    public string ArchivePath { get; }
+    public string DestinationPath { get; }
+    public ExtractorWorkerFailureStage Stage { get; }
+    public int Attempt { get; }
+    public int MaxAttempts { get; }
+
+    public ExtractorWorkerException(
+        string message,
+        string extractorName,
+        string archivePath,
+        string destinationPath,
+        ExtractorWorkerFailureStage stage,
+        Exception? innerException = null,
+        int attempt = 0,
+        int maxAttempts = 0)
+        : base(message, innerException)
+    {
+        ExtractorName = extractorName;
+        ArchivePath = archivePath;
+        DestinationPath = destinationPath;
+        Stage = stage;
+        Attempt = attempt;
+        MaxAttempts = maxAttempts;
+    }
+}
 
 public sealed class ExtractorWorker
 {
@@ -141,10 +263,22 @@ public sealed class ExtractorWorker
     {
         await foreach (ExtractJob job in _channel.Reader.ReadAllAsync(_ct))
         {
-            if (!_extractor.CanHandle(job.ArchivePath))
+            ExtractorSupportProbeResult? supportProbeResult = (_extractor as IExtractorSupportProbe)?.ProbeSupport(job.ArchivePath);
+            if (!(supportProbeResult?.CanHandle ?? _extractor.CanHandle(job.ArchivePath)))
             {
-                throw new NotSupportedException(
-                    $"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'.");
+                string reason = supportProbeResult?.Reason is { Length: > 0 }
+                    ? supportProbeResult.Reason
+                    : $"Extractor '{_extractor.Name}' cannot handle archive '{job.ArchivePath}'.";
+                Exception innerException = supportProbeResult?.Exception
+                    ?? new NotSupportedException(reason);
+
+                throw new ExtractorWorkerException(
+                    reason,
+                    _extractor.Name,
+                    job.ArchivePath,
+                    job.DestinationPath,
+                    ExtractorWorkerFailureStage.ValidateArchiveSupport,
+                    innerException);
             }
 
             Exception? lastException = null;
@@ -189,9 +323,15 @@ public sealed class ExtractorWorker
 
             if (lastException is not null)
             {
-                throw new InvalidOperationException(
+                throw new ExtractorWorkerException(
                     $"Extraction failed after {_maxExtractAttempts} attempts. ArchivePath='{job.ArchivePath}'",
-                    lastException);
+                    _extractor.Name,
+                    job.ArchivePath,
+                    job.DestinationPath,
+                    ExtractorWorkerFailureStage.ExtractArchive,
+                    lastException,
+                    attempt: _maxExtractAttempts,
+                    maxAttempts: _maxExtractAttempts);
             }
         }
     }
@@ -200,6 +340,79 @@ public sealed class ExtractorWorker
 
 public sealed class PatchManager
 {
+    public enum VersionInfoFailureStage
+    {
+        DownloadVersionInfo,
+        ParseVersionInfo
+    }
+
+    public enum PatchFailureStage
+    {
+        ResolveLatestVersion,
+        ResetTempDirectory,
+        PrepareTempDirectory,
+        BuildPatchItems,
+        DownloadPatchItem,
+        ExtractPatchItem,
+        ApplyMultiClientPatch,
+        CleanupTempDirectory
+    }
+
+    /// <summary>
+    /// 패치 실행 중 실패한 단계와 대상을 함께 보존합니다.
+    /// </summary>
+    public sealed class PatchOperationException : InvalidOperationException
+    {
+        public GameServer Server { get; }
+        public PatchFailureStage Stage { get; }
+        public int? Version { get; }
+        public string? TargetPath { get; }
+        public string? FileName { get; }
+
+        public PatchOperationException(
+            string message,
+            GameServer server,
+            PatchFailureStage stage,
+            Exception innerException,
+            int? version = null,
+            string? targetPath = null,
+            string? fileName = null)
+            : base(message, innerException)
+        {
+            Server = server;
+            Stage = stage;
+            Version = version;
+            TargetPath = targetPath;
+            FileName = fileName;
+        }
+    }
+
+    /// <summary>
+    /// 개별 VersionInfo 조회/파싱 실패 시 버전과 URL 문맥을 함께 보존합니다.
+    /// </summary>
+    public sealed class VersionInfoException : InvalidOperationException
+    {
+        public GameServer Server { get; }
+        public int Version { get; }
+        public string VersionInfoUrl { get; }
+        public VersionInfoFailureStage Stage { get; }
+
+        public VersionInfoException(
+            string message,
+            GameServer server,
+            int version,
+            string versionInfoUrl,
+            VersionInfoFailureStage stage,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Server = server;
+            Version = version;
+            VersionInfoUrl = versionInfoUrl;
+            Stage = stage;
+        }
+    }
+
     private sealed class VersionInfo(int Version)
     {
         public int Version { get; } = Version;
@@ -233,7 +446,19 @@ public sealed class PatchManager
             $"currentVersion: {currentClientVersion}\n\t" +
             $"clientPath: {originClientPath}");
 
-        int latestClientVersion = await GetLatestServerVersionAsync(targetServer, ct);
+        int latestClientVersion;
+        try
+        {
+            latestClientVersion = await GetLatestServerVersionAsync(targetServer, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new PatchOperationException(
+                $"Failed to resolve the latest patch version for server '{targetServer}'.",
+                targetServer,
+                PatchFailureStage.ResolveLatestVersion,
+                ex);
+        }
 
         string tempRoot = GetPatchTempRoot(originClientPath, currentClientVersion, latestClientVersion);
 
@@ -241,20 +466,52 @@ public sealed class PatchManager
         {
             Debug.WriteLine($"[PatchManager] RestartFromScratch. Delete temp root: {tempRoot}");
 
-            bool deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
-            if (!deleted)
-                throw new IOException($"Failed to delete existing patch temp directory: {tempRoot}");
+            DirectoryDeleteResult deleteResult = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+            if (!deleteResult.Success)
+            {
+                throw new PatchOperationException(
+                    $"Failed to delete existing patch temp directory '{tempRoot}'.",
+                    targetServer,
+                    PatchFailureStage.ResetTempDirectory,
+                    deleteResult.Exception ?? new IOException($"Failed to delete existing patch temp directory: {tempRoot}"),
+                    targetPath: tempRoot);
+            }
         }
 
-        Directory.CreateDirectory(tempRoot);
+        try
+        {
+            Directory.CreateDirectory(tempRoot);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new PatchOperationException(
+                $"Failed to prepare patch temp directory '{tempRoot}'.",
+                targetServer,
+                PatchFailureStage.PrepareTempDirectory,
+                ex,
+                targetPath: tempRoot);
+        }
 
-        List<PatchItem> items = await BuildPatchItemsAsync(
-            targetServer,
-            currentClientVersion,
-            latestClientVersion,
-            originClientPath,
-            tempRoot,
-            ct);
+        List<PatchItem> items;
+        try
+        {
+            items = await BuildPatchItemsAsync(
+                targetServer,
+                currentClientVersion,
+                latestClientVersion,
+                originClientPath,
+                tempRoot,
+                ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new PatchOperationException(
+                $"Failed to build patch item list for server '{targetServer}'.",
+                targetServer,
+                PatchFailureStage.BuildPatchItems,
+                ex,
+                targetPath: tempRoot);
+        }
 
         Debug.WriteLine("패치 파일 목록(압축 푸는 순서대로 정렬):");
         foreach (PatchItem item in items)
@@ -319,56 +576,83 @@ public sealed class PatchManager
 
         try
         {
-            await ApplyPatchAsync(
-                items,
-                downloadOptions: downloadOptions,
-                onBeforeDownload: item =>
-                {
-                    state.Update(s =>
+            try
+            {
+                await ApplyPatchAsync(
+                    targetServer,
+                    items,
+                    downloadOptions: downloadOptions,
+                    onBeforeDownload: item =>
                     {
-                        s.DownloadingFileName = item.FileName;
-                        s.DownloadingPercent = 0;
-                    });
+                        state.Update(s =>
+                        {
+                            s.DownloadingFileName = item.FileName;
+                            s.DownloadingPercent = 0;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                onAfterDownload: item =>
-                {
-                    state.Update(s =>
+                        ReportProgressSnapshot();
+                    },
+                    onAfterDownload: item =>
                     {
-                        s.DownloadedCount++;
-                        s.DownloadingFileName = item.FileName;
-                        s.DownloadingPercent = 100;
-                    });
+                        state.Update(s =>
+                        {
+                            s.DownloadedCount++;
+                            s.DownloadingFileName = item.FileName;
+                            s.DownloadingPercent = 100;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                onBeforeExtract: item =>
-                {
-                    state.Update(s =>
+                        ReportProgressSnapshot();
+                    },
+                    onBeforeExtract: item =>
                     {
-                        s.ExtractingFileName = item.FileName;
-                        s.ExtractingPercent = 0;
-                    });
+                        state.Update(s =>
+                        {
+                            s.ExtractingFileName = item.FileName;
+                            s.ExtractingPercent = 0;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                onAfterExtract: item =>
-                {
-                    state.Update(s =>
+                        ReportProgressSnapshot();
+                    },
+                    onAfterExtract: item =>
                     {
-                        s.ExtractedCount++;
-                        s.ExtractingFileName = item.FileName;
-                        s.ExtractingPercent = 100;
-                    });
+                        state.Update(s =>
+                        {
+                            s.ExtractedCount++;
+                            s.ExtractingFileName = item.FileName;
+                            s.ExtractingPercent = 100;
+                        });
 
-                    ReportProgressSnapshot();
-                },
-                downloadProgress: downloadProgress,
-                extractionProgress: extractionProgress,
-                ct: ct).ConfigureAwait(false);
+                        ReportProgressSnapshot();
+                    },
+                    downloadProgress: downloadProgress,
+                    extractionProgress: extractionProgress,
+                    ct: ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and PatchOperationException)
+            {
+                throw new PatchOperationException(
+                    $"Failed to download or extract patch items for server '{targetServer}'.",
+                    targetServer,
+                    PatchFailureStage.DownloadPatchItem,
+                    ex,
+                    targetPath: tempRoot);
+            }
 
-            ApplyMultiClientPatchIfNeeded(targetServer, originClientPath, latestClientVersion, options);
+            try
+            {
+                ApplyMultiClientPatchIfNeeded(targetServer, originClientPath, latestClientVersion, options);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new PatchOperationException(
+                    $"Failed to apply multi-client patch updates for server '{targetServer}'.",
+                    targetServer,
+                    PatchFailureStage.ApplyMultiClientPatch,
+                    ex,
+                    version: latestClientVersion,
+                    targetPath: originClientPath);
+            }
+
             patchSucceeded = true;
         }
         finally
@@ -378,25 +662,26 @@ public sealed class PatchManager
             // 이어받기 / 새로 받기 선택이 가능해야 한다.
             if (patchSucceeded && options.DeleteTempFilesAfterPatch)
             {
-                bool deleted = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
-                if (!deleted)
+                DirectoryDeleteResult deleteResult = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
+                if (!deleteResult.Success)
                 {
-                    Debug.WriteLine($"[PatchManager] Temp root cleanup failed after successful patch: {tempRoot}");
+                    Debug.WriteLine($"[PatchManager] Temp root cleanup failed after successful patch: {tempRoot}, Error: {deleteResult.Exception}");
                 }
             }
         }
     }
 
     public async Task ApplyPatchAsync(
-    IReadOnlyList<PatchItem> items,
-    DownloadOptions downloadOptions,
-    Action<PatchItem>? onBeforeDownload = null,
-    Action<PatchItem>? onAfterDownload = null,
-    Action<PatchItem>? onBeforeExtract = null,
-    Action<PatchItem>? onAfterExtract = null,
-    IProgress<DownloadProgress>? downloadProgress = null,
-    IProgress<ExtractionProgress>? extractionProgress = null,
-    CancellationToken ct = default)
+        GameServer targetServer,
+        IReadOnlyList<PatchItem> items,
+        DownloadOptions downloadOptions,
+        Action<PatchItem>? onBeforeDownload = null,
+        Action<PatchItem>? onAfterDownload = null,
+        Action<PatchItem>? onBeforeExtract = null,
+        Action<PatchItem>? onAfterExtract = null,
+        IProgress<DownloadProgress>? downloadProgress = null,
+        IProgress<ExtractionProgress>? extractionProgress = null,
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(downloadOptions);
@@ -410,26 +695,63 @@ public sealed class PatchManager
             {
                 onBeforeDownload?.Invoke(item);
 
-                await _downloader.DownloadFileAsync(
-                    item.DownloadUrl,
-                    item.DownloadDestPath,
-                    downloadOptions,
-                    downloadProgress,
-                    cts.Token).ConfigureAwait(false);
+                try
+                {
+                    await _downloader.DownloadFileAsync(
+                        item.DownloadUrl,
+                        item.DownloadDestPath,
+                        downloadOptions,
+                        downloadProgress,
+                        cts.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new PatchOperationException(
+                        $"Failed to download patch item '{item.FileName}'.",
+                        targetServer,
+                        PatchFailureStage.DownloadPatchItem,
+                        ex,
+                        targetPath: item.DownloadDestPath,
+                        fileName: item.FileName);
+                }
 
                 onAfterDownload?.Invoke(item);
 
-                await worker.EnqueueAsync(
-                    new ExtractJob(
-                        item.DownloadDestPath,
-                        item.ExtractDestPath,
-                        extractionProgress,
-                        OnBeforeExtract: () => onBeforeExtract?.Invoke(item),
-                        OnAfterExtract: () => onAfterExtract?.Invoke(item))).ConfigureAwait(false);
+                try
+                {
+                    await worker.EnqueueAsync(
+                        new ExtractJob(
+                            item.DownloadDestPath,
+                            item.ExtractDestPath,
+                            extractionProgress,
+                            OnBeforeExtract: () => onBeforeExtract?.Invoke(item),
+                            OnAfterExtract: () => onAfterExtract?.Invoke(item))).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new PatchOperationException(
+                        $"Failed to queue extraction for patch item '{item.FileName}'.",
+                        targetServer,
+                        PatchFailureStage.ExtractPatchItem,
+                        ex,
+                        targetPath: item.ExtractDestPath,
+                        fileName: item.FileName);
+                }
             }
 
             worker.Complete();
-            await worker.Completion.ConfigureAwait(false);
+            try
+            {
+                await worker.Completion.ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new PatchOperationException(
+                    "Failed while extracting downloaded patch items.",
+                    targetServer,
+                    PatchFailureStage.ExtractPatchItem,
+                    ex);
+            }
         }
         catch
         {
@@ -497,21 +819,59 @@ public sealed class PatchManager
 
     private static async Task<VersionInfo?> DownloadVersionInfo(GameServer server, int version, CancellationToken ct)
     {
-        var versionInfoUrl = new Uri(GameServerHelper.GetVersionInfoUrl(server, version));
-        using var response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, ct);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return null;
-        response.EnsureSuccessStatusCode();
-        string text = await response.Content.ReadAsStringAsync(ct);
-        bool makeResult = MakeVersionInfo(version, text, out VersionInfo ret);
-        if (!makeResult || ret.Rows.Count == 0)
-            return null;
-        return ret;
+        string versionInfoUrlText = GameServerHelper.GetVersionInfoUrl(server, version);
+        Uri versionInfoUrl = new(versionInfoUrlText);
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new VersionInfoException(
+                $"Failed to download version info. server='{server}', version={version}, url='{versionInfoUrlText}'",
+                server,
+                version,
+                versionInfoUrlText,
+                VersionInfoFailureStage.DownloadVersionInfo,
+                ex);
+        }
+
+        using (response)
+        {
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return null;
+
+            try
+            {
+                response.EnsureSuccessStatusCode();
+                string text = await response.Content.ReadAsStringAsync(ct);
+                VersionInfo ret = MakeVersionInfo(version, text);
+                if (ret.Rows.Count == 0)
+                {
+                    throw new InvalidDataException(
+                        $"Version info does not contain any patch rows. server='{server}', version={version}, url='{versionInfoUrlText}'");
+                }
+
+                return ret;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException and VersionInfoException)
+            {
+                throw new VersionInfoException(
+                    $"Failed to parse version info. server='{server}', version={version}, url='{versionInfoUrlText}'",
+                    server,
+                    version,
+                    versionInfoUrlText,
+                    VersionInfoFailureStage.ParseVersionInfo,
+                    ex);
+            }
+        }
     }
 
-    private static bool MakeVersionInfo(int version, string sourceText, out VersionInfo info)
+    private static VersionInfo MakeVersionInfo(int version, string sourceText)
     {
-        info = new VersionInfo(version);
+        VersionInfo info = new(version);
 
         foreach (var line in sourceText.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
         {
@@ -526,60 +886,119 @@ public sealed class PatchManager
             string ZipCRC = string.Empty;
             int FileOption = 0;
             var cols = line.Split('\t');
-            for (int i = 0; i < cols.Length; ++i)
+            try
             {
-                switch (i)
+                for (int i = 0; i < cols.Length; ++i)
                 {
-                    case 0:
-                        Index = int.Parse(cols[i]);
-                        break;
-                    case 1:
-                        ZipFileName = cols[i];
-                        break;
-                    case 2:
-                        FileNameAfterUnZip = cols[i];
-                        break;
-                    case 3:
-                        RelativeDir = cols[i];
-                        break;
-                    case 4:
-                        ZipFileCheckSum = cols[i];
-                        break;
-                    case 5:
-                        OriginFileCheckSum = cols[i];
-                        break;
-                    case 6:
-                        ZipCRC = cols[i];
-                        break;
-                    case 7:
-                        FileOption = int.Parse(cols[i]);
-                        break;
-                    default:
-                        break;
+                    switch (i)
+                    {
+                        case 0:
+                            Index = int.Parse(cols[i]);
+                            break;
+                        case 1:
+                            ZipFileName = cols[i];
+                            break;
+                        case 2:
+                            FileNameAfterUnZip = cols[i];
+                            break;
+                        case 3:
+                            RelativeDir = cols[i];
+                            break;
+                        case 4:
+                            ZipFileCheckSum = cols[i];
+                            break;
+                        case 5:
+                            OriginFileCheckSum = cols[i];
+                            break;
+                        case 6:
+                            ZipCRC = cols[i];
+                            break;
+                        case 7:
+                            FileOption = int.Parse(cols[i]);
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Failed to parse version info. version={version}, line='{line}'", ex);
+            }
+
             VersionInfoRow row = new(Index, ZipFileName, FileNameAfterUnZip, RelativeDir, ZipFileCheckSum, OriginFileCheckSum, ZipCRC, FileOption);
             info.Rows.Add(row);
         }
 
-        // 실패하는 케이스가 있는지 조사 필요
-        return true;
+        return info;
     }
 
 
 
     /// <summary>
+    /// 설치 경로의 Online/vsn.dat을 읽어 현재 클라이언트 버전을 상세 결과와 함께 반환합니다.
+    /// </summary>
+    public static ClientVersionReadResult TryGetCurrentClientVersion(string clientPath)
+    {
+        string vsnPath;
+        try
+        {
+            vsnPath = GetVsnPath(clientPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return new ClientVersionReadResult(
+                false,
+                null,
+                clientPath?.Trim() ?? string.Empty,
+                ClientVersionReadFailureStage.ResolveVsnPath,
+                ex);
+        }
+
+        if (!File.Exists(vsnPath))
+            return new ClientVersionReadResult(
+                false,
+                null,
+                vsnPath,
+                ClientVersionReadFailureStage.OpenVsnFile,
+                new FileNotFoundException($"vsn.dat file was not found. path={vsnPath}", vsnPath));
+
+        try
+        {
+            using var stream = File.OpenRead(vsnPath);
+
+            try
+            {
+                int version = DecodeVersionFromVsn(stream);
+                return new ClientVersionReadResult(true, version, vsnPath, null, null);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return new ClientVersionReadResult(
+                    false,
+                    null,
+                    vsnPath,
+                    ClientVersionReadFailureStage.DecodeVsnContents,
+                    ex);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ClientVersionReadResult(
+                false,
+                null,
+                vsnPath,
+                ClientVersionReadFailureStage.OpenVsnFile,
+                ex);
+        }
+    }
+
+    /// <summary>
     /// 설치 경로의 Online/vsn.dat을 읽어 현재 클라이언트 버전을 반환합니다.
+    /// 파일이 없거나 읽기에 실패하면 null을 반환합니다.
     /// </summary>
     public static int? GetCurrentClientVersion(string clientPath)
-    {
-        string vsnPath = Path.Combine(clientPath, "Online", "vsn.dat");
-        if (!File.Exists(vsnPath))
-            return null;
-
-        using var stream = File.OpenRead(vsnPath);
-        return DecodeVersionFromVsn(stream);
-    }
+        => TryGetCurrentClientVersion(clientPath).Version;
 
     // 거상 패치 흐름
     // 1. Readme가 가장 먼저 올라온다
@@ -591,24 +1010,66 @@ public sealed class PatchManager
     /// </summary>
     public static async Task<int> GetLatestServerVersionAsync(GameServer server, CancellationToken ct = default)
     {
-        // Readme 에서 가장 최근 버전 5개를 추출한 뒤 내림차순 정렬
-        List<int> latestVersionList = await PatchReadmeHelper.GetLatestVersionList(server, 5, ct);
+        List<int> latestVersionList;
+        try
+        {
+            // Readme 에서 가장 최근 버전 5개를 추출한 뒤 내림차순 정렬
+            latestVersionList = await PatchReadmeHelper.GetLatestVersionList(server, 5, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new LatestVersionResolutionException(
+                $"Failed to resolve latest patch versions from readme for server '{server}'.",
+                server,
+                LatestVersionResolutionFailureStage.ReadmeLookup,
+                ex);
+        }
+
         latestVersionList.Sort((x, y) => y.CompareTo(x));
 
+        if (latestVersionList.Count == 0)
+        {
+            throw new LatestVersionResolutionException(
+                $"Patch readme did not provide any version candidates for server '{server}'.",
+                server,
+                LatestVersionResolutionFailureStage.NoPublishedVersionInfo,
+                new InvalidDataException("Patch readme did not contain any version candidates."));
+        }
+
         // 최신 버전부터 차례대로 순회하여 VersionInfo이 존재하는 버전이 실질적인 최신 버전
-        int latestVersion = 0;
         foreach (var version in latestVersionList)
         {
-            Uri versionInfoUrl = new(GameServerHelper.GetVersionInfoUrl(server, version));
-            var response = await HttpClientProvider.Http.GetAsync(versionInfoUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-            if (response.StatusCode == HttpStatusCode.OK)
+            string versionInfoUrl = GameServerHelper.GetVersionInfoUrl(server, version);
+            try
             {
-                latestVersion = version;
-                break;
+                Uri versionInfoUri = new(versionInfoUrl);
+                using var response = await HttpClientProvider.Http.GetAsync(versionInfoUri, HttpCompletionOption.ResponseHeadersRead, ct);
+                if (response.StatusCode == HttpStatusCode.OK)
+                    return version;
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                    continue;
+
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new LatestVersionResolutionException(
+                    $"Failed to probe patch version info. server='{server}', version={version}, url='{versionInfoUrl}'",
+                    server,
+                    LatestVersionResolutionFailureStage.ProbeVersionInfo,
+                    ex,
+                    version,
+                    versionInfoUrl);
             }
         }
 
-        return latestVersion;
+        throw new LatestVersionResolutionException(
+            $"No published version info was found for the latest readme candidates on server '{server}'.",
+            server,
+            LatestVersionResolutionFailureStage.NoPublishedVersionInfo,
+            new FileNotFoundException(
+                $"VersionInfo was not found for any candidate version from the patch readme. Candidates={string.Join(", ", latestVersionList)}"));
     }
 
     public static int DecodeVersionFromVsn(ReadOnlySpan<byte> bytes)
@@ -644,7 +1105,18 @@ public sealed class PatchManager
         if (!options.ApplyMultiClientPatch)
             return;
 
-        ClientSettings clientSettings = AppDataManager.LoadServerClientSettings(targetServer);
+        (ClientSettings clientSettings, AppDataManager.AppDataOperationResult loadResult) =
+            AppDataManager.TryLoadServerClientSettings(targetServer);
+        if (!loadResult.Success)
+        {
+            throw loadResult.Exception is null
+                ? new IOException(
+                    $"다클라 패치 설정을 불러오지 못했습니다. Target={loadResult.Target}, Operation={loadResult.Operation}, ErrorKind={loadResult.ErrorKind}")
+                : new IOException(
+                    $"다클라 패치 설정을 불러오지 못했습니다. Target={loadResult.Target}, Operation={loadResult.Operation}, ErrorKind={loadResult.ErrorKind}",
+                    loadResult.Exception);
+        }
+
         if (!clientSettings.UseMultiClient)
             return;
 
@@ -662,9 +1134,13 @@ public sealed class PatchManager
         if (string.IsNullOrWhiteSpace(args.DestPath2) && string.IsNullOrWhiteSpace(args.DestPath3))
             return;
 
-        bool success = GameClientHelper.CreateSymbolMultiClient(args, out string reason);
-        if (!success)
-            throw new InvalidOperationException($"다클라 패치 적용 실패: {reason}");
+        CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
+        if (!result.Success)
+        {
+            throw result.Exception is null
+                ? new IOException($"다클라 패치 적용 실패: {result.Reason}")
+                : new IOException($"다클라 패치 적용 실패: {result.Reason}", result.Exception);
+        }
     }
 
     /// <summary>
@@ -681,18 +1157,68 @@ public sealed class PatchManager
     /// <summary>
     /// 설치 경로의 Online/vsn.dat를 지정한 버전 값으로 다시 기록합니다.
     /// </summary>
-    public static void WriteClientVersion(string clientPath, int version)
+    public static ClientVersionWriteResult TryWriteClientVersion(string clientPath, int version)
     {
-        if (string.IsNullOrWhiteSpace(clientPath))
-            throw new ArgumentException("Client path is required.", nameof(clientPath));
+        string vsnPath;
+        try
+        {
+            vsnPath = GetVsnPath(clientPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return new ClientVersionWriteResult(
+                false,
+                clientPath?.Trim() ?? string.Empty,
+                ClientVersionWriteFailureStage.ResolveVsnPath,
+                ex);
+        }
 
-        string vsnPath = Path.Combine(clientPath, "Online", "vsn.dat");
         string? vsnDirectory = Path.GetDirectoryName(vsnPath);
         if (string.IsNullOrWhiteSpace(vsnDirectory))
-            throw new InvalidOperationException($"Failed to resolve vsn.dat directory. path={vsnPath}");
+        {
+            return new ClientVersionWriteResult(
+                false,
+                vsnPath,
+                ClientVersionWriteFailureStage.ResolveVsnDirectory,
+                new InvalidOperationException($"Failed to resolve vsn.dat directory. path={vsnPath}"));
+        }
 
-        Directory.CreateDirectory(vsnDirectory);
-        File.WriteAllBytes(vsnPath, EncodeVersionToVsn(version));
+        try
+        {
+            Directory.CreateDirectory(vsnDirectory);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ClientVersionWriteResult(
+                false,
+                vsnPath,
+                ClientVersionWriteFailureStage.CreateVsnDirectory,
+                ex);
+        }
+
+        try
+        {
+            File.WriteAllBytes(vsnPath, EncodeVersionToVsn(version));
+            return new ClientVersionWriteResult(true, vsnPath, null, null);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new ClientVersionWriteResult(
+                false,
+                vsnPath,
+                ClientVersionWriteFailureStage.WriteVsnFile,
+                ex);
+        }
+    }
+
+    /// <summary>
+    /// 설치 경로의 Online/vsn.dat를 지정한 버전 값으로 다시 기록합니다.
+    /// </summary>
+    public static void WriteClientVersion(string clientPath, int version)
+    {
+        ClientVersionWriteResult result = TryWriteClientVersion(clientPath, version);
+        if (!result.Success)
+            throw result.Exception ?? new IOException($"Failed to write vsn.dat. path={result.VsnPath}");
     }
 
     public static string GetPatchTempRoot(
@@ -704,6 +1230,18 @@ public sealed class PatchManager
             clientPath,
             "PatchTemp",
             $"{currentVersion}-{targetVersion}");
+    }
+
+    /// <summary>
+    /// 클라이언트 루트 기준 Online/vsn.dat 경로를 정규화해 반환합니다.
+    /// </summary>
+    private static string GetVsnPath(string clientPath)
+    {
+        if (string.IsNullOrWhiteSpace(clientPath))
+            throw new ArgumentException("Client path is required.", nameof(clientPath));
+
+        string normalizedClientPath = Path.GetFullPath(clientPath.Trim());
+        return Path.Combine(normalizedClientPath, "Online", "vsn.dat");
     }
 
     // URL 경로로 사용하기 위해 주어진 상대 경로를 정규화 (\ -> /)
@@ -740,13 +1278,13 @@ public sealed class PatchManager
             ExistingArtifactMode: existingArtifactMode);
     }
 
-    private static async Task<bool> TryDeleteDirectoryIfExistsAsync(
+    private static async Task<DirectoryDeleteResult> TryDeleteDirectoryIfExistsAsync(
     string path,
     CancellationToken ct,
     int maxAttempts = 5)
     {
         if (!Directory.Exists(path))
-            return true;
+            return new DirectoryDeleteResult(true, path, null, null);
 
         Exception? lastException = null;
 
@@ -759,7 +1297,10 @@ public sealed class PatchManager
                 if (Directory.Exists(path))
                     Directory.Delete(path, recursive: true);
 
-                return !Directory.Exists(path);
+                if (!Directory.Exists(path))
+                    return new DirectoryDeleteResult(true, path, null, null);
+
+                lastException = new IOException($"Directory still exists after delete attempt: {path}");
             }
             catch (IOException ex)
             {
@@ -785,7 +1326,11 @@ public sealed class PatchManager
             $"path={path}, " +
             $"error={lastException}");
 
-        return !Directory.Exists(path);
+        return new DirectoryDeleteResult(
+            false,
+            path,
+            DirectoryDeleteFailureStage.DeleteDirectory,
+            lastException ?? new IOException($"Failed to delete directory: {path}"));
     }
 
     ///// <summary>

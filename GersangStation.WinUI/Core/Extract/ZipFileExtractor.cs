@@ -1,35 +1,80 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 
 namespace Core.Extract;
 
-public sealed class ZipFileExtractor : IExtractor
+public sealed class ZipFileExtractor : IExtractor, IExtractorSupportProbe
 {
+    /// <summary>
+    /// Zip 추출 실패 지점을 구분합니다.
+    /// </summary>
+    public enum ZipExtractionFailureStage
+    {
+        PrepareDestinationRoot,
+        OpenArchive,
+        ValidateEntryPath,
+        ExtractEntry
+    }
+
+    /// <summary>
+    /// Zip 추출 실패 시 단계, 아카이브, 대상 경로, 엔트리명을 함께 보존합니다.
+    /// </summary>
+    public sealed class ZipExtractionOperationException : IOException
+    {
+        public string ArchivePath { get; }
+        public string DestinationPath { get; }
+        public string? EntryName { get; }
+        public ZipExtractionFailureStage Stage { get; }
+
+        public ZipExtractionOperationException(
+            string message,
+            string archivePath,
+            string destinationPath,
+            ZipExtractionFailureStage stage,
+            Exception innerException,
+            string? entryName = null)
+            : base(message, innerException)
+        {
+            ArchivePath = archivePath;
+            DestinationPath = destinationPath;
+            EntryName = entryName;
+            Stage = stage;
+        }
+    }
+
     public string Name => "System.IO.Compression.ZipFile Wrapper";
 
     public bool CanHandle(string archivePath)
     {
+        return ProbeSupport(archivePath).CanHandle;
+    }
+
+    /// <summary>
+    /// Zip 아카이브를 현재 추출기가 처리할 수 있는지 실패 이유와 함께 반환합니다.
+    /// </summary>
+    public ExtractorSupportProbeResult ProbeSupport(string archivePath)
+    {
         if (string.IsNullOrWhiteSpace(archivePath))
-            return false;
+            return new(false, "archive path is empty.");
 
         if (!File.Exists(archivePath))
-            return false;
+            return new(false, $"archive file does not exist: {archivePath}");
 
         try
         {
             using ZipArchive _ = ZipFile.OpenRead(archivePath);
-            return true;
+            return new(true, string.Empty);
         }
-        catch (InvalidDataException)
+        catch (InvalidDataException ex)
         {
-            return false;
+            return new(false, $"archive is not a valid zip file: {archivePath}", ex);
         }
-        catch (IOException)
+        catch (IOException ex)
         {
-            return false;
+            return new(false, $"archive could not be opened due to I/O failure: {archivePath}", ex);
         }
-        catch (UnauthorizedAccessException)
+        catch (UnauthorizedAccessException ex)
         {
-            return false;
+            return new(false, $"access denied while opening archive: {archivePath}", ex);
         }
     }
 
@@ -45,65 +90,170 @@ public sealed class ZipFileExtractor : IExtractor
         if (string.IsNullOrWhiteSpace(destinationPath))
             throw new ArgumentException("destinationPath is required.", nameof(destinationPath));
 
-        Directory.CreateDirectory(destinationPath);
-
-        using ZipArchive archive = await ZipFile.OpenReadAsync(archivePath, ct).ConfigureAwait(false);
-
-        int totalEntries = 0;
-        foreach (ZipArchiveEntry entry in archive.Entries)
+        try
         {
-            if (!string.IsNullOrEmpty(entry.Name))
-                totalEntries++;
+            Directory.CreateDirectory(destinationPath);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ZipExtractionOperationException(
+                $"Failed to prepare extraction destination '{destinationPath}'.",
+                archivePath,
+                destinationPath,
+                ZipExtractionFailureStage.PrepareDestinationRoot,
+                ex);
         }
 
-        if (totalEntries == 0)
+        ZipArchive archive;
+        try
         {
-            progress?.Report(new ExtractionProgress(Name, 100, 0, 0, null));
-            return;
+            archive = await ZipFile.OpenReadAsync(archivePath, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new ZipExtractionOperationException(
+                $"Failed to open zip archive '{archivePath}'.",
+                archivePath,
+                destinationPath,
+                ZipExtractionFailureStage.OpenArchive,
+                ex);
         }
 
-        string normalizedDestinationRoot = Path.GetFullPath(destinationPath)
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-            + Path.DirectorySeparatorChar;
-
-        int processedEntries = 0;
-
-        string currentArchive = Path.GetFileName(archivePath);
-        foreach (ZipArchiveEntry entry in archive.Entries)
+        using (archive)
         {
-            ct.ThrowIfCancellationRequested();
-
-            string destinationFullPath = Path.GetFullPath(
-                Path.Combine(destinationPath, entry.FullName));
-
-            if (!destinationFullPath.StartsWith(normalizedDestinationRoot, StringComparison.OrdinalIgnoreCase))
-                throw new IOException($"Entry escapes destination directory: {entry.FullName}");
-
-            if (string.IsNullOrEmpty(entry.Name))
+            int totalEntries = 0;
+            foreach (ZipArchiveEntry entry in archive.Entries)
             {
-                Directory.CreateDirectory(destinationFullPath);
-                continue;
+                if (!string.IsNullOrEmpty(entry.Name))
+                    totalEntries++;
             }
 
-            string? parentDirectory = Path.GetDirectoryName(destinationFullPath);
-            if (!string.IsNullOrWhiteSpace(parentDirectory))
-                Directory.CreateDirectory(parentDirectory);
+            if (totalEntries == 0)
+            {
+                progress?.Report(new ExtractionProgress(Name, 100, 0, 0, null));
+                return;
+            }
 
-            await entry.ExtractToFileAsync(
-                destinationFullPath,
-                overwrite: true,
-                cancellationToken: ct).ConfigureAwait(false);
+            string normalizedDestinationRoot;
+            try
+            {
+                normalizedDestinationRoot = Path.GetFullPath(destinationPath)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    + Path.DirectorySeparatorChar;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new ZipExtractionOperationException(
+                    $"Failed to normalize extraction destination '{destinationPath}'.",
+                    archivePath,
+                    destinationPath,
+                    ZipExtractionFailureStage.ValidateEntryPath,
+                    ex);
+            }
 
-            processedEntries++;
+            int processedEntries = 0;
 
-            int percentage = (int)((long)processedEntries * 100 / totalEntries);
+            string currentArchive = Path.GetFileName(archivePath);
+            foreach (ZipArchiveEntry entry in archive.Entries)
+            {
+                ct.ThrowIfCancellationRequested();
 
-            progress?.Report(new ExtractionProgress(
-                Name,
-                percentage,
-                processedEntries,
-                totalEntries,
-                currentArchive));
+                string destinationFullPath;
+                try
+                {
+                    destinationFullPath = Path.GetFullPath(
+                        Path.Combine(destinationPath, entry.FullName));
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new ZipExtractionOperationException(
+                        $"Failed to resolve destination path for zip entry '{entry.FullName}'.",
+                        archivePath,
+                        destinationPath,
+                        ZipExtractionFailureStage.ValidateEntryPath,
+                        ex,
+                        entry.FullName);
+                }
+
+                if (!destinationFullPath.StartsWith(normalizedDestinationRoot, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ZipExtractionOperationException(
+                        $"Zip entry escapes destination directory: {entry.FullName}",
+                        archivePath,
+                        destinationPath,
+                        ZipExtractionFailureStage.ValidateEntryPath,
+                        new IOException($"Entry escapes destination directory: {entry.FullName}"),
+                        entry.FullName);
+                }
+
+                if (string.IsNullOrEmpty(entry.Name))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(destinationFullPath);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        throw new ZipExtractionOperationException(
+                            $"Failed to create directory for zip entry '{entry.FullName}'.",
+                            archivePath,
+                            destinationPath,
+                            ZipExtractionFailureStage.ExtractEntry,
+                            ex,
+                            entry.FullName);
+                    }
+
+                    continue;
+                }
+
+                string? parentDirectory = Path.GetDirectoryName(destinationFullPath);
+                if (!string.IsNullOrWhiteSpace(parentDirectory))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(parentDirectory);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        throw new ZipExtractionOperationException(
+                            $"Failed to create destination directory for zip entry '{entry.FullName}'.",
+                            archivePath,
+                            destinationPath,
+                            ZipExtractionFailureStage.ExtractEntry,
+                            ex,
+                            entry.FullName);
+                    }
+                }
+
+                try
+                {
+                    await entry.ExtractToFileAsync(
+                        destinationFullPath,
+                        overwrite: true,
+                        cancellationToken: ct).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new ZipExtractionOperationException(
+                        $"Failed to extract zip entry '{entry.FullName}'.",
+                        archivePath,
+                        destinationPath,
+                        ZipExtractionFailureStage.ExtractEntry,
+                        ex,
+                        entry.FullName);
+                }
+
+                processedEntries++;
+
+                int percentage = (int)((long)processedEntries * 100 / totalEntries);
+
+                progress?.Report(new ExtractionProgress(
+                    Name,
+                    percentage,
+                    processedEntries,
+                    totalEntries,
+                    currentArchive));
+            }
         }
     }
 }

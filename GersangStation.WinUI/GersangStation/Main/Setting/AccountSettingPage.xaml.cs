@@ -1,5 +1,6 @@
 using Core;
 using Core.Models;
+using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -150,11 +151,11 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         Editor.PropertyChanged += Editor_PropertyChanged;
     }
 
-    protected override void OnNavigatedTo(NavigationEventArgs e)
+    protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
 
-        LoadAccounts();
+        await LoadAccountsAsync();
         BeginCreateMode(clearSelection: false);
     }
 
@@ -214,9 +215,11 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
         if (!saveResult.Success)
         {
-            await ShowMessageDialogAsync(
-                "계정 저장에 실패했어요",
-                saveResult.Exception?.Message ?? "알 수 없는 오류가 발생했습니다.");
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "계정 저장 실패",
+                "계정 정보를 저장하지 못했습니다.",
+                saveResult);
             return;
         }
 
@@ -273,9 +276,11 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
         if (!saveResult.Success)
         {
-            await ShowMessageDialogAsync(
-                "계정을 삭제하지 못했어요",
-                saveResult.Exception?.Message ?? "알 수 없는 오류가 발생했습니다.");
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "계정 삭제 실패",
+                "계정 정보를 삭제하지 못했습니다.",
+                saveResult);
             return;
         }
 
@@ -316,10 +321,19 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         NotifyEditorStateChanged();
     }
 
-    private void LoadAccounts()
+    private async Task LoadAccountsAsync()
     {
-        IList<Account> savedAccounts = AppDataManager.LoadAccounts();
+        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadAccountsAsync();
         ApplyAccounts(savedAccounts);
+
+        if (!result.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "계정 불러오기 실패",
+                "저장된 계정 정보를 모두 불러오지 못했습니다.",
+                result);
+        }
     }
 
     private void ApplyAccounts(IEnumerable<Account> accounts)
@@ -373,13 +387,18 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         string nickname = string.IsNullOrWhiteSpace(Editor.Nickname) ? id : Editor.Nickname.Trim();
         string originalId = Editor.OriginalId.Trim();
 
-        if (Editor.IsEditingExisting &&
-            !Editor.IsChangingPassword &&
-            string.IsNullOrWhiteSpace(PasswordVaultHelper.GetPassword(originalId)))
+        if (Editor.IsEditingExisting && !Editor.IsChangingPassword)
         {
-            return IsIdChanged
-                ? "아이디를 변경하려면 새 패스워드를 함께 입력해주세요. 저장된 비밀번호를 찾을 수 없습니다."
-                : "저장된 비밀번호를 찾을 수 없습니다. 새 패스워드를 함께 입력해주세요.";
+            PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(originalId);
+            if (!passwordResult.Success)
+                return "윈도우 자격 증명 관리자에서 저장된 비밀번호를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.";
+
+            if (!passwordResult.HasCredential || string.IsNullOrWhiteSpace(passwordResult.Password))
+            {
+                return IsIdChanged
+                    ? "아이디를 변경하려면 새 패스워드를 함께 입력해주세요. 저장된 비밀번호를 찾을 수 없습니다."
+                    : "저장된 비밀번호를 찾을 수 없습니다. 새 패스워드를 함께 입력해주세요.";
+            }
         }
 
         IList<Account> currentAccounts = AppDataManager.LoadAccounts();
@@ -420,7 +439,15 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (!IsIdChanged)
             return updates;
 
-        string? existingPassword = PasswordVaultHelper.GetPassword(originalId);
+        PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(originalId);
+        if (!passwordResult.Success)
+        {
+            throw new InvalidOperationException(
+                "윈도우 자격 증명 관리자에서 저장된 비밀번호를 읽지 못했어요. 잠시 후 다시 시도해 주세요.",
+                passwordResult.Exception);
+        }
+
+        string? existingPassword = passwordResult.HasCredential ? passwordResult.Password : null;
         if (string.IsNullOrWhiteSpace(existingPassword))
         {
             throw new InvalidOperationException(

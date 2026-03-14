@@ -4,6 +4,7 @@ using System.Diagnostics;
 namespace Core.Test;
 
 [TestClass]
+[Ignore("Extractor benchmark only run mode")]
 public sealed class ExtractorBenchmarkTest
 {
     [TestMethod]
@@ -21,7 +22,7 @@ public sealed class ExtractorBenchmarkTest
         string destination = Path.Combine(fixedExtractRoot, SanitizeName(extractor.Name));
 
         if (Directory.Exists(destination))
-            Directory.Delete(destination, recursive: true);
+            DeleteDirectoryRobustly(destination);
         Directory.CreateDirectory(destination);
 
         var sw = Stopwatch.StartNew();
@@ -57,5 +58,17 @@ public sealed class ExtractorBenchmarkTest
     {
         var invalidChars = Path.GetInvalidFileNameChars();
         return new string(name.Select(c => invalidChars.Contains(c) ? '_' : c).ToArray());
+    }
+
+    private static void DeleteDirectoryRobustly(string path)
+    {
+        foreach (string filePath in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            File.SetAttributes(filePath, FileAttributes.Normal);
+
+        foreach (string dirPath in Directory.EnumerateDirectories(path, "*", SearchOption.AllDirectories).OrderByDescending(static p => p.Length))
+            File.SetAttributes(dirPath, FileAttributes.Normal);
+
+        File.SetAttributes(path, FileAttributes.Normal);
+        Directory.Delete(path, recursive: true);
     }
 }

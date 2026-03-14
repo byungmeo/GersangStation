@@ -1,12 +1,14 @@
 using Core;
 using Core.Models;
 using GersangStation.Controls;
+using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Windows.Storage.Pickers;
 using System;
 using System.ComponentModel;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
@@ -86,7 +88,7 @@ namespace GersangStation.Main.Setting
                 npc.PropertyChanged += ClientSettings_PropertyChanged;
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
 
@@ -96,7 +98,7 @@ namespace GersangStation.Main.Setting
                 int index => (GameServer)index,
                 _ => GameServer.Korea_Live
             };
-            ClientSettings = AppDataManager.LoadServerClientSettings(currentGameServer);
+            await LoadClientSettingsAsync();
             CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
             TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
         }
@@ -120,8 +122,10 @@ namespace GersangStation.Main.Setting
             ContentDialogResult result = await saveDialog.ShowAsync();
             if (result == ContentDialogResult.Primary)
             {
-                AppDataManager.SaveServerClientSettings(currentGameServer, ClientSettings);
-                IsDirty = false;
+                if (await SaveClientSettingsAsync())
+                    IsDirty = false;
+                else
+                    CanLeaveThisPage = false;
             }
             else if (result == ContentDialogResult.Secondary)
             {
@@ -183,22 +187,72 @@ namespace GersangStation.Main.Setting
             Expander_MultiClient.IsExpanded = toggleSwitch.IsOn;
         }
 
-        private void Button_Save_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        private async void Button_Save_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            AppDataManager.SaveServerClientSettings(currentGameServer, ClientSettings);
-            IsDirty = false;
+            if (await SaveClientSettingsAsync())
+                IsDirty = false;
         }
 
-        private async void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        private async Task LoadClientSettingsAsync()
+        {
+            (ClientSettings settings, AppDataManager.AppDataOperationResult result) =
+                await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
+
+            ClientSettings = settings;
+            if (!result.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(
+                    XamlRoot,
+                    "설정 불러오기 실패",
+                    "서버별 설치 경로 설정을 모두 불러오지 못했습니다.",
+                    result);
+            }
+        }
+
+        private async Task<bool> SaveClientSettingsAsync()
+        {
+            AppDataManager.AppDataOperationResult result =
+                await AppDataManager.SaveServerClientSettingsAsync(currentGameServer, ClientSettings);
+
+            if (result.Success)
+                return true;
+
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "설정 저장 실패",
+                "서버별 설치 경로 설정을 저장하지 못했습니다.",
+                result);
+            return false;
+        }
+
+        private void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             if (!ClientSettings.UseSymbol)
                 return;
 
-            int currentClientVersion = PatchManager.GetCurrentClientVersion(TextBox_Path1.Text) ?? 0;
-            int latestClientVersion = await PatchManager.GetLatestServerVersionAsync(currentGameServer);
+            GameClientHelper.InstallPathValidationResult installPathValidation =
+                GameClientHelper.TryValidateInstallPath(currentGameServer, TextBox_Path1.Text);
+
+            if (!installPathValidation.Success)
+            {
+                TeachingTip_General.Title = "다클라 생성 실패";
+                TeachingTip_General.Subtitle = BuildInstallPathValidationMessage(currentGameServer, TextBox_Path1.Text, installPathValidation);
+                TeachingTip_General.IsOpen = true;
+                return;
+            }
+
+            ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(TextBox_Path1.Text);
+            if (!currentVersionResult.Success || currentVersionResult.Version is null or <= 0)
+            {
+                TeachingTip_General.Title = "다클라 생성 실패";
+                TeachingTip_General.Subtitle = "현재 클라이언트 버전을 확인할 수 없습니다. 설치 경로를 다시 확인해주세요.";
+                TeachingTip_General.IsOpen = true;
+                return;
+            }
+
+            int currentClientVersion = currentVersionResult.Version.Value;
             GameClientHelper.MultiClientLayoutPolicy layoutPolicy =
                 currentClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
-                && (latestClientVersion <= 0 || latestClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion)
                     ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
                     : GameClientHelper.MultiClientLayoutPolicy.Legacy;
 
@@ -244,11 +298,15 @@ namespace GersangStation.Main.Setting
         private void TextBox_InstallPath_TextChanged(object sender, TextChangedEventArgs e)
         {
             var textBox = (ValidatedTextBox)sender;
-            bool isValid = GameClientHelper.IsValidInstallPath(currentGameServer, textBox.Text, out string reason);
-            textBox.IsValid = isValid;
-            textBox.ErrorText = reason;
+            GameClientHelper.InstallPathValidationResult validationResult =
+                GameClientHelper.TryValidateInstallPath(currentGameServer, textBox.Text);
+
+            textBox.IsValid = validationResult.Success;
+            textBox.ErrorText = validationResult.Success
+                ? string.Empty
+                : BuildInstallPathValidationMessage(currentGameServer, textBox.Text, validationResult);
             OnPropertyChanged(nameof(textBox.IsValid));
-            if (isValid)
+            if (validationResult.Success)
             {
                 CheckBox_UseClient2.Content = $"2클라 사용 {textBox.Text}2";
                 CheckBox_UseClient3.Content = $"3클라 사용 {textBox.Text}3";
@@ -257,6 +315,61 @@ namespace GersangStation.Main.Setting
             {
                 CheckBox_UseClient2.Content = $"2클라 사용";
                 CheckBox_UseClient3.Content = $"3클라 사용";
+            }
+        }
+
+        /// <summary>
+        /// 설치 경로 검증 실패를 사용자가 바로 이해할 수 있는 파일/폴더 기준 안내 문구로 변환합니다.
+        /// </summary>
+        private static string BuildInstallPathValidationMessage(
+            GameServer server,
+            string inputPath,
+            GameClientHelper.InstallPathValidationResult validationResult)
+        {
+            string normalizedPath = TryNormalizePath(inputPath);
+            string serverFileName = GameServerHelper.GetServerFileName(server);
+            string serverDisplayName = GameServerHelper.GetServerDisplayName(server);
+
+            return validationResult.FailureReason switch
+            {
+                GameClientHelper.InstallPathValidationFailureReason.EmptyPath =>
+                    "설치 경로가 비어 있습니다.",
+                GameClientHelper.InstallPathValidationFailureReason.InvalidPathFormat =>
+                    "설치 경로 형식이 올바르지 않습니다.",
+                GameClientHelper.InstallPathValidationFailureReason.MissingDirectory =>
+                    $"지정한 폴더를 찾지 못했습니다.\n확인한 경로: {normalizedPath}",
+                GameClientHelper.InstallPathValidationFailureReason.MissingRunExe =>
+                    $"거상 실행 파일을 찾지 못했습니다.\n확인한 파일: {Path.Combine(normalizedPath, "Run.exe")}",
+                GameClientHelper.InstallPathValidationFailureReason.MissingOnlineMapDirectory =>
+                    $"거상 기본 데이터 폴더를 찾지 못했습니다.\n확인한 폴더: {Path.Combine(normalizedPath, "Online", "Map")}",
+                GameClientHelper.InstallPathValidationFailureReason.MissingVsnDat =>
+                    $"거상 버전 파일을 찾지 못했습니다.\n확인한 파일: {Path.Combine(normalizedPath, "Online", "vsn.dat")}",
+                GameClientHelper.InstallPathValidationFailureReason.ClonePathUsedAsMainPath =>
+                    "다클라 경로는 메인 설치 경로로 사용할 수 없습니다. 메인 거상 폴더를 선택해주세요.",
+                GameClientHelper.InstallPathValidationFailureReason.ServerFileMismatch =>
+                    $"{serverDisplayName} 서버 식별 파일을 찾지 못했습니다.\n확인한 파일: {Path.Combine(normalizedPath, serverFileName)}",
+                GameClientHelper.InstallPathValidationFailureReason.SymbolDirectoryProbeFailed =>
+                    "설치 경로의 심볼릭 링크 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.",
+                _ => validationResult.Reason
+            };
+        }
+
+        /// <summary>
+        /// 오류 메시지에 표시할 경로를 최대한 사람이 읽기 쉬운 절대 경로로 정규화합니다.
+        /// </summary>
+        private static string TryNormalizePath(string inputPath)
+        {
+            string trimmedPath = (inputPath ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(trimmedPath))
+                return "(비어 있음)";
+
+            try
+            {
+                return Path.GetFullPath(trimmedPath);
+            }
+            catch
+            {
+                return trimmedPath;
             }
         }
 

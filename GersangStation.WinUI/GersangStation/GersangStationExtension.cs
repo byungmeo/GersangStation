@@ -1,4 +1,5 @@
-﻿using Microsoft.UI.Xaml;
+using GersangStation.Diagnostics;
+using Microsoft.UI.Xaml;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -8,6 +9,9 @@ namespace GersangStation;
 
 public static class DispatcherQueueExtensions
 {
+    /// <summary>
+    /// DispatcherQueue에서 비동기 작업을 실행하고, 호출자는 완료 Task를 await할 수 있습니다.
+    /// </summary>
     public static Task EnqueueAsync(this Microsoft.UI.Dispatching.DispatcherQueue queue, Func<Task> action)
     {
         var tcs = new TaskCompletionSource<object?>();
@@ -26,12 +30,53 @@ public static class DispatcherQueueExtensions
         return tcs.Task;
     }
 
+    /// <summary>
+    /// 현재 스레드가 UI 스레드면 즉시 실행하고, 아니면 DispatcherQueue에 예약합니다.
+    /// </summary>
     public static Task RunOrEnqueueAsync(this Microsoft.UI.Dispatching.DispatcherQueue queue, Func<Task> action)
     {
         if (queue.HasThreadAccess)
             return action();
 
         return queue.EnqueueAsync(action);
+    }
+
+    /// <summary>
+    /// DispatcherQueue 콜백에서 발생한 예외를 중앙 예외 처리기로 전달합니다.
+    /// </summary>
+    public static bool TryEnqueueHandled(
+        this Microsoft.UI.Dispatching.DispatcherQueue queue,
+        Action action,
+        string context,
+        bool isFatal = false)
+    {
+        ArgumentNullException.ThrowIfNull(queue);
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentException.ThrowIfNullOrWhiteSpace(context);
+
+        return queue.TryEnqueue(async () =>
+        {
+            await SafeExecution.RunHandledAsync(action, context, isFatal);
+        });
+    }
+
+    /// <summary>
+    /// DispatcherQueue 비동기 콜백에서 발생한 예외를 중앙 예외 처리기로 전달합니다.
+    /// </summary>
+    public static bool TryEnqueueHandled(
+        this Microsoft.UI.Dispatching.DispatcherQueue queue,
+        Func<Task> action,
+        string context,
+        bool isFatal = false)
+    {
+        ArgumentNullException.ThrowIfNull(queue);
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentException.ThrowIfNullOrWhiteSpace(context);
+
+        return queue.TryEnqueue(async () =>
+        {
+            await SafeExecution.RunHandledAsync(action, context, isFatal);
+        });
     }
 }
 
@@ -60,5 +105,6 @@ public static class WindowExtensions
             return IntPtr.Zero;
         return CallWindowProc(_oldWndProc, hWnd, msg, wParam, lParam);
     }
+
     private delegate IntPtr SubclassDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 }

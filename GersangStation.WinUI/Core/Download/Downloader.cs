@@ -29,6 +29,76 @@ namespace Core.Download;
 /// </summary>
 public sealed class Downloader
 {
+    public enum DownloadFailureStage
+    {
+        MetadataLookup,
+        PrepareArtifacts,
+        Transfer
+    }
+
+    private enum MetadataLookupFailureStage
+    {
+        HeadRequest,
+        RangeProbe,
+        HeadAndRangeProbe
+    }
+
+    private enum MetadataReadFailureStage
+    {
+        MissingFile,
+        ReadFileContents,
+        ValidateLineCount,
+        ParseTotalBytes,
+        ParseLastModified
+    }
+
+    /// <summary>
+    /// 다운로드 실패 시 URL, 대상 경로, 단계 정보를 함께 보존합니다.
+    /// </summary>
+    public sealed class DownloadOperationException : IOException
+    {
+        public Uri Url { get; }
+        public string DestinationPath { get; }
+        public DownloadFailureStage Stage { get; }
+
+        public DownloadOperationException(
+            string message,
+            Uri url,
+            string destinationPath,
+            DownloadFailureStage stage,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Url = url;
+            DestinationPath = destinationPath;
+            Stage = stage;
+        }
+    }
+
+    private sealed class MetadataLookupException : InvalidOperationException
+    {
+        public Uri Url { get; }
+        public MetadataLookupFailureStage Stage { get; }
+
+        public MetadataLookupException(
+            string message,
+            Uri url,
+            MetadataLookupFailureStage stage,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Url = url;
+            Stage = stage;
+        }
+    }
+
+    private sealed record MetadataReadResult(
+        bool Success,
+        LocalMetadata? Metadata,
+        MetadataReadFailureStage? FailureStage,
+        string? FailureReason,
+        Exception? Exception);
+
     private readonly HttpClient _http;
 
     // 동일한 최종 경로에 대해 동시에 다운로드가 수행되면
@@ -92,9 +162,21 @@ public sealed class Downloader
 
         try
         {
-            string? directory = Path.GetDirectoryName(destinationPath);
-            if (!string.IsNullOrWhiteSpace(directory))
-                Directory.CreateDirectory(directory);
+            try
+            {
+                string? directory = Path.GetDirectoryName(destinationPath);
+                if (!string.IsNullOrWhiteSpace(directory))
+                    Directory.CreateDirectory(directory);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new DownloadOperationException(
+                    $"Failed to prepare destination directory for '{destinationPath}'.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.PrepareArtifacts,
+                    ex);
+            }
 
             string tempPath = $"{destinationPath}.gsdownload";
             string metaPath = GetMetadataPath(destinationPath);
@@ -104,87 +186,150 @@ public sealed class Downloader
             if (options.ExistingArtifactMode == DownloadExistingArtifactMode.RestartFromScratch)
             {
                 LogDownload(destinationPath, "ARTIFACT_RESET reason=user requested restart from scratch");
-                DeleteFileIfExists(destinationPath);
-                DeleteFileIfExists(tempPath);
-                DeleteFileIfExists(metaPath);
+                try
+                {
+                    DeleteFileIfExists(destinationPath);
+                    DeleteFileIfExists(tempPath);
+                    DeleteFileIfExists(metaPath);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    throw new DownloadOperationException(
+                        $"Failed to reset existing download artifacts for '{destinationPath}'.",
+                        url,
+                        destinationPath,
+                        DownloadFailureStage.PrepareArtifacts,
+                        ex);
+                }
             }
 
             // 먼저 서버 파일의 "전체 길이 + validator(ETag / Last-Modified)"를 조회한다.
             // Accept-Ranges는 resume 판정의 근거로 신뢰하지 않으므로 사용하지 않는다.
-            var serverMeta = await GetServerMetadataAsync(url, ct).ConfigureAwait(false);
+            ServerMetadata serverMeta;
+            try
+            {
+                serverMeta = await GetServerMetadataAsync(url, destinationPath, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new DownloadOperationException(
+                    $"Failed to read server metadata before downloading '{url}'.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.MetadataLookup,
+                    ex);
+            }
+
             LogDownload(
                 destinationPath,
                 $"SERVER total={serverMeta.TotalBytes?.ToString() ?? "null"}, etag={serverMeta.ETag ?? "null"}, lastModified={serverMeta.LastModifiedUtc?.ToString("O") ?? "null"}");
 
             if (serverMeta.TotalBytes is null || serverMeta.TotalBytes <= 0)
-                throw new InvalidOperationException("Server did not provide Content-Length.");
+            {
+                throw new DownloadOperationException(
+                    "Server metadata did not provide Content-Length before download started.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.MetadataLookup,
+                    new IOException("Server did not provide Content-Length."));
+            }
 
             long totalBytes = serverMeta.TotalBytes.Value;
             long localSize = 0;
 
-            var existingState = ClassifyExistingArtifacts(
-                destinationPath,
-                tempPath,
-                metaPath,
-                serverMeta,
-                out long existingLength);
-
-            switch (existingState)
+            try
             {
-                case ExistingArtifactState.CompletedAndReusable:
-                    // final 파일과 metadata가 현재 서버와 동일하다면,
-                    // 최종 archive를 다시 받을 필요가 없다.
-                    if (existingLength == totalBytes)
-                    {
-                        LogDownload(destinationPath, $"SKIP_COMPLETED bytes={totalBytes}");
-                        progress?.Report(new DownloadProgress(totalBytes, totalBytes, null));
-                        return;
-                    }
+                var existingState = ClassifyExistingArtifacts(
+                    destinationPath,
+                    tempPath,
+                    metaPath,
+                    serverMeta,
+                    out long existingLength);
 
-                    LogDownload(
-                        destinationPath,
-                        $"ARTIFACT_RESET reason=completed file size mismatch existing={existingLength} total={totalBytes}");
+                switch (existingState)
+                {
+                    case ExistingArtifactState.CompletedAndReusable:
+                        // final 파일과 metadata가 현재 서버와 동일하다면,
+                        // 최종 archive를 다시 받을 필요가 없다.
+                        if (existingLength == totalBytes)
+                        {
+                            LogDownload(destinationPath, $"SKIP_COMPLETED bytes={totalBytes}");
+                            progress?.Report(new DownloadProgress(totalBytes, totalBytes, null));
+                            return;
+                        }
 
-                    if (!options.Overwrite)
-                        throw new IOException($"Destination file already exists: {destinationPath}");
-
-                    DeleteFileIfExists(destinationPath);
-                    DeleteFileIfExists(metaPath);
-                    break;
-
-                case ExistingArtifactState.PartialAndReusable:
-                    if (existingLength > totalBytes)
-                    {
                         LogDownload(
                             destinationPath,
-                            $"ARTIFACT_RESET reason=temp larger than server total existing={existingLength} total={totalBytes}");
+                            $"ARTIFACT_RESET reason=completed file size mismatch existing={existingLength} total={totalBytes}");
 
+                        if (!options.Overwrite)
+                        {
+                            throw new DownloadOperationException(
+                                $"Destination file already exists and overwrite is disabled: {destinationPath}",
+                                url,
+                                destinationPath,
+                                DownloadFailureStage.PrepareArtifacts,
+                                new IOException($"Destination file already exists: {destinationPath}"));
+                        }
+
+                        DeleteFileIfExists(destinationPath);
+                        DeleteFileIfExists(metaPath);
+                        break;
+
+                    case ExistingArtifactState.PartialAndReusable:
+                        if (existingLength > totalBytes)
+                        {
+                            LogDownload(
+                                destinationPath,
+                                $"ARTIFACT_RESET reason=temp larger than server total existing={existingLength} total={totalBytes}");
+
+                            DeleteFileIfExists(tempPath);
+                            DeleteFileIfExists(metaPath);
+                        }
+                        else
+                        {
+                            localSize = existingLength;
+                            LogDownload(destinationPath, $"TEMP_REUSE existingTemp={localSize}");
+                        }
+                        break;
+
+                    case ExistingArtifactState.InvalidArtifacts:
+                        LogDownload(destinationPath, "ARTIFACT_RESET reason=invalid local artifact state");
+
+                        // final 파일이 남아 있는데 이를 안전하게 재사용할 수 없고
+                        // caller도 덮어쓰기를 허용하지 않았다면 즉시 실패한다.
+                        if (File.Exists(destinationPath) && !options.Overwrite)
+                        {
+                            throw new DownloadOperationException(
+                                $"Destination file already exists and overwrite is disabled: {destinationPath}",
+                                url,
+                                destinationPath,
+                                DownloadFailureStage.PrepareArtifacts,
+                                new IOException($"Destination file already exists: {destinationPath}"));
+                        }
+
+                        DeleteFileIfExists(destinationPath);
                         DeleteFileIfExists(tempPath);
                         DeleteFileIfExists(metaPath);
-                    }
-                    else
-                    {
-                        localSize = existingLength;
-                        LogDownload(destinationPath, $"TEMP_REUSE existingTemp={localSize}");
-                    }
-                    break;
+                        break;
 
-                case ExistingArtifactState.InvalidArtifacts:
-                    LogDownload(destinationPath, "ARTIFACT_RESET reason=invalid local artifact state");
-
-                    // final 파일이 남아 있는데 이를 안전하게 재사용할 수 없고
-                    // caller도 덮어쓰기를 허용하지 않았다면 즉시 실패한다.
-                    if (File.Exists(destinationPath) && !options.Overwrite)
-                        throw new IOException($"Destination file already exists: {destinationPath}");
-
-                    DeleteFileIfExists(destinationPath);
-                    DeleteFileIfExists(tempPath);
-                    DeleteFileIfExists(metaPath);
-                    break;
-
-                case ExistingArtifactState.None:
-                default:
-                    break;
+                    case ExistingArtifactState.None:
+                    default:
+                        break;
+                }
+            }
+            catch (DownloadOperationException)
+            {
+                throw;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                throw new DownloadOperationException(
+                    $"Failed to prepare existing download artifacts for '{destinationPath}'.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.PrepareArtifacts,
+                    ex);
             }
 
             // 새로 시작하는 경우 현재 서버 metadata를 기록해 둔다.
@@ -192,7 +337,13 @@ public sealed class Downloader
             // skip/resume/full download 여부를 판단한다.
             if (localSize == 0)
             {
-                WriteMetadata(metaPath, serverMeta);
+                WriteMetadataOrThrow(
+                    metaPath,
+                    serverMeta,
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.PrepareArtifacts,
+                    $"Failed to write download metadata for '{destinationPath}'.");
                 LogDownload(destinationPath, "META_WRITE fresh start");
             }
 
@@ -201,7 +352,12 @@ public sealed class Downloader
             if (localSize == totalBytes)
             {
                 LogDownload(destinationPath, $"FINALIZE_FROM_TEMP bytes={totalBytes}");
-                FinalizeTempFile(tempPath, destinationPath);
+                FinalizeTempFileOrThrow(
+                    tempPath,
+                    destinationPath,
+                    url,
+                    DownloadFailureStage.Transfer,
+                    "Failed to finalize previously completed temporary download file.");
                 progress?.Report(new DownloadProgress(totalBytes, totalBytes, null));
                 return;
             }
@@ -210,6 +366,7 @@ public sealed class Downloader
             long bytesAtLastReport = localSize;
             long msAtLastReport = 0;
             bool completed = false;
+            Exception? lastAttemptException = null;
 
             using (var fileStream = new FileStream(
                 tempPath,
@@ -266,7 +423,14 @@ public sealed class Downloader
                         if (!IsResponseForExpectedFile(serverMeta, responseMeta))
                         {
                             if (responseMeta.TotalBytes is null || responseMeta.TotalBytes <= 0)
-                                throw new IOException("Download response metadata did not provide Content-Length.");
+                            {
+                                throw new DownloadOperationException(
+                                    "Download response metadata did not provide Content-Length.",
+                                    url,
+                                    destinationPath,
+                                    DownloadFailureStage.Transfer,
+                                    new IOException("Download response metadata did not provide Content-Length."));
+                            }
 
                             LogDownload(destinationPath, "TEMP_RESET reason=response metadata changed during download");
 
@@ -278,6 +442,8 @@ public sealed class Downloader
                                 metaPath,
                                 serverMeta,
                                 sw,
+                                url,
+                                destinationPath,
                                 ref localSize,
                                 ref bytesAtLastReport,
                                 ref msAtLastReport);
@@ -290,7 +456,13 @@ public sealed class Downloader
 
                         // 실제 GET 응답이 HEAD보다 더 풍부한 validator를 줄 수 있다.
                         // 이후 재시작에서도 같은 기준을 쓰도록 metadata를 최신값으로 갱신한다.
-                        WriteMetadata(metaPath, serverMeta);
+                        WriteMetadataOrThrow(
+                            metaPath,
+                            serverMeta,
+                            url,
+                            destinationPath,
+                            DownloadFailureStage.Transfer,
+                            $"Failed to refresh download metadata for '{destinationPath}'.");
                         LogDownload(destinationPath, "META_WRITE refreshed from download response");
 
                         if (localSize > 0)
@@ -323,6 +495,8 @@ public sealed class Downloader
                                     metaPath,
                                     serverMeta,
                                     sw,
+                                    url,
+                                    destinationPath,
                                     ref localSize,
                                     ref bytesAtLastReport,
                                     ref msAtLastReport);
@@ -339,6 +513,8 @@ public sealed class Downloader
                                     metaPath,
                                     serverMeta,
                                     sw,
+                                    url,
+                                    destinationPath,
                                     ref localSize,
                                     ref bytesAtLastReport,
                                     ref msAtLastReport);
@@ -362,6 +538,8 @@ public sealed class Downloader
                                     metaPath,
                                     serverMeta,
                                     sw,
+                                    url,
+                                    destinationPath,
                                     ref localSize,
                                     ref bytesAtLastReport,
                                     ref msAtLastReport);
@@ -406,7 +584,12 @@ public sealed class Downloader
                         if (localSize > totalBytes)
                         {
                             LogDownload(destinationPath, $"FAIL received={localSize} expected={totalBytes} reason=downloaded size exceeded expected size");
-                            throw new IOException($"Downloaded size exceeded expected size. Received {localSize:N0}/{totalBytes:N0} bytes.");
+                            throw new DownloadOperationException(
+                                $"Downloaded size exceeded expected size. Received {localSize:N0}/{totalBytes:N0} bytes.",
+                                url,
+                                destinationPath,
+                                DownloadFailureStage.Transfer,
+                                new IOException($"Downloaded size exceeded expected size. Received {localSize:N0}/{totalBytes:N0} bytes."));
                         }
 
                         // 스트림이 조기에 끝났으면 재시도 루프로 돌아간다.
@@ -417,14 +600,18 @@ public sealed class Downloader
                     }
                     catch (Exception ex)
                     {
+                        lastAttemptException = ex;
                         LogDownload(destinationPath, $"ATTEMPT_FAIL {attempt}/{options.MaxRetries} {ex.GetType().Name}: {ex.Message}");
                     }
 
                     // 일부 쓰기가 성공했을 수 있으므로 실제 temp 파일 길이를 기준으로 resume 위치를 보정한다.
                     // 드물지만 temp 파일이 사라졌다면 0부터 다시 시작한다.
-                    localSize = File.Exists(tempPath)
-                        ? new FileInfo(tempPath).Length
-                        : 0;
+                    localSize = GetExistingFileLengthOrZero(
+                        tempPath,
+                        url,
+                        destinationPath,
+                        DownloadFailureStage.Transfer,
+                        "Failed to inspect temporary download file after a retryable transfer failure.");
 
                     fileStream.Seek(localSize, SeekOrigin.Begin);
 
@@ -438,12 +625,32 @@ public sealed class Downloader
             if (completed)
             {
                 LogDownload(destinationPath, $"FINALIZE_SUCCESS bytes={totalBytes}");
-                FinalizeTempFile(tempPath, destinationPath);
+                FinalizeTempFileOrThrow(
+                    tempPath,
+                    destinationPath,
+                    url,
+                    DownloadFailureStage.Transfer,
+                    "Failed to finalize downloaded temporary file.");
                 return;
             }
 
             LogDownload(destinationPath, $"FAIL exhausted retries received={localSize} expected={totalBytes}");
-            throw new IOException($"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes.");
+            if (lastAttemptException is not null)
+            {
+                throw new DownloadOperationException(
+                    $"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes.",
+                    url,
+                    destinationPath,
+                    DownloadFailureStage.Transfer,
+                    lastAttemptException);
+            }
+
+            throw new DownloadOperationException(
+                $"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes.",
+                url,
+                destinationPath,
+                DownloadFailureStage.Transfer,
+                new IOException($"Download failed after {options.MaxRetries} attempts. Received {localSize:N0}/{totalBytes:N0} bytes."));
         }
         finally
         {
@@ -461,8 +668,11 @@ public sealed class Downloader
     /// - Accept-Ranges는 서버가 보내더라도 신뢰하지 않는다.
     ///   실제 resume 성공 여부는 나중의 Range GET 응답을 직접 검증해서 판단한다.
     /// </summary>
-    private async Task<ServerMetadata> GetServerMetadataAsync(Uri url, CancellationToken ct)
+    private async Task<ServerMetadata> GetServerMetadataAsync(Uri url, string destinationPath, CancellationToken ct)
     {
+        Exception? headFailure = null;
+        bool headWasInsufficient = false;
+
         try
         {
             using var headReq = new HttpRequestMessage(HttpMethod.Head, url);
@@ -480,16 +690,56 @@ public sealed class Downloader
 
             if (meta.TotalBytes is not null && meta.TotalBytes > 0)
                 return meta;
+
+            headWasInsufficient = true;
+            LogDownload(destinationPath, "HEAD_METADATA_INSUFFICIENT fallback=range-probe");
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch
+        catch (Exception ex)
         {
+            headFailure = new MetadataLookupException(
+                $"HEAD metadata lookup failed for '{url}'.",
+                url,
+                MetadataLookupFailureStage.HeadRequest,
+                ex);
+            LogDownload(destinationPath, $"HEAD_METADATA_FAIL {ex.GetType().Name}: {ex.Message}");
         }
 
-        return await GetServerMetadataFromRangeProbeAsync(url, ct).ConfigureAwait(false);
+        try
+        {
+            return await GetServerMetadataFromRangeProbeAsync(url, destinationPath, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            MetadataLookupException rangeProbeFailure = new(
+                $"Range probe metadata lookup failed for '{url}'.",
+                url,
+                MetadataLookupFailureStage.RangeProbe,
+                ex);
+
+            if (headFailure is not null)
+            {
+                throw new MetadataLookupException(
+                    $"Both HEAD metadata lookup and range probe failed for '{url}'. HEAD: {headFailure.GetType().Name}: {headFailure.Message}",
+                    url,
+                    MetadataLookupFailureStage.HeadAndRangeProbe,
+                    rangeProbeFailure);
+            }
+
+            if (headWasInsufficient)
+            {
+                throw new MetadataLookupException(
+                    $"HEAD metadata was insufficient and range probe failed for '{url}'.",
+                    url,
+                    MetadataLookupFailureStage.RangeProbe,
+                    rangeProbeFailure);
+            }
+
+            throw rangeProbeFailure;
+        }
     }
 
     /// <summary>
@@ -499,7 +749,7 @@ public sealed class Downloader
     /// 이 probe는 resume 허용 여부를 판정하기 위한 것이 아니라,
     /// HEAD 대신 전체 길이와 validator를 확보하기 위한 fallback이다.
     /// </summary>
-    private async Task<ServerMetadata> GetServerMetadataFromRangeProbeAsync(Uri url, CancellationToken ct)
+    private async Task<ServerMetadata> GetServerMetadataFromRangeProbeAsync(Uri url, string destinationPath, CancellationToken ct)
     {
         using var getReq = new HttpRequestMessage(HttpMethod.Get, url);
         getReq.Headers.Range = new RangeHeaderValue(0, 0);
@@ -509,10 +759,10 @@ public sealed class Downloader
             HttpCompletionOption.ResponseHeadersRead,
             ct).ConfigureAwait(false);
 
-        Debug.WriteLine($"Probe URL: {url}");
-        Debug.WriteLine($"Request Range: {getReq.Headers.Range}");
-        Debug.WriteLine($"StatusCode: {(int)getRes.StatusCode} {getRes.StatusCode}");
-        Debug.WriteLine($"Final RequestUri: {getRes.RequestMessage?.RequestUri}");
+        LogDownload(destinationPath, $"RANGE_PROBE url={url}");
+        LogDownload(destinationPath, $"RANGE_PROBE_REQUEST range={getReq.Headers.Range}");
+        LogDownload(destinationPath, $"RANGE_PROBE_RESPONSE status={(int)getRes.StatusCode} {getRes.StatusCode}");
+        LogDownload(destinationPath, $"RANGE_PROBE_FINAL_URI {getRes.RequestMessage?.RequestUri}");
 
         if (getRes.StatusCode == HttpStatusCode.NotFound)
         {
@@ -616,6 +866,36 @@ public sealed class Downloader
     }
 
     /// <summary>
+    /// local metadata 파일을 기록하고, 실패 시 다운로드 단계 문맥을 보존한 예외로 변환합니다.
+    /// </summary>
+    private static void WriteMetadataOrThrow(
+        string metaPath,
+        ServerMetadata serverMeta,
+        Uri url,
+        string destinationPath,
+        DownloadFailureStage stage,
+        string message)
+    {
+        try
+        {
+            WriteMetadata(metaPath, serverMeta);
+        }
+        catch (DownloadOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                message,
+                url,
+                destinationPath,
+                stage,
+                ex);
+        }
+    }
+
+    /// <summary>
     /// 현재 남아 있는 local metadata가 "지금 내려받으려는 서버 파일"과 같은 원본을 가리키는지 판정한다.
     ///
     /// 정책:
@@ -678,8 +958,16 @@ public sealed class Downloader
             return ExistingArtifactState.None;
         }
 
-        if (!TryReadMetadata(metaPath, out LocalMetadata? localMeta))
+        MetadataReadResult metadataReadResult = TryReadMetadata(metaPath);
+        if (!metadataReadResult.Success)
+        {
+            LogDownload(
+                destinationPath,
+                $"META_INVALID path={metaPath} stage={metadataReadResult.FailureStage?.ToString() ?? "unknown"} reason={metadataReadResult.FailureReason ?? "unknown"}");
             return ExistingArtifactState.InvalidArtifacts;
+        }
+
+        LocalMetadata localMeta = metadataReadResult.Metadata!;
 
         // final과 temp가 동시에 존재하면 어떤 파일을 신뢰해야 하는지 불명확하므로 비정상 상태로 본다.
         if (hasFinal && hasTemp)
@@ -687,7 +975,7 @@ public sealed class Downloader
 
         if (hasFinal)
         {
-            if (!IsMetadataReusable(localMeta!, serverMeta))
+            if (!IsMetadataReusable(localMeta, serverMeta))
                 return ExistingArtifactState.InvalidArtifacts;
 
             existingLength = new FileInfo(destinationPath).Length;
@@ -696,7 +984,7 @@ public sealed class Downloader
 
         if (hasTemp)
         {
-            if (!IsMetadataReusable(localMeta!, serverMeta))
+            if (!IsMetadataReusable(localMeta, serverMeta))
                 return ExistingArtifactState.InvalidArtifacts;
 
             existingLength = new FileInfo(tempPath).Length;
@@ -726,51 +1014,84 @@ public sealed class Downloader
 
     /// <summary>
     /// local metadata 파일을 읽어 파싱한다.
-    /// 파일이 없거나 형식이 맞지 않으면 false를 반환한다.
+    /// 파일이 없거나 형식이 맞지 않으면 실패 단계와 이유를 함께 반환합니다.
     /// </summary>
-    private static bool TryReadMetadata(
-        string metaPath,
-        out LocalMetadata? metadata)
+    private static MetadataReadResult TryReadMetadata(string metaPath)
     {
-        metadata = null;
+        if (!File.Exists(metaPath))
+        {
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.MissingFile,
+                "metadata file not found",
+                null);
+        }
 
+        string[] lines;
         try
         {
-            if (!File.Exists(metaPath))
-                return false;
+            lines = File.ReadAllLines(metaPath);
+        }
+        catch (Exception ex)
+        {
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.ReadFileContents,
+                $"{ex.GetType().Name}: {ex.Message}",
+                ex);
+        }
 
-            string[] lines = File.ReadAllLines(metaPath);
-            if (lines.Length < 3)
-                return false;
+        if (lines.Length < 3)
+        {
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.ValidateLineCount,
+                $"expected at least 3 lines but found {lines.Length}",
+                null);
+        }
 
-            if (!long.TryParse(lines[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out long totalBytes))
-                return false;
+        if (!long.TryParse(lines[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out long totalBytes))
+        {
+            return new MetadataReadResult(
+                false,
+                null,
+                MetadataReadFailureStage.ParseTotalBytes,
+                $"invalid totalBytes value '{lines[0]}'",
+                null);
+        }
 
-            string? etag = string.IsNullOrWhiteSpace(lines[1]) ? null : lines[1];
+        string? etag = string.IsNullOrWhiteSpace(lines[1]) ? null : lines[1];
 
-            DateTimeOffset? lastModifiedUtc = null;
-            if (!string.IsNullOrWhiteSpace(lines[2]))
+        DateTimeOffset? lastModifiedUtc = null;
+        if (!string.IsNullOrWhiteSpace(lines[2]))
+        {
+            if (!DateTimeOffset.TryParseExact(
+                    lines[2],
+                    "O",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out DateTimeOffset parsed))
             {
-                if (!DateTimeOffset.TryParseExact(
-                        lines[2],
-                        "O",
-                        CultureInfo.InvariantCulture,
-                        DateTimeStyles.RoundtripKind,
-                        out var parsed))
-                {
-                    return false;
-                }
-
-                lastModifiedUtc = parsed;
+                return new MetadataReadResult(
+                    false,
+                    null,
+                    MetadataReadFailureStage.ParseLastModified,
+                    $"invalid lastModified value '{lines[2]}'",
+                    null);
             }
 
-            metadata = new LocalMetadata(totalBytes, etag, lastModifiedUtc);
-            return true;
+            lastModifiedUtc = parsed;
         }
-        catch
-        {
-            return false;
-        }
+
+        return new MetadataReadResult(
+            true,
+            new LocalMetadata(totalBytes, etag, lastModifiedUtc),
+            null,
+            null,
+            null);
     }
 
     /// <summary>
@@ -788,18 +1109,32 @@ public sealed class Downloader
         string metaPath,
         ServerMetadata serverMeta,
         Stopwatch sw,
+        Uri url,
+        string destinationPath,
         ref long localSize,
         ref long bytesAtLastReport,
         ref long msAtLastReport)
     {
-        fileStream.SetLength(0);
-        fileStream.Seek(0, SeekOrigin.Begin);
-        localSize = 0;
+        try
+        {
+            fileStream.SetLength(0);
+            fileStream.Seek(0, SeekOrigin.Begin);
+            localSize = 0;
 
-        WriteMetadata(metaPath, serverMeta);
+            WriteMetadata(metaPath, serverMeta);
 
-        bytesAtLastReport = 0;
-        msAtLastReport = sw.ElapsedMilliseconds;
+            bytesAtLastReport = 0;
+            msAtLastReport = sw.ElapsedMilliseconds;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                $"Failed to reset temporary download state for '{destinationPath}'.",
+                url,
+                destinationPath,
+                DownloadFailureStage.Transfer,
+                ex);
+        }
     }
 
     /// <summary>
@@ -833,6 +1168,35 @@ public sealed class Downloader
     }
 
     /// <summary>
+    /// temp 파일을 최종 파일로 교체하고, 실패 시 다운로드 단계 문맥을 보존한 예외로 변환합니다.
+    /// </summary>
+    private static void FinalizeTempFileOrThrow(
+        string tempPath,
+        string destinationPath,
+        Uri url,
+        DownloadFailureStage stage,
+        string message)
+    {
+        try
+        {
+            FinalizeTempFile(tempPath, destinationPath);
+        }
+        catch (DownloadOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                message,
+                url,
+                destinationPath,
+                stage,
+                ex);
+        }
+    }
+
+    /// <summary>
     /// 지정한 파일이 존재할 때만 조용히 삭제한다.
     /// local artifact 정리 시 사용한다.
     /// </summary>
@@ -840,6 +1204,34 @@ public sealed class Downloader
     {
         if (File.Exists(path))
             File.Delete(path);
+    }
+
+    /// <summary>
+    /// 파일이 존재하면 현재 길이를 읽고, 없으면 0을 반환합니다.
+    /// 실패 시 다운로드 단계 문맥을 보존한 예외로 변환합니다.
+    /// </summary>
+    private static long GetExistingFileLengthOrZero(
+        string path,
+        Uri url,
+        string destinationPath,
+        DownloadFailureStage stage,
+        string message)
+    {
+        try
+        {
+            return File.Exists(path)
+                ? new FileInfo(path).Length
+                : 0;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new DownloadOperationException(
+                message,
+                url,
+                destinationPath,
+                stage,
+                ex);
+        }
     }
 
     /// <summary>

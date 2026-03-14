@@ -1,5 +1,6 @@
 using Core.Models;
 using System.Diagnostics;
+using System.IO;
 using System.Text.Json;
 using Windows.Storage;
 
@@ -7,10 +8,54 @@ namespace Core;
 
 public static class AppDataManager
 {
+    /// <summary>
+    /// 앱 데이터 작업 실패를 원인 범주별로 구분합니다.
+    /// </summary>
+    public enum AppDataErrorKind
+    {
+        None,
+        Validation,
+        Serialization,
+        Storage,
+        CredentialVault,
+        Unexpected
+    }
+
+    /// <summary>
+    /// AppDataManager 작업의 성공 여부와 실패 메타데이터를 함께 전달합니다.
+    /// </summary>
     public readonly record struct AppDataOperationResult(bool Success, Exception? Exception)
     {
-        public static AppDataOperationResult Ok() => new(true, null);
-        public static AppDataOperationResult Fail(Exception exception) => new(false, exception);
+        public string Operation { get; init; } = string.Empty;
+        public string Target { get; init; } = string.Empty;
+        public AppDataErrorKind ErrorKind { get; init; } = Success ? AppDataErrorKind.None : AppDataErrorKind.Unexpected;
+
+        public static AppDataOperationResult Ok(string operation = "", string target = "")
+            => new(true, null)
+            {
+                Operation = operation,
+                Target = target,
+                ErrorKind = AppDataErrorKind.None
+            };
+
+        public static AppDataOperationResult Fail(string operation, Exception exception, string target = "")
+            => new(false, exception)
+            {
+                Operation = operation,
+                Target = target,
+                ErrorKind = ClassifyErrorKind(exception)
+            };
+
+        public static AppDataOperationResult Fail(string operation, Exception exception, AppDataErrorKind errorKind, string target = "")
+            => new(false, exception)
+            {
+                Operation = operation,
+                Target = target,
+                ErrorKind = errorKind
+            };
+
+        public string GetMessageOrDefault(string fallbackMessage)
+            => Exception?.Message ?? fallbackMessage;
     }
 
     public readonly record struct AccountCredential(string UserName, string Password);
@@ -68,8 +113,35 @@ public static class AppDataManager
 
     public static event EventHandler<bool>? DeveloperToolEnabledChanged;
 
-    public static void SaveAccounts(IEnumerable<Account> accounts)
+    private static AppDataOperationResult Ok(string operation, string target = "")
+        => AppDataOperationResult.Ok(operation, target);
+
+    private static AppDataOperationResult Fail(string operation, Exception exception, string target = "")
+        => AppDataOperationResult.Fail(operation, exception, target);
+
+    private static AppDataOperationResult Fail(string operation, Exception exception, AppDataErrorKind errorKind, string target = "")
+        => AppDataOperationResult.Fail(operation, exception, errorKind, target);
+
+    private static AppDataErrorKind ClassifyErrorKind(Exception exception)
+        => exception switch
+        {
+            JsonException or NotSupportedException => AppDataErrorKind.Serialization,
+            IOException or UnauthorizedAccessException => AppDataErrorKind.Storage,
+            ArgumentException or InvalidOperationException => AppDataErrorKind.Validation,
+            _ => AppDataErrorKind.Unexpected
+        };
+
+    /// <summary>
+    /// 계정 목록을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySaveAccounts(IEnumerable<Account> accounts)
         => SaveAccountsAsync(accounts).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SaveAccounts(IEnumerable<Account> accounts)
+        => TrySaveAccounts(accounts);
 
     public static async Task<AppDataOperationResult> SaveAccountsAsync(IEnumerable<Account> accounts)
     {
@@ -81,7 +153,7 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SaveAccountsAsync), ex, AppDataErrorKind.Serialization, AccountsFileName);
         }
     }
 
@@ -103,14 +175,57 @@ public static class AppDataManager
         {
             foreach (AccountCredential credential in normalizedCredentials)
             {
-                previousPasswords[credential.UserName] = PasswordVaultHelper.GetPassword(credential.UserName);
-                PasswordVaultHelper.Save(credential.UserName, credential.Password);
+                PasswordVaultHelper.PasswordVaultReadResult readResult =
+                    PasswordVaultHelper.TryGetPassword(credential.UserName);
+                if (!readResult.Success)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), readResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+                }
+
+                if (readResult.Status == PasswordVaultHelper.PasswordVaultReadStatus.IgnoredInvalidInput)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (
+                        normalizedAccounts,
+                        Fail(
+                            nameof(SaveAccountsWithCredentialsAsync),
+                            CreateUnexpectedPasswordVaultStateException(
+                                $"Password vault read ignored a normalized account credential input. UserName='{credential.UserName}'",
+                                readResult.Exception),
+                            AppDataErrorKind.CredentialVault,
+                            AccountsFileName));
+                }
+
+                previousPasswords[credential.UserName] = readResult.HasCredential ? readResult.Password : null;
+
+                PasswordVaultHelper.PasswordVaultOperationResult saveCredentialResult =
+                    PasswordVaultHelper.TrySave(credential.UserName, credential.Password);
+                if (!saveCredentialResult.Success)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), saveCredentialResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+                }
+
+                if (saveCredentialResult.Status == PasswordVaultHelper.PasswordVaultOperationStatus.IgnoredInvalidInput)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (
+                        normalizedAccounts,
+                        Fail(
+                            nameof(SaveAccountsWithCredentialsAsync),
+                            CreateUnexpectedPasswordVaultStateException(
+                                $"Password vault save ignored a normalized account credential input. UserName='{credential.UserName}'",
+                                saveCredentialResult.Exception),
+                            AppDataErrorKind.CredentialVault,
+                            AccountsFileName));
+                }
             }
         }
         catch (Exception ex)
         {
             RollbackCredentialUpserts(previousPasswords);
-            return (normalizedAccounts, AppDataOperationResult.Fail(ex));
+            return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), ex, AppDataErrorKind.CredentialVault, AccountsFileName));
         }
 
         AppDataOperationResult saveResult = await SaveAccountsAsync(normalizedAccounts).ConfigureAwait(false);
@@ -120,12 +235,27 @@ public static class AppDataManager
             return (normalizedAccounts, saveResult);
         }
 
-        await SyncAccountsAndPresetsAfterSaveAsync(normalizedAccounts).ConfigureAwait(false);
-        return (normalizedAccounts, AppDataOperationResult.Ok());
+        AppDataOperationResult syncResult = await SyncAccountsAndPresetsAfterSaveAsync(normalizedAccounts).ConfigureAwait(false);
+        if (!syncResult.Success)
+        {
+            Debug.WriteLine(
+                $"[AppDataManager] Non-blocking account dependency sync failed. Operation: {syncResult.Operation}, Target: {syncResult.Target}, Kind: {syncResult.ErrorKind}, Exception: {syncResult.Exception}");
+        }
+
+        return (normalizedAccounts, Ok(nameof(SaveAccountsWithCredentialsAsync), AccountsFileName));
     }
 
+    /// <summary>
+    /// 저장된 계정 목록을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (IList<Account> Accounts, AppDataOperationResult Result) TryLoadAccounts()
+        => LoadAccountsAsync().GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장된 계정 목록만 필요한 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
     public static IList<Account> LoadAccounts()
-        => LoadAccountsAsync().GetAwaiter().GetResult().Accounts;
+        => TryLoadAccounts().Accounts;
 
     /// <summary>
     /// 저장된 계정 목록을 불러오고, 비밀번호가 없는 계정이나 중복/공백 ID를 정리합니다.
@@ -138,32 +268,53 @@ public static class AppDataManager
 
         if (string.IsNullOrWhiteSpace(json))
         {
-            PasswordVaultHelper.RemoveOrphans([]);
-            return ([], AppDataOperationResult.Ok());
+            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult = PasswordVaultHelper.TryRemoveOrphans([]);
+            return removeOrphansResult.Success
+                ? ([], Ok(nameof(LoadAccountsAsync), AccountsFileName))
+                : ([], Fail(nameof(LoadAccountsAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
         }
 
         try
         {
             List<Account> result = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.ListAccount) ?? [];
-            List<Account> normalizedAccounts = NormalizeAccountsForPersistence(result, requireCredentialPair: true, out bool changed);
-            PasswordVaultHelper.RemoveOrphans(normalizedAccounts.Select(account => account.Id));
+            (IReadOnlyList<string> credentialUserNames, PasswordVaultHelper.PasswordVaultOperationResult credentialListResult) =
+                PasswordVaultHelper.TryGetAllUserNames();
+
+            bool changed;
+            List<Account> normalizedAccounts = credentialListResult.Success
+                ? NormalizeAccountsForPersistence(result, credentialUserNames, requireCredentialPair: true, out changed)
+                : NormalizeAccountsForPersistence(result, credentialUserNames: null, requireCredentialPair: false, out changed);
+
+            if (!credentialListResult.Success)
+                return (normalizedAccounts, Fail(nameof(LoadAccountsAsync), credentialListResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+
+            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult =
+                PasswordVaultHelper.TryRemoveOrphans(normalizedAccounts.Select(account => account.Id));
+            if (!removeOrphansResult.Success)
+                return (normalizedAccounts, Fail(nameof(LoadAccountsAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
 
             if (changed)
             {
                 AppDataOperationResult saveResult = await SaveAccountsAsync(normalizedAccounts).ConfigureAwait(false);
-                return (normalizedAccounts, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+                return (normalizedAccounts, saveResult.Success ? Ok(nameof(LoadAccountsAsync), AccountsFileName) : saveResult);
             }
 
-            return (normalizedAccounts, AppDataOperationResult.Ok());
+            return (normalizedAccounts, Ok(nameof(LoadAccountsAsync), AccountsFileName));
         }
         catch (Exception ex)
         {
-            return ([], AppDataOperationResult.Fail(ex));
+            return ([], Fail(nameof(LoadAccountsAsync), ex, AppDataErrorKind.Serialization, AccountsFileName));
         }
     }
 
+    /// <summary>
+    /// 전체 서버 클라이언트 설정을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    private static (AllServerClientSettings Settings, AppDataOperationResult Result) TryLoadAllServerClientSettings()
+        => LoadAllServerClientSettingsAsync().GetAwaiter().GetResult();
+
     private static AllServerClientSettings LoadAllServerClientSettings()
-        => LoadAllServerClientSettingsAsync().GetAwaiter().GetResult().Settings;
+        => TryLoadAllServerClientSettings().Settings;
 
     private static async Task<(AllServerClientSettings Settings, AppDataOperationResult Result)> LoadAllServerClientSettingsAsync()
     {
@@ -172,32 +323,47 @@ public static class AppDataManager
             return (new AllServerClientSettings(), readResult);
 
         if (string.IsNullOrWhiteSpace(json))
-            return (new AllServerClientSettings(), AppDataOperationResult.Ok());
+            return (new AllServerClientSettings(), Ok(nameof(LoadAllServerClientSettingsAsync), ClientSettingsFileName));
 
         try
         {
             var result = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.AllServerClientSettings);
-            return (result ?? new AllServerClientSettings(), AppDataOperationResult.Ok());
+            return (result ?? new AllServerClientSettings(), Ok(nameof(LoadAllServerClientSettingsAsync), ClientSettingsFileName));
         }
         catch (Exception ex)
         {
-            return (new AllServerClientSettings(), AppDataOperationResult.Fail(ex));
+            return (new AllServerClientSettings(), Fail(nameof(LoadAllServerClientSettingsAsync), ex, AppDataErrorKind.Serialization, ClientSettingsFileName));
         }
     }
 
+    /// <summary>
+    /// 지정한 서버의 클라이언트 설정을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (ClientSettings Settings, AppDataOperationResult Result) TryLoadServerClientSettings(GameServer server)
+        => LoadServerClientSettingsAsync(server).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 지정한 서버의 클라이언트 설정만 필요한 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
     public static ClientSettings LoadServerClientSettings(GameServer server)
-        => LoadServerClientSettingsAsync(server).GetAwaiter().GetResult().Settings;
+        => TryLoadServerClientSettings(server).Settings;
 
     public static async Task<(ClientSettings Settings, AppDataOperationResult Result)> LoadServerClientSettingsAsync(GameServer server)
     {
         var (all, result) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
         if (!all.Servers.TryGetValue(server, out var s))
-            return (new ClientSettings(), result.Success ? AppDataOperationResult.Ok() : result);
-        return (s, result.Success ? AppDataOperationResult.Ok() : result);
+            return (new ClientSettings(), result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
+        return (s, result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
     }
 
-    private static void SaveAllServerClientSettings(AllServerClientSettings settings)
+    /// <summary>
+    /// 전체 서버 클라이언트 설정을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    private static AppDataOperationResult TrySaveAllServerClientSettings(AllServerClientSettings settings)
         => SaveAllServerClientSettingsAsync(settings).GetAwaiter().GetResult();
+
+    private static void SaveAllServerClientSettings(AllServerClientSettings settings)
+        => TrySaveAllServerClientSettings(settings);
 
     private static async Task<AppDataOperationResult> SaveAllServerClientSettingsAsync(AllServerClientSettings settings)
     {
@@ -208,12 +374,21 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SaveAllServerClientSettingsAsync), ex, AppDataErrorKind.Serialization, ClientSettingsFileName);
         }
     }
 
-    public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
+    /// <summary>
+    /// 지정한 서버의 클라이언트 설정을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySaveServerClientSettings(GameServer server, ClientSettings settings)
         => SaveServerClientSettingsAsync(server, settings).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
+        => TrySaveServerClientSettings(server, settings);
 
     public static async Task<AppDataOperationResult> SaveServerClientSettingsAsync(GameServer server, ClientSettings settings)
     {
@@ -232,8 +407,17 @@ public static class AppDataManager
     // - PresetContainer에 저장된 Id가 계정 목록에 없으면 "" 로 정규화(선택 안 함)
     // - 정규화로 변경이 발생하면 즉시 SavePresetContainer()로 다시 저장
     // -------------------------
-    public static void SavePresetList(PresetList presetList)
+    /// <summary>
+    /// 프리셋 목록을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySavePresetList(PresetList presetList)
         => SavePresetListAsync(presetList).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SavePresetList(PresetList presetList)
+        => TrySavePresetList(presetList);
 
     public static async Task<AppDataOperationResult> SavePresetListAsync(PresetList presetList)
     {
@@ -244,17 +428,26 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SavePresetListAsync), ex, AppDataErrorKind.Serialization, PresetListFileName);
         }
     }
+
+    /// <summary>
+    /// 프리셋 목록을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (PresetList PresetList, AppDataOperationResult Result) TryLoadPresetList()
+        => LoadPresetListAsync().GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 프리셋 목록만 필요한 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static PresetList LoadPresetList()
+        => TryLoadPresetList().PresetList;
 
     /// <summary>
     /// PresetContainer를 불러오고, Accounts 기준으로 Id 유효성 검사 후
     /// 없는 Id는 ""로 정규화합니다. 정규화로 변경이 발생하면 재저장합니다.
     /// </summary>
-    public static PresetList LoadPresetList()
-        => LoadPresetListAsync().GetAwaiter().GetResult().PresetList;
-
     public static async Task<(PresetList PresetList, AppDataOperationResult Result)> LoadPresetListAsync()
     {
         PresetList presetList;
@@ -278,7 +471,7 @@ public static class AppDataManager
         {
             presetList = new PresetList();
             AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
-            return (presetList, saveResult.Success ? AppDataOperationResult.Fail(ex) : saveResult);
+            return (presetList, saveResult.Success ? Fail(nameof(LoadPresetListAsync), ex, AppDataErrorKind.Serialization, PresetListFileName) : saveResult);
         }
 
         var (accounts, accountLoadResult) = await LoadAccountsAsync().ConfigureAwait(false);
@@ -295,14 +488,23 @@ public static class AppDataManager
             return (presetList, saveResult.Success ? accountLoadResult : saveResult);
         }
 
-        return (presetList, accountLoadResult.Success ? AppDataOperationResult.Ok() : accountLoadResult);
+        return (presetList, accountLoadResult.Success ? Ok(nameof(LoadPresetListAsync), PresetListFileName) : accountLoadResult);
     }
 
     /// <summary>
     /// 브라우저 즐겨찾기 목록을 저장하며 URL 정규화와 중복 제거를 함께 수행합니다.
     /// </summary>
-    public static void SaveBrowserFavorites(IEnumerable<BrowserFavorite> favorites)
+    /// <summary>
+    /// 브라우저 즐겨찾기 목록을 동기적으로 저장하고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static AppDataOperationResult TrySaveBrowserFavorites(IEnumerable<BrowserFavorite> favorites)
         => SaveBrowserFavoritesAsync(favorites).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 저장 결과가 필요 없는 기존 호출부를 위한 편의 래퍼입니다.
+    /// </summary>
+    public static void SaveBrowserFavorites(IEnumerable<BrowserFavorite> favorites)
+        => TrySaveBrowserFavorites(favorites);
 
     /// <summary>
     /// 브라우저 즐겨찾기 목록을 저장하며 URL 정규화와 중복 제거를 함께 수행합니다.
@@ -317,16 +519,25 @@ public static class AppDataManager
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(SaveBrowserFavoritesAsync), ex, AppDataErrorKind.Serialization, BrowserFavoritesFileName);
         }
     }
 
     /// <summary>
-    /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
+    /// 브라우저 즐겨찾기 목록을 동기적으로 불러오고 결과 메타데이터를 함께 반환합니다.
+    /// </summary>
+    public static (IList<BrowserFavorite> Favorites, AppDataOperationResult Result) TryLoadBrowserFavorites()
+        => LoadBrowserFavoritesAsync().GetAwaiter().GetResult();
+
+    /// <summary>
+    /// 브라우저 즐겨찾기 목록만 필요한 기존 호출부를 위한 편의 래퍼입니다.
     /// </summary>
     public static IList<BrowserFavorite> LoadBrowserFavorites()
-        => LoadBrowserFavoritesAsync().GetAwaiter().GetResult().Favorites;
+        => TryLoadBrowserFavorites().Favorites;
 
+    /// <summary>
+    /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
+    /// </summary>
     /// <summary>
     /// 저장된 브라우저 즐겨찾기 목록을 불러오고, 잘못된 항목은 자동으로 정리합니다.
     /// </summary>
@@ -340,7 +551,7 @@ public static class AppDataManager
         {
             List<BrowserFavorite> emptyFavorites = [];
             AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(emptyFavorites).ConfigureAwait(false);
-            return (emptyFavorites, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+            return (emptyFavorites, saveResult.Success ? Ok(nameof(LoadBrowserFavoritesAsync), BrowserFavoritesFileName) : saveResult);
         }
 
         try
@@ -367,16 +578,16 @@ public static class AppDataManager
             if (changed)
             {
                 AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(normalizedFavorites).ConfigureAwait(false);
-                return (normalizedFavorites, saveResult.Success ? AppDataOperationResult.Ok() : saveResult);
+                return (normalizedFavorites, saveResult.Success ? Ok(nameof(LoadBrowserFavoritesAsync), BrowserFavoritesFileName) : saveResult);
             }
 
-            return (normalizedFavorites, AppDataOperationResult.Ok());
+            return (normalizedFavorites, Ok(nameof(LoadBrowserFavoritesAsync), BrowserFavoritesFileName));
         }
         catch (Exception ex)
         {
             List<BrowserFavorite> emptyFavorites = [];
             AppDataOperationResult saveResult = await SaveBrowserFavoritesAsync(emptyFavorites).ConfigureAwait(false);
-            return (emptyFavorites, saveResult.Success ? AppDataOperationResult.Fail(ex) : saveResult);
+            return (emptyFavorites, saveResult.Success ? Fail(nameof(LoadBrowserFavoritesAsync), ex, AppDataErrorKind.Serialization, BrowserFavoritesFileName) : saveResult);
         }
     }
 
@@ -525,11 +736,11 @@ public static class AppDataManager
                 .AsTask()
                 .ConfigureAwait(false);
 
-            return AppDataOperationResult.Ok();
+            return Ok(nameof(WriteTextToLocalFolderAsync), fileName);
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(WriteTextToLocalFolderAsync), ex, AppDataErrorKind.Storage, fileName);
         }
     }
 
@@ -545,17 +756,17 @@ public static class AppDataManager
                 .ConfigureAwait(false);
 
             if (item is not StorageFile file)
-                return (null, AppDataOperationResult.Ok());
+                return (null, Ok(nameof(ReadTextFromLocalFolderAsync), fileName));
 
             string? content = await FileIO.ReadTextAsync(file)
                 .AsTask()
                 .ConfigureAwait(false);
 
-            return (content, AppDataOperationResult.Ok());
+            return (content, Ok(nameof(ReadTextFromLocalFolderAsync), fileName));
         }
         catch (Exception ex)
         {
-            return (null, AppDataOperationResult.Fail(ex));
+            return (null, Fail(nameof(ReadTextFromLocalFolderAsync), ex, AppDataErrorKind.Storage, fileName));
         }
     }
 
@@ -566,13 +777,23 @@ public static class AppDataManager
     /// 저장 가능한 계정 형태로 정규화하고 중복/공백 ID를 제거합니다.
     /// </summary>
     private static List<Account> NormalizeAccountsForPersistence(IEnumerable<Account>? accounts)
-        => NormalizeAccountsForPersistence(accounts, requireCredentialPair: false, out _);
+        => NormalizeAccountsForPersistence(accounts, credentialUserNames: null, requireCredentialPair: false, out _);
 
     /// <summary>
     /// 계정 목록을 정규화하면서 필요 시 비밀번호와 1:1 관계가 없는 계정도 제거합니다.
     /// </summary>
     private static List<Account> NormalizeAccountsForPersistence(
         IEnumerable<Account>? accounts,
+        bool requireCredentialPair,
+        out bool changed)
+        => NormalizeAccountsForPersistence(accounts, credentialUserNames: null, requireCredentialPair, out changed);
+
+    /// <summary>
+    /// 계정 목록을 정규화하면서 필요 시 비밀번호와 1:1 관계가 없는 계정도 제거합니다.
+    /// </summary>
+    private static List<Account> NormalizeAccountsForPersistence(
+        IEnumerable<Account>? accounts,
+        IReadOnlyCollection<string>? credentialUserNames,
         bool requireCredentialPair,
         out bool changed)
     {
@@ -611,7 +832,9 @@ public static class AppDataManager
                 continue;
             }
 
-            if (requireCredentialPair && string.IsNullOrWhiteSpace(PasswordVaultHelper.GetPassword(id)))
+            if (requireCredentialPair &&
+                credentialUserNames is not null &&
+                !credentialUserNames.Contains(id, StringComparer.OrdinalIgnoreCase))
             {
                 changed = true;
                 continue;
@@ -655,30 +878,56 @@ public static class AppDataManager
         {
             if (string.IsNullOrWhiteSpace(previousPassword))
             {
-                PasswordVaultHelper.Delete(userName);
+                PasswordVaultHelper.PasswordVaultOperationResult deleteResult = PasswordVaultHelper.TryDelete(userName);
+                if (!deleteResult.Success)
+                {
+                    Debug.WriteLine($"[AppDataManager] Credential rollback delete failed. UserName: {userName}, Error: {deleteResult.Exception}");
+                }
+                else if (deleteResult.Status == PasswordVaultHelper.PasswordVaultOperationStatus.IgnoredInvalidInput)
+                {
+                    Debug.WriteLine($"[AppDataManager] Credential rollback delete ignored unexpectedly. UserName: {userName}");
+                }
+
                 continue;
             }
 
-            PasswordVaultHelper.Save(userName, previousPassword);
+            PasswordVaultHelper.PasswordVaultOperationResult saveResult = PasswordVaultHelper.TrySave(userName, previousPassword);
+            if (!saveResult.Success)
+            {
+                Debug.WriteLine($"[AppDataManager] Credential rollback save failed. UserName: {userName}, Error: {saveResult.Exception}");
+            }
+            else if (saveResult.Status == PasswordVaultHelper.PasswordVaultOperationStatus.IgnoredInvalidInput)
+            {
+                Debug.WriteLine($"[AppDataManager] Credential rollback save ignored unexpectedly. UserName: {userName}");
+            }
         }
     }
 
     /// <summary>
+    /// 정규화된 계정 자격 증명 경로에서 발생하면 안 되는 PasswordVault 상태를 예외로 변환합니다.
+    /// </summary>
+    private static Exception CreateUnexpectedPasswordVaultStateException(string message, Exception? innerException = null)
+        => innerException is null
+            ? new InvalidOperationException(message)
+            : new InvalidOperationException(message, innerException);
+
+    /// <summary>
     /// 계정 저장 후 프리셋 참조와 자격 증명을 현재 계정 목록 기준으로 다시 정리합니다.
     /// </summary>
-    private static async Task SyncAccountsAndPresetsAfterSaveAsync(IReadOnlyList<Account> accounts)
+    private static async Task<AppDataOperationResult> SyncAccountsAndPresetsAfterSaveAsync(IReadOnlyList<Account> accounts)
     {
         try
         {
-            PasswordVaultHelper.RemoveOrphans(accounts.Select(account => account.Id));
-            AppDataOperationResult presetSyncResult = await NormalizePresetListAgainstAccountsAsync(accounts).ConfigureAwait(false);
+            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult =
+                PasswordVaultHelper.TryRemoveOrphans(accounts.Select(account => account.Id));
+            if (!removeOrphansResult.Success)
+                return Fail(nameof(SyncAccountsAndPresetsAfterSaveAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName);
 
-            if (!presetSyncResult.Success)
-                Debug.WriteLine($"[AppDataManager] Preset sync failed: {presetSyncResult.Exception}");
+            return await NormalizePresetListAgainstAccountsAsync(accounts).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[AppDataManager] Account dependency sync failed: {ex}");
+            return Fail(nameof(SyncAccountsAndPresetsAfterSaveAsync), ex, AppDataErrorKind.CredentialVault, AccountsFileName);
         }
     }
 
@@ -694,6 +943,7 @@ public static class AppDataManager
                 return readResult;
 
             PresetList presetList;
+            Exception? deserializeException = null;
             if (string.IsNullOrWhiteSpace(json))
             {
                 presetList = new PresetList();
@@ -704,8 +954,9 @@ public static class AppDataManager
                 {
                     presetList = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.PresetList) ?? new PresetList();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    deserializeException = ex;
                     presetList = new PresetList();
                 }
             }
@@ -719,13 +970,21 @@ public static class AppDataManager
             changed |= NormalizePresetIds(presetList, validIds);
 
             if (!changed)
-                return AppDataOperationResult.Ok();
+                return deserializeException is null
+                    ? Ok(nameof(NormalizePresetListAgainstAccountsAsync), PresetListFileName)
+                    : Fail(nameof(NormalizePresetListAgainstAccountsAsync), deserializeException, AppDataErrorKind.Serialization, PresetListFileName);
 
-            return await SavePresetListAsync(presetList).ConfigureAwait(false);
+            AppDataOperationResult saveResult = await SavePresetListAsync(presetList).ConfigureAwait(false);
+            if (!saveResult.Success)
+                return saveResult;
+
+            return deserializeException is null
+                ? Ok(nameof(NormalizePresetListAgainstAccountsAsync), PresetListFileName)
+                : Fail(nameof(NormalizePresetListAgainstAccountsAsync), deserializeException, AppDataErrorKind.Serialization, PresetListFileName);
         }
         catch (Exception ex)
         {
-            return AppDataOperationResult.Fail(ex);
+            return Fail(nameof(NormalizePresetListAgainstAccountsAsync), ex, PresetListFileName);
         }
     }
 

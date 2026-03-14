@@ -25,6 +25,7 @@ public enum TryLoginResult
     Success,
     InvalidId,
     NotFoundPw,
+    VaultUnavailable,
     NullWebview
 }
 
@@ -248,6 +249,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             case TryLoginResult.NotFoundPw:
                 CancelPendingGameStart("비밀번호 없음");
                 return false;
+            case TryLoginResult.VaultUnavailable:
+                CancelPendingGameStart("비밀번호 저장소 접근 실패");
+                _ = App.ExceptionHandler.ShowRecoverableAsync(
+                    new InvalidOperationException("윈도우 자격 증명 관리자에서 비밀번호를 읽지 못했습니다."),
+                    "WebViewManager.TryGameStart");
+                return false;
             case TryLoginResult.NullWebview:
                 CancelPendingGameStart("WebView 없음");
                 return false;
@@ -344,7 +351,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(id))
             return TryLoginResult.InvalidId;
 
-        string? pw = PasswordVaultHelper.GetPassword(id);
+        PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(id);
+        if (!passwordResult.Success)
+            return TryLoginResult.VaultUnavailable;
+
+        string? pw = passwordResult.HasCredential ? passwordResult.Password : null;
         if (string.IsNullOrWhiteSpace(pw))
             return TryLoginResult.NotFoundPw;
 

@@ -1,6 +1,7 @@
 using Core;
 using Core.Download;
 using Core.Models;
+using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -373,9 +374,30 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
                 installProgress,
                 _installCts.Token);
 
-            ClientSettings settings = AppDataManager.LoadServerClientSettings(_selectedGameServer);
+            (ClientSettings settings, AppDataManager.AppDataOperationResult loadResult) =
+                await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
+
+            if (!loadResult.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(
+                    XamlRoot,
+                    "설정 불러오기 실패",
+                    "설치 완료 후 서버 설정을 갱신하기 전에 현재 설정을 불러오지 못했습니다.",
+                    loadResult);
+            }
+
             settings.InstallPath = finalInstallPath;
-            AppDataManager.SaveServerClientSettings(_selectedGameServer, settings);
+            AppDataManager.AppDataOperationResult saveResult =
+                await AppDataManager.SaveServerClientSettingsAsync(_selectedGameServer, settings);
+
+            if (!saveResult.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(
+                    XamlRoot,
+                    "설정 저장 실패",
+                    "게임 설치는 완료되었지만 설치 경로 설정을 저장하지 못했습니다.",
+                    saveResult);
+            }
 
             SetExtractProgress(_extractProgressMaximum, _extractProgressMaximum);
             ProgressText = "게임 설치가 완료되었습니다.";

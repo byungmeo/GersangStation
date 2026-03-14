@@ -18,6 +18,35 @@ public sealed record GersangStationNoticeInfo(
 /// </summary>
 public static class GersangStationNoticeCrawler
 {
+    /// <summary>
+    /// GersangStation 공지 크롤링 실패 지점을 구분합니다.
+    /// </summary>
+    public enum CrawlerFailureStage
+    {
+        FetchCategoryHtml,
+        ParseNoticeList
+    }
+
+    /// <summary>
+    /// GersangStation 공지 크롤링 실패 시 단계와 URL 문맥을 함께 보존합니다.
+    /// </summary>
+    public sealed class GersangStationNoticeCrawlerException : InvalidOperationException
+    {
+        public CrawlerFailureStage Stage { get; }
+        public string Url { get; }
+
+        public GersangStationNoticeCrawlerException(
+            string message,
+            CrawlerFailureStage stage,
+            string url,
+            Exception innerException)
+            : base(message, innerException)
+        {
+            Stage = stage;
+            Url = url;
+        }
+    }
+
     private const int MaxNoticeCount = 5;
     private static readonly Uri BaseUri = new("https://github.com");
     private static readonly Uri CategoryUri = new("https://github.com/byungmeo/GersangStation/discussions/categories/%EA%B3%B5%EC%A7%80%EC%82%AC%ED%95%AD");
@@ -31,8 +60,32 @@ public static class GersangStationNoticeCrawler
     {
         ArgumentNullException.ThrowIfNull(httpClient);
 
-        string html = await GetCategoryHtmlAsync(httpClient, ct);
-        return ParseNotices(html);
+        string html;
+        try
+        {
+            html = await GetCategoryHtmlAsync(httpClient, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GersangStationNoticeCrawlerException(
+                $"Failed to fetch GersangStation notices from '{CategoryUri}'.",
+                CrawlerFailureStage.FetchCategoryHtml,
+                CategoryUri.ToString(),
+                ex);
+        }
+
+        try
+        {
+            return ParseNotices(html);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new GersangStationNoticeCrawlerException(
+                $"Failed to parse GersangStation notices from '{CategoryUri}'.",
+                CrawlerFailureStage.ParseNoticeList,
+                CategoryUri.ToString(),
+                ex);
+        }
     }
 
     private static async Task<string> GetCategoryHtmlAsync(HttpClient httpClient, CancellationToken ct)
@@ -78,6 +131,9 @@ public static class GersangStationNoticeCrawler
             if (seen.Add(item.Url))
                 result.Add(item with { IsPinned = false });
         }
+
+        if (result.Count == 0)
+            throw new InvalidDataException("No notice entries were found in the GersangStation discussions category HTML.");
 
         return result;
     }
