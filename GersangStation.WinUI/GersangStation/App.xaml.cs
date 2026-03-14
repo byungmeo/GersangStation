@@ -53,10 +53,14 @@ namespace GersangStation
             mainWindow.Closed += CurrentWindow_Closed;
 
             CurrentWindow = mainWindow;
-            CenterAndActivateWindow(CurrentWindow);
+            PrepareMainWindow(CurrentWindow);
+            BringCurrentWindowToForeground();
         }
 
-        private static void CenterAndActivateWindow(Window window)
+        /// <summary>
+        /// 메인 창 최초 표시 전에 크기와 위치, 프레젠터 구성을 적용합니다.
+        /// </summary>
+        private static void PrepareMainWindow(Window window)
         {
             // 타이틀바 더블 클릭으로 인한 최대화 방지
             window.PreventMaximizeOnTitleBarDoubleClick();
@@ -92,8 +96,23 @@ namespace GersangStation
 
             appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
             appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        }
 
-            window.Activate();
+        /// <summary>
+        /// 현재 메인 창을 복원하고 전면에 표시합니다.
+        /// </summary>
+        public static void BringCurrentWindowToForeground()
+        {
+            if (CurrentWindow is null)
+                return;
+
+            if (CurrentWindow.AppWindow.Presenter is OverlappedPresenter presenter &&
+                presenter.State == OverlappedPresenterState.Minimized)
+            {
+                presenter.Restore();
+            }
+
+            CurrentWindow.Activate();
         }
 
         private void CurrentWindow_Closed(object sender, WindowEventArgs args)

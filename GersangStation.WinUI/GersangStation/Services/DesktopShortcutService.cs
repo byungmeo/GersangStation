@@ -68,6 +68,15 @@ public sealed class DesktopShortcutService
     public string GetDesktopShortcutPath()
         => Path.Combine(GetDesktopDirectoryPath(), ShortcutFileName);
 
+    private static string GetDesktopDirectoryPath()
+    {
+        string desktopDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        if (string.IsNullOrWhiteSpace(desktopDirectory))
+            throw new DirectoryNotFoundException("바탕화면 경로를 찾을 수 없습니다.");
+
+        return desktopDirectory;
+    }
+
     private static string GetAppUserModelId()
     {
         string packageFamilyName = Package.Current.Id.FamilyName;

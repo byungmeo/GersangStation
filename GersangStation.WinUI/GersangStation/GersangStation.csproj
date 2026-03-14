@@ -19,6 +19,7 @@
 		<AppxDefaultResourceQualifiers>Language=ko-KR</AppxDefaultResourceQualifiers>
 		<GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
 		<AppxBundleResourcesDirectoryCompilerFlags Condition="'$(AppxBundleResourcesDirectoryCompilerFlags)' == ''">/q ko-KR</AppxBundleResourcesDirectoryCompilerFlags>
+		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Remove="Assets\Icons\SplashScreen.scale-100.png" />
