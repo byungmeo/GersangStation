@@ -503,7 +503,7 @@
                                             Background="Transparent"
                                             BorderThickness="0"
                                             Click="HomepageNotice_Click"
-                                            Foreground="MidnightBlue"
+                                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                             IsTabStop="False"
                                             Tag="{x:Bind Url}">
                                             <Grid ColumnSpacing="12">
@@ -566,7 +566,7 @@
                                             Background="Transparent"
                                             BorderThickness="0"
                                             Click="GersangStationNotice_Click"
-                                            Foreground="MidnightBlue"
+                                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
                                             IsTabStop="False"
                                             Tag="{x:Bind Url}">
                                             <Grid ColumnSpacing="12">
