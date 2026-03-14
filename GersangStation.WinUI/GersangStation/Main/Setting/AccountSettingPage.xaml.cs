@@ -1,5 +1,6 @@
 using Core;
 using Core.Models;
+using GersangStation;
 using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -10,6 +11,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Windows.System;
 
 namespace GersangStation.Main.Setting;
 
@@ -170,6 +172,24 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     }
 
     private async void Button_Save_Click(object sender, RoutedEventArgs e)
+        => await SaveEditorAsync();
+
+    /// <summary>
+    /// 아이디, 패스워드, 닉네임, 그룹 이름 입력에서 Enter를 누르면 저장 동작을 실행합니다.
+    /// </summary>
+    private async void EditorInput_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter || !CanSave)
+            return;
+
+        e.Handled = true;
+        await SaveEditorAsync();
+    }
+
+    /// <summary>
+    /// 현재 편집 중인 계정 입력값을 검증하고 저장합니다.
+    /// </summary>
+    private async Task SaveEditorAsync()
     {
         string? validationError = GetValidationErrorMessage();
         if (!string.IsNullOrWhiteSpace(validationError))
@@ -233,8 +253,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             return;
 
         Editor.BeginEdit(_selectedAccounts[0]);
-        TextBox_Id.Focus(FocusState.Programmatic);
-        TextBox_Id.SelectAll();
+        ScheduleEditorStartFocus(selectAll: true);
     }
 
     private async void Button_Delete_Click(object sender, RoutedEventArgs e)
@@ -351,6 +370,8 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
         if (clearSelection)
             ClearSelection();
+
+        ScheduleEditorStartFocus();
     }
 
     private void ClearSelection()
@@ -486,6 +507,33 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         OnPropertyChanged(nameof(PasswordBoxVisibility));
         OnPropertyChanged(nameof(ResetButtonVisibility));
         OnPropertyChanged(nameof(CancelEditButtonVisibility));
+    }
+
+    /// <summary>
+    /// 편집기 모드 전환 직후 아이디 입력 칸에 포커스를 다시 맞춥니다.
+    /// </summary>
+    private void ScheduleEditorStartFocus(bool selectAll = false)
+    {
+        if (DispatcherQueue is null)
+            return;
+
+        _ = DispatcherQueue.TryEnqueueHandled(
+            () => FocusEditorStartControl(selectAll),
+            "AccountSettingPage.ScheduleEditorStartFocus");
+    }
+
+    /// <summary>
+    /// 계정 편집기의 첫 입력 칸인 아이디 TextBox에 포커스를 적용합니다.
+    /// </summary>
+    private void FocusEditorStartControl(bool selectAll)
+    {
+        if (TextBox_Id is null)
+            return;
+
+        TextBox_Id.Focus(FocusState.Programmatic);
+
+        if (selectAll)
+            TextBox_Id.SelectAll();
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
