@@ -70,12 +70,39 @@ namespace GersangStation.Main.Setting
                 OnPropertyChanged(nameof(ClientSettings));
                 OnPropertyChanged(nameof(TextBox_Path2_IsEnabled));
                 OnPropertyChanged(nameof(TextBox_Path3_IsEnabled));
+                OnPropertyChanged(nameof(ClientUsageModeIndex));
+                OnPropertyChanged(nameof(MultiClientSettingsVisibility));
                 OnPropertyChanged(nameof(InstallGuideVisibility));
             }
         }
 
         public bool TextBox_Path2_IsEnabled => ClientSettings.UseMultiClient && ClientSettings.UseClient2;
         public bool TextBox_Path3_IsEnabled => ClientSettings.UseMultiClient && ClientSettings.UseClient3;
+        /// <summary>
+        /// 다클라 사용 여부를 RadioButtons 인덱스로 표현합니다.
+        /// </summary>
+        public int ClientUsageModeIndex
+        {
+            get => ClientSettings.UseMultiClient ? 1 : 0;
+            set
+            {
+                bool useMultiClient = value == 1;
+                if (ClientSettings.UseMultiClient == useMultiClient)
+                    return;
+
+                ClientSettings.UseMultiClient = useMultiClient;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(MultiClientSettingsVisibility));
+            }
+        }
+
+        /// <summary>
+        /// 다클라 상세 설정 영역의 표시 여부를 반환합니다.
+        /// </summary>
+        public Visibility MultiClientSettingsVisibility => ClientSettings.UseMultiClient
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
         public Visibility InstallGuideVisibility => string.IsNullOrWhiteSpace(ClientSettings.InstallPath)
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -190,12 +217,12 @@ namespace GersangStation.Main.Setting
             {
                 OnPropertyChanged(nameof(TextBox_Path3_IsEnabled));
             }
-        }
 
-        private void ToggleSwitch_UseMultiClient_Toggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-        {
-            var toggleSwitch = (ToggleSwitch)sender;
-            Expander_MultiClient.IsExpanded = toggleSwitch.IsOn;
+            if (e.PropertyName == nameof(ClientSettings.UseMultiClient))
+            {
+                OnPropertyChanged(nameof(ClientUsageModeIndex));
+                OnPropertyChanged(nameof(MultiClientSettingsVisibility));
+            }
         }
 
         private async void Button_Save_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
