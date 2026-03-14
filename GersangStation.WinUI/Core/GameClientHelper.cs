@@ -5,6 +5,13 @@ namespace Core;
 public static class GameClientHelper
 {
     public const int MultiClientLayoutBoundaryVersion = 34100;
+    private static readonly HashSet<string> TopLevelDirectoriesToSkip = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Online",
+        "XIGNCODE",
+        "PatchTemp",
+        "GersangDown"
+    };
 
     public enum MultiClientLayoutPolicy
     {
@@ -731,7 +738,7 @@ public static class GameClientHelper
             foreach (string eachDirPath in Directory.GetDirectories(orgInstallPath))
             {
                 string? dirName = new DirectoryInfo(eachDirPath).Name;
-                if (dirName == "XIGNCODE" || dirName == "Online")
+                if (TopLevelDirectoriesToSkip.Contains(dirName))
                     continue;
 
                 string destDirPath = $"{destPath}\\{dirName}";

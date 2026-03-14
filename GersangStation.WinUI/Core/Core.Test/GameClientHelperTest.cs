@@ -58,6 +58,8 @@ public sealed class GameClientHelperTest
             Assert.IsTrue(File.Exists(copiedFilePath));
             Assert.IsFalse(GameClientHelper.IsSymbolFile(copiedFilePath));
             Assert.AreEqual("source-version", File.ReadAllText(copiedFilePath));
+            Assert.IsFalse(Directory.Exists(Path.Combine(destPath, "PatchTemp")));
+            Assert.IsFalse(Directory.Exists(Path.Combine(destPath, "GersangDown")));
         }
         finally
         {
@@ -103,6 +105,14 @@ public sealed class GameClientHelperTest
         string xigncodePath = Path.Combine(root, "XIGNCODE");
         Directory.CreateDirectory(xigncodePath);
         File.WriteAllText(Path.Combine(xigncodePath, "xigncode.bin"), "xign");
+
+        string patchTempPath = Path.Combine(root, "PatchTemp");
+        Directory.CreateDirectory(patchTempPath);
+        File.WriteAllText(Path.Combine(patchTempPath, "patch.tmp"), "patch");
+
+        string gersangDownPath = Path.Combine(root, "GersangDown");
+        Directory.CreateDirectory(gersangDownPath);
+        File.WriteAllText(Path.Combine(gersangDownPath, "download.tmp"), "download");
     }
 
     private static void PrepareExistingCloneWithSymbolicFile(string sourcePath, string destPath)

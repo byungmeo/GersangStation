@@ -9,6 +9,7 @@
 - Treat a path without `\Online\vsn.dat` as invalid for launch and multi-client creation, because the current client version cannot be determined.
 - For multi-client creation on `v34100+` layouts, hard-copy direct files under `Online` with overwrite while keeping subdirectories under `Online` as symbolic links.
 - For multi-client creation on `v34100+` layouts, apply the config overwrite policy to `\Assets\Config` and everything under it instead of symbolic-linking that tree.
+- Skip top-level `PatchTemp` and `GersangDown` directories entirely during multi-client creation; do not copy or symbolic-link them into clones.
 - Choose the multi-client layout policy from the current client version only; do not fetch the latest server version just to decide the local layout rule.
 - When probing whether an existing path is symbolic, check `CanUseSymbol` first; if the drive does not support symbolic links, treat the path as definitively non-symbolic and skip reparse-point probing.
 - When overwriting a destination file during multi-client creation, delete the destination first if it is a symbolic file and then copy the source file.
