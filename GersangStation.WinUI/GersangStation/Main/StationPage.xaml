@@ -129,9 +129,9 @@
                     <ComboBox
                         x:Name="ComboBox_Account1"
                         Width="180"
-                        DisplayMemberPath="Nickname"
+                        DisplayMemberPath="DisplayName"
                         IsTabStop="False"
-                        ItemsSource="{x:Bind Accounts, Mode=OneWay}"
+                        ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
                         PlaceholderText="선택하지 않음"
                         SelectedValue="{x:Bind SelectedAccount1Id, Mode=TwoWay}"
                         SelectedValuePath="Id">
@@ -144,9 +144,9 @@
                     <ComboBox
                         x:Name="ComboBox_Account2"
                         Width="180"
-                        DisplayMemberPath="Nickname"
+                        DisplayMemberPath="DisplayName"
                         IsTabStop="False"
-                        ItemsSource="{x:Bind Accounts, Mode=OneWay}"
+                        ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
                         PlaceholderText="선택하지 않음"
                         SelectedValue="{x:Bind SelectedAccount2Id, Mode=TwoWay}"
                         SelectedValuePath="Id">
@@ -159,9 +159,9 @@
                     <ComboBox
                         x:Name="ComboBox_Account3"
                         Width="180"
-                        DisplayMemberPath="Nickname"
+                        DisplayMemberPath="DisplayName"
                         IsTabStop="False"
-                        ItemsSource="{x:Bind Accounts, Mode=OneWay}"
+                        ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
                         PlaceholderText="선택하지 않음"
                         SelectedValue="{x:Bind SelectedAccount3Id, Mode=TwoWay}"
                         SelectedValuePath="Id">

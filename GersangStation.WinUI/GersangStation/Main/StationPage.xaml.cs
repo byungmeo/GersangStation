@@ -41,6 +41,34 @@ public sealed record StationHomepageNoticeItem(
     string Url);
 
 /// <summary>
+/// StationPage의 계정 콤보박스에서 사용하는 선택 항목입니다.
+/// </summary>
+public sealed record StationAccountSelectionOption(string Id, string DisplayName)
+{
+    /// <summary>
+    /// 계정을 선택하지 않은 상태를 나타내는 기본 항목입니다.
+    /// </summary>
+    public static StationAccountSelectionOption Unselected { get; } = new(string.Empty, "계정 미선택");
+
+    /// <summary>
+    /// 저장된 계정 목록 앞에 미선택 항목을 붙인 콤보박스용 목록을 만듭니다.
+    /// </summary>
+    public static IReadOnlyList<StationAccountSelectionOption> Create(IEnumerable<Account>? accounts)
+    {
+        List<StationAccountSelectionOption> options = [Unselected];
+
+        if (accounts is not null)
+        {
+            options.AddRange(accounts.Select(account => new StationAccountSelectionOption(
+                account.Id,
+                account.DisplayNickname)));
+        }
+
+        return options;
+    }
+}
+
+/// <summary>
 /// An empty page that can be used on its own or navigated to within a Frame.
 /// </summary>
 public sealed partial class StationPage : Page, INotifyPropertyChanged
@@ -64,6 +92,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private readonly ClientLaunchAvailability[] _clientLaunchAvailability = new ClientLaunchAvailability[3];
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
     private StoreContext? _storeContext;
+    private IReadOnlyList<StationAccountSelectionOption> _accountSelectionOptions = StationAccountSelectionOption.Create(accounts: null);
 
     private IList<Account> _accounts = [];
     public IList<Account> Accounts
@@ -76,6 +105,20 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
             _accounts = value;
             OnPropertyChanged(nameof(Accounts));
+            AccountSelectionOptions = StationAccountSelectionOption.Create(value);
+        }
+    }
+
+    public IReadOnlyList<StationAccountSelectionOption> AccountSelectionOptions
+    {
+        get => _accountSelectionOptions;
+        private set
+        {
+            if (ReferenceEquals(_accountSelectionOptions, value))
+                return;
+
+            _accountSelectionOptions = value;
+            OnPropertyChanged(nameof(AccountSelectionOptions));
         }
     }
 
@@ -322,7 +365,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
         if (string.IsNullOrWhiteSpace(accountId))
         {
-            await ShowWarningDialogAsync("계정을 먼저 선택해 주세요", "선택한 클라이언트에 사용할 계정이 없습니다.");
+            await HandleMissingAccountSelectionAsync(window);
             return;
         }
 
@@ -351,6 +394,27 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         Debug.WriteLine("App.CurrentWindow is MainWindow window");
         Debug.WriteLine("window.WebViewManager is not null");
         _ = await window.WebViewManager.TryGameStart(accountId, clientIndex);
+    }
+
+    /// <summary>
+    /// 실행할 계정이 선택되지 않았을 때 계정 설정 페이지 이동을 제안합니다.
+    /// </summary>
+    private async Task HandleMissingAccountSelectionAsync(MainWindow window)
+    {
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = "계정을 먼저 선택해 주세요",
+            Content =
+                "선택한 클라이언트에 사용할 계정이 없습니다.\n\n" +
+                "계정 설정 페이지로 이동할까요?",
+            PrimaryButtonText = "계정 설정",
+            CloseButtonText = "취소",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            window.NavigateToSettingPage(SettingSection.Account);
     }
 
     /// <summary>
