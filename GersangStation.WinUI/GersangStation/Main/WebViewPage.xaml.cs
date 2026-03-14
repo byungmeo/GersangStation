@@ -76,7 +76,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         foreach (Account account in accounts)
         {
             Accounts.Add(account);
-            if (loggedIn && account.Id == loggedInId)
+            if (loggedIn && LoginIdComparer.EqualsForComparison(account.Id, loggedInId))
             {
                 _suppressUserSelectionChanged = true;
                 SelectedAccount = account;

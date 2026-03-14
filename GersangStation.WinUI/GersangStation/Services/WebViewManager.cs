@@ -453,7 +453,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (LoggedIn)
         {
             if (!string.IsNullOrWhiteSpace(LoggedInMemberId)
-                && string.Equals(LoggedInMemberId, id, StringComparison.Ordinal))
+                && LoginIdComparer.EqualsForComparison(LoggedInMemberId, id))
             {
                 // 로그인 하려는 아이디와 현재 로그인 된 아이디가 같으면 로그인 할 필요 없다
                 ResetRoughLoginRecoveryState();
