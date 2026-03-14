@@ -36,6 +36,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 {
     #region Gersang Homepage Controller
     private static readonly TimeSpan LaunchRetryCooldown = TimeSpan.FromSeconds(5);
+    private static bool _roughLoginNoticeSuppressedForSession;
+    private static bool _roughLoginNoticeShowing;
+    private static Task? _roughLoginNoticeTask;
     private GameServer _cachedGameStartServer = GameServer.Korea_Live;
     private string _cachedGameStartId = string.Empty;
     private int _cachedGameStartClientIndex = -1;
@@ -105,6 +108,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     public event EventHandler? LoggedInChanged;
     private string _loggedInMemberId = "";
+    private bool _wasRoughLoggedIn;
     public string LoggedInMemberId
     {
         get => _loggedInMemberId;
@@ -180,6 +184,72 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         _roughLoginRecoveryTargetId = string.Empty;
         _roughLoginRecoveryBypassUsed = false;
+    }
+
+    /// <summary>
+    /// 러프 로그인 상태에 진입했을 때 안내 다이얼로그를 표시하고 사용자가 닫을 때까지 기다립니다.
+    /// </summary>
+    private async Task WaitForRoughLoginNoticeAsync()
+    {
+        if (_roughLoginNoticeSuppressedForSession)
+            return;
+
+        Task? existingTask = _roughLoginNoticeTask;
+        if (existingTask is not null && !existingTask.IsCompleted)
+        {
+            await existingTask;
+            return;
+        }
+
+        _roughLoginNoticeTask = _webview.DispatcherQueue.RunOrEnqueueAsync(async () =>
+        {
+            if (_roughLoginNoticeSuppressedForSession || _roughLoginNoticeShowing)
+                return;
+
+            _roughLoginNoticeShowing = true;
+            try
+            {
+                await ShowRoughLoginNoticeDialogAsync();
+            }
+            finally
+            {
+                _roughLoginNoticeShowing = false;
+            }
+        });
+
+        try
+        {
+            await _roughLoginNoticeTask;
+        }
+        finally
+        {
+            if (_roughLoginNoticeTask?.IsCompleted == true)
+                _roughLoginNoticeTask = null;
+        }
+    }
+
+    /// <summary>
+    /// 러프 로그인 감지 시 안내 및 제보 요청 다이얼로그를 표시합니다.
+    /// </summary>
+    private async Task ShowRoughLoginNoticeDialogAsync()
+    {
+        ContentDialog dialog = new()
+        {
+            XamlRoot = _currentWindow.Content.XamlRoot,
+            Title = "로그인 ID 확인 실패",
+            Content =
+                "로그인에 성공하였지만 홈페이지에 로그인 된 ID를 확인하는데 실패하였습니다.\n" +
+                "현재 이 상황과 관련하여 정보를 수집하고 있습니다.\n" +
+                "잠시 시간 내주시어 문의 채널을 통해 말씀주시면 테스트 방법을 알려드리겠습니다.\n" +
+                "프로그램을 킨 동안 이 메시지를 표시하지 않으시려면 \"다음부터 표시하지 않음\" 버튼을 눌러주세요.",
+            PrimaryButtonText = "확인",
+            SecondaryButtonText = "다음부터 표시하지 않음",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        ContentDialogResult result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Secondary)
+            _roughLoginNoticeSuppressedForSession = true;
     }
 
     /// <summary>
@@ -601,6 +671,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             isRoughLoggedIn = domLoginState?.LooksAuthenticated == true;
         }
 
+        bool enteredRoughLogin = isRoughLoggedIn && !_wasRoughLoggedIn;
+        _wasRoughLoggedIn = isRoughLoggedIn;
+
         bool updatedLoggedIn = !string.IsNullOrWhiteSpace(updatedLoggedInMemberId) || isRoughLoggedIn;
         bool isLoggedInMemberIdChanged = !string.Equals(previousLoggedInMemberId, updatedLoggedInMemberId, StringComparison.Ordinal);
         bool isLoggedInChanged = previousLoggedIn != updatedLoggedIn;
@@ -621,6 +694,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                     $"[WebViewManager] DOM 로그인 판정. LooksAuthenticated:{domLoginState.LooksAuthenticated}, HasHeaderLoginLink:{domLoginState.HasHeaderLoginLink}, HasHeaderLogoutLink:{domLoginState.HasHeaderLogoutLink}, HasHeaderMyPageLink:{domLoginState.HasHeaderMyPageLink}, Location:{domLoginState.LocationHref}");
             }
         }
+
+        if (enteredRoughLogin)
+            await WaitForRoughLoginNoticeAsync();
 
         if (LoggedIn)
         {
