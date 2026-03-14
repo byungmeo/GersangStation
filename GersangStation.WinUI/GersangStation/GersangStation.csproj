@@ -87,6 +87,7 @@
 
 	<ItemGroup>
 		<Content Include="Assets\Policies\privacy-policy.txt" />
+		<Content Include="Assets\Icons\GersangStationShortcut.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
