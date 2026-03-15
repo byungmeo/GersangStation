@@ -26,6 +26,10 @@
 
 ## Editing Rules
 - When adding or materially changing methods, proactively add, update, or remove XML `summary` comments where they improve maintainability; do not wait for an explicit user request.
+- Preserve each file's existing text encoding when editing. Do not rewrite a file through commands or tools that may silently change it to the system ANSI code page.
+- If a file's encoding is uncertain, prefer ASCII-only code comments and identifiers instead of adding new Korean text directly in that file.
+- When non-ASCII text such as Korean comments or user-facing strings must be added, first confirm the target file is already using a Unicode-safe encoding such as UTF-8/UTF-8 BOM, then save the edit without changing that encoding.
+- Prefer storing user-facing Korean text in existing resource files or other files already verified to use a Unicode-safe encoding rather than introducing Korean text into newly touched source files.
 - When a cross-cutting repository rule changes, update this `AGENTS.md`.
 - When a detailed app policy changes, update `.codex\skills\gersangstation-winui-policy\SKILL.md` or one of its reference files in the same change.
 
