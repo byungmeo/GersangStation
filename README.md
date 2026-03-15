@@ -7,8 +7,8 @@
 
 [<img width="200" height="200" alt="StoreLogo scale-400" src="https://github.com/user-attachments/assets/e1099422-467c-43b8-910d-f5ca56058dd9" />](https://apps.microsoft.com/detail/9NVVQ6MLSWQB?hl=ko-kr&gl=KR&ocid=pdpshare)
 
-<a href="https://apps.microsoft.com/detail/9NVVQ6MLSWQB?hl=ko-kr&gl=KR&ocid=pdpshare">
-	<img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200"/>
+<a href="https://apps.microsoft.com/detail/9nvvq6mlswqb?referrer=appbadge&cid=GitHub+README.md&mode=full" target="_blank"  rel="noopener noreferrer">
+	<img src="https://get.microsoft.com/images/ko%20dark.svg" width="200"/>
 </a>
 
 ## ✨ 기능
