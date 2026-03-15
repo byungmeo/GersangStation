@@ -1,6 +1,7 @@
 using GersangStation.Diagnostics;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.ApplicationModel.WindowsAppRuntime;
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ namespace GersangStation
         public static Window? CurrentWindow { get; private set; }
         public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcherQueue { get; private set; }
         public static AppExceptionHandler ExceptionHandler { get; } = new();
+        public static bool IsWindowsAppRuntimeDeploymentReady { get; private set; }
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -40,11 +42,71 @@ namespace GersangStation
             try
             {
                 OpenMainWindow();
+                StartWindowsAppRuntimeDeploymentInitialization();
             }
             catch (Exception ex)
             {
                 await ExceptionHandler.HandleFatalUiExceptionAsync(ex, "App.OnLaunched");
             }
+        }
+
+        /// <summary>
+        /// Main/Singleton 패키지가 필요한 Windows App SDK 기능을 위해 배포 상태를 백그라운드에서 준비합니다.
+        /// </summary>
+        private static void StartWindowsAppRuntimeDeploymentInitialization()
+        {
+            EnsureWindowsAppRuntimeDeploymentReadyAsync()
+                .FireAndForgetHandled("App.StartWindowsAppRuntimeDeploymentInitialization");
+        }
+
+        /// <summary>
+        /// Windows App SDK 추가 패키지의 준비 상태를 확인하고 필요하면 명시적으로 초기화합니다.
+        /// </summary>
+        private static async Task EnsureWindowsAppRuntimeDeploymentReadyAsync()
+        {
+            try
+            {
+                DeploymentResult statusResult = DeploymentManager.GetStatus();
+                if (statusResult.Status is DeploymentStatus.Ok)
+                {
+                    IsWindowsAppRuntimeDeploymentReady = true;
+                    return;
+                }
+
+                DeploymentResult initializeResult = DeploymentManager.Initialize();
+                if (initializeResult.Status is DeploymentStatus.Ok)
+                {
+                    IsWindowsAppRuntimeDeploymentReady = true;
+                    return;
+                }
+
+                IsWindowsAppRuntimeDeploymentReady = false;
+                await ExceptionHandler.ShowRecoverableAsync(
+                    CreateDeploymentInitializationException(
+                        initializeResult,
+                        "Windows App SDK 추가 런타임 패키지를 준비하지 못했습니다. 알림 기능이 제한될 수 있습니다."),
+                    "App.EnsureWindowsAppRuntimeDeploymentReadyAsync").ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                IsWindowsAppRuntimeDeploymentReady = false;
+                await ExceptionHandler.ShowRecoverableAsync(
+                    new InvalidOperationException(
+                        "Windows App SDK 추가 런타임 패키지 초기화 중 예외가 발생했습니다. 알림 기능이 제한될 수 있습니다.",
+                        ex),
+                    "App.EnsureWindowsAppRuntimeDeploymentReadyAsync").ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// Deployment API의 상태와 확장 오류를 사용자에게 전달할 예외 객체로 정리합니다.
+        /// </summary>
+        private static Exception CreateDeploymentInitializationException(DeploymentResult result, string message)
+        {
+            string detail = $"{message} 상태: {result.Status}.";
+            return result.ExtendedError is null
+                ? new InvalidOperationException(detail)
+                : new InvalidOperationException(detail, result.ExtendedError);
         }
 
         private void OpenMainWindow()
