@@ -19,7 +19,9 @@ public sealed partial class MainWindow : Window
 {
     public WebViewManager? WebViewManager { get; private set; }
     public GameStarter GameStarter { get; } = new();
-    public ClipMouseService ClipMouseService { get; } = new(AppDataManager.IsMouseConfinementEnabled);
+    public ClipMouseService ClipMouseService { get; } = new(
+        AppDataManager.IsMouseConfinementEnabled,
+        AppDataManager.ClipMouseEscapeModifier);
 
     private readonly DesktopShortcutService _desktopShortcutService = new();
     private bool _allowForceClose;
@@ -41,6 +43,7 @@ public sealed partial class MainWindow : Window
         Closed += OnClosed;
         AppWindow.Closing += OnAppWindowClosing;
         AppDataManager.MouseConfinementEnabledChanged += OnMouseConfinementEnabledChanged;
+        AppDataManager.ClipMouseEscapeModifierChanged += OnClipMouseEscapeModifierChanged;
 
         // WebViewPage 초기화를 위해 강제로 Navigate 호출
         ContentFrame.Navigate(typeof(WebViewPage), this);
@@ -60,6 +63,7 @@ public sealed partial class MainWindow : Window
         Activated -= OnActivated;
         Root.Loaded -= OnRootLoaded;
         AppDataManager.MouseConfinementEnabledChanged -= OnMouseConfinementEnabledChanged;
+        AppDataManager.ClipMouseEscapeModifierChanged -= OnClipMouseEscapeModifierChanged;
         ClipMouseService.Dispose();
         GameStarter.Dispose();
     }
@@ -70,6 +74,14 @@ public sealed partial class MainWindow : Window
     private void OnMouseConfinementEnabledChanged(object? sender, bool isEnabled)
     {
         ClipMouseService.SetEnabled(isEnabled);
+    }
+
+    /// <summary>
+    /// 저장된 탈출 단축키 설정이 바뀌면 ClipMouseService에 즉시 반영합니다.
+    /// </summary>
+    private void OnClipMouseEscapeModifierChanged(object? sender, AppDataManager.ClipMouseHotkeyModifier escapeModifier)
+    {
+        ClipMouseService.SetEscapeModifier(escapeModifier);
     }
 
     /// <summary>

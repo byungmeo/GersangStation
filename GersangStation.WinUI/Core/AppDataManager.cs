@@ -8,6 +8,13 @@ namespace Core;
 
 public static class AppDataManager
 {
+    public enum ClipMouseHotkeyModifier
+    {
+        Alt = 0,
+        Control = 1,
+        Shift = 2
+    }
+
     /// <summary>
     /// 앱 데이터 작업 실패를 원인 범주별로 구분합니다.
     /// </summary>
@@ -64,6 +71,7 @@ public static class AppDataManager
     private const string UseSymbol_SettingKey = "useSymbol";
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
+    private const string ClipMouseEscapeModifier_SettingKey = "ClipMouseEscapeModifier";
     private const string SelectedPreset_SettingKey = "SelectedPreset";
     private const string SelectedServer_SettingKey = "SelectedServer";
     private const string EventUrgencyThresholdDays_SettingKey = "EventUrgencyThresholdDays";
@@ -107,6 +115,27 @@ public static class AppDataManager
                 MouseConfinementEnabledChanged?.Invoke(null, value);
         }
     }
+    public static ClipMouseHotkeyModifier ClipMouseEscapeModifier
+    {
+        get
+        {
+            int storedValue = LoadLocalSetting(ClipMouseEscapeModifier_SettingKey, defaultValue: (int)ClipMouseHotkeyModifier.Alt);
+            return Enum.IsDefined(typeof(ClipMouseHotkeyModifier), storedValue)
+                ? (ClipMouseHotkeyModifier)storedValue
+                : ClipMouseHotkeyModifier.Alt;
+        }
+        set
+        {
+            ClipMouseHotkeyModifier sanitizedValue = Enum.IsDefined(typeof(ClipMouseHotkeyModifier), value)
+                ? value
+                : ClipMouseHotkeyModifier.Alt;
+            ClipMouseHotkeyModifier previous = ClipMouseEscapeModifier;
+            SaveLocalSetting(ClipMouseEscapeModifier_SettingKey, (int)sanitizedValue);
+
+            if (previous != sanitizedValue)
+                ClipMouseEscapeModifierChanged?.Invoke(null, sanitizedValue);
+        }
+    }
     public static int SelectedPreset
     {
         get => LoadLocalSetting(SelectedPreset_SettingKey, defaultValue: 0);
@@ -126,6 +155,7 @@ public static class AppDataManager
 
     public static event EventHandler<bool>? DeveloperToolEnabledChanged;
     public static event EventHandler<bool>? MouseConfinementEnabledChanged;
+    public static event EventHandler<ClipMouseHotkeyModifier>? ClipMouseEscapeModifierChanged;
 
     private static AppDataOperationResult Ok(string operation, string target = "")
         => AppDataOperationResult.Ok(operation, target);

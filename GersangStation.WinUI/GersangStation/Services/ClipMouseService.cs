@@ -1,3 +1,4 @@
+using Core;
 using GersangStation.Diagnostics;
 using System;
 using System.ComponentModel;
@@ -26,13 +27,15 @@ public sealed partial class ClipMouseService : IDisposable
     private bool _hasActiveClip;
     private nint _clippedWindowHandle;
     private NativeRect _clippedBounds;
+    private AppDataManager.ClipMouseHotkeyModifier _escapeModifier;
     private int _isPolling;
 
     /// <summary>
     /// Creates the service and optionally starts foreground monitoring immediately.
     /// </summary>
-    public ClipMouseService(bool isEnabled)
+    public ClipMouseService(bool isEnabled, AppDataManager.ClipMouseHotkeyModifier escapeModifier)
     {
+        _escapeModifier = escapeModifier;
         SetEnabled(isEnabled);
     }
 
@@ -45,17 +48,30 @@ public sealed partial class ClipMouseService : IDisposable
         {
             ObjectDisposedException.ThrowIf(_isDisposed, this);
 
-            if (_isEnabled == isEnabled)
+            bool effectiveEnabled = isEnabled && GersangStation.App.IsRunningAsAdministrator;
+            if (_isEnabled == effectiveEnabled)
                 return;
 
-            _isEnabled = isEnabled;
-            if (isEnabled)
+            _isEnabled = effectiveEnabled;
+            if (effectiveEnabled)
             {
                 StartMonitor_NoLock();
                 return;
             }
 
             StopMonitor_NoLock();
+        }
+    }
+
+    /// <summary>
+    /// Updates the modifier key used to temporarily suspend cursor confinement.
+    /// </summary>
+    public void SetEscapeModifier(AppDataManager.ClipMouseHotkeyModifier escapeModifier)
+    {
+        lock (_syncRoot)
+        {
+            ObjectDisposedException.ThrowIf(_isDisposed, this);
+            _escapeModifier = escapeModifier;
         }
     }
 
@@ -256,11 +272,27 @@ public sealed partial class ClipMouseService : IDisposable
         return !bounds.IsEmpty;
     }
 
-    private static bool IsSuspendKeyPressed()
-        => IsKeyDown(VkMenu) || IsKeyDown(VkLMenu) || IsKeyDown(VkRMenu);
+    private bool IsSuspendKeyPressed()
+    {
+        AppDataManager.ClipMouseHotkeyModifier escapeModifier;
+        lock (_syncRoot)
+        {
+            escapeModifier = _escapeModifier;
+        }
+
+        return escapeModifier switch
+        {
+            AppDataManager.ClipMouseHotkeyModifier.Control => IsAnyKeyDown(0x11, 0xA2, 0xA3),
+            AppDataManager.ClipMouseHotkeyModifier.Shift => IsAnyKeyDown(0x10, 0xA0, 0xA1),
+            _ => IsAnyKeyDown(VkMenu, VkLMenu, VkRMenu)
+        };
+    }
 
     private static bool IsKeyDown(int virtualKey)
         => (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+
+    private static bool IsAnyKeyDown(int key1, int key2, int key3)
+        => IsKeyDown(key1) || IsKeyDown(key2) || IsKeyDown(key3);
 
     private readonly record struct WindowClipTarget(nint WindowHandle, int ProcessId, NativeRect Bounds);
 

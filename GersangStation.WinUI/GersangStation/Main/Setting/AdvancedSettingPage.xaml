@@ -9,26 +9,90 @@
     NavigationCacheMode="Disabled"
     mc:Ignorable="d">
 
-    <Grid Padding="16">
-        <StackPanel HorizontalAlignment="Left" Spacing="12">
+    <ScrollViewer>
+        <StackPanel Padding="16" Spacing="12">
             <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="고급 설정" />
             <TextBlock Opacity="0.72" Text="디버깅이나 테스트용 기능이 필요할 때만 개발자 도구를 켜세요." />
-            <ToggleSwitch
-                x:Name="ToggleSwitch_MouseConfinement"
-                Header="거상 창 마우스 가두기"
-                OffContent="비활성화"
-                OnContent="활성화"
-                Toggled="ToggleSwitch_MouseConfinement_Toggled" />
-            <TextBlock
-                MaxWidth="420"
-                Opacity="0.72"
-                Text="활성 창의 프로세스명이 정확히 Gersang일 때만 마우스를 창 안에 가둡니다. Alt를 누르고 있는 동안은 잠시 해제됩니다." />
-            <ToggleSwitch
-                x:Name="ToggleSwitch_DeveloperTool"
-                Header="개발자 도구"
-                OffContent="비활성화"
-                OnContent="활성화"
-                Toggled="ToggleSwitch_DeveloperTool_Toggled" />
+            <StackPanel HorizontalAlignment="Left" MaxWidth="520" Spacing="12">
+                <ToggleSwitch
+                    x:Name="ToggleSwitch_MouseConfinement"
+                    Header="거상 창 마우스 가두기"
+                    OffContent="비활성화"
+                    OnContent="활성화"
+                    Toggled="ToggleSwitch_MouseConfinement_Toggled" />
+                <TextBlock
+                    Opacity="0.72"
+                    Text="활성 창의 프로세스명이 정확히 Gersang일 때만 작동하며, 커서가 창 안에 있을 때만 다시 가둡니다."
+                    TextWrapping="WrapWholeWords" />
+                <StackPanel
+                    x:Name="Panel_ClipMouseAdminWarning"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        Foreground="#C42B1C"
+                        Text="이 기능을 사용하려면 관리자 권한이 필요합니다."
+                        TextWrapping="WrapWholeWords" />
+                    <HyperlinkButton
+                        Click="HyperlinkButton_ClipMouseAdminHelp_Click"
+                        Content="Q&amp;A 보기"
+                        Padding="0"
+                        VerticalAlignment="Center" />
+                </StackPanel>
+                <Border
+                    x:Name="Border_ClipMouseHotkeyPanel"
+                    Padding="16"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Visibility="Collapsed">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="탈출 단축키" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="WinUI Gallery 입력 예제처럼 설명과 선택 컨트롤을 함께 배치해 단축키를 설정합니다."
+                            TextWrapping="WrapWholeWords" />
+                        <Grid ColumnSpacing="16" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                VerticalAlignment="Center"
+                                Text="현재 단축키" />
+                            <ComboBox
+                                x:Name="ComboBox_ClipMouseEscapeModifier"
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                DisplayMemberPath="Label"
+                                SelectionChanged="ComboBox_ClipMouseEscapeModifier_SelectionChanged" />
+                            <TextBlock
+                                x:Name="TextBlock_ClipMouseEscapeModifierDescription"
+                                Grid.Row="1"
+                                Grid.Column="1"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="WrapWholeWords" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <Border
+                    Height="1"
+                    Margin="0,6"
+                    Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+                <ToggleSwitch
+                    x:Name="ToggleSwitch_DeveloperTool"
+                    Header="개발자 도구"
+                    OffContent="비활성화"
+                    OnContent="활성화"
+                    Toggled="ToggleSwitch_DeveloperTool_Toggled" />
+            </StackPanel>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </Page>

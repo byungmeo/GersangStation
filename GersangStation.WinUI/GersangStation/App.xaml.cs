@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.Windows.ApplicationModel.WindowsAppRuntime;
 using System;
 using System.Diagnostics;
+using System.Security.Principal;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Storage;
@@ -18,6 +19,7 @@ namespace GersangStation
         public static Window? CurrentWindow { get; private set; }
         public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcherQueue { get; private set; }
         public static AppExceptionHandler ExceptionHandler { get; } = new();
+        public static bool IsRunningAsAdministrator { get; private set; }
         public static bool IsWindowsAppRuntimeDeploymentReady { get; private set; }
 
         /// <summary>
@@ -27,10 +29,20 @@ namespace GersangStation
         public App()
         {
             InitializeComponent();
+            IsRunningAsAdministrator = DetectIsRunningAsAdministrator();
             UiDispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
             RegisterGlobalExceptionHandlers();
             Debug.WriteLine($"PFN: {Package.Current.Id.FamilyName}");
             Debug.WriteLine($"LocalFolder Path: {ApplicationData.Current.LocalFolder.Path}");
+        }
+
+        /// <summary>
+        /// 현재 프로세스가 관리자 권한으로 실행 중인지 판별합니다.
+        /// </summary>
+        private static bool DetectIsRunningAsAdministrator()
+        {
+            using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
         }
 
         /// <summary>
