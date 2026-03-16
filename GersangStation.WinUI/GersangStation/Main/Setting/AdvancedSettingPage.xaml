@@ -12,32 +12,42 @@
     <ScrollViewer>
         <StackPanel Padding="16" Spacing="12">
             <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="고급 설정" />
-            <TextBlock Opacity="0.72" Text="디버깅이나 테스트용 기능이 필요할 때만 개발자 도구를 켜세요." />
-            <StackPanel HorizontalAlignment="Left" MaxWidth="520" Spacing="12">
+
+            <Border
+                Height="1"
+                Margin="0,6"
+                Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+            <StackPanel
+                MaxWidth="520"
+                HorizontalAlignment="Left"
+                Spacing="12">
+                <!--#region ClipMouse-->
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="마우스 가두기" />
+                <TextBlock
+                    Opacity="0.72"
+                    Text="윈도우 디스플레이 설정이 고배율(125%, 150% 등)인 경우 게임 밖으로 마우스가 벗어나지 않도록 개선합니다."
+                    TextWrapping="WrapWholeWords" />
                 <ToggleSwitch
                     x:Name="ToggleSwitch_MouseConfinement"
-                    Header="거상 창 마우스 가두기"
                     OffContent="비활성화"
                     OnContent="활성화"
                     Toggled="ToggleSwitch_MouseConfinement_Toggled" />
-                <TextBlock
-                    Opacity="0.72"
-                    Text="활성 창의 프로세스명이 정확히 Gersang일 때만 작동하며, 커서가 창 안에 있을 때만 다시 가둡니다."
-                    TextWrapping="WrapWholeWords" />
                 <StackPanel
                     x:Name="Panel_ClipMouseAdminWarning"
                     Orientation="Horizontal"
                     Spacing="8"
                     Visibility="Collapsed">
                     <TextBlock
+                        VerticalAlignment="Top"
                         Foreground="#C42B1C"
                         Text="이 기능을 사용하려면 관리자 권한이 필요합니다."
                         TextWrapping="WrapWholeWords" />
                     <HyperlinkButton
-                        Click="HyperlinkButton_ClipMouseAdminHelp_Click"
-                        Content="Q&amp;A 보기"
                         Padding="0"
-                        VerticalAlignment="Center" />
+                        VerticalAlignment="Top"
+                        Click="HyperlinkButton_ClipMouseAdminHelp_Click"
+                        Content="도움말 보기" />
                 </StackPanel>
                 <Border
                     x:Name="Border_ClipMouseHotkeyPanel"
@@ -48,50 +58,48 @@
                     CornerRadius="12"
                     Visibility="Collapsed">
                     <StackPanel Spacing="12">
-                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="탈출 단축키" />
+                        <TextBlock FontWeight="SemiBold" Text="마우스 탈출 단축키 설정" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="WinUI Gallery 입력 예제처럼 설명과 선택 컨트롤을 함께 배치해 단축키를 설정합니다."
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Text="설정된 단축키(기본값 Alt)를 누르면 마우스 가두기가 일시적으로 해제됩니다."
                             TextWrapping="WrapWholeWords" />
                         <Grid ColumnSpacing="16" RowSpacing="10">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="140" />
-                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
                             <TextBlock
-                                Grid.Row="0"
                                 Grid.Column="0"
                                 VerticalAlignment="Center"
                                 Text="현재 단축키" />
                             <ComboBox
                                 x:Name="ComboBox_ClipMouseEscapeModifier"
-                                Grid.Row="0"
                                 Grid.Column="1"
                                 DisplayMemberPath="Label"
                                 SelectionChanged="ComboBox_ClipMouseEscapeModifier_SelectionChanged" />
-                            <TextBlock
-                                x:Name="TextBlock_ClipMouseEscapeModifierDescription"
-                                Grid.Row="1"
-                                Grid.Column="1"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                TextWrapping="WrapWholeWords" />
                         </Grid>
                     </StackPanel>
                 </Border>
+                <!--#endregion ClipMouse-->
+
                 <Border
                     Height="1"
                     Margin="0,6"
                     Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
+                <!--#region Developer Mode-->
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="개발자 모드" />
+                <TextBlock
+                    Opacity="0.72"
+                    Text="디버깅이나 테스트용 기능이 필요할 때만 개발자 모드를 켜세요."
+                    TextWrapping="WrapWholeWords" />
                 <ToggleSwitch
                     x:Name="ToggleSwitch_DeveloperTool"
-                    Header="개발자 도구"
                     OffContent="비활성화"
                     OnContent="활성화"
                     Toggled="ToggleSwitch_DeveloperTool_Toggled" />
+                <!--#endregion Developer Mode-->
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

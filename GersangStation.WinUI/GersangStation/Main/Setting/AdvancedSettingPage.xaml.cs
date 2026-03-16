@@ -11,9 +11,9 @@ public sealed partial class AdvancedSettingPage : Page
     private bool _isInitializing;
     private static readonly ClipMouseEscapeModifierOption[] ClipMouseEscapeModifierOptions =
     [
-        new(AppDataManager.ClipMouseHotkeyModifier.Alt, "Alt", "기본값입니다. Alt를 누르는 동안 거상 창 마우스 가두기가 잠시 해제됩니다."),
-        new(AppDataManager.ClipMouseHotkeyModifier.Control, "Ctrl", "Ctrl을 누르는 동안 거상 창 마우스 가두기가 잠시 해제됩니다."),
-        new(AppDataManager.ClipMouseHotkeyModifier.Shift, "Shift", "Shift를 누르는 동안 거상 창 마우스 가두기가 잠시 해제됩니다.")
+        new(AppDataManager.ClipMouseHotkeyModifier.Alt, "Alt", "기본값입니다. Alt를 누르는 동안 마우스를 가두지 않습니다."),
+        new(AppDataManager.ClipMouseHotkeyModifier.Control, "Ctrl", "Ctrl을 누르는 동안 마우스를 가두지 않습니다."),
+        new(AppDataManager.ClipMouseHotkeyModifier.Shift, "Shift", "Shift를 누르는 동안 마우스를 가두지 않습니다.")
     ];
 
     /// <summary>
@@ -53,8 +53,6 @@ public sealed partial class AdvancedSettingPage : Page
         if (ComboBox_ClipMouseEscapeModifier.SelectedItem is not ClipMouseEscapeModifierOption option)
             return;
 
-        TextBlock_ClipMouseEscapeModifierDescription.Text = option.Description;
-
         if (_isInitializing)
             return;
 
@@ -83,9 +81,6 @@ public sealed partial class AdvancedSettingPage : Page
         Panel_ClipMouseAdminWarning.Visibility = isAdmin ? Visibility.Collapsed : Visibility.Visible;
         Border_ClipMouseHotkeyPanel.Visibility = isClipMouseOn ? Visibility.Visible : Visibility.Collapsed;
         ComboBox_ClipMouseEscapeModifier.IsEnabled = isClipMouseOn && isAdmin;
-
-        if (ComboBox_ClipMouseEscapeModifier.SelectedItem is ClipMouseEscapeModifierOption option)
-            TextBlock_ClipMouseEscapeModifierDescription.Text = option.Description;
     }
 
     /// <summary>
