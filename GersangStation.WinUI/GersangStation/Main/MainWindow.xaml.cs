@@ -19,6 +19,7 @@ public sealed partial class MainWindow : Window
 {
     public WebViewManager? WebViewManager { get; private set; }
     public GameStarter GameStarter { get; } = new();
+    public ClipMouseService ClipMouseService { get; } = new(AppDataManager.IsMouseConfinementEnabled);
 
     private readonly DesktopShortcutService _desktopShortcutService = new();
     private bool _allowForceClose;
@@ -39,6 +40,7 @@ public sealed partial class MainWindow : Window
         Root.Loaded += OnRootLoaded;
         Closed += OnClosed;
         AppWindow.Closing += OnAppWindowClosing;
+        AppDataManager.MouseConfinementEnabledChanged += OnMouseConfinementEnabledChanged;
 
         // WebViewPage 초기화를 위해 강제로 Navigate 호출
         ContentFrame.Navigate(typeof(WebViewPage), this);
@@ -57,7 +59,17 @@ public sealed partial class MainWindow : Window
     {
         Activated -= OnActivated;
         Root.Loaded -= OnRootLoaded;
+        AppDataManager.MouseConfinementEnabledChanged -= OnMouseConfinementEnabledChanged;
+        ClipMouseService.Dispose();
         GameStarter.Dispose();
+    }
+
+    /// <summary>
+    /// 저장된 마우스 가두기 설정이 바뀌면 즉시 감시 상태에 반영합니다.
+    /// </summary>
+    private void OnMouseConfinementEnabledChanged(object? sender, bool isEnabled)
+    {
+        ClipMouseService.SetEnabled(isEnabled);
     }
 
     /// <summary>

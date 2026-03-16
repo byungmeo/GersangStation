@@ -15,8 +15,20 @@ public sealed partial class AdvancedSettingPage : Page
     {
         InitializeComponent();
         _isInitializing = true;
+        ToggleSwitch_MouseConfinement.IsOn = AppDataManager.IsMouseConfinementEnabled;
         ToggleSwitch_DeveloperTool.IsOn = AppDataManager.IsDeveloperToolEnabled;
         _isInitializing = false;
+    }
+
+    /// <summary>
+    /// 초기 바인딩이 끝난 뒤 사용자가 토글을 바꾸면 마우스 가두기 활성화 상태를 저장합니다.
+    /// </summary>
+    private void ToggleSwitch_MouseConfinement_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        AppDataManager.IsMouseConfinementEnabled = ToggleSwitch_MouseConfinement.IsOn;
     }
 
     /// <summary>

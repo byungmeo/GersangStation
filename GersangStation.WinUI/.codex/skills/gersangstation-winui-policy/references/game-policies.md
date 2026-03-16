@@ -15,3 +15,4 @@
 - If install, patch, or multi-client creation still fails with a permission-related exception after preflight, show the shared permission guidance dialog instead of only surfacing a generic failure message.
 - When probing whether an existing path is symbolic, check `CanUseSymbol` first; if the drive does not support symbolic links, treat the path as definitively non-symbolic and skip reparse-point probing.
 - When overwriting a destination file during multi-client creation, delete the destination first if it is a symbolic file and then copy the source file.
+- Constrain the cursor only while the foreground window belongs to a process named exactly `Gersang` and the cursor is already inside that window's client area; recompute bounds for whichever `Gersang` window is active, suspend the confinement while `Alt` is held, keep it released while the cursor remains outside the client area, and resume it only after the cursor re-enters.

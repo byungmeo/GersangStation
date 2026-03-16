@@ -14,6 +14,16 @@
             <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="고급 설정" />
             <TextBlock Opacity="0.72" Text="디버깅이나 테스트용 기능이 필요할 때만 개발자 도구를 켜세요." />
             <ToggleSwitch
+                x:Name="ToggleSwitch_MouseConfinement"
+                Header="거상 창 마우스 가두기"
+                OffContent="비활성화"
+                OnContent="활성화"
+                Toggled="ToggleSwitch_MouseConfinement_Toggled" />
+            <TextBlock
+                MaxWidth="420"
+                Opacity="0.72"
+                Text="활성 창의 프로세스명이 정확히 Gersang일 때만 마우스를 창 안에 가둡니다. Alt를 누르고 있는 동안은 잠시 해제됩니다." />
+            <ToggleSwitch
                 x:Name="ToggleSwitch_DeveloperTool"
                 Header="개발자 도구"
                 OffContent="비활성화"

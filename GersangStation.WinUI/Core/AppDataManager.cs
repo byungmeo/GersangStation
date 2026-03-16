@@ -63,6 +63,7 @@ public static class AppDataManager
     private const string SetupCompleted_SettingKey = "SetupCompleted";
     private const string UseSymbol_SettingKey = "useSymbol";
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
+    private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
     private const string SelectedPreset_SettingKey = "SelectedPreset";
     private const string SelectedServer_SettingKey = "SelectedServer";
     private const string EventUrgencyThresholdDays_SettingKey = "EventUrgencyThresholdDays";
@@ -94,6 +95,18 @@ public static class AppDataManager
                 DeveloperToolEnabledChanged?.Invoke(null, value);
         }
     }
+    public static bool IsMouseConfinementEnabled
+    {
+        get => LoadLocalSetting(MouseConfinementEnabled_SettingKey, defaultValue: false);
+        set
+        {
+            bool previous = IsMouseConfinementEnabled;
+            SaveLocalSetting(MouseConfinementEnabled_SettingKey, value);
+
+            if (previous != value)
+                MouseConfinementEnabledChanged?.Invoke(null, value);
+        }
+    }
     public static int SelectedPreset
     {
         get => LoadLocalSetting(SelectedPreset_SettingKey, defaultValue: 0);
@@ -112,6 +125,7 @@ public static class AppDataManager
     #endregion
 
     public static event EventHandler<bool>? DeveloperToolEnabledChanged;
+    public static event EventHandler<bool>? MouseConfinementEnabledChanged;
 
     private static AppDataOperationResult Ok(string operation, string target = "")
         => AppDataOperationResult.Ok(operation, target);
