@@ -24,6 +24,14 @@
 		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
 		<Configurations>Debug;Release;Dev</Configurations>
 	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)' == 'Dev'">
+		<!-- Dev 구성에서도 Visual Studio가 Debug와 동일한 Hot Reload/XAML 진단 정보를 사용할 수 있게 맞춥니다. -->
+		<DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+		<Optimize>false</Optimize>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>portable</DebugType>
+		<DisableXbfLineInfo>false</DisableXbfLineInfo>
+	</PropertyGroup>
 	<ItemGroup>
 		<None Remove="Assets\Icons\SplashScreen.scale-100.png" />
 		<None Remove="Assets\Icons\SplashScreen.scale-125.png" />
