@@ -17,8 +17,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
-using Windows.Services.Store;
-using WinRT.Interop;
 
 namespace GersangStation.Main;
 
@@ -91,8 +89,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private bool _isInitializing = true;
     private GameStarter? _gameStarter;
     private readonly ClientLaunchAvailability[] _clientLaunchAvailability = new ClientLaunchAvailability[3];
-    private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
-    private StoreContext? _storeContext;
     private IReadOnlyList<StationAccountSelectionOption> _accountSelectionOptions = StationAccountSelectionOption.Create(accounts: null);
 
     private IList<Account> _accounts = [];
@@ -286,13 +282,22 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         base.OnNavigatedTo(e);
 
         if (App.CurrentWindow is MainWindow window)
+        {
             AttachGameStarter(window.GameStarter);
+            window.StoreUpdateStateChanged += MainWindow_StoreUpdateStateChanged;
+            SyncStoreUpdateState(window);
+        }
+        else
+        {
+            CurrentAppVersionText = CreateCurrentVersionText();
+            StoreUpdateButtonVisibility = Visibility.Collapsed;
+            StoreUpdateButtonEnabled = false;
+        }
 
         RefreshStateFromStorage();
         RefreshClientAvailabilityState();
         Bindings.Update();
         await UpdateServer();
-        await LoadStoreVersionInfoAsync();
         await Task.WhenAll(
             LoadEventsAsync(),
             LoadHomepageNoticesAsync(),
@@ -309,6 +314,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         CancelHomepageNoticeLoad();
         CancelGersangStationNoticeLoad();
         DetachGameStarter();
+
+        if (App.CurrentWindow is MainWindow window)
+            window.StoreUpdateStateChanged -= MainWindow_StoreUpdateStateChanged;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -782,76 +790,47 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 현재 패키지 버전과 Store 업데이트 가능 여부를 읽어 표시합니다.
+    /// 현재 패키지 버전 문자열을 생성합니다.
     /// </summary>
-    private async Task LoadStoreVersionInfoAsync()
+    private static string CreateCurrentVersionText()
     {
-        PackageVersion currentVersion = Package.Current.Id.Version;
-        string currentVersionText = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
+        PackageVersion version = Package.Current.Id.Version;
+        return $"현재 버전: v{version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+    }
 
-        CurrentAppVersionText = $"현재 버전: v{currentVersionText}";
+    /// <summary>
+    /// MainWindow의 Store 업데이트 상태가 바뀌면 버튼 표시를 갱신합니다.
+    /// </summary>
+    private void MainWindow_StoreUpdateStateChanged(object? sender, EventArgs e)
+    {
+        if (sender is MainWindow window)
+            SyncStoreUpdateState(window);
+    }
+
+    /// <summary>
+    /// MainWindow가 관리하는 Store 업데이트 상태를 StationPage 표시 속성에 반영합니다.
+    /// </summary>
+    private void SyncStoreUpdateState(MainWindow window)
+    {
+        CurrentAppVersionText = window.CurrentAppVersionText;
+        StoreUpdateButtonVisibility = window.HasAvailableStoreUpdate ? Visibility.Visible : Visibility.Collapsed;
+        StoreUpdateButtonEnabled = window.StoreUpdateButtonEnabled;
         OnPropertyChanged(nameof(CurrentAppVersionText));
-
-        try
-        {
-            _storeContext ??= CreateStoreContext();
-            IReadOnlyList<StorePackageUpdate> updates = await _storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
-            _availableStoreUpdates = updates;
-
-            if (updates.Count > 0)
-                StoreUpdateButtonVisibility = Visibility.Visible;
-            else
-                StoreUpdateButtonVisibility = Visibility.Collapsed;
-        }
-        catch (Exception ex)
-        {
-            _availableStoreUpdates = [];
-            StoreUpdateButtonVisibility = Visibility.Collapsed;
-            Debug.WriteLine($"[StationPage] Store 업데이트 가능 여부 확인 실패: {ex}");
-        }
-
-        StoreUpdateButtonEnabled = true;
         OnPropertyChanged(nameof(StoreUpdateButtonVisibility));
         OnPropertyChanged(nameof(StoreUpdateButtonEnabled));
     }
 
     /// <summary>
-    /// 현재 창 핸들에 연결된 StoreContext를 생성합니다.
-    /// </summary>
-    private static StoreContext CreateStoreContext()
-    {
-        StoreContext context = StoreContext.GetDefault();
-        if (App.CurrentWindow is not null)
-            InitializeWithWindow.Initialize(context, WindowNative.GetWindowHandle(App.CurrentWindow));
-
-        return context;
-    }
-
-    /// <summary>
-    /// 사용자가 직접 Store 업데이트를 시작할 수 있게 요청합니다.
+    /// 사용자가 직접 MainWindow의 Store 업데이트 설치 대화 상자를 엽니다.
     /// </summary>
     private async void Button_UpdateFromStore_Click(object sender, RoutedEventArgs e)
     {
-        if (_availableStoreUpdates.Count == 0)
+        if (App.CurrentWindow is not MainWindow window)
             return;
 
-        try
-        {
-            StoreUpdateButtonEnabled = false;
-            OnPropertyChanged(nameof(StoreUpdateButtonEnabled));
-
-            _storeContext ??= CreateStoreContext();
-            await _storeContext.RequestDownloadAndInstallStorePackageUpdatesAsync(_availableStoreUpdates).AsTask();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[StationPage] Store 업데이트 요청 실패: {ex}");
-        }
-        finally
-        {
-            StoreUpdateButtonEnabled = true;
-            OnPropertyChanged(nameof(StoreUpdateButtonEnabled));
-        }
+        SyncStoreUpdateState(window);
+        await window.ShowStoreUpdateDialogAsync();
+        SyncStoreUpdateState(window);
     }
 
     /// <summary>
