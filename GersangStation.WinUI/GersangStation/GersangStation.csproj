@@ -207,13 +207,12 @@
 
 	<!-- Publish Properties -->
 	<PropertyGroup>
-		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-		<PublishReadyToRun Condition="'$(Configuration)'=='Dev'">False</PublishReadyToRun>
-		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-		<PublishTrimmed Condition="'$(Configuration)'=='Dev'">False</PublishTrimmed>
-		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">False</PublishTrimmed>
-		<PackageCertificateThumbprint>BAA9B7960D2A6F77AA1DFA5A192D2A3F21B37F80</PackageCertificateThumbprint>
+		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Dev'">False</PublishReadyToRun>
+		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Dev'">True</PublishReadyToRun>
+		<PublishTrimmed Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Dev'">False</PublishTrimmed>
+		<PublishTrimmed Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Dev'">False</PublishTrimmed>
+		<PackageCertificateThumbprint Condition="'$(Configuration)' != 'Dev'">BAA9B7960D2A6F77AA1DFA5A192D2A3F21B37F80</PackageCertificateThumbprint>
+		<PackageCertificateThumbprint Condition="'$(Configuration)' == 'Dev'">1DD617E6DBF90725E342D08A2989BF21CE253DD3</PackageCertificateThumbprint>
 		<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
 	</PropertyGroup>
 </Project>
