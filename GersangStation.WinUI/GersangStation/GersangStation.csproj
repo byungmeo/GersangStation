@@ -22,6 +22,7 @@
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<!-- DeploymentManager는 앱 코드에서 명시적으로 초기화해 Main/Singleton 패키지 실패를 제어합니다. -->
 		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+		<Configurations>Debug;Release;Dev</Configurations>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Remove="Assets\Icons\SplashScreen.scale-100.png" />
@@ -86,6 +87,15 @@
 		<None Remove="Main\MainWindow.xaml" />
 		<None Remove="Main\StationPage.xaml" />
 		<None Remove="Main\WebViewPage.xaml" />
+		<None Remove="Package.appxmanifest" />
+		<None Remove="Package.dev.appxmanifest" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)' == 'Dev'">
+		<AppxManifest Include="Package.dev.appxmanifest" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' != 'Dev'">
+		<AppxManifest Include="Package.appxmanifest" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -113,49 +123,49 @@
 		<ProjectReference Include="..\Core\Core.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\ProgramInfoPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\ProgramInfoPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\GameInstallSettingPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\GameInstallSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\DeveloperToolPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\DeveloperToolPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\AdvancedSettingPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\AdvancedSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\NotificationSettingPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\NotificationSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\ServerInstallPathSettingPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\ServerInstallPathSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\GamePatchSettingPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\GamePatchSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\InstallPathSettingPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\InstallPathSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Main\Setting\AccountSettingPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Main\Setting\AccountSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
 		<Page Update="Main\Setting\SettingPage.xaml">
@@ -178,12 +188,12 @@
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Page Update="Controls\ValidatedTextBox.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </Page>
+		<Page Update="Controls\ValidatedTextBox.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="AppPackages\" />
+		<Folder Include="AppPackages\" />
 	</ItemGroup>
 
 	<!--
@@ -198,8 +208,10 @@
 	<!-- Publish Properties -->
 	<PropertyGroup>
 		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+		<PublishReadyToRun Condition="'$(Configuration)'=='Dev'">False</PublishReadyToRun>
 		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
 		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+		<PublishTrimmed Condition="'$(Configuration)'=='Dev'">False</PublishTrimmed>
 		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">False</PublishTrimmed>
 		<PackageCertificateThumbprint>BAA9B7960D2A6F77AA1DFA5A192D2A3F21B37F80</PackageCertificateThumbprint>
 		<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
