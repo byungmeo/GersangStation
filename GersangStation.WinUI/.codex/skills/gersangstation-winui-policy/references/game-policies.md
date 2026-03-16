@@ -12,6 +12,6 @@
 - Skip top-level `PatchTemp` and `GersangDown` directories entirely during multi-client creation; do not copy or symbolic-link them into clones.
 - Choose the multi-client layout policy from the current client version only; do not fetch the latest server version just to decide the local layout rule.
 - Before starting install, patch, or multi-client creation, probe write access on the current or planned target path; if the probe fails due to permission, show the shared permission-warning dialog with the wiki help link before letting the user continue anyway.
-- If multi-client creation still fails with a permission-related exception after preflight, show the shared permission guidance dialog instead of only surfacing the generic copy-failure text.
+- If install, patch, or multi-client creation still fails with a permission-related exception after preflight, show the shared permission guidance dialog instead of only surfacing a generic failure message.
 - When probing whether an existing path is symbolic, check `CanUseSymbol` first; if the drive does not support symbolic links, treat the path as definitively non-symbolic and skip reparse-point probing.
 - When overwriting a destination file during multi-client creation, delete the destination first if it is a symbolic file and then copy the source file.

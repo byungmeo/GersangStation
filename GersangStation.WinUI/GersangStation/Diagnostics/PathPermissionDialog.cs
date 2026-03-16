@@ -28,25 +28,17 @@ public static class PathPermissionDialog
         if (xamlRoot is null)
             return false;
 
-        ContentDialog dialog = new()
-        {
-            XamlRoot = xamlRoot,
-            Title = "권한 확인 필요",
-            Content =
-                "현재 게임 설치 또는 설치 예정 경로에 대한 권한이 부족합니다.\n" +
-                "\"해결 방법 확인하기\" 버튼을 누르면 이 문제에 대한 해결 방법을 확인하실 수 있습니다.\n" +
-                "그래도 계속 하시겠습니까?",
-            PrimaryButtonText = "해결 방법 확인하기",
-            SecondaryButtonText = "네, 계속 하겠습니다.",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Primary
-        };
+        ContentDialog dialog = CreateDialog(
+            xamlRoot,
+            "현재 게임 설치 또는 설치 예정 경로에 대한 권한이 부족합니다.\n" +
+            "\"해결 방법 확인하기\" 버튼을 누르면 이 문제에 대한 해결 방법을 확인하실 수 있습니다.\n" +
+            "그래도 계속 하시겠습니까?",
+            allowContinue: true);
 
         ContentDialogResult result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary)
         {
-            if (App.CurrentWindow is Main.MainWindow window)
-                window.NavigateToWebViewPage(PermissionHelpUrl);
+            NavigateToPermissionHelp();
 
             return false;
         }
@@ -86,21 +78,10 @@ public static class PathPermissionDialog
         if (!string.IsNullOrWhiteSpace(targetPath))
             content += $"\n\n확인할 경로: {targetPath}";
 
-        ContentDialog dialog = new()
-        {
-            XamlRoot = xamlRoot,
-            Title = "권한 확인 필요",
-            Content = content,
-            PrimaryButtonText = "해결 방법 확인하기",
-            CloseButtonText = "확인",
-            DefaultButton = ContentDialogButton.Primary
-        };
+        ContentDialog dialog = CreateDialog(xamlRoot, content, allowContinue: false);
 
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-        {
-            if (App.CurrentWindow is Main.MainWindow window)
-                window.NavigateToWebViewPage(PermissionHelpUrl);
-        }
+            NavigateToPermissionHelp();
 
         return true;
     }
@@ -131,8 +112,50 @@ public static class PathPermissionDialog
                 if (!string.IsNullOrWhiteSpace(multiClientException.SourcePath))
                     return multiClientException.SourcePath;
             }
+
+            if (current is GameInstallManager.GameInstallOperationException gameInstallException)
+            {
+                if (!string.IsNullOrWhiteSpace(gameInstallException.InstallPath))
+                    return gameInstallException.InstallPath;
+
+                if (!string.IsNullOrWhiteSpace(gameInstallException.ArchivePath))
+                    return gameInstallException.ArchivePath;
+            }
+
+            if (current is PatchManager.PatchOperationException patchOperationException)
+            {
+                if (!string.IsNullOrWhiteSpace(patchOperationException.TargetPath))
+                    return patchOperationException.TargetPath;
+            }
+
+            if (current is ExtractorWorkerException extractorWorkerException)
+            {
+                if (!string.IsNullOrWhiteSpace(extractorWorkerException.DestinationPath))
+                    return extractorWorkerException.DestinationPath;
+
+                if (!string.IsNullOrWhiteSpace(extractorWorkerException.ArchivePath))
+                    return extractorWorkerException.ArchivePath;
+            }
         }
 
         return null;
+    }
+
+    private static ContentDialog CreateDialog(XamlRoot xamlRoot, string content, bool allowContinue)
+        => new()
+        {
+            XamlRoot = xamlRoot,
+            Title = "권한 확인 필요",
+            Content = content,
+            PrimaryButtonText = "해결 방법 확인하기",
+            SecondaryButtonText = allowContinue ? "네, 계속 하겠습니다." : string.Empty,
+            CloseButtonText = allowContinue ? "취소" : "확인",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+    private static void NavigateToPermissionHelp()
+    {
+        if (App.CurrentWindow is Main.MainWindow window)
+            window.NavigateToWebViewPage(PermissionHelpUrl);
     }
 }

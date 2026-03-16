@@ -427,6 +427,12 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         }
         catch (Exception ex)
         {
+            if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, ex, "게임 설치"))
+            {
+                ProgressText = "설치에 실패했습니다.\n권한 문제 해결 방법을 확인해 주세요.";
+                return;
+            }
+
             ProgressText = $"설치에 실패했습니다.\n{ex.Message}";
         }
         finally

@@ -639,6 +639,12 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         }
         catch (Exception ex)
         {
+            if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, ex, "게임 패치"))
+            {
+                ProgressText = "패치에 실패했습니다.\n권한 문제 해결 방법을 확인해 주세요.";
+                return;
+            }
+
             ProgressText = $"패치에 실패했습니다.\n{ex.Message}";
         }
         finally
