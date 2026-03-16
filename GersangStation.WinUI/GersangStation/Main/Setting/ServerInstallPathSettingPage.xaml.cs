@@ -297,26 +297,34 @@ namespace GersangStation.Main.Setting
             if (!await EnsureMultiClientWritePermissionAsync())
                 return;
 
-            bool success = GameClientHelper.CreateSymbolMultiClient(new CreateSymbolMultiClientArgs
+            CreateSymbolMultiClientResult createResult = GameClientHelper.TryCreateSymbolMultiClient(new CreateSymbolMultiClientArgs
             {
                 InstallPath = TextBox_Path1.Text,
                 DestPath2 = ClientSettings.UseClient2 ? ClientSettings.Client2Path : string.Empty,
                 DestPath3 = ClientSettings.UseClient3 ? ClientSettings.Client3Path : string.Empty,
                 OverwriteConfig = ClientSettings.OverwriteMultiClientConfig,
                 LayoutPolicy = layoutPolicy
-            }, out string reason);
+            });
 
-            if (success) 
+            if (createResult.Success)
             {
                 TeachingTip_General.Title = "다클라 생성 성공";
                 TeachingTip_General.Subtitle = "";
-
             }
             else
             {
+                if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(
+                    XamlRoot,
+                    createResult.Exception,
+                    "다클라 생성"))
+                {
+                    return;
+                }
+
                 TeachingTip_General.Title = "다클라 생성 실패";
-                TeachingTip_General.Subtitle = reason;
+                TeachingTip_General.Subtitle = createResult.Reason;
             }
+
             TeachingTip_General.IsOpen = true;
         }
 

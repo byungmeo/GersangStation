@@ -86,6 +86,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     private readonly record struct ClientLaunchAvailability(ClientLaunchStatus Status, string? Detail = null);
+    private readonly record struct MultiClientCreationAttemptResult(bool Success, string Reason, Exception? Exception = null);
 
     private bool _isInitializing = true;
     private GameStarter? _gameStarter;
@@ -494,10 +495,21 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (await dialog.ShowAsync() != ContentDialogResult.Primary)
             return;
 
-        (bool success, string reason) = await TryCreateMissingMultiClientAsync(server, clientIndex);
+        MultiClientCreationAttemptResult createResult = await TryCreateMissingMultiClientAsync(server, clientIndex);
+        if (!createResult.Success &&
+            await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(
+                XamlRoot,
+                createResult.Exception,
+                "다클라 생성"))
+        {
+            RefreshClientAvailabilityState();
+            await UpdateServer();
+            return;
+        }
+
         await ShowWarningDialogAsync(
-            success ? "다클라 생성 완료" : "다클라 생성 실패",
-            success ? $"{clientLabel} 생성을 완료했습니다." : reason);
+            createResult.Success ? "다클라 생성 완료" : "다클라 생성 실패",
+            createResult.Success ? $"{clientLabel} 생성을 완료했습니다." : createResult.Reason);
 
         RefreshClientAvailabilityState();
         await UpdateServer();
@@ -1095,19 +1107,19 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// <summary>
     /// 선택한 슬롯에서 다클라 생성이 필요할 때 설정상 활성화된 복제 클라이언트를 함께 생성합니다.
     /// </summary>
-    private async Task<(bool Success, string Reason)> TryCreateMissingMultiClientAsync(GameServer server, int clientIndex)
+    private async Task<MultiClientCreationAttemptResult> TryCreateMissingMultiClientAsync(GameServer server, int clientIndex)
     {
         if (clientIndex == 0)
-            return (false, "1클라는 메인 클라이언트이므로 별도 생성이 필요하지 않습니다.");
+            return new(false, "1클라는 메인 클라이언트이므로 별도 생성이 필요하지 않습니다.");
 
         ClientSettings settings = AppDataManager.LoadServerClientSettings(server);
         string installPath = settings.InstallPath?.Trim() ?? string.Empty;
         if (!GameClientHelper.IsValidInstallPath(server, installPath, out string reason))
-            return (false, $"메인 클라이언트 경로가 유효하지 않아 다클라를 만들 수 없습니다. {reason}");
+            return new(false, $"메인 클라이언트 경로가 유효하지 않아 다클라를 만들 수 없습니다. {reason}");
 
         ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(installPath);
         if (!currentVersionResult.Success || (currentVersionResult.Version ?? 0) <= 0)
-            return (false, BuildVersionCheckFailureDetail("메인 클라이언트", currentVersionResult));
+            return new(false, BuildVersionCheckFailureDetail("메인 클라이언트", currentVersionResult), currentVersionResult.Exception);
 
         int currentClientVersion = currentVersionResult.Version!.Value;
 
@@ -1119,14 +1131,14 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         bool shouldCreateClient2 = settings.UseMultiClient && settings.UseClient2;
         bool shouldCreateClient3 = settings.UseMultiClient && settings.UseClient3;
         if (!shouldCreateClient2 && !shouldCreateClient3)
-            return (false, "현재 서버 설정에서 다클라 사용이 비활성화되어 있습니다.");
+            return new(false, "현재 서버 설정에서 다클라 사용이 비활성화되어 있습니다.");
 
         if (shouldCreateClient2)
         {
             DirectoryWriteProbeResult client2ProbeResult =
                 PathWriteProbe.TryProbeDirectoryWriteAccess(settings.Client2Path);
             if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client2ProbeResult))
-                return (false, "2클라 경로 권한 확인 단계에서 작업을 중단했습니다.");
+                return new(false, "2클라 경로 권한 확인 단계에서 작업을 중단했습니다.", client2ProbeResult.Exception);
         }
 
         if (shouldCreateClient3)
@@ -1134,10 +1146,10 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DirectoryWriteProbeResult client3ProbeResult =
                 PathWriteProbe.TryProbeDirectoryWriteAccess(settings.Client3Path);
             if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client3ProbeResult))
-                return (false, "3클라 경로 권한 확인 단계에서 작업을 중단했습니다.");
+                return new(false, "3클라 경로 권한 확인 단계에서 작업을 중단했습니다.", client3ProbeResult.Exception);
         }
 
-        bool success = GameClientHelper.CreateSymbolMultiClient(
+        CreateSymbolMultiClientResult createResult = GameClientHelper.TryCreateSymbolMultiClient(
             new CreateSymbolMultiClientArgs
             {
                 InstallPath = installPath,
@@ -1145,14 +1157,13 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 DestPath3 = shouldCreateClient3 ? settings.Client3Path : string.Empty,
                 OverwriteConfig = settings.OverwriteMultiClientConfig,
                 LayoutPolicy = layoutPolicy
-            },
-            out reason);
+            });
 
-        if (!success)
-            return (false, reason);
+        if (!createResult.Success)
+            return new(false, createResult.Reason, createResult.Exception);
 
         AppDataManager.SaveServerClientSettings(server, settings);
-        return (true, string.Empty);
+        return new(true, string.Empty);
     }
 
     /// <summary>
