@@ -182,7 +182,9 @@ public sealed partial class MainWindow : Window
             }
         }
 
+#if !DEV
         await EnsureStartupStoreUpdateDialogAsync();
+#endif
     }
 
     /// <summary>
@@ -196,7 +198,9 @@ public sealed partial class MainWindow : Window
         if (_isFirstRunPromptPending && !_hasShownFirstRunPrompt)
             await ShowFirstRunPromptAsync();
 
+#if !DEV
         await EnsureStartupStoreUpdateDialogAsync();
+#endif
     }
 
     /// <summary>
