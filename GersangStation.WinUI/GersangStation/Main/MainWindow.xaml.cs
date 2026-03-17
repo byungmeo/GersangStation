@@ -36,7 +36,6 @@ public sealed partial class MainWindow : Window
     public ClipMouseService ClipMouseService { get; } = new(AppDataManager.IsMouseConfinementEnabled);
     public WindowSwitchService WindowSwitchService { get; }
 
-    private readonly DesktopShortcutService _desktopShortcutService = new();
     private readonly SystemTrayService _systemTrayService;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
@@ -180,7 +179,6 @@ public sealed partial class MainWindow : Window
         _hasShownFirstRunPrompt = true;
         _isFirstRunPromptPending = false;
 
-        await ShowDesktopShortcutPromptAsync();
         AppDataManager.IsSetupCompleted = true;
         await ShowInitialSettingPromptAsync();
     }
@@ -201,33 +199,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 최초 실행 시 바탕화면 바로가기 생성 여부를 묻고 필요하면 실제로 생성합니다.
-    /// </summary>
-    private async Task ShowDesktopShortcutPromptAsync()
-    {
-        if (Root.XamlRoot is null || _desktopShortcutService.DesktopShortcutExists())
-            return;
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = Root.XamlRoot,
-            Title = "바탕화면 바로가기 생성",
-            Content = "거상스테이션을 처음 실행하셨습니다. 바탕화면에 바로가기를 생성하시겠습니까?",
-            PrimaryButtonText = "생성",
-            CloseButtonText = "건너뛰기",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
-            return;
-
-        DesktopShortcutOperationResult createResult = _desktopShortcutService.CreateDesktopShortcut();
-        if (!createResult.Success)
-            await ShowDesktopShortcutCreationFailedDialogAsync(createResult);
-    }
-
-    /// <summary>
-    /// 최초 실행 시 필요한 바로가기 생성 및 초기 안내를 순서대로 표시합니다.
+    /// 최초 실행 시 필요한 초기 안내를 표시합니다.
     /// </summary>
     private async Task ShowInitialSettingPromptAsync()
     {
@@ -247,36 +219,6 @@ public sealed partial class MainWindow : Window
         ContentDialogResult result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary)
             NavigateToSettingPage();
-    }
-
-    /// <summary>
-    /// 바로가기 생성 실패를 사용자에게 설명하는 대화 상자를 표시합니다.
-    /// </summary>
-    private async Task ShowDesktopShortcutCreationFailedDialogAsync(DesktopShortcutOperationResult result)
-    {
-        if (Root.XamlRoot is null)
-            return;
-
-        string message = result.Exception switch
-        {
-            UnauthorizedAccessException =>
-                $"바탕화면 폴더에 쓸 권한이 없어 바로가기를 생성하지 못했습니다.{Environment.NewLine}경로: {result.ShortcutPath}",
-            DirectoryNotFoundException =>
-                $"바탕화면 폴더를 찾지 못해 바로가기를 생성하지 못했습니다.{Environment.NewLine}경로: {result.ShortcutPath}",
-            _ =>
-                $"바탕화면 바로가기를 생성하는 중 문제가 발생했습니다.{Environment.NewLine}경로: {result.ShortcutPath}"
-        };
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = Root.XamlRoot,
-            Title = "바탕화면 바로가기 생성 실패",
-            Content = message,
-            CloseButtonText = "확인",
-            DefaultButton = ContentDialogButton.Close
-        };
-
-        await dialog.ShowAsync();
     }
 
     /// <summary>
