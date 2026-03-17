@@ -156,15 +156,16 @@ namespace GersangStation
             4K UHD:         3840 × 2160
             8K UHD:         7680 × 4320 
             */
-            appWindow.Resize(new Windows.Graphics.SizeInt32(1600, 900));
+            // 5K 300% 환경 사용 유저 입장에서 1600 x 900으로 하면 아무것도 안 보일 정도로 작다
+            // appWindow.Resize(new Windows.Graphics.SizeInt32(1600, 900));
 
             appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
             if (appWindow.Presenter is OverlappedPresenter presenter)
             {
                 presenter.PreferredMinimumWidth = 1600;
                 presenter.PreferredMinimumHeight = 900;
-                // presenter.IsResizable = false;
-                presenter.IsMaximizable = false;
+                presenter.IsResizable = true;
+                presenter.IsMaximizable = true;
                 presenter.IsMinimizable = true;
             }
 
