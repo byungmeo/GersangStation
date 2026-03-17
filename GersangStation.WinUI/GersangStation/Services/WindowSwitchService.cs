@@ -9,15 +9,17 @@ using System.Threading;
 namespace GersangStation.Services;
 
 /// <summary>
-/// Polls the foreground window and Tab key to cycle launched game windows with a short TopMost pulse.
+/// Polls the foreground window and the fixed Alt+` hotkey to cycle launched game windows with a short TopMost pulse.
 /// </summary>
 public sealed partial class WindowSwitchService : IDisposable
 {
     private const int VkLButton = 0x01;
-    private const int VkTab = 0x09;
+    private const int VkOem3 = 0xC0;
     private const int VkShift = 0x10;
     private const int VkControl = 0x11;
     private const int VkMenu = 0x12;
+    private const int VkLMenu = 0xA4;
+    private const int VkRMenu = 0xA5;
     private const int VkLWin = 0x5B;
     private const int VkRWin = 0x5C;
     private const uint GaRootOwner = 3;
@@ -38,7 +40,7 @@ public sealed partial class WindowSwitchService : IDisposable
     private bool _isDisposed;
     private bool _isBrowsing;
     private bool _wasLeftButtonDown;
-    private bool _wasTabDown;
+    private bool _wasCycleKeyDown;
     private int _isPolling;
     private nint _lastForegroundWindow;
     private int? _currentClientIndex;
@@ -73,7 +75,7 @@ public sealed partial class WindowSwitchService : IDisposable
     }
 
     /// <summary>
-    /// Enables or disables Tab-based window cycling.
+    /// Enables or disables Alt+`-based window cycling.
     /// </summary>
     public void SetEnabled(bool isEnabled)
     {
@@ -129,7 +131,7 @@ public sealed partial class WindowSwitchService : IDisposable
     }
 
     /// <summary>
-    /// Polls the foreground window, active launched clients, and the Tab key state.
+    /// Polls the foreground window, active launched clients, and the Alt+` hotkey state.
     /// </summary>
     private void PollWindowSwitchState()
     {
@@ -150,19 +152,19 @@ public sealed partial class WindowSwitchService : IDisposable
             nint foregroundWindow = GetStableForegroundWindow();
             HandleForegroundWindowChange(foregroundWindow, activeClients);
 
-            bool isTabDown = IsKeyDown(VkTab);
+            bool isCycleKeyDown = IsKeyDown(VkOem3);
             bool isLeftButtonDown = IsKeyDown(VkLButton);
             bool shouldHandleHotkey;
             bool shouldHandleLeftClick;
             lock (_syncRoot)
             {
-                shouldHandleHotkey = isTabDown && !_wasTabDown;
-                _wasTabDown = isTabDown;
+                shouldHandleHotkey = isCycleKeyDown && !_wasCycleKeyDown && IsAnyAltDown();
+                _wasCycleKeyDown = isCycleKeyDown;
                 shouldHandleLeftClick = isLeftButtonDown && !_wasLeftButtonDown;
                 _wasLeftButtonDown = isLeftButtonDown;
             }
 
-            ArmBrowsingAfterTabRelease(isTabDown);
+            ArmBrowsingAfterCycleKeyRelease(isCycleKeyDown);
 
             if (TryResolveBrowsingFromLeftClick(
                     shouldHandleLeftClick,
@@ -172,7 +174,7 @@ public sealed partial class WindowSwitchService : IDisposable
                 return;
             }
 
-            if (!shouldHandleHotkey || HasModifierKeyPressed() || activeClients.Count < 2)
+            if (!shouldHandleHotkey || HasDisallowedModifierKeyPressed() || activeClients.Count < 2)
                 return;
 
             CycleToNextClient(activeClients, foregroundWindow);
@@ -209,7 +211,7 @@ public sealed partial class WindowSwitchService : IDisposable
         _currentClientIndex = null;
         SetBrowsingState_NoLock(isBrowsing: false, sourceWindowHandle: IntPtr.Zero, sourceClientIndex: null);
         _wasLeftButtonDown = false;
-        _wasTabDown = false;
+        _wasCycleKeyDown = false;
     }
 
     private void ResetTransientState()
@@ -219,7 +221,7 @@ public sealed partial class WindowSwitchService : IDisposable
             _lastForegroundWindow = IntPtr.Zero;
             SetBrowsingState_NoLock(isBrowsing: false, sourceWindowHandle: IntPtr.Zero, sourceClientIndex: null);
             _wasLeftButtonDown = false;
-            _wasTabDown = false;
+            _wasCycleKeyDown = false;
         }
     }
 
@@ -421,24 +423,29 @@ public sealed partial class WindowSwitchService : IDisposable
         return changed;
     }
 
-    private void ArmBrowsingAfterTabRelease(bool isTabDown)
+    /// <summary>
+    /// Waits until the ` key is released so the Alt+` navigation chord itself does not resolve browsing.
+    /// </summary>
+    private void ArmBrowsingAfterCycleKeyRelease(bool isCycleKeyDown)
     {
         lock (_syncRoot)
         {
-            if (!_isBrowsing || _isBrowsingArmed || isTabDown)
+            if (!_isBrowsing || _isBrowsingArmed || isCycleKeyDown)
                 return;
 
-            // Treat Tab key release as the end of navigation input, not as the deciding input.
+            // Treat the ` key release as the end of navigation input, not as the deciding input.
             _isBrowsingArmed = true;
         }
     }
 
-    private static bool HasModifierKeyPressed()
+    private static bool HasDisallowedModifierKeyPressed()
         => IsAnyKeyDown(VkShift, 0xA0, 0xA1)
            || IsAnyKeyDown(VkControl, 0xA2, 0xA3)
-           || IsAnyKeyDown(VkMenu, 0xA4, 0xA5)
            || IsKeyDown(VkLWin)
            || IsKeyDown(VkRWin);
+
+    private static bool IsAnyAltDown()
+        => IsAnyKeyDown(VkMenu, VkLMenu, VkRMenu);
 
     private static bool IsKeyDown(int virtualKey)
         => (GetAsyncKeyState(virtualKey) & 0x8000) != 0;

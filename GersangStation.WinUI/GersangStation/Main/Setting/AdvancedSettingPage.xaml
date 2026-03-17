@@ -58,27 +58,12 @@
                     CornerRadius="12"
                     Visibility="Collapsed">
                     <StackPanel Spacing="12">
-                        <TextBlock FontWeight="SemiBold" Text="마우스 탈출 단축키 설정" />
+                        <TextBlock FontWeight="SemiBold" Text="마우스 탈출 단축키" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{ThemeResource CaptionTextBlockStyle}"
-                            Text="설정된 단축키(기본값 Alt)를 누르면 마우스 가두기가 일시적으로 해제됩니다."
+                            Text="현재 단축키는 Alt 고정입니다. Alt를 누르는 동안 마우스 가두기가 일시적으로 해제됩니다."
                             TextWrapping="WrapWholeWords" />
-                        <Grid ColumnSpacing="16" RowSpacing="10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock
-                                Grid.Column="0"
-                                VerticalAlignment="Center"
-                                Text="현재 단축키" />
-                            <ComboBox
-                                x:Name="ComboBox_ClipMouseEscapeModifier"
-                                Grid.Column="1"
-                                DisplayMemberPath="Label"
-                                SelectionChanged="ComboBox_ClipMouseEscapeModifier_SelectionChanged" />
-                        </Grid>
                     </StackPanel>
                 </Border>
                 <!--#endregion ClipMouse-->
@@ -92,7 +77,7 @@
                 <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="창 전환" />
                 <TextBlock
                     Opacity="0.72"
-                    Text="게임을 2개 이상 실행한 상태에서 Tab 키를 누르면 1번, 2번, 3번 실행 버튼 순서대로 게임 창을 위로 순환시킵니다."
+                    Text="게임을 2개 이상 실행한 상태에서 Alt + `를 누르면 1번, 2번, 3번 실행 버튼 순서대로 게임 창을 위로 순환시킵니다."
                     TextWrapping="WrapWholeWords" />
                 <ToggleSwitch
                     x:Name="ToggleSwitch_WindowSwitching"
@@ -128,7 +113,7 @@
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{ThemeResource CaptionTextBlockStyle}"
-                            Text="현재 단축키는 Tab입니다. Tab으로 창을 탐색하는 동안 마우스 가두기는 잠시 해제되고, 좌클릭으로 창을 결정하면 탐색이 끝납니다."
+                            Text="현재 단축키는 Alt + ` 고정입니다. 창 탐색 중에는 마우스 가두기가 잠시 해제되고, 좌클릭으로 창을 결정하면 탐색이 끝납니다."
                             TextWrapping="WrapWholeWords" />
                     </StackPanel>
                 </Border>

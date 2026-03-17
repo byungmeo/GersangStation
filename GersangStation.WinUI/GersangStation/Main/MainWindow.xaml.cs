@@ -33,9 +33,7 @@ public sealed partial class MainWindow : Window
 
     public WebViewManager? WebViewManager { get; private set; }
     public GameStarter GameStarter { get; } = new();
-    public ClipMouseService ClipMouseService { get; } = new(
-        AppDataManager.IsMouseConfinementEnabled,
-        AppDataManager.ClipMouseEscapeModifier);
+    public ClipMouseService ClipMouseService { get; } = new(AppDataManager.IsMouseConfinementEnabled);
     public WindowSwitchService WindowSwitchService { get; }
 
     private readonly DesktopShortcutService _desktopShortcutService = new();
@@ -70,7 +68,6 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing += OnAppWindowClosing;
         AppDataManager.MouseConfinementEnabledChanged += OnMouseConfinementEnabledChanged;
         AppDataManager.WindowSwitchingEnabledChanged += OnWindowSwitchingEnabledChanged;
-        AppDataManager.ClipMouseEscapeModifierChanged += OnClipMouseEscapeModifierChanged;
         WindowSwitchService = new WindowSwitchService(GameStarter, AppDataManager.IsWindowSwitchingEnabled);
         WindowSwitchService.BrowsingStateChanged += OnWindowSwitchBrowsingStateChanged;
         _systemTrayService = new SystemTrayService(
@@ -100,7 +97,6 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing -= OnAppWindowClosing;
         AppDataManager.MouseConfinementEnabledChanged -= OnMouseConfinementEnabledChanged;
         AppDataManager.WindowSwitchingEnabledChanged -= OnWindowSwitchingEnabledChanged;
-        AppDataManager.ClipMouseEscapeModifierChanged -= OnClipMouseEscapeModifierChanged;
         WindowSwitchService.BrowsingStateChanged -= OnWindowSwitchBrowsingStateChanged;
         _systemTrayService.Dispose();
         WindowSwitchService.Dispose();
@@ -133,14 +129,6 @@ public sealed partial class MainWindow : Window
     private void OnWindowSwitchBrowsingStateChanged(object? sender, bool isBrowsing)
     {
         ClipMouseService.SetExternalSuspended(isBrowsing);
-    }
-
-    /// <summary>
-    /// 저장된 탈출 단축키 설정이 바뀌면 ClipMouseService에 즉시 반영합니다.
-    /// </summary>
-    private void OnClipMouseEscapeModifierChanged(object? sender, AppDataManager.ClipMouseHotkeyModifier escapeModifier)
-    {
-        ClipMouseService.SetEscapeModifier(escapeModifier);
     }
 
     /// <summary>

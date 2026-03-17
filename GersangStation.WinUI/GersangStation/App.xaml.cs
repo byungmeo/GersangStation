@@ -170,8 +170,8 @@ namespace GersangStation
 
             appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
             appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
-        }
-
+        }                           
+            
         /// <summary>
         /// 현재 메인 창을 복원하고 전면    에 표시합니다.
         /// </summary>      

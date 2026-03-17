@@ -8,13 +8,6 @@ namespace Core;
 
 public static class AppDataManager
 {
-    public enum ClipMouseHotkeyModifier
-    {
-        Alt = 0,
-        Control = 1,
-        Shift = 2
-    }
-
     public enum WindowMinimizeBehavior
     {
         HideToSystemTray = 0,
@@ -78,7 +71,6 @@ public static class AppDataManager
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
     private const string WindowSwitchingEnabled_SettingKey = "WindowSwitchingEnabled";
-    private const string ClipMouseEscapeModifier_SettingKey = "ClipMouseEscapeModifier";
     private const string WindowMinimizeBehavior_SettingKey = "WindowMinimizeBehavior";
     private const string SelectedPreset_SettingKey = "SelectedPreset";
     private const string SelectedServer_SettingKey = "SelectedServer";
@@ -135,27 +127,6 @@ public static class AppDataManager
                 WindowSwitchingEnabledChanged?.Invoke(null, value);
         }
     }
-    public static ClipMouseHotkeyModifier ClipMouseEscapeModifier
-    {
-        get
-        {
-            int storedValue = LoadLocalSetting(ClipMouseEscapeModifier_SettingKey, defaultValue: (int)ClipMouseHotkeyModifier.Alt);
-            return Enum.IsDefined(typeof(ClipMouseHotkeyModifier), storedValue)
-                ? (ClipMouseHotkeyModifier)storedValue
-                : ClipMouseHotkeyModifier.Alt;
-        }
-        set
-        {
-            ClipMouseHotkeyModifier sanitizedValue = Enum.IsDefined(typeof(ClipMouseHotkeyModifier), value)
-                ? value
-                : ClipMouseHotkeyModifier.Alt;
-            ClipMouseHotkeyModifier previous = ClipMouseEscapeModifier;
-            SaveLocalSetting(ClipMouseEscapeModifier_SettingKey, (int)sanitizedValue);
-
-            if (previous != sanitizedValue)
-                ClipMouseEscapeModifierChanged?.Invoke(null, sanitizedValue);
-        }
-    }
     public static WindowMinimizeBehavior MinimizeBehavior
     {
         get
@@ -199,7 +170,6 @@ public static class AppDataManager
     public static event EventHandler<bool>? DeveloperToolEnabledChanged;
     public static event EventHandler<bool>? MouseConfinementEnabledChanged;
     public static event EventHandler<bool>? WindowSwitchingEnabledChanged;
-    public static event EventHandler<ClipMouseHotkeyModifier>? ClipMouseEscapeModifierChanged;
     public static event EventHandler<WindowMinimizeBehavior>? MinimizeBehaviorChanged;
 
     private static AppDataOperationResult Ok(string operation, string target = "")

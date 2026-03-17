@@ -1,7 +1,6 @@
 using Core;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
-using System.Linq;
 
 namespace GersangStation.Main.Setting;
 
@@ -9,12 +8,6 @@ public sealed partial class AdvancedSettingPage : Page
 {
     private const string ClipMouseHelpUrl = "https://github.com/byungmeo/GersangStation/wiki/Q&A";
     private bool _isInitializing;
-    private static readonly ClipMouseEscapeModifierOption[] ClipMouseEscapeModifierOptions =
-    [
-        new(AppDataManager.ClipMouseHotkeyModifier.Alt, "Alt", "기본값입니다. Alt를 누르는 동안 마우스를 가두지 않습니다."),
-        new(AppDataManager.ClipMouseHotkeyModifier.Control, "Ctrl", "Ctrl을 누르는 동안 마우스를 가두지 않습니다."),
-        new(AppDataManager.ClipMouseHotkeyModifier.Shift, "Shift", "Shift를 누르는 동안 마우스를 가두지 않습니다.")
-    ];
 
     /// <summary>
     /// 저장된 개발자 도구 활성화 상태를 토글 초기값에 반영합니다.
@@ -23,13 +16,10 @@ public sealed partial class AdvancedSettingPage : Page
     {
         InitializeComponent();
         _isInitializing = true;
-        ComboBox_ClipMouseEscapeModifier.ItemsSource = ClipMouseEscapeModifierOptions;
         ToggleSwitch_MouseConfinement.IsOn = App.IsRunningAsAdministrator && AppDataManager.IsMouseConfinementEnabled;
         ToggleSwitch_MouseConfinement.IsEnabled = App.IsRunningAsAdministrator;
         ToggleSwitch_WindowSwitching.IsOn = App.IsRunningAsAdministrator && AppDataManager.IsWindowSwitchingEnabled;
         ToggleSwitch_WindowSwitching.IsEnabled = App.IsRunningAsAdministrator;
-        ComboBox_ClipMouseEscapeModifier.SelectedItem = ClipMouseEscapeModifierOptions
-            .First(option => option.Value == AppDataManager.ClipMouseEscapeModifier);
         ToggleSwitch_DeveloperTool.IsOn = AppDataManager.IsDeveloperToolEnabled;
         UpdateClipMouseUiState();
         UpdateWindowSwitchUiState();
@@ -61,20 +51,6 @@ public sealed partial class AdvancedSettingPage : Page
     }
 
     /// <summary>
-    /// 탈출 단축키를 바꾸면 저장값과 설명을 즉시 갱신합니다.
-    /// </summary>
-    private void ComboBox_ClipMouseEscapeModifier_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (ComboBox_ClipMouseEscapeModifier.SelectedItem is not ClipMouseEscapeModifierOption option)
-            return;
-
-        if (_isInitializing)
-            return;
-
-        AppDataManager.ClipMouseEscapeModifier = option.Value;
-    }
-
-    /// <summary>
     /// 초기 바인딩이 끝난 뒤 사용자가 토글을 바꾸면 개발자 도구 활성화 상태를 저장합니다.
     /// </summary>
     private void ToggleSwitch_DeveloperTool_Toggled(object sender, RoutedEventArgs e)
@@ -95,7 +71,6 @@ public sealed partial class AdvancedSettingPage : Page
 
         Panel_ClipMouseAdminWarning.Visibility = isAdmin ? Visibility.Collapsed : Visibility.Visible;
         Border_ClipMouseHotkeyPanel.Visibility = isClipMouseOn ? Visibility.Visible : Visibility.Collapsed;
-        ComboBox_ClipMouseEscapeModifier.IsEnabled = isClipMouseOn && isAdmin;
     }
 
     /// <summary>
@@ -118,9 +93,4 @@ public sealed partial class AdvancedSettingPage : Page
         if (App.CurrentWindow is MainWindow window)
             window.NavigateToWebViewPage(ClipMouseHelpUrl);
     }
-
-    private sealed record ClipMouseEscapeModifierOption(
-        AppDataManager.ClipMouseHotkeyModifier Value,
-        string Label,
-        string Description);
 }
