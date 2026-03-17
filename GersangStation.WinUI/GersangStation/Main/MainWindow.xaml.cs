@@ -37,6 +37,7 @@ public sealed partial class MainWindow : Window
     public WindowSwitchService WindowSwitchService { get; }
 
     private readonly SystemTrayService _systemTrayService;
+    private bool _hasHandledInitialNavigation;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
     private bool _isFirstRunPromptPending;
@@ -78,7 +79,6 @@ public sealed partial class MainWindow : Window
 
         // WebViewPage 초기화를 위해 강제로 Navigate 호출
         ContentFrame.Navigate(typeof(WebViewPage), this);
-        ContentFrame.Navigate(typeof(StationPage));
 
         _previousSelectedItem = MainSelectorBar.SelectedItem;
     }
@@ -141,14 +141,45 @@ public sealed partial class MainWindow : Window
         if (args.WindowActivationState == WindowActivationState.Deactivated)
             return;
 
+        string[] versionParts = AppDataManager.PrevVersion.Split('.');
+
+        PackageVersion prevVersion = versionParts.Length == 4
+        ? new PackageVersion(
+            ushort.Parse(versionParts[0]),
+            ushort.Parse(versionParts[1]),
+            ushort.Parse(versionParts[2]),
+            ushort.Parse(versionParts[3]))
+        : new PackageVersion(1, 0, 0, 0);
+
+        PackageVersion currentVersion = Package.Current.Id.Version;
+
         if (!_hasShownFirstRunPrompt && !_isFirstRunPromptPending && !AppDataManager.IsSetupCompleted)
         {
-            _isFirstRunPromptPending = true;
+            if (Root.XamlRoot is not null)
+            {
+                _isFirstRunPromptPending = true;
+                await ShowFirstRunPromptAsync();
 
-            if (Root.XamlRoot is null)
-                return;
+                // 최초 실행자에게 굳이 업데이트 노트를 보여주지는 않는다
+                AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
+                prevVersion = currentVersion;
+            }
+        }
 
-            await ShowFirstRunPromptAsync();
+        // 만약 업데이트 후 최초 실행이라면 릴리즈 노트를 보러 브라우저 페이지로 이동
+        if (!_hasHandledInitialNavigation)
+        {
+            _hasHandledInitialNavigation = true;
+
+            if (PackageVersionComparer.IsNewer(currentVersion, prevVersion))
+            {
+                AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
+                NavigateToWebViewPageByLinkKey("help.update.release-note");
+            }
+            else
+            {
+                ContentFrame.Navigate(typeof(StationPage));
+            }
         }
 
         await EnsureStartupStoreUpdateDialogAsync();
@@ -401,7 +432,7 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(linkKey))
             return;
 
-        WinUiLinkNavigationTarget target = App.LinkManager.ResolveNavigation(linkKey);
+        LinkNavigationTarget target = App.LinkManager.ResolveNavigation(linkKey);
         if (target.Uri is Uri uri)
         {
             NavigateToWebViewPage(uri.AbsoluteUri);

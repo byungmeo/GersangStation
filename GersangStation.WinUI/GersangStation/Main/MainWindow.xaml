@@ -37,7 +37,6 @@
                         <!--  메인 스테이션 바  -->
                         <SelectorBarItem
                             Icon="Home"
-                            IsSelected="True"
                             Text="메인" />
 
                         <!--  웹뷰 바  -->

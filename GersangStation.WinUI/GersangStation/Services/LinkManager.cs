@@ -80,12 +80,12 @@ public sealed class LinkManager
     /// <summary>
     /// 지정한 링크 key를 WebView 네비게이션 대상으로 해석합니다.
     /// </summary>
-    public WinUiLinkNavigationTarget ResolveNavigation(string key)
+    public LinkNavigationTarget ResolveNavigation(string key)
     {
         if (TryGetUrl(key, out string url))
-            return WinUiLinkNavigationTarget.ForUri(new Uri(url, UriKind.Absolute));
+            return LinkNavigationTarget.ForUri(new Uri(url, UriKind.Absolute));
 
-        return WinUiLinkNavigationTarget.ForHtml(BuildFallbackHtml(key));
+        return LinkNavigationTarget.ForHtml(BuildFallbackHtml(key));
     }
 
     /// <summary>
@@ -313,11 +313,11 @@ public sealed class LinkManager
 /// <summary>
 /// 링크 key 해석 결과를 WebView URI 또는 HTML 문서로 전달합니다.
 /// </summary>
-public sealed record WinUiLinkNavigationTarget(Uri? Uri, string? HtmlContent)
+public sealed record LinkNavigationTarget(Uri? Uri, string? HtmlContent)
 {
-    public static WinUiLinkNavigationTarget ForUri(Uri uri)
+    public static LinkNavigationTarget ForUri(Uri uri)
         => new(uri, null);
 
-    public static WinUiLinkNavigationTarget ForHtml(string htmlContent)
+    public static LinkNavigationTarget ForHtml(string htmlContent)
         => new(null, htmlContent);
 }

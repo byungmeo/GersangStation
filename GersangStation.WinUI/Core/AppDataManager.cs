@@ -67,6 +67,7 @@ public static class AppDataManager
     public readonly record struct AccountCredential(string UserName, string Password);
 
     private const string SetupCompleted_SettingKey = "SetupCompleted";
+    private const string LatestVersion_SettingKey = "PrevVersion";
     private const string UseSymbol_SettingKey = "useSymbol";
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
@@ -81,6 +82,11 @@ public static class AppDataManager
     private const string BrowserFavoritesFileName = "browser-favorites.json";
 
     #region LocalSettings Properties
+    public static string PrevVersion
+    {
+        get => LoadLocalSetting(LatestVersion_SettingKey, defaultValue: "1.0.0.0");
+        set => SaveLocalSetting(LatestVersion_SettingKey, value);
+    }
     public static bool IsSetupCompleted
     {
         get => LoadLocalSetting(SetupCompleted_SettingKey, defaultValue: false);
