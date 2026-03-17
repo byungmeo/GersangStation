@@ -24,6 +24,7 @@ public sealed partial class ClipMouseService : IDisposable
     private Timer? _monitorTimer;
     private bool _isEnabled;
     private bool _isDisposed;
+    private bool _isExternallySuspended;
     private bool _hasActiveClip;
     private nint _clippedWindowHandle;
     private NativeRect _clippedBounds;
@@ -72,6 +73,21 @@ public sealed partial class ClipMouseService : IDisposable
         {
             ObjectDisposedException.ThrowIf(_isDisposed, this);
             _escapeModifier = escapeModifier;
+        }
+    }
+
+    /// <summary>
+    /// Temporarily suspends cursor confinement while another feature is waiting for user window selection.
+    /// </summary>
+    public void SetExternalSuspended(bool isSuspended)
+    {
+        lock (_syncRoot)
+        {
+            ObjectDisposedException.ThrowIf(_isDisposed, this);
+            _isExternallySuspended = isSuspended;
+
+            if (isSuspended)
+                ReleaseCursorClipCore_NoLock();
         }
     }
 
@@ -138,7 +154,7 @@ public sealed partial class ClipMouseService : IDisposable
     {
         lock (_syncRoot)
         {
-            return _isEnabled && !_isDisposed;
+            return _isEnabled && !_isDisposed && !_isExternallySuspended;
         }
     }
 

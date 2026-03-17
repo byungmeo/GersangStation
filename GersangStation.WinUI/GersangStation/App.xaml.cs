@@ -173,28 +173,28 @@ namespace GersangStation
         }
 
         /// <summary>
-        /// 현재 메인 창을 복원하고 전면에 표시합니다.
-        /// </summary>
-        public static void BringCurrentWindowToForeground()
-        {
+        /// 현재 메인 창을 복원하고 전면    에 표시합니다.
+        /// </summary>      
+                public static void BringCurrentWindowToForeground()                 
+        {           
             if (CurrentWindow is null)
                 return;
-
+                    
             if (CurrentWindow is Main.MainWindow mainWindow)
-                mainWindow.EnsureWindowVisible();
+                mainWindow.EnsureWindowVisible();   
 
             if (CurrentWindow.AppWindow.Presenter is OverlappedPresenter presenter &&
                 presenter.State == OverlappedPresenterState.Minimized)
             {
                 presenter.Restore();
             }
-
+                    
             CurrentWindow.Activate();
         }
 
         private void CurrentWindow_Closed(object sender, WindowEventArgs args)
         {
-            if (ReferenceEquals(sender, CurrentWindow))
+            if (ReferenceEquals(sender, CurrentWindow))     
                 CurrentWindow = null;
         }
 

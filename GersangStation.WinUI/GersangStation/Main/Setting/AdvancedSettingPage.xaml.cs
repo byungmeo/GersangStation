@@ -26,10 +26,13 @@ public sealed partial class AdvancedSettingPage : Page
         ComboBox_ClipMouseEscapeModifier.ItemsSource = ClipMouseEscapeModifierOptions;
         ToggleSwitch_MouseConfinement.IsOn = App.IsRunningAsAdministrator && AppDataManager.IsMouseConfinementEnabled;
         ToggleSwitch_MouseConfinement.IsEnabled = App.IsRunningAsAdministrator;
+        ToggleSwitch_WindowSwitching.IsOn = App.IsRunningAsAdministrator && AppDataManager.IsWindowSwitchingEnabled;
+        ToggleSwitch_WindowSwitching.IsEnabled = App.IsRunningAsAdministrator;
         ComboBox_ClipMouseEscapeModifier.SelectedItem = ClipMouseEscapeModifierOptions
             .First(option => option.Value == AppDataManager.ClipMouseEscapeModifier);
         ToggleSwitch_DeveloperTool.IsOn = AppDataManager.IsDeveloperToolEnabled;
         UpdateClipMouseUiState();
+        UpdateWindowSwitchUiState();
         _isInitializing = false;
     }
 
@@ -43,6 +46,18 @@ public sealed partial class AdvancedSettingPage : Page
 
         AppDataManager.IsMouseConfinementEnabled = ToggleSwitch_MouseConfinement.IsOn;
         UpdateClipMouseUiState();
+    }
+
+    /// <summary>
+    /// 초기 바인딩이 끝난 뒤 사용자가 토글을 바꾸면 창 전환 활성화 상태를 저장합니다.
+    /// </summary>
+    private void ToggleSwitch_WindowSwitching_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        AppDataManager.IsWindowSwitchingEnabled = ToggleSwitch_WindowSwitching.IsOn;
+        UpdateWindowSwitchUiState();
     }
 
     /// <summary>
@@ -81,6 +96,18 @@ public sealed partial class AdvancedSettingPage : Page
         Panel_ClipMouseAdminWarning.Visibility = isAdmin ? Visibility.Collapsed : Visibility.Visible;
         Border_ClipMouseHotkeyPanel.Visibility = isClipMouseOn ? Visibility.Visible : Visibility.Collapsed;
         ComboBox_ClipMouseEscapeModifier.IsEnabled = isClipMouseOn && isAdmin;
+    }
+
+    /// <summary>
+    /// 관리자 권한 여부와 토글 상태에 따라 창 전환 안내 패널 및 경고 표시를 갱신합니다.
+    /// </summary>
+    private void UpdateWindowSwitchUiState()
+    {
+        bool isAdmin = App.IsRunningAsAdministrator;
+        bool isWindowSwitchOn = ToggleSwitch_WindowSwitching.IsOn;
+
+        Panel_WindowSwitchAdminWarning.Visibility = isAdmin ? Visibility.Collapsed : Visibility.Visible;
+        Border_WindowSwitchHotkeyPanel.Visibility = isWindowSwitchOn ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>

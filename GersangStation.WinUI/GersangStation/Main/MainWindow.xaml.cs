@@ -36,6 +36,7 @@ public sealed partial class MainWindow : Window
     public ClipMouseService ClipMouseService { get; } = new(
         AppDataManager.IsMouseConfinementEnabled,
         AppDataManager.ClipMouseEscapeModifier);
+    public WindowSwitchService WindowSwitchService { get; }
 
     private readonly DesktopShortcutService _desktopShortcutService = new();
     private readonly SystemTrayService _systemTrayService;
@@ -68,7 +69,10 @@ public sealed partial class MainWindow : Window
         Closed += OnClosed;
         AppWindow.Closing += OnAppWindowClosing;
         AppDataManager.MouseConfinementEnabledChanged += OnMouseConfinementEnabledChanged;
+        AppDataManager.WindowSwitchingEnabledChanged += OnWindowSwitchingEnabledChanged;
         AppDataManager.ClipMouseEscapeModifierChanged += OnClipMouseEscapeModifierChanged;
+        WindowSwitchService = new WindowSwitchService(GameStarter, AppDataManager.IsWindowSwitchingEnabled);
+        WindowSwitchService.BrowsingStateChanged += OnWindowSwitchBrowsingStateChanged;
         _systemTrayService = new SystemTrayService(
             this,
             () => AppDataManager.MinimizeBehavior == AppDataManager.WindowMinimizeBehavior.HideToSystemTray,
@@ -95,8 +99,11 @@ public sealed partial class MainWindow : Window
         Root.Loaded -= OnRootLoaded;
         AppWindow.Closing -= OnAppWindowClosing;
         AppDataManager.MouseConfinementEnabledChanged -= OnMouseConfinementEnabledChanged;
+        AppDataManager.WindowSwitchingEnabledChanged -= OnWindowSwitchingEnabledChanged;
         AppDataManager.ClipMouseEscapeModifierChanged -= OnClipMouseEscapeModifierChanged;
+        WindowSwitchService.BrowsingStateChanged -= OnWindowSwitchBrowsingStateChanged;
         _systemTrayService.Dispose();
+        WindowSwitchService.Dispose();
         ClipMouseService.Dispose();
         GameStarter.Dispose();
     }
@@ -107,6 +114,25 @@ public sealed partial class MainWindow : Window
     private void OnMouseConfinementEnabledChanged(object? sender, bool isEnabled)
     {
         ClipMouseService.SetEnabled(isEnabled);
+    }
+
+    /// <summary>
+    /// 저장된 창 전환 설정이 바뀌면 즉시 감시 상태에 반영합니다.
+    /// </summary>
+    private void OnWindowSwitchingEnabledChanged(object? sender, bool isEnabled)
+    {
+        WindowSwitchService.SetEnabled(isEnabled);
+
+        if (!isEnabled)
+            ClipMouseService.SetExternalSuspended(false);
+    }
+
+    /// <summary>
+    /// 창 탐색 중에는 마우스 가두기를 잠시 해제해 사용자가 창을 선택할 수 있게 합니다.
+    /// </summary>
+    private void OnWindowSwitchBrowsingStateChanged(object? sender, bool isBrowsing)
+    {
+        ClipMouseService.SetExternalSuspended(isBrowsing);
     }
 
     /// <summary>

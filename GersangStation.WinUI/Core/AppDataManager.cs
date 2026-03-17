@@ -77,6 +77,7 @@ public static class AppDataManager
     private const string UseSymbol_SettingKey = "useSymbol";
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
+    private const string WindowSwitchingEnabled_SettingKey = "WindowSwitchingEnabled";
     private const string ClipMouseEscapeModifier_SettingKey = "ClipMouseEscapeModifier";
     private const string WindowMinimizeBehavior_SettingKey = "WindowMinimizeBehavior";
     private const string SelectedPreset_SettingKey = "SelectedPreset";
@@ -120,6 +121,18 @@ public static class AppDataManager
 
             if (previous != value)
                 MouseConfinementEnabledChanged?.Invoke(null, value);
+        }
+    }
+    public static bool IsWindowSwitchingEnabled
+    {
+        get => LoadLocalSetting(WindowSwitchingEnabled_SettingKey, defaultValue: false);
+        set
+        {
+            bool previous = IsWindowSwitchingEnabled;
+            SaveLocalSetting(WindowSwitchingEnabled_SettingKey, value);
+
+            if (previous != value)
+                WindowSwitchingEnabledChanged?.Invoke(null, value);
         }
     }
     public static ClipMouseHotkeyModifier ClipMouseEscapeModifier
@@ -185,6 +198,7 @@ public static class AppDataManager
 
     public static event EventHandler<bool>? DeveloperToolEnabledChanged;
     public static event EventHandler<bool>? MouseConfinementEnabledChanged;
+    public static event EventHandler<bool>? WindowSwitchingEnabledChanged;
     public static event EventHandler<ClipMouseHotkeyModifier>? ClipMouseEscapeModifierChanged;
     public static event EventHandler<WindowMinimizeBehavior>? MinimizeBehaviorChanged;
 

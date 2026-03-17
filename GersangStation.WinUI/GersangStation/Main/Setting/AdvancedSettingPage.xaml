@@ -88,6 +88,57 @@
                     Margin="0,6"
                     Background="{ThemeResource CardStrokeColorDefaultBrush}" />
 
+                <!--#region WindowSwitch-->
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="창 전환" />
+                <TextBlock
+                    Opacity="0.72"
+                    Text="게임을 2개 이상 실행한 상태에서 Tab 키를 누르면 1번, 2번, 3번 실행 버튼 순서대로 게임 창을 위로 순환시킵니다."
+                    TextWrapping="WrapWholeWords" />
+                <ToggleSwitch
+                    x:Name="ToggleSwitch_WindowSwitching"
+                    OffContent="비활성화"
+                    OnContent="활성화"
+                    Toggled="ToggleSwitch_WindowSwitching_Toggled" />
+                <StackPanel
+                    x:Name="Panel_WindowSwitchAdminWarning"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        VerticalAlignment="Top"
+                        Foreground="#C42B1C"
+                        Text="이 기능을 사용하려면 관리자 권한이 필요합니다."
+                        TextWrapping="WrapWholeWords" />
+                    <HyperlinkButton
+                        Padding="0"
+                        VerticalAlignment="Top"
+                        Click="HyperlinkButton_ClipMouseAdminHelp_Click"
+                        Content="도움말 보기" />
+                </StackPanel>
+                <Border
+                    x:Name="Border_WindowSwitchHotkeyPanel"
+                    Padding="16"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Visibility="Collapsed">
+                    <StackPanel Spacing="12">
+                        <TextBlock FontWeight="SemiBold" Text="창 전환 단축키" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Text="현재 단축키는 Tab입니다. Tab으로 창을 탐색하는 동안 마우스 가두기는 잠시 해제되고, 좌클릭으로 창을 결정하면 탐색이 끝납니다."
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+                <!--#endregion WindowSwitch-->
+
+                <Border
+                    Height="1"
+                    Margin="0,6"
+                    Background="{ThemeResource CardStrokeColorDefaultBrush}" />
+
                 <!--#region Developer Mode-->
                 <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="개발자 모드" />
                 <TextBlock

@@ -17,3 +17,14 @@
 - When overwriting a destination file during multi-client creation, delete the destination first if it is a symbolic file and then copy the source file.
 - Constrain the cursor only while the foreground window belongs to a process named exactly `Gersang` and the cursor is already inside that window's client area; recompute bounds for whichever `Gersang` window is active, suspend the confinement while the selected escape modifier is held (default `Alt`), keep it released while the cursor remains outside the client area, and resume it only after the cursor re-enters.
 - Keep the clip-mouse feature fully disabled unless GersangStation itself is running with administrator privileges, even if the saved toggle is on.
+- Enable the first window-switch mode only when GersangStation runs with administrator privileges.
+- Implement window switching by polling input like clip-mouse instead of using `RegisterHotKey`.
+- The first window-switch mode uses only the standalone `Tab` key and cycles only among currently running launch-button slots.
+- Treat each `Tab` pulse as a short z-order raise only; do not leave a persistent `TopMost` state behind.
+- After each `Tab` pulse, enter a temporary "window browsing" state where the user decides which window to keep.
+- While window browsing is active, suspend clip-mouse so the user can freely choose a window.
+- While window browsing is active, reserve `Tab` only for additional cycling and ignore mouse movement or other non-selection input.
+- End window browsing only on the first left-click.
+- When the deciding left-click keeps the original pre-browsing window active, raise that original window to `TOP` once so it can stay naturally above the pulsed game window.
+- If the user directly activates one of the tracked game windows, reset the cycle origin to that game window so the next `Tab` continues from the newly activated slot.
+- Normalize foreground and recovery targets to stable top-level root-owner windows before comparing or raising them, so child controls such as editor panes do not become the tracked target by mistake.
