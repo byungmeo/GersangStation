@@ -180,6 +180,9 @@ namespace GersangStation
             if (CurrentWindow is null)
                 return;
 
+            if (CurrentWindow is Main.MainWindow mainWindow)
+                mainWindow.EnsureWindowVisible();
+
             if (CurrentWindow.AppWindow.Presenter is OverlappedPresenter presenter &&
                 presenter.State == OverlappedPresenterState.Minimized)
             {

@@ -1,6 +1,7 @@
 using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using WinRT.Interop;
@@ -83,28 +84,41 @@ public static class DispatcherQueueExtensions
 public static class WindowExtensions
 {
     private const int WM_NCLBUTTONDBLCLK = 0x00A3;
-    private const int GWLP_WNDPROC = -4;
-    private static SubclassDelegate? _newWndProc;
-    private static IntPtr _oldWndProc;
+    private const uint PreventMaximizeSubclassId = 0x47534443;
+    private static readonly Dictionary<nint, SubclassDelegate> SubclassDelegates = [];
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, SubclassDelegate newProc);
-    [DllImport("user32.dll")]
-    private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("comctl32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowSubclass(
+        nint hWnd,
+        SubclassDelegate pfnSubclass,
+        nuint uIdSubclass,
+        nint dwRefData);
+
+    [DllImport("comctl32.dll")]
+    private static extern nint DefSubclassProc(nint hWnd, uint uMsg, nint wParam, nint lParam);
 
     public static void PreventMaximizeOnTitleBarDoubleClick(this Window window)
     {
-        IntPtr _hwnd = WindowNative.GetWindowHandle(window);
-        _newWndProc = WndProc;
-        _oldWndProc = SetWindowLongPtr(_hwnd, GWLP_WNDPROC, _newWndProc);
+        nint windowHandle = WindowNative.GetWindowHandle(window);
+        if (SubclassDelegates.ContainsKey(windowHandle))
+            return;
+
+        SubclassDelegate subclassDelegate = PreventMaximizeSubclassProc;
+        if (!SetWindowSubclass(windowHandle, subclassDelegate, PreventMaximizeSubclassId, 0))
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+
+        SubclassDelegates[windowHandle] = subclassDelegate;
     }
 
-    private static IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+    private static nint PreventMaximizeSubclassProc(nint hWnd, uint msg, nint wParam, nint lParam, nuint uIdSubclass, nint dwRefData)
     {
         if (msg == WM_NCLBUTTONDBLCLK)
-            return IntPtr.Zero;
-        return CallWindowProc(_oldWndProc, hWnd, msg, wParam, lParam);
+            return nint.Zero;
+
+        return DefSubclassProc(hWnd, msg, wParam, lParam);
     }
 
-    private delegate IntPtr SubclassDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    private delegate nint SubclassDelegate(nint hWnd, uint msg, nint wParam, nint lParam, nuint uIdSubclass, nint dwRefData);
 }

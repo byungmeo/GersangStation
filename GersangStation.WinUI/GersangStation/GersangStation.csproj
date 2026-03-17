@@ -86,6 +86,7 @@
 		<None Remove="Controls\ValidatedTextBox.xaml" />
 		<None Remove="Main\Setting\AccountSettingPage.xaml" />
 		<None Remove="Main\Setting\AdvancedSettingPage.xaml" />
+		<None Remove="Main\Setting\AppearanceSettingPage.xaml" />
 		<None Remove="Main\Setting\DeveloperToolPage.xaml" />
 		<None Remove="Main\Setting\GameInstallSettingPage.xaml" />
 		<None Remove="Main\Setting\GamePatchSettingPage.xaml" />
@@ -129,6 +130,11 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Core\Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\AppearanceSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
 	</ItemGroup>
 	<ItemGroup>
 		<Page Update="Main\Setting\ProgramInfoPage.xaml">

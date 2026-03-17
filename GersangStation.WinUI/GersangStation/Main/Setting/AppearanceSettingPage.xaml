@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.AppearanceSettingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main.Setting"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DataContext="{d:DesignInstance Type=local:AppearanceSettingPage}"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Padding="24,24,24,40" Spacing="20">
+                <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="모양 설정" />
+
+                <Border
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="창 최소화 기본 동작" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="앱 타이틀바의 최소화 버튼을 눌렀을 때 기본적으로 어떻게 동작할지 선택합니다."
+                            TextWrapping="WrapWholeWords" />
+                        <RadioButtons SelectedIndex="{x:Bind MinimizeBehaviorIndex, Mode=TwoWay}">
+                            <x:String>시스템 트레이로 숨기기 (기본값)</x:String>
+                            <x:String>작업 표시줄에 일반 최소화</x:String>
+                        </RadioButtons>
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Text="트레이에 숨긴 뒤에는 트레이 아이콘을 더블 클릭해서 다시 열 수 있습니다."
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

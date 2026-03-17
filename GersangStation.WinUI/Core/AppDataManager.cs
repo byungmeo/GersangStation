@@ -15,6 +15,12 @@ public static class AppDataManager
         Shift = 2
     }
 
+    public enum WindowMinimizeBehavior
+    {
+        HideToSystemTray = 0,
+        MinimizeToTaskbar = 1
+    }
+
     /// <summary>
     /// 앱 데이터 작업 실패를 원인 범주별로 구분합니다.
     /// </summary>
@@ -72,6 +78,7 @@ public static class AppDataManager
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
     private const string ClipMouseEscapeModifier_SettingKey = "ClipMouseEscapeModifier";
+    private const string WindowMinimizeBehavior_SettingKey = "WindowMinimizeBehavior";
     private const string SelectedPreset_SettingKey = "SelectedPreset";
     private const string SelectedServer_SettingKey = "SelectedServer";
     private const string EventUrgencyThresholdDays_SettingKey = "EventUrgencyThresholdDays";
@@ -136,6 +143,29 @@ public static class AppDataManager
                 ClipMouseEscapeModifierChanged?.Invoke(null, sanitizedValue);
         }
     }
+    public static WindowMinimizeBehavior MinimizeBehavior
+    {
+        get
+        {
+            int storedValue = LoadLocalSetting(
+                WindowMinimizeBehavior_SettingKey,
+                defaultValue: (int)WindowMinimizeBehavior.HideToSystemTray);
+            return Enum.IsDefined(typeof(WindowMinimizeBehavior), storedValue)
+                ? (WindowMinimizeBehavior)storedValue
+                : WindowMinimizeBehavior.HideToSystemTray;
+        }
+        set
+        {
+            WindowMinimizeBehavior sanitizedValue = Enum.IsDefined(typeof(WindowMinimizeBehavior), value)
+                ? value
+                : WindowMinimizeBehavior.HideToSystemTray;
+            WindowMinimizeBehavior previous = MinimizeBehavior;
+            SaveLocalSetting(WindowMinimizeBehavior_SettingKey, (int)sanitizedValue);
+
+            if (previous != sanitizedValue)
+                MinimizeBehaviorChanged?.Invoke(null, sanitizedValue);
+        }
+    }
     public static int SelectedPreset
     {
         get => LoadLocalSetting(SelectedPreset_SettingKey, defaultValue: 0);
@@ -156,6 +186,7 @@ public static class AppDataManager
     public static event EventHandler<bool>? DeveloperToolEnabledChanged;
     public static event EventHandler<bool>? MouseConfinementEnabledChanged;
     public static event EventHandler<ClipMouseHotkeyModifier>? ClipMouseEscapeModifierChanged;
+    public static event EventHandler<WindowMinimizeBehavior>? MinimizeBehaviorChanged;
 
     private static AppDataOperationResult Ok(string operation, string target = "")
         => AppDataOperationResult.Ok(operation, target);

@@ -11,7 +11,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
+using Windows.Data.Xml.Dom;
 using Windows.Services.Store;
+using Windows.UI.Notifications;
 using WinRT.Interop;
 
 namespace GersangStation.Main;
@@ -36,6 +38,7 @@ public sealed partial class MainWindow : Window
         AppDataManager.ClipMouseEscapeModifier);
 
     private readonly DesktopShortcutService _desktopShortcutService = new();
+    private readonly SystemTrayService _systemTrayService;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
     private bool _isFirstRunPromptPending;
@@ -66,6 +69,12 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing += OnAppWindowClosing;
         AppDataManager.MouseConfinementEnabledChanged += OnMouseConfinementEnabledChanged;
         AppDataManager.ClipMouseEscapeModifierChanged += OnClipMouseEscapeModifierChanged;
+        _systemTrayService = new SystemTrayService(
+            this,
+            () => AppDataManager.MinimizeBehavior == AppDataManager.WindowMinimizeBehavior.HideToSystemTray,
+            ShowMinimizedToTrayNotification,
+            RestoreFromTray,
+            ExitFromTray);
 
         // WebViewPage 초기화를 위해 강제로 Navigate 호출
         ContentFrame.Navigate(typeof(WebViewPage), this);
@@ -84,8 +93,10 @@ public sealed partial class MainWindow : Window
     {
         Activated -= OnActivated;
         Root.Loaded -= OnRootLoaded;
+        AppWindow.Closing -= OnAppWindowClosing;
         AppDataManager.MouseConfinementEnabledChanged -= OnMouseConfinementEnabledChanged;
         AppDataManager.ClipMouseEscapeModifierChanged -= OnClipMouseEscapeModifierChanged;
+        _systemTrayService.Dispose();
         ClipMouseService.Dispose();
         GameStarter.Dispose();
     }
@@ -377,6 +388,14 @@ public sealed partial class MainWindow : Window
         MainSelectorBar.SelectedItem = SelectorBarItem_Setting;
         _suppressNavSelectionChanged = false;
         UpdateWebViewMemoryMode();
+    }
+
+    /// <summary>
+    /// 트레이에 숨겨진 창을 다시 표시하거나 일반 최소화 상태를 복원합니다.
+    /// </summary>
+    public void EnsureWindowVisible()
+    {
+        _systemTrayService.RestoreWindow();
     }
 
     /// <summary>
@@ -757,5 +776,45 @@ public sealed partial class MainWindow : Window
             "ErrorWiFiDownload" => "Wi-Fi 다운로드 대기 중",
             _ => state
         };
+    }
+
+    /// <summary>
+    /// 트레이 아이콘 더블 클릭 시 숨겨진 창을 복원하고 전면으로 가져옵니다.
+    /// </summary>
+    private void RestoreFromTray()
+    {
+        _systemTrayService.RestoreWindow();
+        App.BringCurrentWindowToForeground();
+    }
+
+    /// <summary>
+    /// 트레이 우클릭 메뉴의 종료 명령으로 앱을 즉시 종료합니다.
+    /// </summary>
+    private void ExitFromTray()
+    {
+        _allowForceClose = true;
+        Application.Current.Exit();
+    }
+
+    /// <summary>
+    /// 최소화 시 트레이로 이동했음을 Windows 알림으로 안내합니다.
+    /// </summary>
+    private static void ShowMinimizedToTrayNotification()
+    {
+        var toastXml = new XmlDocument();
+        toastXml.LoadXml(
+            """
+            <toast>
+              <visual>
+                <binding template="ToastGeneric">
+                  <text>시스템 트레이로 이동하였습니다.</text>
+                  <text>창 최소화 시 기본 동작은 설정 - 모양에서 변경하실 수 있습니다.</text>
+                </binding>
+              </visual>
+            </toast>
+            """);
+
+        ToastNotificationManager.CreateToastNotifier()
+            .Show(new ToastNotification(toastXml));
     }
 }

@@ -78,7 +78,9 @@
                     </StackPanel>
                 </NavigationViewItem.Content>
             </NavigationViewItem>
-            <NavigationViewItem IsEnabled="False" Tag="AppearanceSettingPage">
+            <NavigationViewItem
+                x:Name="NavigationViewItem_Appearance"
+                Tag="AppearanceSettingPage">
                 <NavigationViewItem.Content>
                     <StackPanel Orientation="Horizontal">
                         <Viewbox
