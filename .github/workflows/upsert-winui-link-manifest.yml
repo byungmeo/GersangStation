@@ -49,7 +49,13 @@ jobs:
           const fs = require('fs');
           const path = require('path');
 
-          const manifestPath = path.join(process.cwd(), 'metadata', 'winui-links-manifest.json');
+          const manifestPath = path.join(
+            process.cwd(),
+            'GersangStation.WinUI',
+            'metadata',
+            'winui-links-manifest.json'
+          );
+
           const key = (process.env.INPUT_KEY || '').trim();
           const url = (process.env.INPUT_URL || '').trim();
           const title = (process.env.INPUT_TITLE || '').trim();
@@ -75,7 +81,7 @@ jobs:
             fallback: {
               title: '링크를 불러오는데 실패하였습니다.',
               message: '요청한 링크 정보를 준비하지 못했습니다. 앱에 포함된 링크 매니페스트 또는 링크 키를 확인해 주세요.',
-              supportText: '문제가 계속되면 최신 앱 빌드와 metadata/winui-links-manifest.json 구성을 함께 점검해 주세요.'
+              supportText: '문제가 계속되면 최신 앱 빌드와 GersangStation.WinUI/metadata/winui-links-manifest.json 구성을 함께 점검해 주세요.'
             },
             links: {}
           };
@@ -110,13 +116,13 @@ jobs:
 
       - name: Commit and push changes
         run: |
-          if git diff --quiet -- metadata/winui-links-manifest.json; then
+          if git diff --quiet -- GersangStation.WinUI/metadata/winui-links-manifest.json; then
             echo "No manifest changes to commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add metadata/winui-links-manifest.json
+          git add GersangStation.WinUI/metadata/winui-links-manifest.json
           git commit -m "chore: upsert WinUI link manifest for ${{ github.event.inputs.key }}"
           git push
