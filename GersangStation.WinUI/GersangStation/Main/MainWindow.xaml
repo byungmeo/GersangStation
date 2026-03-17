@@ -10,70 +10,62 @@
     mc:Ignorable="d">
 
     <Grid x:Name="Root">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border
-            Grid.Row="0"
-            Grid.ColumnSpan="3"
-            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}" />
+        <TitleBar>
+            <TitleBar.LeftHeader>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-        <!--  TitleBar Left Header  -->
-        <ImageIcon
-            Width="30"
-            Height="30"
-            Margin="17,0,10,0"
-            Source="/Assets/Icons/Square44x44Logo.png" />
+                    <ImageIcon
+                        Grid.Column="0"
+                        Width="30"
+                        Height="30"
+                        Margin="17,0,10,0"
+                        Source="/Assets/Icons/Square44x44Logo.png" />
 
-        <!--  SelectorBar  -->
-        <SelectorBar
-            x:Name="MainSelectorBar"
-            Grid.Row="0"
-            Grid.Column="1"
-            SelectionChanged="MainSelectorBar_SelectionChanged">
+                    <SelectorBar
+                        x:Name="MainSelectorBar"
+                        Grid.Column="1"
+                        SelectionChanged="MainSelectorBar_SelectionChanged">
+                        <!--  메인 스테이션 바  -->
+                        <SelectorBarItem
+                            Icon="Home"
+                            IsSelected="True"
+                            Text="메인" />
 
-            <!--  메인 스테이션 바  -->
-            <SelectorBarItem
-                Icon="Home"
-                IsSelected="True"
-                Text="메인" />
+                        <!--  웹뷰 바  -->
+                        <SelectorBarItem
+                            x:Name="SelectorBarItem_Browser"
+                            Icon="World"
+                            Text="브라우저" />
 
-            <!--  웹뷰 바  -->
-            <SelectorBarItem
-                x:Name="SelectorBarItem_Browser"
-                Icon="World"
-                Text="브라우저" />
+                        <!--  플래너 바  -->
+                        <SelectorBarItem
+                            Icon="Calendar"
+                            IsEnabled="False"
+                            Text="플래너" />
 
-            <!--  플래너 바  -->
-            <SelectorBarItem
-                Icon="Calendar"
-                IsEnabled="False"
-                Text="플래너" />
+                        <!--  환경설정 바  -->
+                        <SelectorBarItem
+                            x:Name="SelectorBarItem_Setting"
+                            Icon="Setting"
+                            Text="설정" />
+                    </SelectorBar>
+                </Grid>
+            </TitleBar.LeftHeader>
+        </TitleBar>
 
-            <!--  환경설정 바  -->
-            <SelectorBarItem
-                x:Name="SelectorBarItem_Setting"
-                Icon="Setting"
-                Text="설정" />
-        </SelectorBar>
-        <Border
-            Grid.Row="1"
-            Grid.ColumnSpan="2"
-            Height="1"
-            VerticalAlignment="Bottom"
-            Background="{ThemeResource ControlStrokeColorDefaultBrush}" />
         <!--  Frame  -->
         <Frame
             x:Name="ContentFrame"
-            Grid.Row="2"
-            Grid.ColumnSpan="2"
+            Grid.Row="1"
             Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
             IsNavigationStackEnabled="False" />
     </Grid>
