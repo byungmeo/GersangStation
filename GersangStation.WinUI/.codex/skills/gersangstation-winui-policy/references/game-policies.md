@@ -2,7 +2,7 @@
 
 - Allow at most 3 game clients at the same time across all servers.
 - Enforce account uniqueness globally so the same account cannot run on multiple clients at once, even across different servers.
-- Treat client-slot state as server-specific so the same slot number may be used independently on different servers.
+- Treat launch buttons as global by slot number across all servers, so once button 1, 2, or 3 starts a client, that same-number button stays locked until its process exits.
 - Switch the slot to `Starting` immediately when the user clicks launch.
 - Return the slot to `Available` if launch preconditions fail before the game process starts.
 - Validate client install paths by checking for `Run.exe`, `\Online\Map`, and `\Online\vsn.dat` instead of the legacy `\char` marker.

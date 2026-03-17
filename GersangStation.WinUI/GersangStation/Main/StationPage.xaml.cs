@@ -928,7 +928,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 현재 서버에서 해당 슬롯의 런타임 상태와 경로 유효성을 함께 반영한 실행 가능 상태를 계산합니다.
+    /// 현재 선택한 서버의 경로 유효성과, 버튼 번호 기준 전역 런타임 상태를 함께 반영한 실행 가능 상태를 계산합니다.
     /// </summary>
     private ClientLaunchAvailability GetClientLaunchAvailability(int clientIndex)
     {
@@ -1020,7 +1020,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             : Visibility.Collapsed;
 
     /// <summary>
-    /// 현재 상태를 기준으로 슬롯 실행 버튼을 눌러볼 수 있는지 여부를 반환합니다.
+    /// 현재 상태를 기준으로 해당 실행 버튼을 눌러볼 수 있는지 여부를 반환합니다.
     /// </summary>
     private bool IsClientButtonEnabled(int clientIndex)
         => !HasAnyClientStarting()
@@ -1030,7 +1030,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             and not ClientLaunchStatus.MultiClientDisabled;
 
     /// <summary>
-    /// 현재 서버에서 하나라도 클라이언트가 켜지는 중이면 추가 실행을 막아야 하는지 판단합니다.
+    /// 현재 화면에서 하나라도 클라이언트가 켜지는 중이면 추가 실행을 막아야 하는지 판단합니다.
     /// </summary>
     private bool HasAnyClientStarting()
     {

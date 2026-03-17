@@ -55,7 +55,8 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     private readonly object _syncRoot = new();
     private readonly CancellationTokenSource _disposeCts = new();
     private readonly Task _backgroundMonitorTask;
-    // 슬롯은 서버+클라번호로 구분되므로 서버가 다르면 같은 1클라라도 서로 독립적으로 추적됩니다.
+    // 세션은 시작한 서버 정보를 유지해야 하므로 서버+클라번호로 저장하되,
+    // 실행 버튼 잠금 정책은 clientIndex 기준으로 서버와 무관하게 적용합니다.
     private readonly Dictionary<GameClientSlot, LaunchSession> _sessionsBySlot = [];
     private readonly Dictionary<GameClientSlot, DateTimeOffset> _retryCooldownUntilBySlot = [];
     private readonly HashSet<nint> _knownDialogWindows = [];
@@ -119,7 +120,8 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 특정 서버/클라 슬롯의 버튼 상태를 계산합니다.
+    /// 특정 실행 버튼 번호의 상태를 계산합니다.
+    /// 같은 번호의 버튼은 서버가 달라도 하나의 전역 슬롯처럼 잠금 상태를 공유합니다.
     /// </summary>
     public GameClientState GetClientState(GameServer server, int clientIndex, string? accountId)
     {
@@ -127,6 +129,13 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
         lock (_syncRoot)
         {
+            if (_sessionsBySlot.TryGetValue(slot, out LaunchSession? slotSession))
+                return slotSession.State;
+
+            LaunchSession? sharedButtonSession = GetSessionByClientIndexUnsafe(clientIndex, slot);
+            if (sharedButtonSession is not null)
+                return sharedButtonSession.State;
+
             if (_retryCooldownUntilBySlot.TryGetValue(slot, out DateTimeOffset retryCooldownUntil))
             {
                 if (retryCooldownUntil > DateTimeOffset.Now)
@@ -135,11 +144,6 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
                 _retryCooldownUntilBySlot.Remove(slot);
             }
 
-            if (_sessionsBySlot.TryGetValue(slot, out LaunchSession? slotSession))
-                return slotSession.State;
-
-            // 버튼은 현재 서버의 같은 슬롯 상태만 직접 반영하되,
-            // 전체 동시 실행 개수 제한은 서버와 무관하게 함께 적용합니다.
             if (_sessionsBySlot.Count >= MaxConcurrentGames)
                 return _sessionsBySlot.Values.Any(session => session.State == GameClientState.Starting)
                     ? GameClientState.Starting
@@ -194,7 +198,8 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 실제 실행 전 단계에서 슬롯을 선점해 즉시 "켜는 중" 상태로 전환합니다.
+    /// 실제 실행 전 단계에서 버튼 번호를 선점해 즉시 "켜는 중" 상태로 전환합니다.
+    /// 같은 번호의 버튼은 서버가 달라도 동시에 사용할 수 없습니다.
     /// </summary>
     public bool TryBeginStart(GameServer server, int clientIndex, string clientInstallPath, string? accountId)
     {
@@ -224,6 +229,14 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
                 replacedSession = existingSlotSession;
                 _sessionsBySlot.Remove(slot);
+            }
+
+            LaunchSession? sharedButtonSession = GetSessionByClientIndexUnsafe(clientIndex, slot);
+            if (sharedButtonSession is not null)
+            {
+                if (replacedSession is not null)
+                    _sessionsBySlot[slot] = replacedSession;
+                return false;
             }
 
             // 계정 중복은 서버가 달라도 허용하지 않습니다.
@@ -650,6 +663,22 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         {
             return _sessionsBySlot.Values.Any(session => session.GameProcessId == processId);
         }
+    }
+
+    private LaunchSession? GetSessionByClientIndexUnsafe(int clientIndex, GameClientSlot? excludedSlot = null)
+    {
+        foreach (LaunchSession session in _sessionsBySlot.Values)
+        {
+            if (session.Slot.ClientIndex != clientIndex)
+                continue;
+
+            if (excludedSlot.HasValue && session.Slot == excludedSlot.Value)
+                continue;
+
+            return session;
+        }
+
+        return null;
     }
 
     private LaunchSession? GetSession(GameClientSlot slot, string accountId)
