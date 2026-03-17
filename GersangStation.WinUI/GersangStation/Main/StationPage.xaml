@@ -12,8 +12,7 @@
     Background="Transparent"
     NavigationCacheMode="Enabled"
     mc:Ignorable="d">
-
-    <Grid Margin="20,0,20,20" ColumnSpacing="20">
+    <Grid Padding="10,10,10,10" ColumnSpacing="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -26,7 +25,6 @@
         <StackPanel
             Grid.Row="0"
             Grid.Column="0"
-            Margin="0,0,0,0"
             VerticalAlignment="Center"
             Spacing="8">
             <TextBlock
@@ -64,8 +62,9 @@
         <Grid
             Grid.Row="1"
             Grid.Column="0"
-            Padding="0,10,0,10"
-            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
+            Padding="10,10,10,10"
+            BorderBrush="{ThemeResource ControlStrongFillColorDefault}"
+            BorderThickness="2"
             CornerRadius="12"
             RowSpacing="5">
             <Grid.RowDefinitions>
@@ -94,28 +93,27 @@
                     Grid.ColumnSpan="1"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    FlowDirection="LeftToRight"
                     IsTabStop="False"
                     SelectedIndex="{x:Bind SelectedPreset, Mode=TwoWay}">
 
                     <RadioButton
                         Content="프리셋1"
-                        FlowDirection="RightToLeft"
+                        FlowDirection="LeftToRight"
                         FontSize="13"
                         IsTabStop="False" />
                     <RadioButton
                         Content="프리셋2"
-                        FlowDirection="RightToLeft"
+                        FlowDirection="LeftToRight"
                         FontSize="13"
                         IsTabStop="False" />
                     <RadioButton
                         Content="프리셋3"
-                        FlowDirection="RightToLeft"
+                        FlowDirection="LeftToRight"
                         FontSize="13"
                         IsTabStop="False" />
                     <RadioButton
                         Content="프리셋4"
-                        FlowDirection="RightToLeft"
+                        FlowDirection="LeftToRight"
                         FontSize="13"
                         IsTabStop="False" />
                 </RadioButtons>
@@ -124,11 +122,11 @@
                     Grid.Row="0"
                     Grid.Column="1"
                     Grid.ColumnSpan="2"
-                    HorizontalAlignment="Center"
+                    HorizontalAlignment="Stretch"
                     Spacing="12">
                     <ComboBox
                         x:Name="ComboBox_Account1"
-                        Width="180"
+                        HorizontalAlignment="Stretch"
                         DisplayMemberPath="DisplayName"
                         IsTabStop="False"
                         ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
@@ -143,7 +141,7 @@
                     </ComboBox>
                     <ComboBox
                         x:Name="ComboBox_Account2"
-                        Width="180"
+                        HorizontalAlignment="Stretch"
                         DisplayMemberPath="DisplayName"
                         IsTabStop="False"
                         ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
@@ -158,7 +156,7 @@
                     </ComboBox>
                     <ComboBox
                         x:Name="ComboBox_Account3"
-                        Width="180"
+                        HorizontalAlignment="Stretch"
                         DisplayMemberPath="DisplayName"
                         IsTabStop="False"
                         ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
@@ -177,7 +175,6 @@
             <Grid
                 Grid.Row="4"
                 Grid.ColumnSpan="3"
-                Margin="25,0,25,0"
                 HorizontalAlignment="Stretch"
                 ColumnSpacing="5">
                 <Grid.RowDefinitions>
@@ -307,6 +304,7 @@
                 <Grid
                     Grid.Row="2"
                     Grid.ColumnSpan="3"
+                    Padding="0,5,0,0"
                     HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -382,16 +380,18 @@
                     IsTabStop="False"
                     SizeChanged="Grid_ThumbnailHost_SizeChanged">
                     <Border
+                        x:Name="Border_EventBorder"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
-                        BorderBrush="LightGray"
-                        BorderThickness="0.5"
+                        BorderBrush="{ThemeResource ControlStrongFillColorDefaultBrush}"
+                        BorderThickness="2"
                         CornerRadius="18"
                         IsTabStop="False">
                         <FlipView
                             x:Name="FlipView_Event"
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Stretch"
+                            CornerRadius="18"
                             IsTabStop="False"
                             ItemsSource="{x:Bind EventItems, Mode=OneWay}"
                             SelectionChanged="FlipView_Event_SelectionChanged">
@@ -419,16 +419,6 @@
                             </FlipView.ItemTemplate>
                         </FlipView>
                     </Border>
-                    <Border
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Background="Transparent"
-                        BorderBrush="{x:Bind EventThumbnailHighlightOverlayBrush, Mode=OneWay}"
-                        BorderThickness="{x:Bind EventThumbnailHighlightOverlayThickness, Mode=OneWay}"
-                        CornerRadius="18"
-                        IsHitTestVisible="False"
-                        IsTabStop="False"
-                        Visibility="{x:Bind EventThumbnailHighlightOverlayVisibility, Mode=OneWay}" />
                 </Grid>
                 <Border
                     x:Name="Border_EventHeader"
@@ -477,8 +467,8 @@
                     Grid.Column="0"
                     Padding="16,14,16,14"
                     VerticalAlignment="Top"
-                    BorderBrush="LightGray"
-                    BorderThickness="0.5"
+                    BorderBrush="{ThemeResource ControlStrongFillColorDefault}"
+                    BorderThickness="2"
                     CornerRadius="18">
                     <Grid RowSpacing="12">
                         <Grid.RowDefinitions>
@@ -540,8 +530,8 @@
                     Grid.Column="1"
                     Padding="16,14,16,14"
                     VerticalAlignment="Top"
-                    BorderBrush="LightGray"
-                    BorderThickness="0.5"
+                    BorderBrush="{ThemeResource ControlStrongFillColorDefault}"
+                    BorderThickness="2"
                     CornerRadius="18">
                     <Grid RowSpacing="12">
                         <Grid.RowDefinitions>

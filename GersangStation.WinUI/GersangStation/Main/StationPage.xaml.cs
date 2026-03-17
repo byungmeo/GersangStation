@@ -3,6 +3,7 @@ using Core.Models;
 using GersangStation.Diagnostics;
 using GersangStation.Main.Setting;
 using GersangStation.Services;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -1224,15 +1225,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
     public Visibility EventUrgencyTextVisibility
         => IsCurrentEventDeadlineSoon() ? Visibility.Visible : Visibility.Collapsed;
-
-    public Visibility EventThumbnailHighlightOverlayVisibility
-        => _isEventUrgencyHighlighted ? Visibility.Visible : Visibility.Collapsed;
-
-    public Brush EventThumbnailHighlightOverlayBrush
-        => new SolidColorBrush(Microsoft.UI.Colors.IndianRed);
-
-    public Thickness EventThumbnailHighlightOverlayThickness
-        => new Thickness(1.5);
     
     /// <summary>
     /// 이벤트 목록을 주기적으로 다시 읽어오되, 최근 결과가 있으면 재사용합니다.
@@ -1651,7 +1643,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             return;
 
         _isEventUrgencyHighlighted = highlighted;
-        OnPropertyChanged(nameof(EventThumbnailHighlightOverlayVisibility));
+        Border_EventBorder.BorderBrush = highlighted ? new SolidColorBrush(Colors.IndianRed) : (Brush)Application.Current.Resources["ControlStrongFillColorDefaultBrush"];
     }
 
     /// <summary>
