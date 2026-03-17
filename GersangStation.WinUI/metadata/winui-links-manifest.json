@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAtUtc": "2026-03-17T06:53:36.190Z",
+  "updatedAtUtc": "2026-03-17T07:35:35.689Z",
   "fallback": {
     "title": "링크를 불러오는데 실패하였습니다.",
     "message": "요청한 링크 정보를 준비하지 못했습니다. 앱에 포함된 링크 매니페스트 또는 링크 키를 확인해 주세요.",
@@ -36,6 +36,12 @@
       "title": "다클라 권한 문제 도움말",
       "category": "help",
       "description": "다클라 생성 권한 문제 해결 가이드"
+    },
+    "help.update.release-note": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/%EA%B1%B0%EC%83%81%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%85%98-%ED%8C%A8%EC%B9%98%EB%85%B8%ED%8A%B8",
+      "title": "릴리즈 노트",
+      "category": "help",
+      "description": "프로그램 업데이트 내역"
     },
     "oss.7zip.home": {
       "url": "https://www.7-zip.org/",
