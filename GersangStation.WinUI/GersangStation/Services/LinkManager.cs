@@ -2,23 +2,29 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Net;
 
 namespace GersangStation.Services;
 
 /// <summary>
-/// 루트 metadata 매니페스트에서 WinUI 링크를 한 번만 읽어와 key-value 형태로 제공합니다.
+/// GitHub raw의 WinUI 링크 매니페스트를 한 번만 읽어와 key-value 형태로 제공합니다.
 /// </summary>
 public sealed class LinkManager
 {
-    private const string ManifestRelativePath = "metadata\\winui-links-manifest.json";
+    private const string ManifestUrl =
+        "https://raw.githubusercontent.com/byungmeo/GersangStation/master/GersangStation.WinUI/metadata/winui-links-manifest.json";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         ReadCommentHandling = JsonCommentHandling.Skip
     };
+
+    private static readonly HttpClient Http = CreateHttpClient();
 
     private readonly object _syncRoot = new();
     private IReadOnlyDictionary<string, LinkManifestItem> _links =
@@ -33,7 +39,7 @@ public sealed class LinkManager
     public Exception? LoadException => _loadException;
 
     /// <summary>
-    /// 앱 시작 시 한 번만 매니페스트를 읽어 캐시합니다.
+    /// 앱 시작 시 한 번만 GitHub에서 매니페스트를 읽어 캐시합니다.
     /// </summary>
     public void Initialize()
     {
@@ -82,21 +88,16 @@ public sealed class LinkManager
         return WinUiLinkNavigationTarget.ForHtml(BuildFallbackHtml(key));
     }
 
+    /// <summary>
+    /// GitHub raw에서 매니페스트 JSON을 받아와 메모리에 적재합니다.
+    /// </summary>
     private void LoadManifestCore()
     {
         try
         {
-            string manifestPath = Path.Combine(AppContext.BaseDirectory, ManifestRelativePath);
-            if (!File.Exists(manifestPath))
-            {
-                _links = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
-                _loadException = new FileNotFoundException("WinUI 링크 매니페스트 파일을 찾지 못했습니다.", manifestPath);
-                Debug.WriteLine($"[LinkManager] Manifest not found: {manifestPath}");
-                return;
-            }
-
-            string json = File.ReadAllText(manifestPath);
+            string json = DownloadManifestJson();
             WinUiLinksManifestDocument? manifest = JsonSerializer.Deserialize<WinUiLinksManifestDocument>(json, JsonOptions);
+
             if (manifest?.Links is null)
             {
                 _links = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
@@ -109,14 +110,61 @@ public sealed class LinkManager
             _fallback = manifest.Fallback ?? new LinkFallbackOptions();
             _links = new Dictionary<string, LinkManifestItem>(manifest.Links, StringComparer.OrdinalIgnoreCase);
             _loadException = null;
+
+            Debug.WriteLine($"[LinkManager] Manifest loaded from GitHub. Count={_links.Count}");
         }
         catch (Exception ex)
         {
             _links = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
             _fallback = new LinkFallbackOptions();
             _loadException = ex;
-            Debug.WriteLine($"[LinkManager] Failed to load manifest: {ex}");
+            Debug.WriteLine($"[LinkManager] Failed to load manifest from GitHub: {ex}");
         }
+    }
+
+    /// <summary>
+    /// GitHub raw URL에서 매니페스트 JSON 문자열을 내려받습니다.
+    /// </summary>
+    private static string DownloadManifestJson()
+    {
+        using HttpRequestMessage request = new(HttpMethod.Get, ManifestUrl);
+
+        // 중간 캐시/로컬 캐시 영향을 줄이기 위해 캐시 무효화 헤더를 명시합니다.
+        request.Headers.CacheControl = new CacheControlHeaderValue
+        {
+            NoCache = true,
+            NoStore = true,
+            MaxAge = TimeSpan.Zero
+        };
+        request.Headers.Pragma.Add(new NameValueHeaderValue("no-cache"));
+        request.Headers.UserAgent.ParseAdd("GersangStation/1.0");
+
+        using HttpResponseMessage response = Http
+            .SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
+
+        response.EnsureSuccessStatusCode();
+
+        return response.Content
+            .ReadAsStringAsync()
+            .ConfigureAwait(false)
+            .GetAwaiter()
+            .GetResult();
+    }
+
+    private static HttpClient CreateHttpClient()
+    {
+        var handler = new SocketsHttpHandler
+        {
+            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+        };
+
+        return new HttpClient(handler, disposeHandler: true)
+        {
+            Timeout = TimeSpan.FromSeconds(10)
+        };
     }
 
     private string BuildFallbackHtml(string key)
