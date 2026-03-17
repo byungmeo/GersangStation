@@ -1,35 +1,23 @@
 {
   "schemaVersion": 1,
-  "updatedAtUtc": "2026-03-17T00:00:00Z",
+  "updatedAtUtc": "2026-03-17T06:53:36.190Z",
   "fallback": {
     "title": "링크를 불러오는데 실패하였습니다.",
     "message": "요청한 링크 정보를 준비하지 못했습니다. 앱에 포함된 링크 매니페스트 또는 링크 키를 확인해 주세요.",
     "supportText": "문제가 계속되면 최신 앱 빌드와 metadata/winui-links-manifest.json 구성을 함께 점검해 주세요."
   },
   "links": {
-    "help.general": {
-      "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A",
-      "title": "설정 도움말",
-      "category": "help",
-      "description": "설정 페이지의 일반 도움말 링크"
-    },
-    "help.permission.multi-client": {
-      "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A#%EA%B4%80%EB%A6%AC%EC%9E%90-%EA%B6%8C%ED%95%9C%EC%9C%BC%EB%A1%9C-%EC%8B%A4%ED%96%89",
-      "title": "다클라 권한 문제 도움말",
-      "category": "help",
-      "description": "다클라 생성 권한 문제 해결 가이드"
-    },
     "help.admin.clip-mouse": {
       "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A#%EA%B4%80%EB%A6%AC%EC%9E%90-%EA%B6%8C%ED%95%9C%EC%9C%BC%EB%A1%9C-%EC%8B%A4%ED%96%89",
       "title": "관리자 권한 도움말",
       "category": "help",
       "description": "마우스 가두기와 창 전환 기능의 관리자 권한 안내"
     },
-    "help.patch.legacy-version": {
-      "url": "https://github.com/byungmeo/GersangStation/wiki/v34100-%EB%AF%B8%EB%A7%8C-%EB%B2%84%EC%A0%84-%EA%B4%80%EB%A0%A8",
-      "title": "구버전 패치 안내",
+    "help.general": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A",
+      "title": "설정 도움말",
       "category": "help",
-      "description": "v34100 미만 버전 클라이언트 재설치 안내"
+      "description": "설정 페이지의 일반 도움말 링크"
     },
     "help.install.symbolic-link": {
       "url": "https://github.com/byungmeo/GersangStation/discussions/39",
@@ -37,11 +25,23 @@
       "category": "help",
       "description": "다클라 심볼릭 링크 사용 안내"
     },
-    "policy.privacy.store": {
-      "url": "https://cdn.storeedgefd.dsx.mp.microsoft.com/eus2/privacy-policy-storage/89348860/00014457469268396909/1152921505700654037/privacy_policy_bc36a0cb-b358-487b-a8f4-5c5ede80c188.txt",
-      "title": "개인정보처리방침",
-      "category": "policy",
-      "description": "스토어 등록용 외부 개인정보처리방침 링크"
+    "help.patch.legacy-version": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/v34100-%EB%AF%B8%EB%A7%8C-%EB%B2%84%EC%A0%84-%EA%B4%80%EB%A0%A8",
+      "title": "구버전 패치 안내",
+      "category": "help",
+      "description": "v34100 미만 버전 클라이언트 재설치 안내"
+    },
+    "help.permission.multi-client": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A#%EA%B4%80%EB%A6%AC%EC%9E%90-%EA%B6%8C%ED%95%9C%EC%9C%BC%EB%A1%9C-%EC%8B%A4%ED%96%89",
+      "title": "다클라 권한 문제 도움말",
+      "category": "help",
+      "description": "다클라 생성 권한 문제 해결 가이드"
+    },
+    "oss.7zip.home": {
+      "url": "https://www.7-zip.org/",
+      "title": "7-Zip",
+      "category": "oss",
+      "description": "7-Zip 공식 홈페이지"
     },
     "oss.dotnet.runtime.license": {
       "url": "https://github.com/dotnet/runtime/blob/main/LICENSE.TXT",
@@ -49,23 +49,23 @@
       "category": "oss",
       "description": ".NET Runtime 라이선스"
     },
-    "oss.winui3.license": {
-      "url": "https://github.com/microsoft/microsoft-ui-xaml/blob/main/LICENSE",
-      "title": "WinUI 3 License",
-      "category": "oss",
-      "description": "WinUI 3 라이선스"
-    },
     "oss.windows-app-sdk.license": {
       "url": "https://github.com/microsoft/WindowsAppSDK/blob/main/LICENSE",
       "title": "Windows App SDK License",
       "category": "oss",
       "description": "Windows App SDK 라이선스"
     },
-    "oss.7zip.home": {
-      "url": "https://www.7-zip.org/",
-      "title": "7-Zip",
+    "oss.winui3.license": {
+      "url": "https://github.com/microsoft/microsoft-ui-xaml/blob/main/LICENSE",
+      "title": "WinUI 3 License",
       "category": "oss",
-      "description": "7-Zip 공식 홈페이지"
+      "description": "WinUI 3 라이선스"
+    },
+    "policy.privacy.store": {
+      "url": "https://github.com/byungmeo/GersangStation/blob/master/GersangStation.WinUI/GersangStation/Assets/Policies/privacy-policy.txt",
+      "title": "개인정보처리방침",
+      "category": "policy",
+      "description": "스토어 등록용 외부 개인정보처리방침 링크"
     }
   }
 }
