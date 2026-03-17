@@ -1,4 +1,5 @@
 using Core;
+using GersangStation.Services;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
 
@@ -6,7 +7,6 @@ namespace GersangStation.Main.Setting;
 
 public sealed partial class AdvancedSettingPage : Page
 {
-    private const string ClipMouseHelpUrl = "https://github.com/byungmeo/GersangStation/wiki/Q&A";
     private bool _isInitializing;
 
     /// <summary>
@@ -91,6 +91,6 @@ public sealed partial class AdvancedSettingPage : Page
     private void HyperlinkButton_ClipMouseAdminHelp_Click(object sender, RoutedEventArgs e)
     {
         if (App.CurrentWindow is MainWindow window)
-            window.NavigateToWebViewPage(ClipMouseHelpUrl);
+            window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpAdminClipMouse);
     }
 }

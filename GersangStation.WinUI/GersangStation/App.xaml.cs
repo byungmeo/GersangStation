@@ -1,4 +1,5 @@
 using GersangStation.Diagnostics;
+using GersangStation.Services;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.ApplicationModel.WindowsAppRuntime;
@@ -19,6 +20,7 @@ namespace GersangStation
         public static Window? CurrentWindow { get; private set; }
         public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcherQueue { get; private set; }
         public static AppExceptionHandler ExceptionHandler { get; } = new();
+        public static LinkManager LinkManager { get; } = new();
         public static bool IsRunningAsAdministrator { get; private set; }
         public static bool IsWindowsAppRuntimeDeploymentReady { get; private set; }
 
@@ -32,6 +34,7 @@ namespace GersangStation
             IsRunningAsAdministrator = DetectIsRunningAsAdministrator();
             UiDispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
             RegisterGlobalExceptionHandlers();
+            LinkManager.Initialize();
             Debug.WriteLine($"PFN: {Package.Current.Id.FamilyName}");
             Debug.WriteLine($"LocalFolder Path: {ApplicationData.Current.LocalFolder.Path}");
         }

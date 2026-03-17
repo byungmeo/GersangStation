@@ -1,4 +1,5 @@
 using Core;
+using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -11,7 +12,6 @@ namespace GersangStation.Diagnostics;
 /// </summary>
 public static class PathPermissionDialog
 {
-    public const string PermissionHelpUrl = "https://github.com/byungmeo/GersangStation/wiki/Q&A#%EB%8B%A4%ED%81%B4%EB%9D%BC-%EC%83%9D%EC%84%B1-%EB%B6%88%EA%B0%80-%EB%AC%B8%EC%A0%9C";
     private const int AccessDeniedHResult = unchecked((int)0x80070005);
 
     /// <summary>
@@ -156,6 +156,6 @@ public static class PathPermissionDialog
     private static void NavigateToPermissionHelp()
     {
         if (App.CurrentWindow is Main.MainWindow window)
-            window.NavigateToWebViewPage(PermissionHelpUrl);
+            window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpPermissionMultiClient);
     }
 }

@@ -40,16 +40,23 @@ public sealed partial class ProgramInfoPage : Page
 
         string? url = target switch
         {
-            string text => text,
             Uri uri => uri.ToString(),
             _ => null
         };
 
+        if (target is string linkKey)
+        {
+            if (App.CurrentWindow is MainWindow window)
+                window.NavigateToWebViewPageByLinkKey(linkKey);
+
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(url))
             return;
 
-        if (App.CurrentWindow is MainWindow window)
-            window.NavigateToWebViewPage(url);
+        if (App.CurrentWindow is MainWindow currentWindow)
+            currentWindow.NavigateToWebViewPage(url);
     }
 
     /// <summary>

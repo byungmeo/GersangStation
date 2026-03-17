@@ -100,19 +100,19 @@
                         <HyperlinkButton
                             Click="LinkButton_Click"
                             Content=".NET"
-                            Tag="https://github.com/dotnet/runtime/blob/main/LICENSE.TXT" />
+                            Tag="oss.dotnet.runtime.license" />
                         <HyperlinkButton
                             Click="LinkButton_Click"
                             Content="WinUI 3"
-                            Tag="https://github.com/microsoft/microsoft-ui-xaml/blob/main/LICENSE" />
+                            Tag="oss.winui3.license" />
                         <HyperlinkButton
                             Click="LinkButton_Click"
                             Content="Windows App SDK"
-                            Tag="https://github.com/microsoft/WindowsAppSDK/blob/main/LICENSE" />
+                            Tag="oss.windows-app-sdk.license" />
                         <HyperlinkButton
                             Click="LinkButton_Click"
                             Content="7-Zip"
-                            Tag="https://www.7-zip.org/" />
+                            Tag="oss.7zip.home" />
                     </StackPanel>
                     <TextBlock
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"

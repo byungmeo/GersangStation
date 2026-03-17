@@ -1,5 +1,6 @@
 using Core;
 using Core.Models;
+using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -40,7 +41,6 @@ public sealed class SettingPageNavigationParameter
 
 public sealed partial class SettingPage : Page, IConfirmLeave
 {
-    private const string HelpPageUrl = "https://github.com/byungmeo/GersangStation/wiki/Q&A";
     private object _previousSelectedItem;
     private bool _suppressNavSelectionChanged = false;
 
@@ -183,7 +183,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         SyncNavigationSelection(ContentFrame.Content?.GetType());
 
         if (App.CurrentWindow is MainWindow window)
-            window.NavigateToWebViewPage(HelpPageUrl);
+            window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpGeneral);
     }
 
     /// <summary>

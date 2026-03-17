@@ -452,6 +452,25 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
+    /// 메타데이터 매니페스트의 링크 key를 해석해 브라우저 페이지로 엽니다.
+    /// </summary>
+    public void NavigateToWebViewPageByLinkKey(string linkKey)
+    {
+        if (string.IsNullOrWhiteSpace(linkKey))
+            return;
+
+        WinUiLinkNavigationTarget target = App.LinkManager.ResolveNavigation(linkKey);
+        if (target.Uri is Uri uri)
+        {
+            NavigateToWebViewPage(uri.AbsoluteUri);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(target.HtmlContent))
+            NavigateToWebViewPageHtml(target.HtmlContent);
+    }
+
+    /// <summary>
     /// 메인 셸에서 브라우저 페이지를 열고 지정한 HTML 문서를 바로 표시합니다.
     /// </summary>
     internal void NavigateToWebViewPageHtml(string htmlContent)

@@ -1,6 +1,7 @@
 using Core;
 using Core.Models;
 using GersangStation.Diagnostics;
+using GersangStation.Services;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -28,7 +29,6 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     #region Properties
     private const int ManualUpgradeBoundaryVersion = 34100;
     private const string VersionWarningLinkPlaceholderText = "참고 링크";
-    private const string DeprecatedVersionInfoUrl = "https://github.com/byungmeo/GersangStation/wiki/v34100-%EB%AF%B8%EB%A7%8C-%EB%B2%84%EC%A0%84-%EA%B4%80%EB%A0%A8";
 
     private GameServer _selectedGameServer = GameServer.Korea_Live;
     private string _displayLatestVersion = string.Empty;
@@ -793,6 +793,6 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private void HyperlinkButton_DeprecatedVersionInfo_Click(object sender, RoutedEventArgs e)
     {
         if (App.CurrentWindow is MainWindow mainWindow)
-            mainWindow.NavigateToWebViewPage(DeprecatedVersionInfoUrl);
+            mainWindow.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpPatchLegacyVersion);
     }
 }

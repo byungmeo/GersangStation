@@ -2,6 +2,7 @@ using Core;
 using Core.Models;
 using GersangStation.Controls;
 using GersangStation.Diagnostics;
+using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -355,7 +356,7 @@ namespace GersangStation.Main.Setting
         private async void Button_SymbolErrorAction_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
             if (App.CurrentWindow is MainWindow window)
-                window.NavigateToWebViewPage("https://github.com/byungmeo/GersangStation/discussions/39");
+                window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpInstallSymbolicLink);
         }
 
         private void HyperlinkButton_InstallGame_Click(object sender, RoutedEventArgs e)

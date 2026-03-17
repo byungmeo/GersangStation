@@ -2,6 +2,7 @@ using Core;
 using Core.Models;
 using GersangStation;
 using GersangStation.Diagnostics;
+using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -20,8 +21,6 @@ namespace GersangStation.Main.Setting;
 /// </summary>
 public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 {
-    private const string PrivacyPolicyUrl = "https://cdn.storeedgefd.dsx.mp.microsoft.com/wus2/privacy-policy-storage/89348860/00014457469268396909/1152921505700581402/privacy_policy_f9fd3c87-ad00-4bb4-9c81-d5de0b962dae.txt";
-
     public sealed class AccountEditor : INotifyPropertyChanged
     {
         private string _originalId = "";
@@ -547,6 +546,6 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     private void PrivacyPolicyHyperlink_Click(Microsoft.UI.Xaml.Documents.Hyperlink sender, Microsoft.UI.Xaml.Documents.HyperlinkClickEventArgs args)
     {
         if (App.CurrentWindow is MainWindow window)
-            window.NavigateToWebViewPage(PrivacyPolicyUrl);
+            window.NavigateToWebViewPageByLinkKey(AppLinkKeys.PolicyPrivacyStore);
     }
 }
