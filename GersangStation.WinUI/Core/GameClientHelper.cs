@@ -10,6 +10,7 @@ public static class GameClientHelper
         "Online",
         "XIGNCODE",
         "PatchTemp",
+        "TempFiles",
         "GersangDown"
     };
 
