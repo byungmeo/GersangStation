@@ -27,6 +27,11 @@ public partial class Form1 : MaterialForm {
     private const string github_owner = "byungmeo";
     private const string github_repo = "GersangStation";
     protected override void WndProc(ref Message m) {
+        if(m.Msg == Program.WM_SHOW_GERSANGSTATION) {
+            RestoreFromExternalLaunch();
+            return;
+        }
+
         if(m.Msg == WM_HOTKEY && bool.Parse(ConfigManager.GetConfig("use_clip_toggle_hotkey"))) {
             if(m.WParam == (IntPtr)ClipMouse.GetHotKeyId()) {
                 if(ClipMouse.isRunning()) {
@@ -46,6 +51,12 @@ public partial class Form1 : MaterialForm {
         if(WindowState == FormWindowState.Minimized && m.Msg == WM_ACTIVATEAPP && m.WParam == IntPtr.Zero) {
             BringToFront();
         }
+    }
+
+    private void RestoreFromExternalLaunch() {
+        this.Show();
+        this.WindowState = FormWindowState.Normal;
+        this.Activate();
     }
 
     public enum State {
