@@ -2,12 +2,12 @@
   "schema_version": 1,
   "product": "winforms",
   "channel": "stable",
-  "generated_at": "2026-03-13T08:26:57Z",
+  "generated_at": "2026-03-18T13:48:08Z",
   "announcement": {
-    "id": "111",
-    "title": "거상스테이션 2.0 리메이크 안내",
-    "url": "https://github.com/byungmeo/GersangStation/discussions/111",
-    "published_at": "2026-03-13T08:26:57Z",
+    "id": "142",
+    "title": "cannot open palette 오류 해결방법",
+    "url": "https://github.com/byungmeo/GersangStation/discussions/142",
+    "published_at": "2026-03-18T13:48:08Z",
     "show_popup": true
   }
 }
