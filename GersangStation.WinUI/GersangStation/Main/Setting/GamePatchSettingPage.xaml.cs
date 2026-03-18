@@ -454,7 +454,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private bool CanStartPatch
         => _currentClientVersion is int currentVersion
             && _latestServerVersion is int
-            && Versions.Any(item => item.Version == currentVersion)
+            && Versions.Any(item => item.Version == currentVersion || currentVersion == 34100)
             && !RequiresManualUpgradeLink()
             && SelectedVersionItem is not null;
 
@@ -486,6 +486,10 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
         if (_currentClientVersion is not int currentVersion)
             return "현재 버전을 확인할 수 없습니다. 설치 경로를 다시 설정해주세요.";
+
+        // TODO: [#140] 임시조치
+        if (_currentClientVersion == 34100)
+            return string.Empty;
 
         return Versions.Any(item => item.Version == currentVersion)
             ? string.Empty
