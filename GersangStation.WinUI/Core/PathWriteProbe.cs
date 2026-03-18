@@ -74,7 +74,30 @@ public static class PathWriteProbe
                 stream.WriteByte(0);
             }
 
+            // 덮어쓰기 테스트
+            string probeCopyFilePath = Path.Combine(probePath, $".gs-write-probe-{Guid.NewGuid():N}-copy.tmp");
+            File.Copy(probeFilePath, probeCopyFilePath, true);
+            File.Copy(probeFilePath, probeCopyFilePath, true);
+
+            // 파일 삭제 검증
             File.Delete(probeFilePath);
+            File.Delete(probeCopyFilePath);
+
+            // 폴더 생성 검증
+            string probeCreateDirPath = Path.Combine(probePath, "CreateDirTest");
+            if (Directory.Exists(probeCreateDirPath))
+                Directory.Delete(probeCreateDirPath);
+            Directory.CreateDirectory(probeCreateDirPath);
+
+            // 심볼릭 링크 생성 검증
+            string probeCreateSymbolDirPath = Path.Combine(probePath, "CreateSymbolTest");
+            if (Directory.Exists(probeCreateSymbolDirPath))
+                Directory.Delete(probeCreateSymbolDirPath);
+            Directory.CreateSymbolicLink(probeCreateSymbolDirPath, probeCreateDirPath);
+
+            // 폴더 삭제 검증
+            Directory.Delete(probeCreateSymbolDirPath);
+            Directory.Delete(probeCreateDirPath);
             return new DirectoryWriteProbeResult(
                 Success: true,
                 CanWrite: true,

@@ -43,21 +43,15 @@
                 Orientation="Horizontal"
                 Spacing="8"
                 Visibility="{x:Bind InstallGuideVisibility, Mode=OneWay}">
-                <TextBlock
-                    VerticalAlignment="Center"
-                    Text="아직 게임을 설치하지 않으셨나요?" />
+                <TextBlock VerticalAlignment="Center" Text="아직 게임을 설치하지 않으셨나요?" />
                 <HyperlinkButton
                     Padding="0"
                     Click="HyperlinkButton_InstallGame_Click"
                     Content="설치하기" />
             </StackPanel>
 
-            <StackPanel
-                Grid.Row="2"
-                Spacing="12">
-                <TextBlock
-                    Style="{ThemeResource SubtitleTextBlockStyle}"
-                    Text="클라이언트 사용 방식" />
+            <StackPanel Grid.Row="2" Spacing="12">
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="클라이언트 사용 방식" />
                 <TextBlock
                     Opacity="0.72"
                     Text="메인 클라이언트만 사용할지, 다클라 설정을 함께 사용할지 선택해 주세요."
@@ -67,9 +61,7 @@
                     <x:String>다클라 사용</x:String>
                 </RadioButtons>
 
-                <StackPanel
-                    Spacing="8"
-                    Visibility="{x:Bind MultiClientSettingsVisibility, Mode=OneWay}">
+                <StackPanel Spacing="8" Visibility="{x:Bind MultiClientSettingsVisibility, Mode=OneWay}">
                     <InfoBar
                         Title="효율적인 다클라 생성방식이란?"
                         IsOpen="{x:Bind ShowSymbolInfoBar, Mode=OneWay}"

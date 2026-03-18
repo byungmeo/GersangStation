@@ -314,16 +314,8 @@ namespace GersangStation.Main.Setting
             }
             else
             {
-                if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(
-                    XamlRoot,
-                    createResult.Exception,
-                    "다클라 생성"))
-                {
-                    return;
-                }
-
-                TeachingTip_General.Title = "다클라 생성 실패";
-                TeachingTip_General.Subtitle = createResult.Reason;
+                await App.ExceptionHandler.ShowRecoverableAsync(createResult.Exception, $"ServerInstallPathSettingPage.Button_CreateMultiClient_Click");
+                return;
             }
 
             TeachingTip_General.IsOpen = true;

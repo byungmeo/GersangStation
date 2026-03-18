@@ -77,14 +77,14 @@
                     x:Name="Button_Edit"
                     Click="Button_Edit_Click"
                     Content="수정"
-                    IsTabStop="False"
-                    IsEnabled="{x:Bind CanEditSelectedAccount, Mode=OneWay}" />
+                    IsEnabled="{x:Bind CanEditSelectedAccount, Mode=OneWay}"
+                    IsTabStop="False" />
                 <Button
                     x:Name="Button_Delete"
                     Click="Button_Delete_Click"
                     Content="삭제"
-                    IsTabStop="False"
-                    IsEnabled="{x:Bind CanDeleteSelectedAccount, Mode=OneWay}" />
+                    IsEnabled="{x:Bind CanDeleteSelectedAccount, Mode=OneWay}"
+                    IsTabStop="False" />
             </StackPanel>
             <ListView
                 x:Name="AccountListView"
@@ -196,8 +196,8 @@
                         Click="Button_Save_Click"
                         Content="{x:Bind SaveButtonText, Mode=OneWay}"
                         IsEnabled="{x:Bind CanSave, Mode=OneWay}"
-                        TabIndex="4"
-                        Style="{StaticResource AccentButtonStyle}" />
+                        Style="{StaticResource AccentButtonStyle}"
+                        TabIndex="4" />
                     <Button
                         x:Name="Button_Reset"
                         Click="Button_Reset_Click"
