@@ -2,7 +2,7 @@
   "schema_version": 1,
   "product": "winforms",
   "channel": "stable",
-  "generated_at": "2026-03-18T02:47:01Z",
+  "generated_at": "2026-03-18T13:39:42Z",
   "release": {
     "version": "1.7.1",
     "tag": "winforms-v1.7.1",
@@ -15,8 +15,8 @@
     "download": {
       "asset_name": "GersangStation_mini_v.1.7.1.zip",
       "url": "https://github.com/byungmeo/GersangStation/releases/download/1.7.1/GersangStation_mini_v.1.7.1.zip",
-      "sha256": "70cfce425e83c75681311a278e37c5a5573079b91680080422deae7172c6d8ab",
-      "size": 19457324
+      "sha256": "967f141cd7d7382af4ccb09e955f05233c43b094f4e393dd36b8449150d8e674",
+      "size": 19125258
     }
   }
 }
