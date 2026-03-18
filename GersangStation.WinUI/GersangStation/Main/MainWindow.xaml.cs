@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
 using Windows.Services.Store;
+using Windows.System;
 using Windows.UI.Notifications;
 using WinRT.Interop;
 
@@ -194,6 +195,26 @@ public sealed partial class MainWindow : Window
     {
         if (Root.XamlRoot is null)
             return;
+
+        if (!App.IsRunningAsAdministrator)
+        {
+            ContentDialog dialog = new ContentDialog()
+            {
+                XamlRoot = Content.XamlRoot,
+                Title = "관리자 권한으로 실행하지 않음",
+                Content = "현재 앱이 관리자 권한으로 실행되지 않았습니다.\n관리자 권한이 없으면 일부 기능이 동작하지 않을 수 있습니다.\n그래도 계속 하시겠습니까?",
+                PrimaryButtonText = "해결 방법 확인한 뒤 종료",
+                CloseButtonText = "네, 계속 하겠습니다.",
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            ContentDialogResult result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                await Launcher.LaunchUriAsync(App.LinkManager.ResolveNavigation("help.permission.multi-client").Uri);
+                Application.Current.Exit();
+            }
+        }
 
         if (_isFirstRunPromptPending && !_hasShownFirstRunPrompt)
             await ShowFirstRunPromptAsync();
