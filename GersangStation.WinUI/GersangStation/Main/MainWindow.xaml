@@ -35,9 +35,7 @@
                         Grid.Column="1"
                         SelectionChanged="MainSelectorBar_SelectionChanged">
                         <!--  메인 스테이션 바  -->
-                        <SelectorBarItem
-                            Icon="Home"
-                            Text="메인" />
+                        <SelectorBarItem Icon="Home" Text="메인" />
 
                         <!--  웹뷰 바  -->
                         <SelectorBarItem

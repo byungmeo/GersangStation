@@ -96,7 +96,7 @@ public static class GameClientHelper
     /// 디렉터리 심볼릭 링크 여부 확인 결과를 실패 문맥과 함께 반환합니다.
     /// </summary>
     public sealed record SymbolDirectoryProbeResult(
-        bool Success,
+        bool ProbeSuccess,
         bool IsSymbolDirectory,
         SymbolProbeFailureStage? FailureStage,
         Exception? Exception);
@@ -210,7 +210,7 @@ public static class GameClientHelper
         if (!symbolSupportResult.Success)
         {
             return new SymbolDirectoryProbeResult(
-                Success: false,
+                ProbeSuccess: false,
                 IsSymbolDirectory: false,
                 FailureStage: symbolSupportResult.FailureStage,
                 Exception: symbolSupportResult.Exception);
@@ -222,13 +222,15 @@ public static class GameClientHelper
         try
         {
             var di = new DirectoryInfo(dirPath);
+            if (!di.Exists)
+                return new SymbolDirectoryProbeResult(false, false, SymbolProbeFailureStage.ReadDirectoryAttributes, null);
             bool isSymbolDirectory = (di.Attributes & FileAttributes.ReparsePoint) != 0;
-            return new SymbolDirectoryProbeResult(true, isSymbolDirectory, null, null);
+            return new SymbolDirectoryProbeResult(true, isSymbolDirectory, null, new DirectoryNotFoundException(dirPath));
         }
         catch (Exception ex)
         {
             return new SymbolDirectoryProbeResult(
-                Success: false,
+                ProbeSuccess: false,
                 IsSymbolDirectory: false,
                 FailureStage: SymbolProbeFailureStage.ReadDirectoryAttributes,
                 Exception: ex);
@@ -371,7 +373,7 @@ public static class GameClientHelper
         if (!allowSymbolDirectory)
         {
             SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(onlineMapDir);
-            if (!symbolDirectoryResult.Success)
+            if (!symbolDirectoryResult.ProbeSuccess)
             {
                 return CreateInstallPathFailure(
                     "❌ 설치 경로의 심볼릭 링크 상태를 확인하지 못했습니다.",
@@ -452,7 +454,7 @@ public static class GameClientHelper
         if (Directory.Exists(dirPath))
         {
             SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(dirPath);
-            if (!symbolDirectoryResult.Success)
+            if (!symbolDirectoryResult.ProbeSuccess)
             {
                 throw new IOException(
                     $"Failed to inspect whether '{dirPath}' is a symbolic directory.",
@@ -617,7 +619,7 @@ public static class GameClientHelper
         if (Directory.Exists(destOnlineMapPath))
         {
             SymbolDirectoryProbeResult destMapProbeResult = TryIsSymbolDirectory(destOnlineMapPath);
-            if (!destMapProbeResult.Success)
+            if (!destMapProbeResult.ProbeSuccess)
             {
                 return CreateFailureResult(
                     $"{clientPrefix}기존 다클라 경로의 심볼릭 링크 상태를 확인하지 못했습니다.",
@@ -738,11 +740,20 @@ public static class GameClientHelper
         {
             foreach (string eachDirPath in Directory.GetDirectories(orgInstallPath))
             {
-                string? dirName = new DirectoryInfo(eachDirPath).Name;
-                if (TopLevelDirectoriesToSkip.Contains(dirName))
-                    continue;
-
+                string dirName = new DirectoryInfo(eachDirPath).Name;
                 string destDirPath = $"{destPath}\\{dirName}";
+
+                if (TopLevelDirectoriesToSkip.Contains(dirName))
+                {
+                    // 심볼릭으로 생성하면 안 되는 폴더인데 심볼릭으로 존재하는 경우
+                    SymbolDirectoryProbeResult result = TryIsSymbolDirectory(destDirPath);
+                    if (result.ProbeSuccess && result.IsSymbolDirectory)
+                    {
+                        Directory.Delete(destDirPath, true);
+                    }
+                    continue;
+                }
+
                 if (layoutPolicy == MultiClientLayoutPolicy.V34100OrLater
                     && dirName == "Assets")
                 {
