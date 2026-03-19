@@ -31,7 +31,8 @@ public sealed record WebViewPageNavigationParameter(string Url);
 public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposable
 {
     private const string FavoriteFaviconFolderName = "browser-favicons";
-    bool _initialized = false;
+    private bool _initialized;
+    private MainWindow? _shellWindow;
     private bool _isCurrentPageFavorited;
     private bool _suppressUserSelectionChanged;
     private WebViewManager? _webviewManager;
@@ -86,30 +87,32 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     }
 
     /// <summary>
-    /// 페이지 진입 시 WebViewManager를 초기화하고, 필요하면 전달받은 URL로 이동합니다.
+    /// 페이지 생성 시 WebViewManager를 한 번만 초기화합니다.
     /// </summary>
-    protected override async void OnNavigatedTo(NavigationEventArgs e)
+    protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
 
         MainWindow? window = e.Parameter as MainWindow ?? App.CurrentWindow as MainWindow;
-        if (!_initialized && window is not null)
-        {
-            _initialized = true;
-            _webviewManager = new WebViewManager(webview: WebView, window, window.GameStarter) ?? throw new NullReferenceException();
-            _webviewManager.SourceChanged += OnSourceChanged;
-            _webviewManager.LoggedInChanged += OnLoggedInChanged;
-            window.RegisterWebViewManager(_webviewManager);
-        }
+        EnsureInitialized(window);
+    }
 
-        if (e.Parameter is WebViewPageNavigationParameter parameter
-            && Uri.TryCreate(parameter.Url, UriKind.Absolute, out Uri? targetUri))
-        {
-            _webviewManager?.Navigate(targetUri);
-        }
-
+    /// <summary>
+    /// Browser 섹션이 다시 보일 때 계정과 즐겨찾기 목록을 최신 상태로 동기화합니다.
+    /// </summary>
+    internal async Task OnShellActivatedAsync(MainWindow? window)
+    {
+        EnsureInitialized(window ?? _shellWindow ?? App.CurrentWindow as MainWindow);
         await LoadAccountsAsync();
         await LoadFavoritesAsync();
+        SyncSelectedAccountToLoggedInState();
+    }
+
+    /// <summary>
+    /// Browser 섹션이 숨겨질 때 현재는 별도 정리 작업이 필요하지 않습니다.
+    /// </summary>
+    internal void OnShellDeactivated()
+    {
     }
 
     private void OnLoggedInChanged(object? sender, EventArgs e)
@@ -126,6 +129,22 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
             _webviewManager.Dispose();
             _webviewManager = null;
         }
+    }
+
+    /// <summary>
+    /// WebViewManager와 창 연결을 한 번만 초기화합니다.
+    /// </summary>
+    private void EnsureInitialized(MainWindow? window)
+    {
+        if (_initialized || window is null)
+            return;
+
+        _initialized = true;
+        _shellWindow = window;
+        _webviewManager = new WebViewManager(webview: WebView, window, window.GameStarter) ?? throw new NullReferenceException();
+        _webviewManager.SourceChanged += OnSourceChanged;
+        _webviewManager.LoggedInChanged += OnLoggedInChanged;
+        window.RegisterWebViewManager(_webviewManager);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

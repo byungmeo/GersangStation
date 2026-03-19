@@ -88,6 +88,8 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private readonly record struct MultiClientCreationAttemptResult(bool Success, string Reason, Exception? Exception = null);
 
     private bool _isInitializing = true;
+    private bool _isShellActive;
+    private MainWindow? _shellWindow;
     private GameStarter? _gameStarter;
     private readonly ClientLaunchAvailability[] _clientLaunchAvailability = new ClientLaunchAvailability[3];
     private IReadOnlyList<StationAccountSelectionOption> _accountSelectionOptions = StationAccountSelectionOption.Create(accounts: null);
@@ -287,18 +289,26 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         _isInitializing = false;
     }
 
-    /// <summary>
-    /// 페이지 재진입 시 저장 상태와 GameStarter 상태를 다시 연결합니다.
-    /// </summary>
-    protected override async void OnNavigatedTo(NavigationEventArgs e)
+    protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+        _shellWindow = e.Parameter as MainWindow ?? App.CurrentWindow as MainWindow;
+    }
 
-        if (App.CurrentWindow is MainWindow window)
+    /// <summary>
+    /// Station 섹션이 다시 보일 때 저장 상태와 GameStarter 상태를 동기화합니다.
+    /// </summary>
+    internal async Task OnShellActivatedAsync(MainWindow? window)
+    {
+        _isShellActive = true;
+        _shellWindow = window ?? _shellWindow ?? App.CurrentWindow as MainWindow;
+
+        if (_shellWindow is not null)
         {
-            AttachGameStarter(window.GameStarter);
-            window.StoreUpdateStateChanged += MainWindow_StoreUpdateStateChanged;
-            SyncStoreUpdateState(window);
+            AttachGameStarter(_shellWindow.GameStarter);
+            _shellWindow.StoreUpdateStateChanged -= MainWindow_StoreUpdateStateChanged;
+            _shellWindow.StoreUpdateStateChanged += MainWindow_StoreUpdateStateChanged;
+            SyncStoreUpdateState(_shellWindow);
         }
         else
         {
@@ -321,9 +331,15 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         UpdateEventFlipTimerState();
     }
 
-    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    /// <summary>
+    /// Station 섹션이 숨겨질 때 타이머와 구독을 정리합니다.
+    /// </summary>
+    internal void OnShellDeactivated()
     {
-        base.OnNavigatedFrom(e);
+        if (!_isShellActive)
+            return;
+
+        _isShellActive = false;
         StopEventFlipTimer();
         StopEventUrgencyTimer(resetHighlight: true);
         CancelEventLoad();
@@ -331,8 +347,8 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         CancelGersangStationNoticeLoad();
         DetachGameStarter();
 
-        if (App.CurrentWindow is MainWindow window)
-            window.StoreUpdateStateChanged -= MainWindow_StoreUpdateStateChanged;
+        if (_shellWindow is not null)
+            _shellWindow.StoreUpdateStateChanged -= MainWindow_StoreUpdateStateChanged;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

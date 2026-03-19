@@ -137,7 +137,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
     /// <summary>
     /// 지정한 설정 섹션에 해당하는 NavigationView 항목과 페이지를 동기화합니다.
     /// </summary>
-    private void NavigateToSection(SettingSection section, object? pageParameter)
+    public void NavigateToSection(SettingSection section, object? pageParameter = null)
     {
         NavigationViewItem selectedItem = section switch
         {

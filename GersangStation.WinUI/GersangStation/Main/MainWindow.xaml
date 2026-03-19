@@ -59,11 +59,21 @@
             </TitleBar.LeftHeader>
         </TitleBar>
 
-        <!--  Frame  -->
-        <Frame
-            x:Name="ContentFrame"
+        <Grid
+            x:Name="ShellContentHost"
             Grid.Row="1"
-            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
-            IsNavigationStackEnabled="False" />
+            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}">
+            <Frame
+                x:Name="StationFrame"
+                IsNavigationStackEnabled="False" />
+            <Frame
+                x:Name="BrowserFrame"
+                IsNavigationStackEnabled="False"
+                Visibility="Collapsed" />
+            <Frame
+                x:Name="SettingFrame"
+                IsNavigationStackEnabled="False"
+                Visibility="Collapsed" />
+        </Grid>
     </Grid>
 </Window>

@@ -1,11 +1,11 @@
 using Core;
+using GersangStation.Diagnostics;
 using GersangStation.Main.Setting;
 using GersangStation.Services;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Media.Animation;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -24,6 +24,13 @@ namespace GersangStation.Main;
 /// </summary>
 public sealed partial class MainWindow : Window
 {
+    private enum MainShellSection
+    {
+        Station,
+        Browser,
+        Setting
+    }
+
     private sealed class StoreUpdateDialogProgressView
     {
         public required TextBlock MessageTextBlock { get; init; }
@@ -46,8 +53,8 @@ public sealed partial class MainWindow : Window
     private bool _isStoreUpdateDialogOpen;
     private bool _hasShownStartupStoreUpdateDialog;
     private bool _isStartupFlowRunning;
+    private MainShellSection _activeSection = MainShellSection.Station;
     private bool _suppressNavSelectionChanged = false;
-    private int _previousSelectedIndex = 0;
     private SelectorBarItem _previousSelectedItem;
     private StoreContext? _storeContext;
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
@@ -78,9 +85,7 @@ public sealed partial class MainWindow : Window
             RestoreFromTray,
             ExitFromTray);
 
-        // WebViewPage 초기화를 위해 강제로 Navigate 호출
-        ContentFrame.Navigate(typeof(WebViewPage), this);
-
+        InitializeShellFrames();
         _previousSelectedItem = MainSelectorBar.SelectedItem;
     }
 
@@ -88,6 +93,17 @@ public sealed partial class MainWindow : Window
     {
         WebViewManager = webviewManager;
         UpdateWebViewMemoryMode();
+    }
+
+    /// <summary>
+    /// 메인 셸에서 사용하는 루트 페이지들을 한 번만 생성해 유지합니다.
+    /// </summary>
+    private void InitializeShellFrames()
+    {
+        StationFrame.Navigate(typeof(StationPage), this);
+        BrowserFrame.Navigate(typeof(WebViewPage), this);
+        SettingFrame.Navigate(typeof(SettingPage));
+        ShowSection(MainShellSection.Station);
     }
 
     private void OnClosed(object sender, WindowEventArgs args)
@@ -256,7 +272,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        ContentFrame.Navigate(typeof(StationPage));
+        ShowSection(MainShellSection.Station);
+        SyncShellSelection(SelectorBarItem_Browser, isSelected: false);
     }
 
     /// <summary>
@@ -316,7 +333,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            bool canClose = ContentFrame.Content switch
+            bool canClose = GetActiveRootPage() switch
             {
                 IConfirmLeave confirm => await confirm.ConfirmLeaveAsync(LeaveReason.AppExit),
                 _ when Root.XamlRoot is not null => await ExitConfirmationDialog.ShowAsync(Root.XamlRoot),
@@ -340,7 +357,12 @@ public sealed partial class MainWindow : Window
         if (_suppressNavSelectionChanged)
             return;
 
-        if (ContentFrame.Content is IConfirmLeave confirm)
+        SelectorBarItem selectedItem = sender.SelectedItem;
+        MainShellSection targetSection = GetSectionFromSelectorItem(selectedItem);
+        if (targetSection == _activeSection)
+            return;
+
+        if (GetActiveRootPage() is IConfirmLeave confirm)
         {
             bool canLeave = await confirm.ConfirmLeaveAsync();
             if (!canLeave)
@@ -352,35 +374,8 @@ public sealed partial class MainWindow : Window
             }
         }
 
-        SelectorBarItem selectedItem = sender.SelectedItem;
-        int currentSelectedIndex = sender.Items.IndexOf(selectedItem);
-        System.Type pageType;
-
-        switch (currentSelectedIndex)
-        {
-            case 0:
-                pageType = typeof(StationPage);
-                break;
-            case 1:
-                pageType = typeof(WebViewPage);
-                break;
-            //case 2:
-            //    pageType = typeof(SamplePage3);
-            //    break;
-            case 3:
-                pageType = typeof(Setting.SettingPage);
-                break;
-            default:
-                throw new System.Exception("invalid selectorbar selected index");
-        }
-
-        var slideNavigationTransitionEffect = currentSelectedIndex - _previousSelectedIndex > 0 ? SlideNavigationTransitionEffect.FromRight : SlideNavigationTransitionEffect.FromLeft;
-
-        ContentFrame.Navigate(pageType, null, new SlideNavigationTransitionInfo() { Effect = slideNavigationTransitionEffect });
-
-        _previousSelectedIndex = currentSelectedIndex;
+        await ShowSectionAsync(targetSection);
         _previousSelectedItem = sender.SelectedItem;
-        UpdateWebViewMemoryMode();
     }
 
     /// <summary>
@@ -388,17 +383,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public void NavigateToSettingPage()
     {
-        ContentFrame.Navigate(
-            typeof(SettingPage),
-            null,
-            new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromLeft });
-
-        _suppressNavSelectionChanged = true;
-        _previousSelectedIndex = MainSelectorBar.Items.IndexOf(MainSelectorBar.SelectedItem);
-        _previousSelectedItem = MainSelectorBar.SelectedItem;
-        MainSelectorBar.SelectedItem = SelectorBarItem_Setting;
-        _suppressNavSelectionChanged = false;
-        UpdateWebViewMemoryMode();
+        NavigateToSettingPage(SettingSection.Account);
     }
 
     /// <summary>
@@ -406,20 +391,12 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public void NavigateToSettingPage(SettingSection section, object? pageParameter = null)
     {
-        ContentFrame.Navigate(typeof(SettingPage),
-            new SettingPageNavigationParameter
-            {
-                Section = section,
-                PageParameter = pageParameter
-            },
-            new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromLeft });
+        if (SettingFrame.Content is SettingPage settingPage)
+            settingPage.NavigateToSection(section, pageParameter);
 
-        _suppressNavSelectionChanged = true;
-        _previousSelectedIndex = MainSelectorBar.Items.IndexOf(MainSelectorBar.SelectedItem);
-        _previousSelectedItem = MainSelectorBar.SelectedItem;
-        MainSelectorBar.SelectedItem = SelectorBarItem_Setting;
-        _suppressNavSelectionChanged = false;
-        UpdateWebViewMemoryMode();
+        ShowSection(MainShellSection.Setting)
+            .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(NavigateToSettingPage)}");
+        SyncShellSelection(SelectorBarItem_Setting, isSelected: true);
     }
 
     /// <summary>
@@ -435,17 +412,9 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public void NavigateToWebViewPage()
     {
-        ContentFrame.Navigate(
-            typeof(WebViewPage),
-            null,
-            new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromRight });
-
-        _suppressNavSelectionChanged = true;
-        _previousSelectedIndex = MainSelectorBar.Items.IndexOf(MainSelectorBar.SelectedItem);
-        _previousSelectedItem = MainSelectorBar.SelectedItem;
-        MainSelectorBar.SelectedItem = SelectorBarItem_Browser;
-        _suppressNavSelectionChanged = false;
-        UpdateWebViewMemoryMode();
+        ShowSection(MainShellSection.Browser)
+            .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(NavigateToWebViewPage)}");
+        SyncShellSelection(SelectorBarItem_Browser, isSelected: true);
     }
 
     /// <summary>
@@ -456,17 +425,10 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(url))
             return;
 
-        ContentFrame.Navigate(
-            typeof(WebViewPage),
-            new WebViewPageNavigationParameter(url),
-            new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromRight });
+        if (Uri.TryCreate(url, UriKind.Absolute, out Uri? targetUri))
+            WebViewManager?.Navigate(targetUri);
 
-        _suppressNavSelectionChanged = true;
-        _previousSelectedIndex = MainSelectorBar.Items.IndexOf(MainSelectorBar.SelectedItem);
-        _previousSelectedItem = MainSelectorBar.SelectedItem;
-        MainSelectorBar.SelectedItem = SelectorBarItem_Browser;
-        _suppressNavSelectionChanged = false;
-        UpdateWebViewMemoryMode();
+        NavigateToWebViewPage();
     }
 
     /// <summary>
@@ -508,11 +470,105 @@ public sealed partial class MainWindow : Window
         if (WebViewManager is null)
             return;
 
-        bool isWebViewVisible = ContentFrame.Content is WebViewPage;
+        bool isWebViewVisible = _activeSection == MainShellSection.Browser;
         if (_isWindowActive && isWebViewVisible)
             WebViewManager.SetActiveMemoryMode();
         else
             WebViewManager.SetInactiveMemoryMode();
+    }
+
+    /// <summary>
+    /// 현재 표시 중인 메인 섹션에 해당하는 루트 페이지를 반환합니다.
+    /// </summary>
+    private Page? GetActiveRootPage()
+        => _activeSection switch
+        {
+            MainShellSection.Station => StationFrame.Content as Page,
+            MainShellSection.Browser => BrowserFrame.Content as Page,
+            MainShellSection.Setting => SettingFrame.Content as Page,
+            _ => null
+        };
+
+    /// <summary>
+    /// 지정한 메인 섹션만 보이도록 전환합니다.
+    /// </summary>
+    private Task ShowSection(MainShellSection section)
+        => ShowSectionAsync(section);
+
+    /// <summary>
+    /// 지정한 메인 섹션을 활성화하고, 해당 섹션의 표시 수명주기 훅을 실행합니다.
+    /// </summary>
+    private async Task ShowSectionAsync(MainShellSection section)
+    {
+        if (_activeSection == section)
+        {
+            await ActivateSectionAsync(section);
+            return;
+        }
+
+        DeactivateSection(_activeSection);
+        _activeSection = section;
+        StationFrame.Visibility = section == MainShellSection.Station ? Visibility.Visible : Visibility.Collapsed;
+        BrowserFrame.Visibility = section == MainShellSection.Browser ? Visibility.Visible : Visibility.Collapsed;
+        SettingFrame.Visibility = section == MainShellSection.Setting ? Visibility.Visible : Visibility.Collapsed;
+        UpdateWebViewMemoryMode();
+        await ActivateSectionAsync(section);
+    }
+
+    /// <summary>
+    /// 선택된 메인 탭 상태를 실제 섹션과 맞춥니다.
+    /// </summary>
+    private void SyncShellSelection(SelectorBarItem item, bool isSelected)
+    {
+        _suppressNavSelectionChanged = true;
+        MainSelectorBar.SelectedItem = isSelected ? item : MainSelectorBar.Items[0];
+        _suppressNavSelectionChanged = false;
+        _previousSelectedItem = MainSelectorBar.SelectedItem;
+    }
+
+    /// <summary>
+    /// SelectorBar 항목을 메인 셸 섹션으로 변환합니다.
+    /// </summary>
+    private static MainShellSection GetSectionFromSelectorItem(SelectorBarItem item)
+    {
+        return item.Text switch
+        {
+            "메인" => MainShellSection.Station,
+            "브라우저" => MainShellSection.Browser,
+            "설정" => MainShellSection.Setting,
+            _ => throw new InvalidOperationException($"Unknown main shell selector item: {item.Text}")
+        };
+    }
+
+    /// <summary>
+    /// 활성 섹션에 맞는 페이지 재동기화 로직을 실행합니다.
+    /// </summary>
+    private Task ActivateSectionAsync(MainShellSection section)
+    {
+        return section switch
+        {
+            MainShellSection.Station when StationFrame.Content is StationPage stationPage
+                => stationPage.OnShellActivatedAsync(this),
+            MainShellSection.Browser when BrowserFrame.Content is WebViewPage webViewPage
+                => webViewPage.OnShellActivatedAsync(this),
+            _ => Task.CompletedTask
+        };
+    }
+
+    /// <summary>
+    /// 비활성화되는 섹션의 정리 로직을 실행합니다.
+    /// </summary>
+    private void DeactivateSection(MainShellSection section)
+    {
+        switch (section)
+        {
+            case MainShellSection.Station when StationFrame.Content is StationPage stationPage:
+                stationPage.OnShellDeactivated();
+                break;
+            case MainShellSection.Browser when BrowserFrame.Content is WebViewPage webViewPage:
+                webViewPage.OnShellDeactivated();
+                break;
+        }
     }
 
     /// <summary>
