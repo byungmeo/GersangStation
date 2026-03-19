@@ -49,6 +49,12 @@
       "category": "help",
       "description": "프로그램 업데이트 내역"
     },
+    "help.update-check-fail": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/%EC%95%B1-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8-%EC%95%88%EB%82%B4",
+      "title": "업데이트 확인 실패 안내",
+      "category": "help",
+      "description": "자동 업데이트 확인 실패 시 수동 해결 안내"
+    },
     "oss.7zip.home": {
       "url": "https://www.7-zip.org/",
       "title": "7-Zip",

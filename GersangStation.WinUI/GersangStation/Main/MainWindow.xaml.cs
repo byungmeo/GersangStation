@@ -54,12 +54,14 @@ public sealed partial class MainWindow : Window
     private bool _hasShownStartupStoreUpdateDialog;
     private bool _isStartupFlowRunning;
     private bool _skipDefaultInitialNavigation;
+    private bool _hasStoreUpdateCheckFallbackWarning;
     private MainShellSection _activeSection = MainShellSection.Station;
     private bool _suppressNavSelectionChanged = false;
     private SelectorBarItem _previousSelectedItem;
     private StoreContext? _storeContext;
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
     private Task? _storeUpdateAvailabilityTask;
+    private readonly StoreUpdateFallbackService _storeUpdateFallbackService = new();
 
     public string CurrentAppVersionText { get; } = CreateCurrentVersionText();
     public bool HasAvailableStoreUpdate => _availableStoreUpdates.Count > 0;
@@ -293,7 +295,13 @@ public sealed partial class MainWindow : Window
 #else
         await EnsureStoreUpdateAvailabilityLoadedAsync();
         if (HasAvailableStoreUpdate)
+        {
             await ShowStoreUpdateDialogAsync();
+            return;
+        }
+
+        if (_hasStoreUpdateCheckFallbackWarning)
+            await ShowStoreUpdateCheckFallbackDialogAsync();
 #endif
     }
 
@@ -619,10 +627,13 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task LoadStoreUpdateAvailabilityAsync()
     {
+        bool storeCheckSucceeded = false;
+
         try
         {
             _storeContext ??= CreateStoreContext();
             _availableStoreUpdates = await _storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
+            storeCheckSucceeded = true;
         }
         catch (Exception ex)
         {
@@ -631,8 +642,24 @@ public sealed partial class MainWindow : Window
         }
         finally
         {
+            if (storeCheckSucceeded && _availableStoreUpdates.Count == 0)
+                _hasStoreUpdateCheckFallbackWarning = await HasStoreUpdateCheckFallbackWarningAsync();
+            else
+                _hasStoreUpdateCheckFallbackWarning = false;
+
             NotifyStoreUpdateStateChanged();
         }
+    }
+
+    /// <summary>
+    /// Store API가 업데이트 없음을 반환한 경우 GitHub manifest 기준 필수 업데이트 누락 여부를 보조 판정합니다.
+    /// </summary>
+    private async Task<bool> HasStoreUpdateCheckFallbackWarningAsync()
+    {
+        StoreUpdateFallbackService.StoreUpdateFallbackCheckResult result =
+            await _storeUpdateFallbackService.CheckRequiredUpdateAsync(Package.Current.Id.Version);
+
+        return result.HasRequiredUpdate;
     }
 
     /// <summary>
@@ -738,6 +765,52 @@ public sealed partial class MainWindow : Window
             _isStoreUpdateDialogOpen = false;
             NotifyStoreUpdateStateChanged();
         }
+    }
+
+    /// <summary>
+    /// 자동 업데이트 확인이 실패했지만 GitHub manifest에는 필수 업데이트가 표시된 경우 안내 대화 상자를 표시합니다.
+    /// </summary>
+    private async Task ShowStoreUpdateCheckFallbackDialogAsync()
+    {
+        if (Root.XamlRoot is null)
+            return;
+
+        AppContentDialog dialog = new()
+        {
+            XamlRoot = Root.XamlRoot,
+            Title = "업데이트가 존재합니다",
+            Content = new StackPanel
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = "현재 업데이트가 존재하지만, 앱이 자동으로 업데이트를 확인하는데 실패하였습니다.",
+                        TextWrapping = TextWrapping.WrapWholeWords
+                    },
+                    new TextBlock
+                    {
+                        Text = "안내 페이지 이동 버튼을 누르면 이 문제를 해결하는 방법을 확인하실 수 있습니다.",
+                        TextWrapping = TextWrapping.WrapWholeWords
+                    }
+                }
+            },
+            PrimaryButtonText = "안내 페이지 이동",
+            CloseButtonText = "닫기",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        if (await dialog.ShowManagedAsync() != ContentDialogResult.Primary)
+            return;
+
+        if (!App.LinkManager.TryGetUrl("help.update-check-fail", out string url))
+            return;
+
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
+            return;
+
+        await Launcher.LaunchUriAsync(uri);
     }
 
     /// <summary>
