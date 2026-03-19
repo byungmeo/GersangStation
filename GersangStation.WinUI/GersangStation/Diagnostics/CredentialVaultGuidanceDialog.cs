@@ -65,7 +65,7 @@ public static class CredentialVaultGuidanceDialog
             DefaultButton = ContentDialogButton.Primary
         };
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary &&
+        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary &&
             App.CurrentWindow is MainWindow window)
         {
             window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpCredentialVault);

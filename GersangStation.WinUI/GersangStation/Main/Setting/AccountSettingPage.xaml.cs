@@ -287,7 +287,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Close
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result != ContentDialogResult.Primary)
             return;
 
@@ -501,7 +501,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Close
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
     }
 
     private void NotifyEditorStateChanged()

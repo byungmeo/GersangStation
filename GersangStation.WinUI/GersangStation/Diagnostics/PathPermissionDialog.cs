@@ -35,7 +35,7 @@ public static class PathPermissionDialog
             "그래도 계속 하시겠습니까?",
             allowContinue: true);
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result == ContentDialogResult.Primary)
         {
             NavigateToPermissionHelp();
@@ -80,7 +80,7 @@ public static class PathPermissionDialog
 
         ContentDialog dialog = CreateDialog(xamlRoot, content, allowContinue: false);
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
             NavigateToPermissionHelp();
 
         return true;

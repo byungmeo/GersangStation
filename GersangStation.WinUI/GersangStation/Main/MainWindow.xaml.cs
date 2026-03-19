@@ -54,6 +54,7 @@ public sealed partial class MainWindow : Window
     private bool _hasShownStartupStoreUpdateDialog;
     private bool _isStartupFlowRunning;
     private bool _skipDefaultInitialNavigation;
+    private bool _hasSimulatedStoreUpdate = IsDevStoreUpdateSimulationEnabled;
     private MainShellSection _activeSection = MainShellSection.Station;
     private bool _suppressNavSelectionChanged = false;
     private SelectorBarItem _previousSelectedItem;
@@ -62,7 +63,7 @@ public sealed partial class MainWindow : Window
     private Task? _storeUpdateAvailabilityTask;
 
     public string CurrentAppVersionText { get; } = CreateCurrentVersionText();
-    public bool HasAvailableStoreUpdate => _availableStoreUpdates.Count > 0;
+    public bool HasAvailableStoreUpdate => _hasSimulatedStoreUpdate || _availableStoreUpdates.Count > 0;
     public bool StoreUpdateButtonEnabled => !_isStoreUpdateDialogOpen && HasAvailableStoreUpdate;
     public event EventHandler? StoreUpdateStateChanged;
 
@@ -88,6 +89,21 @@ public sealed partial class MainWindow : Window
 
         InitializeShellFrames();
         _previousSelectedItem = MainSelectorBar.SelectedItem;
+    }
+
+    /// <summary>
+    /// Dev 구성에서 Store 업데이트 UI를 실제 배포 없이 테스트할지 여부를 반환합니다.
+    /// </summary>
+    private static bool IsDevStoreUpdateSimulationEnabled
+    {
+        get
+        {
+#if DEV
+            return true;
+#else
+            return false;
+#endif
+        }
     }
 
     internal void RegisterWebViewManager(WebViewManager webviewManager)
@@ -177,9 +193,7 @@ public sealed partial class MainWindow : Window
             await HandleStartupFirstRunPromptAsync();
             HandleInitialNavigation();
 
-#if !DEV
             await EnsureStartupStoreUpdateDialogAsync();
-#endif
         }
         finally
         {
@@ -219,7 +233,7 @@ public sealed partial class MainWindow : Window
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result != ContentDialogResult.Primary)
             return true;
 
@@ -313,7 +327,7 @@ public sealed partial class MainWindow : Window
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result == ContentDialogResult.Primary)
         {
             _skipDefaultInitialNavigation = true;
@@ -619,6 +633,13 @@ public sealed partial class MainWindow : Window
     {
         try
         {
+            if (IsDevStoreUpdateSimulationEnabled)
+            {
+                _availableStoreUpdates = [];
+                _hasSimulatedStoreUpdate = true;
+                return;
+            }
+
             _storeContext ??= CreateStoreContext();
             _availableStoreUpdates = await _storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
         }
@@ -679,6 +700,21 @@ public sealed partial class MainWindow : Window
                 allowClose = false;
                 ConfigureStoreUpdateDialogForInstall(dialog, progressView);
 
+#if DEV
+                if (_hasSimulatedStoreUpdate)
+                {
+                    await SimulateStoreUpdateInstallAsync(progressView);
+                    _hasSimulatedStoreUpdate = false;
+                    _availableStoreUpdates = [];
+                    NotifyStoreUpdateStateChanged();
+
+                    isWaitingForCompletionConfirmation = true;
+                    allowClose = true;
+                    ConfigureStoreUpdateDialogForCompletion(dialog, progressView);
+                    return;
+                }
+#endif
+
                 StorePackageUpdateResult result = await InstallStoreUpdatesAsync(progress =>
                 {
                     _ = DispatcherQueue.TryEnqueue(() => UpdateStoreUpdateDialogProgress(progressView, progress));
@@ -727,7 +763,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            ContentDialogResult result = await dialog.ShowAsync();
+            ContentDialogResult result = await dialog.ShowManagedAsync();
             if (shouldExitAfterConfirmation && result == ContentDialogResult.Primary)
                 ForceCloseForInstalledStoreUpdate();
         }
@@ -806,6 +842,32 @@ public sealed partial class MainWindow : Window
                 Visibility = Visibility.Collapsed
             }
         };
+    }
+
+    /// <summary>
+    /// Dev 구성에서 Store 업데이트 설치 과정을 진행률과 함께 가볍게 시뮬레이션합니다.
+    /// </summary>
+    private static async Task SimulateStoreUpdateInstallAsync(StoreUpdateDialogProgressView progressView)
+    {
+        progressView.ProgressBar.IsIndeterminate = false;
+        progressView.StatusTextBlock.Visibility = Visibility.Visible;
+        progressView.ProgressTextBlock.Visibility = Visibility.Visible;
+
+        (double Percent, string Status)[] steps =
+        [
+            (15, "다운로드 준비 중"),
+            (45, "다운로드 중"),
+            (75, "설치 중"),
+            (100, "설치 완료")
+        ];
+
+        foreach ((double percent, string status) in steps)
+        {
+            progressView.ProgressBar.Value = percent;
+            progressView.StatusTextBlock.Text = $"상태: {status}";
+            progressView.ProgressTextBlock.Text = $"진행률: {percent:0}%";
+            await Task.Delay(350);
+        }
     }
 
     /// <summary>

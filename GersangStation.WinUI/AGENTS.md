@@ -51,6 +51,8 @@
 - For `DispatcherQueue` work, prefer `DispatcherQueue.TryEnqueueHandled(...)` over raw `TryEnqueue(...)` when the callback can throw.
 - For fire-and-forget tasks, do not leave `_ = Task.Run(...)` or other unobserved tasks without centralized handling. Prefer `FireAndForgetHandled(...)` or `SafeExecution.RunHandledAsync(...)`.
 - For timers, prefer `SafeExecution.StartHandledTimer(...)` over raw `new Timer(...)` when the callback can throw.
+- For WinUI `ContentDialog`, do not call `ShowAsync()` directly from app code. Prefer `ShowManagedAsync()` so dialog display is serialized through `App.DialogCoordinator`.
+- When introducing a reusable app dialog, prefer deriving from `AppContentDialog` rather than creating a new ad hoc `ContentDialog` type.
 - For non-UI async/sync entry points that may fail, prefer `SafeExecution.RunHandledAsync(...)` so exceptions are routed to `AppExceptionHandler`.
 - When calling `AppExceptionHandler` directly, prefer explicit intent methods such as `ShowRecoverableAsync(...)`, `HandleFatalUiExceptionAsync(...)`, or `HandleFatalProcessException(...)` over the legacy boolean-based `HandleAsync(..., isFatal)`.
 - Treat global unhandled exception hooks as crash-reporting boundaries, not recovery points. Prefer logging, minimal final user notification, and termination over trying to continue after `Application.UnhandledException` or `AppDomain.CurrentDomain.UnhandledException`.

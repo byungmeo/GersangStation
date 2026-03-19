@@ -39,7 +39,7 @@ public static class AppDataOperationDialog
             DefaultButton = ContentDialogButton.Close
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
     }
 
     private static string BuildMessage(string summary, AppDataManager.AppDataOperationResult result)

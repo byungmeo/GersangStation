@@ -249,7 +249,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result == ContentDialogResult.Secondary)
             _roughLoginNoticeSuppressedForSession = true;
     }
@@ -268,7 +268,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Close
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
 
         if (_currentWindow is MainWindow mainWindow)
             mainWindow.NavigateToWebViewPage();
@@ -1191,7 +1191,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             dlg.Loaded += ContentDialog_Loaded;
         }
             
-        var result = await dlg.ShowAsync();
+        var result = await dlg.ShowManagedAsync();
         dlg.Loaded -= ContentDialog_Loaded;
         if (result == ContentDialogResult.Primary)
         {
@@ -1240,7 +1240,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        await dlg.ShowAsync();
+        await dlg.ShowManagedAsync();
 
         await ShowOtpDialogAsync(true);
     }
@@ -1296,7 +1296,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dlg.ShowAsync();
+        ContentDialogResult result = await dlg.ShowManagedAsync();
         if (result == ContentDialogResult.Secondary
             && _currentWindow is MainWindow mainWindow)
         {
@@ -1342,7 +1342,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Close
                     };
 
-                    await dlg.ShowAsync();
+                    await dlg.ShowManagedAsync();
                     args.Accept();
                     break;
                 }
@@ -1359,7 +1359,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Primary
                     };
 
-                    var result = await dlg.ShowAsync();
+                    var result = await dlg.ShowManagedAsync();
                     if (result == ContentDialogResult.Primary)
                         args.Accept(); // true
                                        // else: false (Accept 안함)
@@ -1384,7 +1384,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Primary
                     };
 
-                    var result = await dlg.ShowAsync();
+                    var result = await dlg.ShowManagedAsync();
                     if (result == ContentDialogResult.Primary)
                     {
                         args.ResultText = input.Text; // prompt 결과 문자열

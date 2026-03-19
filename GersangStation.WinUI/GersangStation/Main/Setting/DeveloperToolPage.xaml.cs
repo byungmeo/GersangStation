@@ -185,7 +185,7 @@ public sealed partial class DeveloperToolPage : Page
             DefaultButton = ContentDialogButton.Primary
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
     }
 
     /// <summary>

@@ -454,7 +454,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
             window.NavigateToSettingPage(SettingSection.Account);
     }
 
@@ -474,7 +474,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result == ContentDialogResult.Primary)
         {
             window.NavigateToSettingPage(
@@ -506,7 +506,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
         {
             window.NavigateToSettingPage(
                 SettingSection.InstallPath,
@@ -532,7 +532,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        if (await dialog.ShowManagedAsync() != ContentDialogResult.Primary)
             return;
 
         MultiClientCreationAttemptResult createResult = await TryCreateMissingMultiClientAsync(server, clientIndex);
@@ -611,7 +611,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result == ContentDialogResult.Primary)
         {
             window.NavigateToSettingPage(
@@ -695,7 +695,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
             window.NavigateToSettingPage(SettingSection.Account);
 
         return false;
@@ -723,7 +723,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
         {
             window.NavigateToSettingPage(
                 SettingSection.InstallPath,
@@ -749,7 +749,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Close
         };
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await dialog.ShowManagedAsync() == ContentDialogResult.Primary;
     }
 
     /// <summary>
@@ -766,7 +766,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
     }
 
     /// <summary>
@@ -825,7 +825,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Close
         };
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await dialog.ShowManagedAsync() == ContentDialogResult.Primary;
     }
 
     /// <summary>

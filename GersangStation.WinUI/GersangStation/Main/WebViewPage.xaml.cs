@@ -473,7 +473,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
                 args.Cancel = true;
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         return result == ContentDialogResult.Primary ? input.Text.Trim() : null;
     }
 
@@ -488,7 +488,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
             DefaultButton = ContentDialogButton.Close
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
     }
 
     private BrowserFavorite? FindFavoriteByUrl(string absoluteUrl)
@@ -727,7 +727,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
                 DefaultButton = ContentDialogButton.Primary
             };
 
-            if (await dialog.ShowAsync() == ContentDialogResult.Primary &&
+            if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary &&
                 App.CurrentWindow is MainWindow window)
             {
                 window.NavigateToSettingPage(SettingSection.Account);
@@ -787,7 +787,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
             DefaultButton = ContentDialogButton.Close
         };
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await dialog.ShowManagedAsync() == ContentDialogResult.Primary;
     }
 
     /// <summary>

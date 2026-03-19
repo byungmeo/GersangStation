@@ -526,7 +526,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
 
         return result == ContentDialogResult.Primary
             ? PatchArchiveReuseMode.ResumeIfPossible
@@ -691,7 +691,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 PrimaryButtonText = "확인",
                 DefaultButton = ContentDialogButton.Primary
             };
-            await contentDialog.ShowAsync();
+        await contentDialog.ShowManagedAsync();
             return false;
         }
 
@@ -728,7 +728,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             DefaultButton = ContentDialogButton.Close
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
     }
 
     #region SelectorBar

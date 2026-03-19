@@ -152,7 +152,7 @@ namespace GersangStation.Main.Setting
                 CloseButtonText = "취소",
                 DefaultButton = ContentDialogButton.Primary
             };
-            ContentDialogResult result = await saveDialog.ShowAsync();
+        ContentDialogResult result = await saveDialog.ShowManagedAsync();
             if (result == ContentDialogResult.Primary)
             {
                 if (await SaveClientSettingsAsync())

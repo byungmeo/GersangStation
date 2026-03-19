@@ -20,6 +20,7 @@ namespace GersangStation
         public static Window? CurrentWindow { get; private set; }
         public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcherQueue { get; private set; }
         public static AppExceptionHandler ExceptionHandler { get; } = new();
+        public static ContentDialogCoordinator DialogCoordinator { get; } = new();
         public static LinkManager LinkManager { get; } = new();
         public static bool IsRunningAsAdministrator { get; private set; }
         public static bool IsWindowsAppRuntimeDeploymentReady { get; private set; }

@@ -464,7 +464,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             DefaultButton = ContentDialogButton.Close
         };
 
-        ContentDialogResult result = await dialog.ShowAsync();
+        ContentDialogResult result = await dialog.ShowManagedAsync();
         if (result == ContentDialogResult.None)
             return;
 
@@ -551,7 +551,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             DefaultButton = ContentDialogButton.Primary
         };
 
-        await dialog.ShowAsync();
+        await dialog.ShowManagedAsync();
     }
 
     private bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)

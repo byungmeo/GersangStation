@@ -25,6 +25,6 @@ internal static class ExitConfirmationDialog
             DefaultButton = ContentDialogButton.Close
         };
 
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return await dialog.ShowManagedAsync() == ContentDialogResult.Primary;
     }
 }
