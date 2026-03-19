@@ -41,11 +41,11 @@ public sealed partial class MainWindow : Window
     private bool _hasHandledInitialNavigation;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
-    private bool _isFirstRunPromptPending;
     private bool _isCloseConfirmationPending;
     private bool _isWindowActive = true;
     private bool _isStoreUpdateDialogOpen;
     private bool _hasShownStartupStoreUpdateDialog;
+    private bool _isStartupFlowRunning;
     private bool _suppressNavSelectionChanged = false;
     private int _previousSelectedIndex = 0;
     private SelectorBarItem _previousSelectedItem;
@@ -132,7 +132,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 최초 활성화 시 한 번만 최초 실행 안내를 표시합니다.
+    /// 창 활성 상태를 추적하고 WebView 메모리 정책을 갱신합니다.
     /// </summary>
     private async void OnActivated(object sender, WindowActivatedEventArgs args)
     {
@@ -141,87 +141,33 @@ public sealed partial class MainWindow : Window
 
         if (args.WindowActivationState == WindowActivationState.Deactivated)
             return;
-
-        string[] versionParts = AppDataManager.PrevVersion.Split('.');
-
-        PackageVersion prevVersion = versionParts.Length == 4
-        ? new PackageVersion(
-            ushort.Parse(versionParts[0]),
-            ushort.Parse(versionParts[1]),
-            ushort.Parse(versionParts[2]),
-            ushort.Parse(versionParts[3]))
-        : new PackageVersion(1, 0, 0, 0);
-
-        PackageVersion currentVersion = Package.Current.Id.Version;
-
-        if (!_hasShownFirstRunPrompt && !_isFirstRunPromptPending && !AppDataManager.IsSetupCompleted)
-        {
-            if (Root.XamlRoot is not null)
-            {
-                _isFirstRunPromptPending = true;
-                await ShowFirstRunPromptAsync();
-
-                // 최초 실행자에게 굳이 업데이트 노트를 보여주지는 않는다
-                AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
-                prevVersion = currentVersion;
-            }
-        }
-
-        // 만약 업데이트 후 최초 실행이라면 릴리즈 노트를 보러 브라우저 페이지로 이동
-        if (!_hasHandledInitialNavigation)
-        {
-            _hasHandledInitialNavigation = true;
-
-            if (PackageVersionComparer.IsNewer(currentVersion, prevVersion))
-            {
-                AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
-                NavigateToWebViewPageByLinkKey("help.update.release-note");
-            }
-            else
-            {
-                ContentFrame.Navigate(typeof(StationPage));
-            }
-        }
-
-#if !DEV
-        await EnsureStartupStoreUpdateDialogAsync();
-#endif
     }
 
     /// <summary>
-    /// 루트가 시각 트리에 연결되면 대기 중인 최초 실행 안내를 표시합니다.
+    /// 루트가 시각 트리에 연결되면 시작 시 필요한 안내와 초기 탐색을 순차적으로 처리합니다.
     /// </summary>
     private async void OnRootLoaded(object sender, RoutedEventArgs e)
     {
-        if (Root.XamlRoot is null)
+        if (Root.XamlRoot is null || _isStartupFlowRunning)
             return;
 
-        if (!App.IsRunningAsAdministrator)
+        _isStartupFlowRunning = true;
+        try
         {
-            ContentDialog dialog = new ContentDialog()
-            {
-                XamlRoot = Content.XamlRoot,
-                Title = "관리자 권한으로 실행하지 않음",
-                Content = "현재 앱이 관리자 권한으로 실행되지 않았습니다.\n관리자 권한이 없으면 일부 기능이 동작하지 않을 수 있습니다.\n그래도 계속 하시겠습니까?",
-                PrimaryButtonText = "해결 방법 확인한 뒤 종료",
-                CloseButtonText = "네, 계속 하겠습니다.",
-                DefaultButton = ContentDialogButton.Primary
-            };
+            if (!await HandleStartupAdministratorPromptAsync())
+                return;
 
-            ContentDialogResult result = await dialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
-            {
-                await Launcher.LaunchUriAsync(App.LinkManager.ResolveNavigation("help.permission.multi-client").Uri);
-                Application.Current.Exit();
-            }
-        }
-
-        if (_isFirstRunPromptPending && !_hasShownFirstRunPrompt)
-            await ShowFirstRunPromptAsync();
+            await HandleStartupFirstRunPromptAsync();
+            HandleInitialNavigation();
 
 #if !DEV
-        await EnsureStartupStoreUpdateDialogAsync();
+            await EnsureStartupStoreUpdateDialogAsync();
 #endif
+        }
+        finally
+        {
+            _isStartupFlowRunning = false;
+        }
     }
 
     /// <summary>
@@ -233,10 +179,84 @@ public sealed partial class MainWindow : Window
             return;
 
         _hasShownFirstRunPrompt = true;
-        _isFirstRunPromptPending = false;
 
         AppDataManager.IsSetupCompleted = true;
         await ShowInitialSettingPromptAsync();
+    }
+
+    /// <summary>
+    /// 관리자 권한 안내를 시작 플로우 안에서 한 번만 표시합니다.
+    /// </summary>
+    private async Task<bool> HandleStartupAdministratorPromptAsync()
+    {
+        if (App.IsRunningAsAdministrator || Root.XamlRoot is null)
+            return true;
+
+        ContentDialog dialog = new()
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = "관리자 권한으로 실행하지 않음",
+            Content = "현재 앱이 관리자 권한으로 실행되지 않았습니다.\n관리자 권한이 없으면 일부 기능이 동작하지 않을 수 있습니다.\n그래도 계속 하시겠습니까?",
+            PrimaryButtonText = "해결 방법 확인한 뒤 종료",
+            CloseButtonText = "네, 계속 하겠습니다.",
+            DefaultButton = ContentDialogButton.Primary
+        };
+
+        ContentDialogResult result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary)
+            return true;
+
+        await Launcher.LaunchUriAsync(App.LinkManager.ResolveNavigation("help.permission.multi-client").Uri);
+        Application.Current.Exit();
+        return false;
+    }
+
+    /// <summary>
+    /// 최초 실행 안내를 시작 플로우 안에서 순차적으로 표시합니다.
+    /// </summary>
+    private async Task HandleStartupFirstRunPromptAsync()
+    {
+        if (_hasShownFirstRunPrompt || AppDataManager.IsSetupCompleted)
+            return;
+
+        await ShowFirstRunPromptAsync();
+    }
+
+    /// <summary>
+    /// 시작 시 최초 한 번만 Station 또는 릴리즈 노트 화면으로 이동합니다.
+    /// </summary>
+    private void HandleInitialNavigation()
+    {
+        if (_hasHandledInitialNavigation)
+            return;
+
+        _hasHandledInitialNavigation = true;
+
+        string[] versionParts = AppDataManager.PrevVersion.Split('.');
+        PackageVersion prevVersion = versionParts.Length == 4
+            ? new PackageVersion(
+                ushort.Parse(versionParts[0]),
+                ushort.Parse(versionParts[1]),
+                ushort.Parse(versionParts[2]),
+                ushort.Parse(versionParts[3]))
+            : new PackageVersion(1, 0, 0, 0);
+
+        PackageVersion currentVersion = Package.Current.Id.Version;
+        if (_hasShownFirstRunPrompt)
+        {
+            // 최초 실행자에게 굳이 업데이트 노트를 보여주지는 않는다.
+            AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
+            prevVersion = currentVersion;
+        }
+
+        if (PackageVersionComparer.IsNewer(currentVersion, prevVersion))
+        {
+            AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
+            NavigateToWebViewPageByLinkKey("help.update.release-note");
+            return;
+        }
+
+        ContentFrame.Navigate(typeof(StationPage));
     }
 
     /// <summary>
@@ -386,13 +406,13 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public void NavigateToSettingPage(SettingSection section, object? pageParameter = null)
     {
-        ContentFrame.Navigate(typeof(SettingPage), 
+        ContentFrame.Navigate(typeof(SettingPage),
             new SettingPageNavigationParameter
             {
                 Section = section,
                 PageParameter = pageParameter
-            }, 
-            new SlideNavigationTransitionInfo{ Effect = SlideNavigationTransitionEffect.FromLeft });
+            },
+            new SlideNavigationTransitionInfo { Effect = SlideNavigationTransitionEffect.FromLeft });
 
         _suppressNavSelectionChanged = true;
         _previousSelectedIndex = MainSelectorBar.Items.IndexOf(MainSelectorBar.SelectedItem);
