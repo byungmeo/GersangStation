@@ -10,7 +10,7 @@
   IgnorableNamespaces="uap rescap systemai uap18">
 
   <Identity
-    Name="Byungmeo.642537A4A3EB7"
+    Name="GersangStation"
     Publisher="CN=byungmeo.dev"
     Version="2.0.2.0" />
 
