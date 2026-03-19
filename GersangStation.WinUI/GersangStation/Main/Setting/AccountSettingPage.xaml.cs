@@ -120,6 +120,9 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private readonly List<Account> _selectedAccounts = [];
     private bool _suppressSelectionChanged;
+    private bool _isLoadingAccounts;
+    private bool _hasBlockingAccountLoadFailure;
+    private List<Account> _loadedAccounts = [];
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -132,13 +135,15 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     public bool Deletable => _selectedAccounts.Count > 0;
     public bool CanEditSelectedAccount => AccountManagementEnabled && Editable;
     public bool CanDeleteSelectedAccount => AccountManagementEnabled && Deletable;
-    public bool CanSave => !string.IsNullOrWhiteSpace(Editor.Id) &&
+    public bool CanSave => !_isLoadingAccounts &&
+        !_hasBlockingAccountLoadFailure &&
+        !string.IsNullOrWhiteSpace(Editor.Id) &&
         (!RequiresPassword || !string.IsNullOrWhiteSpace(Editor.Password));
     public string SaveButtonText => Editor.IsEditingExisting ? "수정 저장" : "추가";
     public string EditorTitle => Editor.IsEditingExisting ? "선택한 계정 수정" : "새 계정 추가";
     public string PasswordBoxHeader => Editor.IsEditingExisting ? "새 패스워드" : "패스워드";
     public string PasswordPlaceholderText => Editor.IsEditingExisting ? "변경할 때만 입력" : "필수 입력";
-    public bool AccountManagementEnabled => !Editor.IsEditingExisting;
+    public bool AccountManagementEnabled => !_isLoadingAccounts && !_hasBlockingAccountLoadFailure && !Editor.IsEditingExisting;
     public Visibility ChangePasswordToggleVisibility => Editor.IsEditingExisting ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PasswordBoxVisibility => !Editor.IsEditingExisting || Editor.IsChangingPassword ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ResetButtonVisibility => Editor.IsEditingExisting ? Visibility.Collapsed : Visibility.Visible;
@@ -190,6 +195,9 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     /// </summary>
     private async Task SaveEditorAsync()
     {
+        if (_isLoadingAccounts || _hasBlockingAccountLoadFailure)
+            return;
+
         string? validationError = GetValidationErrorMessage();
         if (!string.IsNullOrWhiteSpace(validationError))
         {
@@ -203,7 +211,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         string nickname = string.IsNullOrWhiteSpace(Editor.Nickname) ? id : Editor.Nickname.Trim();
         string groupName = Editor.GroupName.Trim();
 
-        List<Account> nextAccounts = AppDataManager.LoadAccounts()
+        List<Account> nextAccounts = _loadedAccounts
             .Where(account => !string.IsNullOrWhiteSpace(account.Id))
             .Select(account => account.Clone())
             .ToList();
@@ -257,6 +265,9 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private async void Button_Delete_Click(object sender, RoutedEventArgs e)
     {
+        if (_isLoadingAccounts || _hasBlockingAccountLoadFailure)
+            return;
+
         if (_selectedAccounts.Count == 0)
             return;
 
@@ -283,7 +294,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             .Where(id => id.Length > 0)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        List<Account> nextAccounts = AppDataManager.LoadAccounts()
+        List<Account> nextAccounts = _loadedAccounts
             .Where(account => !string.IsNullOrWhiteSpace(account.Id))
             .Where(account => !selectedIds.Contains(account.Id.Trim()))
             .Select(account => account.Clone())
@@ -341,22 +352,33 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private async Task LoadAccountsAsync()
     {
+        _isLoadingAccounts = true;
+        NotifyEditorStateChanged();
+        NotifySelectionStateChanged();
+
         (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadAccountsAsync();
         ApplyAccounts(savedAccounts);
+        _hasBlockingAccountLoadFailure = !result.Success;
+        _isLoadingAccounts = false;
+        NotifyEditorStateChanged();
+        NotifySelectionStateChanged();
 
         if (!result.Success)
         {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "계정 불러오기 실패",
-                "저장된 계정 정보를 모두 불러오지 못했습니다.",
-                result);
+            await App.ExceptionHandler.ShowRecoverableAsync(
+                BuildAccountLoadException(result),
+                "AccountSettingPage.LoadAccountsAsync");
         }
     }
 
     private void ApplyAccounts(IEnumerable<Account> accounts)
     {
-        AccountsCVS.Source = Account.GetAccountsGrouped(accounts
+        _loadedAccounts = accounts
+            .Where(account => !string.IsNullOrWhiteSpace(account.Id))
+            .Select(account => account.Clone())
+            .ToList();
+
+        AccountsCVS.Source = Account.GetAccountsGrouped(_loadedAccounts
             .Where(account => !string.IsNullOrWhiteSpace(account.Id))
             .ToList());
 
@@ -395,6 +417,16 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         OnPropertyChanged(nameof(CanDeleteSelectedAccount));
     }
 
+    /// <summary>
+    /// 계정 목록 로드 실패를 상세 예외 창으로 전달할 예외 객체로 정리합니다.
+    /// </summary>
+    private static Exception BuildAccountLoadException(AppDataManager.AppDataOperationResult result)
+    {
+        return new InvalidOperationException(
+            $"계정 목록을 불러오지 못했습니다. Operation={result.Operation}, Target={result.Target}, ErrorKind={result.ErrorKind}",
+            result.Exception);
+    }
+
     private string? GetValidationErrorMessage()
     {
         string id = Editor.Id.Trim();
@@ -421,8 +453,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             }
         }
 
-        IList<Account> currentAccounts = AppDataManager.LoadAccounts();
-        IEnumerable<Account> otherAccounts = currentAccounts.Where(account =>
+        IEnumerable<Account> otherAccounts = _loadedAccounts.Where(account =>
             !string.Equals(account.Id.Trim(), originalId, StringComparison.OrdinalIgnoreCase));
 
         if (otherAccounts.Any(account => string.Equals(account.Id.Trim(), id, StringComparison.OrdinalIgnoreCase)))

@@ -40,6 +40,10 @@
 - At the end of every coding task, always recommend a commit message. Base the recommendation on the full set of uncommitted changes at that moment, so if the user skipped a commit for the previous task, the next recommendation must cover the accumulated work.
 
 ## Exception Handling Rules
+- Exception policy is user-owned in this repository. When Codex or another AI introduces or changes exception handling for any feature or code path, do not invent the final policy alone.
+- Before deciding exception type, handling strategy, retry behavior, fallback, logging level, user-facing message, or whether to continue/abort, explicitly ask the user how that case should be treated.
+- When asking, summarize the likely exception cause and present concrete handling options such as user-actionable guidance, retryable warning, reportable error, recoverable dialog, or fatal termination, then wait for the user's decision before implementing the policy.
+- Apply the same rule when adding a new feature: if the feature introduces a new failure path, stop and ask the user how to classify and handle that exception path before finalizing the implementation.
 - Treat exception handling as a cross-cutting repository policy. When Codex or another AI adds or changes code that can fail, prefer routing failures into the centralized exception pipeline instead of adding ad hoc `catch (Exception)` blocks.
 - Do not silently swallow exceptions. Avoid empty `catch` blocks and avoid patterns that only log to `Debug.WriteLine` without either recovering, returning a meaningful result, or forwarding the exception to `App.ExceptionHandler`.
 - Catch broad exceptions only at execution boundaries such as WinUI event handlers, app startup, background work entry points, timer callbacks, dispatcher callbacks, or external I/O boundaries.
@@ -56,7 +60,7 @@
 - Preserve original exception context. Do not use `throw ex;`. Use `throw;` for rethrow, or wrap with a domain-specific exception that keeps the original exception as `InnerException`.
 - When adding new background or scheduling mechanisms, extend the centralized exception utilities rather than inventing a new local handling pattern.
 - Keep `Core` free of app-specific UI wording. When `AppDataManager` returns `AppDataOperationResult`, translate it in the `GersangStation` app layer with the shared formatter/dialog helper instead of showing raw `Exception.Message` or generic one-line failure text.
-- Prefer contextual `ContentDialog`/`InfoBar` style feedback for recoverable UI errors. Reserve the detailed exception window for crash reporting, developer tooling, or explicit support diagnostics.
+- The current user policy is to keep recoverable exceptions on the detailed exception window by default. Do not replace them with `ContentDialog` or `InfoBar` unless the user explicitly asks for a narrower contextual UI for that case.
 - If a change introduces a new exception-handling pattern, update this file in the same change so future AI-assisted edits follow the same rule set.
 
 ## Validation

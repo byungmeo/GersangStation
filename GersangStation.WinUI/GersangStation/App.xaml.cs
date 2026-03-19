@@ -240,9 +240,11 @@ namespace GersangStation
                 return;
             }
 
-            _ = ExceptionHandler.ShowRecoverableAsync(
+            ExceptionHandler.HandleProcessFallbackException(
                 exception,
-                "AppDomain.CurrentDomain.UnhandledException");
+                "AppDomain.CurrentDomain.UnhandledException",
+                isFatal: false,
+                exitApplication: false);
         }
 
         /// <summary>

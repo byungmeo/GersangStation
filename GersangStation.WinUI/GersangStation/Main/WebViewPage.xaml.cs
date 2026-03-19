@@ -1,6 +1,7 @@
 using Core;
 using Core.Models;
 using GersangStation.Diagnostics;
+using GersangStation.Main.Setting;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -60,9 +61,8 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         };
     }
 
-    private void UpdateComboBox()
+    private void ApplyAccounts(IEnumerable<Account> accounts)
     {
-        SelectedAccount = null;
         bool loggedIn = false;
         string loggedInId = string.Empty;
         if (_webviewManager is not null && _webviewManager.LoggedIn)
@@ -71,28 +71,26 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
             loggedInId = _webviewManager.LoggedInMemberId;
         }
 
+        Account? selectedAccount = null;
         Accounts.Clear();
-        IList<Account> accounts = AppDataManager.LoadAccounts();
         foreach (Account account in accounts)
         {
             Accounts.Add(account);
             if (loggedIn && LoginIdComparer.EqualsForComparison(account.Id, loggedInId))
-            {
-                _suppressUserSelectionChanged = true;
-                SelectedAccount = account;
-                _suppressUserSelectionChanged = false;
-            }
+                selectedAccount = account;
         }
+
+        _suppressUserSelectionChanged = true;
+        SelectedAccount = selectedAccount;
+        _suppressUserSelectionChanged = false;
     }
 
     /// <summary>
     /// 페이지 진입 시 WebViewManager를 초기화하고, 필요하면 전달받은 URL로 이동합니다.
     /// </summary>
-    protected override void OnNavigatedTo(NavigationEventArgs e)
+    protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        UpdateComboBox();
-        _ = LoadFavoritesAsync();
 
         MainWindow? window = e.Parameter as MainWindow ?? App.CurrentWindow as MainWindow;
         if (!_initialized && window is not null)
@@ -109,11 +107,14 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         {
             _webviewManager?.Navigate(targetUri);
         }
+
+        await LoadAccountsAsync();
+        await LoadFavoritesAsync();
     }
 
     private void OnLoggedInChanged(object? sender, EventArgs e)
     {
-        UpdateComboBox();
+        SyncSelectedAccountToLoggedInState();
     }
 
     public void Dispose()
@@ -379,20 +380,11 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     {
         (IList<BrowserFavorite> favorites, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadBrowserFavoritesAsync();
 
-        Favorites.Clear();
-        foreach (BrowserFavorite favorite in favorites)
-            Favorites.Add(favorite);
-
+        ReplaceFavorites(favorites);
         UpdateFavoriteButtonState();
 
         if (!result.Success)
-        {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "즐겨찾기 불러오기 실패",
-                "저장된 즐겨찾기 목록을 모두 불러오지 못했습니다.",
-                result);
-        }
+            await HandleInitialFavoritesLoadFailureAsync(result);
     }
 
     /// <summary>
@@ -645,5 +637,169 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         {
             // placeholder fallback is sufficient when cache cleanup fails
         }
+    }
+
+    /// <summary>
+    /// 저장된 계정 목록을 읽어와 로그인 선택 콤보박스에 반영합니다.
+    /// </summary>
+    private async Task LoadAccountsAsync()
+    {
+        (IList<Account> accounts, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadAccountsAsync();
+        ApplyAccounts(accounts);
+
+        if (!result.Success)
+            await HandleInitialAccountsLoadFailureAsync(result);
+    }
+
+    /// <summary>
+    /// 현재 로그인 상태에 맞춰 계정 콤보박스 선택만 다시 맞춥니다.
+    /// </summary>
+    private void SyncSelectedAccountToLoggedInState()
+    {
+        bool loggedIn = _webviewManager is not null && _webviewManager.LoggedIn;
+        string loggedInId = loggedIn ? _webviewManager!.LoggedInMemberId : string.Empty;
+        Account? selectedAccount = null;
+
+        if (loggedIn)
+        {
+            foreach (Account account in Accounts)
+            {
+                if (LoginIdComparer.EqualsForComparison(account.Id, loggedInId))
+                {
+                    selectedAccount = account;
+                    break;
+                }
+            }
+        }
+
+        _suppressUserSelectionChanged = true;
+        SelectedAccount = selectedAccount;
+        _suppressUserSelectionChanged = false;
+    }
+
+    /// <summary>
+    /// WebViewPage 초기 계정 목록 로드 실패를 사용자 정책에 맞춰 처리합니다.
+    /// </summary>
+    private async Task HandleInitialAccountsLoadFailureAsync(AppDataManager.AppDataOperationResult result)
+    {
+        if (!IsFileBackedInitialLoadFailure(result))
+        {
+            await App.ExceptionHandler.ShowRecoverableAsync(
+                BuildAppDataLoadException("계정 목록", result),
+                "WebViewPage.LoadAccountsAsync");
+            return;
+        }
+
+        if (result.ErrorKind == AppDataManager.AppDataErrorKind.Serialization)
+        {
+            ContentDialog dialog = new()
+            {
+                XamlRoot = XamlRoot,
+                Title = "계정 목록 불러오기 실패",
+                Content =
+                    "저장된 계정 파일 형식이 손상되어 웹 로그인에 사용할 계정 목록을 읽을 수 없습니다.\n\n" +
+                    "계정 설정 페이지로 이동해 확인할까요?",
+                PrimaryButtonText = "계정 설정",
+                CloseButtonText = "확인",
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            if (await dialog.ShowAsync() == ContentDialogResult.Primary &&
+                App.CurrentWindow is MainWindow window)
+            {
+                window.NavigateToSettingPage(SettingSection.Account);
+            }
+
+            return;
+        }
+
+        await AppDataOperationDialog.ShowFailureAsync(
+            XamlRoot,
+            "계정 목록 불러오기 실패",
+            "저장된 계정 목록을 불러오지 못했습니다. 계정 선택 기능을 사용할 수 없습니다.",
+            result);
+    }
+
+    /// <summary>
+    /// WebViewPage 초기 즐겨찾기 로드 실패를 사용자 정책에 맞춰 처리합니다.
+    /// </summary>
+    private async Task HandleInitialFavoritesLoadFailureAsync(AppDataManager.AppDataOperationResult result)
+    {
+        if (!IsFileBackedInitialLoadFailure(result))
+        {
+            await App.ExceptionHandler.ShowRecoverableAsync(
+                BuildAppDataLoadException("즐겨찾기 목록", result),
+                "WebViewPage.LoadFavoritesAsync");
+            return;
+        }
+
+        if (result.ErrorKind == AppDataManager.AppDataErrorKind.Serialization &&
+            await ShowResetFavoritesDialogAsync(result.Target))
+        {
+            await ResetFavoritesAsync();
+            return;
+        }
+
+        await AppDataOperationDialog.ShowFailureAsync(
+            XamlRoot,
+            "즐겨찾기 불러오기 실패",
+            "저장된 즐겨찾기 목록을 모두 불러오지 못했습니다.",
+            result);
+    }
+
+    /// <summary>
+    /// 손상된 즐겨찾기 파일을 초기화할지 사용자에게 묻습니다.
+    /// </summary>
+    private async Task<bool> ShowResetFavoritesDialogAsync(string target)
+    {
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = "즐겨찾기 초기화",
+            Content =
+                $"즐겨찾기 파일({target}) 형식이 손상되어 읽을 수 없습니다.\n\n" +
+                "즐겨찾기를 비운 상태로 초기화할까요?",
+            PrimaryButtonText = "초기화",
+            CloseButtonText = "취소",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    /// <summary>
+    /// 손상된 즐겨찾기 파일을 빈 목록으로 초기화합니다.
+    /// </summary>
+    private async Task ResetFavoritesAsync()
+    {
+        AppDataManager.AppDataOperationResult result = await AppDataManager.SaveBrowserFavoritesAsync([]);
+        if (!result.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "즐겨찾기 초기화 실패",
+                "손상된 즐겨찾기 파일을 초기화하지 못했습니다.",
+                result);
+            return;
+        }
+
+        ReplaceFavorites([]);
+        UpdateFavoriteButtonState();
+    }
+
+    /// <summary>
+    /// 파일 손상 또는 접근 실패처럼 사용자가 조치할 수 있는 초기 로드 실패인지 판별합니다.
+    /// </summary>
+    private static bool IsFileBackedInitialLoadFailure(AppDataManager.AppDataOperationResult result)
+        => result.ErrorKind is AppDataManager.AppDataErrorKind.Storage or AppDataManager.AppDataErrorKind.Serialization;
+
+    /// <summary>
+    /// AppData 로드 실패를 기본 상세 예외 창으로 전달할 예외 객체로 정리합니다.
+    /// </summary>
+    private static Exception BuildAppDataLoadException(string dataName, AppDataManager.AppDataOperationResult result)
+    {
+        return new InvalidOperationException(
+            $"{dataName}을(를) 불러오지 못했습니다. Operation={result.Operation}, Target={result.Target}, ErrorKind={result.ErrorKind}",
+            result.Exception);
     }
 }

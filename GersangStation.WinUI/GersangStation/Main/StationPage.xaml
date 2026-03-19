@@ -521,7 +521,7 @@
 
                             <TextBlock
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                Text="공지사항이 없습니다."
+                                Text="{x:Bind HomepageNoticeStatusText, Mode=OneWay}"
                                 Visibility="{x:Bind HomepageNoticeEmptyVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </Grid>

@@ -57,23 +57,29 @@ public sealed class AppExceptionHandler
     /// WinUI를 신뢰할 수 없는 전역 프로세스 수준 예외를 저수준 fallback으로만 기록하고 안내합니다.
     /// </summary>
     public void HandleFatalProcessException(Exception exception, string context)
+        => HandleProcessFallbackException(exception, context, isFatal: true, exitApplication: false);
+
+    /// <summary>
+    /// WinUI를 사용할 수 없는 경로에서 예외를 저수준 fallback으로만 기록하고 안내합니다.
+    /// </summary>
+    public void HandleProcessFallbackException(Exception exception, string context, bool isFatal, bool exitApplication)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
         if (exception is OperationCanceledException)
             return;
 
-        if (ShouldSuppressDuplicate(exception, isFatal: true))
+        if (ShouldSuppressDuplicate(exception, isFatal))
             return;
 
-        string details = ExceptionDetailsBuilder.Build(exception, context, isFatal: true);
-        string? logPath = TryWriteCrashLog(details, isFatal: true);
+        string details = ExceptionDetailsBuilder.Build(exception, context, isFatal);
+        string? logPath = TryWriteCrashLog(details, isFatal);
         string detailsWithLogPath = logPath is null
             ? details
             : $"{details}{Environment.NewLine}Crash Log: {logPath}";
 
         Debug.WriteLine(detailsWithLogPath);
-        ShowNativeFallback(exception, context, logPath, isFatal: true, exitApplication: false);
+        ShowNativeFallback(exception, context, logPath, isFatal, exitApplication);
     }
 
     /// <summary>

@@ -91,6 +91,12 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private GameStarter? _gameStarter;
     private readonly ClientLaunchAvailability[] _clientLaunchAvailability = new ClientLaunchAvailability[3];
     private IReadOnlyList<StationAccountSelectionOption> _accountSelectionOptions = StationAccountSelectionOption.Create(accounts: null);
+    private AppDataManager.AppDataOperationResult _accountsLoadResult = AppDataManager.AppDataOperationResult.Ok(
+        nameof(AppDataManager.LoadAccountsAsync),
+        "accounts.json");
+    private AppDataManager.AppDataOperationResult _presetLoadResult = AppDataManager.AppDataOperationResult.Ok(
+        nameof(AppDataManager.LoadPresetListAsync),
+        "preset-list.json");
 
     private IList<Account> _accounts = [];
     public IList<Account> Accounts
@@ -246,8 +252,14 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
         try
         {
-            Accounts = AppDataManager.LoadAccounts();
-            PresetList = AppDataManager.LoadPresetList();
+            (IList<Account> loadedAccounts, AppDataManager.AppDataOperationResult accountsLoadResult) = AppDataManager.TryLoadAccounts();
+            (PresetList loadedPresetList, AppDataManager.AppDataOperationResult presetLoadResult) = AppDataManager.TryLoadPresetList();
+
+            _accountsLoadResult = accountsLoadResult;
+            _presetLoadResult = presetLoadResult;
+
+            Accounts = loadedAccounts;
+            PresetList = loadedPresetList;
 
             SelectedServerIndex = (int)AppDataManager.SelectedServer;
             SelectedPreset = NormalizePresetIndex(AppDataManager.SelectedPreset);
@@ -296,6 +308,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         }
 
         RefreshStateFromStorage();
+        RefreshClientAvailabilityState();
+        Bindings.Update();
+        await HandleInitialStorageLoadIssuesAsync();
         RefreshClientAvailabilityState();
         Bindings.Update();
         await UpdateServer();
@@ -733,6 +748,122 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         };
 
         await dialog.ShowAsync();
+    }
+
+    /// <summary>
+    /// 초기 상태 로드 중 실패한 계정/프리셋 데이터를 사용자 정책에 맞춰 처리합니다.
+    /// </summary>
+    private async Task HandleInitialStorageLoadIssuesAsync()
+    {
+        if (!_accountsLoadResult.Success)
+            await HandleStationDataLoadFailureAsync("계정 목록", _accountsLoadResult);
+
+        if (!_presetLoadResult.Success && !IsSameAppDataFailure(_accountsLoadResult, _presetLoadResult))
+            await HandleStationDataLoadFailureAsync("프리셋 목록", _presetLoadResult);
+    }
+
+    /// <summary>
+    /// StationPage 초기 데이터 로드 실패를 경고 또는 초기화 선택지로 처리합니다.
+    /// </summary>
+    private async Task HandleStationDataLoadFailureAsync(string dataName, AppDataManager.AppDataOperationResult result)
+    {
+        if (!IsFileBackedInitialLoadFailure(result))
+        {
+            await App.ExceptionHandler.ShowRecoverableAsync(
+                BuildAppDataLoadException(dataName, result),
+                "StationPage.HandleInitialStorageLoadIssuesAsync");
+            return;
+        }
+
+        if (result.ErrorKind == AppDataManager.AppDataErrorKind.Serialization &&
+            await ShowResetCorruptedDataDialogAsync(dataName, result.Target))
+        {
+            await ResetStationDataAsync(result.Target);
+            return;
+        }
+
+        await AppDataOperationDialog.ShowFailureAsync(
+            XamlRoot,
+            $"{dataName} 불러오기 실패",
+            $"저장된 {dataName}을(를) 불러오지 못했습니다.",
+            result);
+    }
+
+    /// <summary>
+    /// 손상된 로컬 데이터 파일을 초기화할지 사용자에게 묻습니다.
+    /// </summary>
+    private async Task<bool> ShowResetCorruptedDataDialogAsync(string dataName, string target)
+    {
+        ContentDialog dialog = new()
+        {
+            XamlRoot = XamlRoot,
+            Title = $"{dataName} 초기화",
+            Content =
+                $"{dataName} 파일({target}) 형식이 손상되어 읽을 수 없습니다.\n\n" +
+                "이 데이터를 초기화하고 다시 불러올까요?",
+            PrimaryButtonText = "초기화",
+            CloseButtonText = "취소",
+            DefaultButton = ContentDialogButton.Close
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    /// <summary>
+    /// 손상된 StationPage 관련 로컬 데이터를 기본값으로 다시 저장하고 상태를 새로 읽습니다.
+    /// </summary>
+    private async Task ResetStationDataAsync(string target)
+    {
+        AppDataManager.AppDataOperationResult resetResult = target switch
+        {
+            "accounts.json" => await AppDataManager.SaveAccountsAsync([]),
+            "preset-list.json" => await AppDataManager.SavePresetListAsync(new PresetList()),
+            _ => AppDataManager.AppDataOperationResult.Ok("UnsupportedResetTarget", target)
+        };
+
+        if (!resetResult.Success)
+        {
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "초기화 실패",
+                $"손상된 데이터 파일({target})을 초기화하지 못했습니다.",
+                resetResult);
+            return;
+        }
+
+        RefreshStateFromStorage();
+    }
+
+    /// <summary>
+    /// 같은 근본 원인으로 보고된 AppData 실패를 중복 안내하지 않도록 비교합니다.
+    /// </summary>
+    private static bool IsSameAppDataFailure(
+        AppDataManager.AppDataOperationResult left,
+        AppDataManager.AppDataOperationResult right)
+    {
+        if (left.Success || right.Success)
+            return false;
+
+        return string.Equals(left.Target, right.Target, StringComparison.OrdinalIgnoreCase) &&
+            left.ErrorKind == right.ErrorKind &&
+            string.Equals(left.Exception?.Message, right.Exception?.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// StationPage 초기 로드에서 파일 손상 또는 접근 실패처럼 사용자가 조치할 수 있는 항목만
+    /// 간단 경고 대상으로 간주합니다.
+    /// </summary>
+    private static bool IsFileBackedInitialLoadFailure(AppDataManager.AppDataOperationResult result)
+        => result.ErrorKind is AppDataManager.AppDataErrorKind.Storage or AppDataManager.AppDataErrorKind.Serialization;
+
+    /// <summary>
+    /// AppData 로드 실패를 기본 상세 예외 창으로 전달할 예외 객체로 정리합니다.
+    /// </summary>
+    private static Exception BuildAppDataLoadException(string dataName, AppDataManager.AppDataOperationResult result)
+    {
+        return new InvalidOperationException(
+            $"{dataName}을(를) 불러오지 못했습니다. Operation={result.Operation}, Target={result.Target}, ErrorKind={result.ErrorKind}",
+            result.Exception);
     }
 
     /// <summary>
@@ -1191,14 +1322,16 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     public Visibility EventPeriodOverlayVisibility { get; private set; } = Visibility.Collapsed;
     public Visibility HomepageNoticeEmptyVisibility => HomepageNoticeItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility GersangStationNoticeEmptyVisibility => GersangStationNoticeItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public string HomepageNoticeStatusText { get; private set; } = "공지사항이 없습니다.";
     public string GersangStationNoticeStatusText { get; private set; } = "공지사항이 없습니다.";
+    private string _eventHeaderWhenEmpty = "진행 중인 이벤트가 없습니다";
 
     public string EventHeaderText
     {
         get
         {
             if (EventItems.Count == 0)
-                return "진행 중인 이벤트가 없습니다";
+                return _eventHeaderWhenEmpty;
 
             int selectedIndex = FlipView_Event?.SelectedIndex ?? -1;
             int currentPage = selectedIndex >= 0 && selectedIndex < EventItems.Count
@@ -1255,6 +1388,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 .Select(CreateEventThumbnailItem)
                 .ToList();
 
+            _eventHeaderWhenEmpty = "진행 중인 이벤트가 없습니다";
             FlipView_Event.SelectedIndex = EventItems.Count > 0 ? 0 : -1;
             _lastEventLoadedAt = DateTimeOffset.UtcNow;
             OnPropertyChanged(nameof(EventItems));
@@ -1271,6 +1405,17 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            EventItems = [];
+            _eventHeaderWhenEmpty = "이벤트를 불러올 수 없습니다.";
+            FlipView_Event.SelectedIndex = -1;
+            EventPeriodOverlayVisibility = Visibility.Collapsed;
+            OnPropertyChanged(nameof(EventItems));
+            OnPropertyChanged(nameof(EventHeaderText));
+            OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
+            OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
+            OnPropertyChanged(nameof(EventUrgencyTextVisibility));
+            UpdateEventUrgencyTimerState();
+            UpdateEventFlipTimerState();
             Debug.WriteLine($"[StationPage] 이벤트 목록 로드 실패: {ex}");
         }
         finally
@@ -1317,8 +1462,10 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 .Select(CreateHomepageNoticeItem)
                 .ToList();
 
+            HomepageNoticeStatusText = "공지사항이 없습니다.";
             _lastHomepageNoticeLoadedAt = DateTimeOffset.UtcNow;
             OnPropertyChanged(nameof(HomepageNoticeItems));
+            OnPropertyChanged(nameof(HomepageNoticeStatusText));
             OnPropertyChanged(nameof(HomepageNoticeEmptyVisibility));
         }
         catch (OperationCanceledException)
@@ -1326,6 +1473,11 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
+            HomepageNoticeItems = [];
+            HomepageNoticeStatusText = "공지사항을 불러올 수 없습니다.";
+            OnPropertyChanged(nameof(HomepageNoticeItems));
+            OnPropertyChanged(nameof(HomepageNoticeStatusText));
+            OnPropertyChanged(nameof(HomepageNoticeEmptyVisibility));
             Debug.WriteLine($"[StationPage] 공지사항 목록 로드 실패: {ex}");
         }
         finally
