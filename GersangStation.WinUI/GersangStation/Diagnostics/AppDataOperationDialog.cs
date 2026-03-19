@@ -24,6 +24,12 @@ public static class AppDataOperationDialog
         if (xamlRoot is null)
             return;
 
+        if (result.ErrorKind == AppDataManager.AppDataErrorKind.CredentialVault &&
+            await CredentialVaultGuidanceDialog.TryShowAsync(xamlRoot, result.Exception))
+        {
+            return;
+        }
+
         ContentDialog dialog = new()
         {
             XamlRoot = xamlRoot,

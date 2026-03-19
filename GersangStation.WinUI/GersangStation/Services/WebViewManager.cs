@@ -2,6 +2,7 @@
 
 using Core;
 using Core.Models;
+using GersangStation.Diagnostics;
 using GersangStation.Main;
 using GersangStation.Main.Setting;
 using GersangStation.Services;
@@ -75,6 +76,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private string _cachedLoginId = string.Empty;
+    private Exception? _lastCredentialVaultException;
     private string _roughLoginRecoveryTargetId = string.Empty;
     private bool _roughLoginRecoveryBypassUsed;
     private bool _tryingLogout = false;
@@ -363,8 +365,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 return false;
             case TryLoginResult.VaultUnavailable:
                 CancelPendingGameStart("비밀번호 저장소 접근 실패");
+                if (await CredentialVaultGuidanceDialog.TryShowAsync(_currentWindow.Content.XamlRoot, _lastCredentialVaultException))
+                    return false;
+
                 _ = App.ExceptionHandler.ShowRecoverableAsync(
-                    new InvalidOperationException("윈도우 자격 증명 관리자에서 비밀번호를 읽지 못했습니다."),
+                    new InvalidOperationException("윈도우 자격 증명 관리자에서 비밀번호를 읽지 못했습니다.", _lastCredentialVaultException),
                     "WebViewManager.TryGameStart");
                 return false;
             case TryLoginResult.NullWebview:
@@ -448,6 +453,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             return TryLoginResult.NullWebview;
 
         // True 상태로 TryLogin 함수에 진입한 경우를 대비
+        _lastCredentialVaultException = null;
         TryingLogin = false;
 
         if (LoggedIn)
@@ -493,7 +499,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(id);
         if (!passwordResult.Success)
+        {
+            _lastCredentialVaultException = passwordResult.Exception;
             return TryLoginResult.VaultUnavailable;
+        }
 
         string? pw = passwordResult.HasCredential ? passwordResult.Password : null;
         if (string.IsNullOrWhiteSpace(pw))

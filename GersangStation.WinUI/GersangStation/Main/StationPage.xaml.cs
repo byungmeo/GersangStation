@@ -630,6 +630,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(accountId);
         if (!passwordResult.Success)
         {
+            if (await CredentialVaultGuidanceDialog.TryShowAsync(XamlRoot, passwordResult.Exception))
+                return false;
+
             await App.ExceptionHandler.ShowRecoverableAsync(
                 new InvalidOperationException(
                     $"윈도우 자격 증명 관리자에서 계정 비밀번호를 읽지 못했습니다. AccountId='{accountId}'",

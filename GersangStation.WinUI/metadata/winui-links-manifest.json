@@ -19,6 +19,12 @@
       "category": "help",
       "description": "설정 페이지의 일반 도움말 링크"
     },
+    "help.credential-vault": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A#%EC%9E%90%EA%B2%A9-%EC%A6%9D%EB%AA%85-%EC%A0%80%EC%9E%A5%EC%86%8C-%EC%98%A4%EB%A5%98",
+      "title": "자격 증명 저장소 오류 도움말",
+      "category": "help",
+      "description": "Windows 자격 증명 관리자 서비스 오류 해결 가이드"
+    },
     "help.install.symbolic-link": {
       "url": "https://github.com/byungmeo/GersangStation/discussions/39",
       "title": "심볼릭 링크 도움말",
