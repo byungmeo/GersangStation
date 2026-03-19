@@ -892,7 +892,15 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         GameServer server = AppDataManager.SelectedServer = (GameServer)SelectedServerIndex;
         string clientInstallPath = GetClientInstallPath(server, clientIndex: 0);
-        ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(clientInstallPath);
+        bool hasValidInstallPath = GameClientHelper.IsValidInstallPath(server, clientInstallPath, out _);
+        ClientVersionReadResult currentVersionResult = hasValidInstallPath
+            ? PatchManager.TryGetCurrentClientVersion(clientInstallPath)
+            : new ClientVersionReadResult(
+                false,
+                null,
+                clientInstallPath?.Trim() ?? string.Empty,
+                ClientVersionReadFailureStage.ResolveVsnPath,
+                null);
         int currentVersion = currentVersionResult.Success ? currentVersionResult.Version ?? 0 : 0;
 
         int latestVersion = 0;
@@ -907,7 +915,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             Debug.WriteLine($"[StationPage] UpdateServer latest version check failed. Server: {server}, Error: {ex}");
         }
 
-        string currentStr = currentVersionResult.Success && currentVersion > 0
+        string currentStr = !hasValidInstallPath
+            ? "확인 필요"
+            : currentVersionResult.Success && currentVersion > 0
             ? $"v{currentVersion}"
             : currentVersionResult.Exception is FileNotFoundException
                 ? "확인 필요"
