@@ -227,9 +227,11 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             nextAccounts.Add(nextAccount);
 
         List<AppDataManager.AccountCredential> credentialUpdates;
+        List<AppDataManager.AccountCredentialRename> credentialRenames;
         try
         {
             credentialUpdates = CreateCredentialUpdates(originalId, id, password);
+            credentialRenames = CreateCredentialRenames(originalId, id);
         }
         catch (Exception ex)
         {
@@ -238,7 +240,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         }
 
         (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult saveResult) =
-            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts, credentialUpdates);
+            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts, credentialUpdates, credentialRenames);
 
         if (!saveResult.Success)
         {
@@ -439,20 +441,6 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         string nickname = string.IsNullOrWhiteSpace(Editor.Nickname) ? id : Editor.Nickname.Trim();
         string originalId = Editor.OriginalId.Trim();
 
-        if (Editor.IsEditingExisting && !Editor.IsChangingPassword)
-        {
-            PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(originalId);
-            if (!passwordResult.Success)
-                return "윈도우 자격 증명 관리자에서 저장된 비밀번호를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.";
-
-            if (!passwordResult.HasCredential || string.IsNullOrWhiteSpace(passwordResult.Password))
-            {
-                return IsIdChanged
-                    ? "아이디를 변경하려면 새 패스워드를 함께 입력해주세요. 저장된 비밀번호를 찾을 수 없습니다."
-                    : "저장된 비밀번호를 찾을 수 없습니다. 새 패스워드를 함께 입력해주세요.";
-            }
-        }
-
         IEnumerable<Account> otherAccounts = _loadedAccounts.Where(account =>
             !string.Equals(account.Id.Trim(), originalId, StringComparison.OrdinalIgnoreCase));
 
@@ -472,7 +460,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     {
         // 정책:
         // - 비밀번호는 항상 계정과 1:1 관계를 유지해야 합니다.
-        // - 아이디 변경 시 기존 비밀번호를 새 아이디로 이어갈 수 없으면 저장을 막습니다.
+        // - 아이디 변경만으로는 여기서 vault를 읽지 않고, Core 저장 흐름에서 키 이동을 처리합니다.
         List<AppDataManager.AccountCredential> updates = [];
 
         if (!Editor.IsEditingExisting)
@@ -487,26 +475,19 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             return updates;
         }
 
-        if (!IsIdChanged)
-            return updates;
-
-        PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(originalId);
-        if (!passwordResult.Success)
-        {
-            throw new InvalidOperationException(
-                "윈도우 자격 증명 관리자에서 저장된 비밀번호를 읽지 못했어요. 잠시 후 다시 시도해 주세요.",
-                passwordResult.Exception);
-        }
-
-        string? existingPassword = passwordResult.HasCredential ? passwordResult.Password : null;
-        if (string.IsNullOrWhiteSpace(existingPassword))
-        {
-            throw new InvalidOperationException(
-                "저장된 비밀번호를 새 아이디로 옮길 수 없어요. 새 패스워드를 함께 입력해서 다시 시도해 주세요.");
-        }
-
-        updates.Add(new AppDataManager.AccountCredential(id, existingPassword));
         return updates;
+    }
+
+    /// <summary>
+    /// 계정 ID가 바뀐 경우 Core 저장 흐름에서 자격 증명 키를 함께 이동하도록 요청합니다.
+    /// </summary>
+    private List<AppDataManager.AccountCredentialRename> CreateCredentialRenames(string originalId, string id)
+    {
+        List<AppDataManager.AccountCredentialRename> renames = [];
+        if (Editor.IsEditingExisting && IsIdChanged && !Editor.IsChangingPassword)
+            renames.Add(new AppDataManager.AccountCredentialRename(originalId, id));
+
+        return renames;
     }
 
     private async Task ShowMessageDialogAsync(string title, string content)

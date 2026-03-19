@@ -65,6 +65,7 @@ public static class AppDataManager
     }
 
     public readonly record struct AccountCredential(string UserName, string Password);
+    public readonly record struct AccountCredentialRename(string CurrentUserName, string NewUserName);
 
     private const string SetupCompleted_SettingKey = "SetupCompleted";
     private const string LatestVersion_SettingKey = "PrevVersion";
@@ -227,42 +228,51 @@ public static class AppDataManager
     /// </summary>
     public static async Task<(IList<Account> Accounts, AppDataOperationResult Result)> SaveAccountsWithCredentialsAsync(
         IEnumerable<Account> accounts,
-        IEnumerable<AccountCredential>? credentials = null)
+        IEnumerable<AccountCredential>? credentials = null,
+        IEnumerable<AccountCredentialRename>? credentialRenames = null)
     {
         // 정책:
         // - 비밀번호는 계정과 항상 1:1로 존재해야 합니다.
         // - 계정 저장 후에는 고아 자격 증명과 잘못된 프리셋 참조를 남기지 않습니다.
         List<Account> normalizedAccounts = NormalizeAccountsForPersistence(accounts);
         List<AccountCredential> normalizedCredentials = NormalizeCredentials(credentials);
+        List<AccountCredentialRename> normalizedCredentialRenames = NormalizeCredentialRenames(credentialRenames);
         Dictionary<string, string?> previousPasswords = new(StringComparer.OrdinalIgnoreCase);
 
         try
         {
+            foreach (AccountCredentialRename rename in normalizedCredentialRenames)
+            {
+                if (!TryCapturePreviousPassword(rename.CurrentUserName, previousPasswords, out AppDataOperationResult captureCurrentResult))
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (normalizedAccounts, captureCurrentResult);
+                }
+
+                if (!TryCapturePreviousPassword(rename.NewUserName, previousPasswords, out AppDataOperationResult captureNewResult))
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    return (normalizedAccounts, captureNewResult);
+                }
+
+                PasswordVaultHelper.PasswordVaultMoveResult moveResult =
+                    PasswordVaultHelper.TryMove(rename.CurrentUserName, rename.NewUserName);
+                if (!moveResult.Success)
+                {
+                    RollbackCredentialUpserts(previousPasswords);
+                    Exception moveException = moveResult.Exception ?? new InvalidOperationException(
+                        $"Failed to move credential. CurrentUserName='{rename.CurrentUserName}', NewUserName='{rename.NewUserName}', Stage={moveResult.FailureStage}");
+                    return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), moveException, AppDataErrorKind.CredentialVault, AccountsFileName));
+                }
+            }
+
             foreach (AccountCredential credential in normalizedCredentials)
             {
-                PasswordVaultHelper.PasswordVaultReadResult readResult =
-                    PasswordVaultHelper.TryGetPassword(credential.UserName);
-                if (!readResult.Success)
+                if (!TryCapturePreviousPassword(credential.UserName, previousPasswords, out AppDataOperationResult captureResult))
                 {
                     RollbackCredentialUpserts(previousPasswords);
-                    return (normalizedAccounts, Fail(nameof(SaveAccountsWithCredentialsAsync), readResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
+                    return (normalizedAccounts, captureResult);
                 }
-
-                if (readResult.Status == PasswordVaultHelper.PasswordVaultReadStatus.IgnoredInvalidInput)
-                {
-                    RollbackCredentialUpserts(previousPasswords);
-                    return (
-                        normalizedAccounts,
-                        Fail(
-                            nameof(SaveAccountsWithCredentialsAsync),
-                            CreateUnexpectedPasswordVaultStateException(
-                                $"Password vault read ignored a normalized account credential input. UserName='{credential.UserName}'",
-                                readResult.Exception),
-                            AppDataErrorKind.CredentialVault,
-                            AccountsFileName));
-                }
-
-                previousPasswords[credential.UserName] = readResult.HasCredential ? readResult.Password : null;
 
                 PasswordVaultHelper.PasswordVaultOperationResult saveCredentialResult =
                     PasswordVaultHelper.TrySave(credential.UserName, credential.Password);
@@ -332,32 +342,13 @@ public static class AppDataManager
             return ([], readResult);
 
         if (string.IsNullOrWhiteSpace(json))
-        {
-            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult = PasswordVaultHelper.TryRemoveOrphans([]);
-            return removeOrphansResult.Success
-                ? ([], Ok(nameof(LoadAccountsAsync), AccountsFileName))
-                : ([], Fail(nameof(LoadAccountsAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
-        }
+            return ([], Ok(nameof(LoadAccountsAsync), AccountsFileName));
 
         try
         {
             List<Account> result = JsonSerializer.Deserialize(json, AppDataJsonSerializerContext.Default.ListAccount) ?? [];
-            (IReadOnlyList<string> credentialUserNames, PasswordVaultHelper.PasswordVaultOperationResult credentialListResult) =
-                PasswordVaultHelper.TryGetAllUserNames();
-
             bool changed;
-            List<Account> normalizedAccounts = credentialListResult.Success
-                ? NormalizeAccountsForPersistence(result, credentialUserNames, requireCredentialPair: true, out changed)
-                : NormalizeAccountsForPersistence(result, credentialUserNames: null, requireCredentialPair: false, out changed);
-
-            if (!credentialListResult.Success)
-                return (normalizedAccounts, Fail(nameof(LoadAccountsAsync), credentialListResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
-
-            PasswordVaultHelper.PasswordVaultOperationResult removeOrphansResult =
-                PasswordVaultHelper.TryRemoveOrphans(normalizedAccounts.Select(account => account.Id));
-            if (!removeOrphansResult.Success)
-                return (normalizedAccounts, Fail(nameof(LoadAccountsAsync), removeOrphansResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName));
-
+            List<Account> normalizedAccounts = NormalizeAccountsForPersistence(result, requireCredentialPair: false, out changed);
             if (changed)
             {
                 AppDataOperationResult saveResult = await SaveAccountsAsync(normalizedAccounts).ConfigureAwait(false);
@@ -932,6 +923,68 @@ public static class AppDataManager
         return normalized
             .Select(pair => new AccountCredential(pair.Key, pair.Value))
             .ToList();
+    }
+
+    /// <summary>
+    /// 계정 ID 변경 입력을 정규화하고 마지막 입력 기준으로 중복 이동을 정리합니다.
+    /// </summary>
+    private static List<AccountCredentialRename> NormalizeCredentialRenames(IEnumerable<AccountCredentialRename>? credentialRenames)
+    {
+        Dictionary<string, string> normalized = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (AccountCredentialRename rename in credentialRenames ?? [])
+        {
+            string currentUserName = rename.CurrentUserName?.Trim() ?? string.Empty;
+            string newUserName = rename.NewUserName?.Trim() ?? string.Empty;
+
+            if (currentUserName.Length == 0 || newUserName.Length == 0)
+                continue;
+
+            if (string.Equals(currentUserName, newUserName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            normalized[currentUserName] = newUserName;
+        }
+
+        return normalized
+            .Select(pair => new AccountCredentialRename(pair.Key, pair.Value))
+            .ToList();
+    }
+
+    /// <summary>
+    /// 롤백을 위해 현재 자격 증명 상태를 한 번만 읽어 둡니다.
+    /// </summary>
+    private static bool TryCapturePreviousPassword(
+        string userName,
+        IDictionary<string, string?> previousPasswords,
+        out AppDataOperationResult result)
+    {
+        result = Ok(nameof(SaveAccountsWithCredentialsAsync), AccountsFileName);
+
+        if (previousPasswords.ContainsKey(userName))
+            return true;
+
+        PasswordVaultHelper.PasswordVaultReadResult readResult = PasswordVaultHelper.TryGetPassword(userName);
+        if (!readResult.Success)
+        {
+            result = Fail(nameof(SaveAccountsWithCredentialsAsync), readResult.Exception!, AppDataErrorKind.CredentialVault, AccountsFileName);
+            return false;
+        }
+
+        if (readResult.Status == PasswordVaultHelper.PasswordVaultReadStatus.IgnoredInvalidInput)
+        {
+            result = Fail(
+                nameof(SaveAccountsWithCredentialsAsync),
+                CreateUnexpectedPasswordVaultStateException(
+                    $"Password vault read ignored a normalized account credential input. UserName='{userName}'",
+                    readResult.Exception),
+                AppDataErrorKind.CredentialVault,
+                AccountsFileName);
+            return false;
+        }
+
+        previousPasswords[userName] = readResult.HasCredential ? readResult.Password : null;
+        return true;
     }
 
     /// <summary>
