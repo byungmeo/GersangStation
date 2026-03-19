@@ -53,6 +53,7 @@ public sealed partial class MainWindow : Window
     private bool _isStoreUpdateDialogOpen;
     private bool _hasShownStartupStoreUpdateDialog;
     private bool _isStartupFlowRunning;
+    private bool _skipDefaultInitialNavigation;
     private MainShellSection _activeSection = MainShellSection.Station;
     private bool _suppressNavSelectionChanged = false;
     private SelectorBarItem _previousSelectedItem;
@@ -248,6 +249,9 @@ public sealed partial class MainWindow : Window
 
         _hasHandledInitialNavigation = true;
 
+        if (_skipDefaultInitialNavigation)
+            return;
+
         string[] versionParts = AppDataManager.PrevVersion.Split('.');
         PackageVersion prevVersion = versionParts.Length == 4
             ? new PackageVersion(
@@ -311,7 +315,10 @@ public sealed partial class MainWindow : Window
 
         ContentDialogResult result = await dialog.ShowAsync();
         if (result == ContentDialogResult.Primary)
+        {
+            _skipDefaultInitialNavigation = true;
             NavigateToSettingPage();
+        }
     }
 
     /// <summary>
