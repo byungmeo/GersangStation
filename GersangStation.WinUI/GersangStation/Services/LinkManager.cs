@@ -11,12 +11,13 @@ using System.Text.Json.Serialization;
 namespace GersangStation.Services;
 
 /// <summary>
-/// GitHub raw의 WinUI 링크 매니페스트를 한 번만 읽어와 key-value 형태로 제공합니다.
+/// 앱에 포함된 WinUI 링크 매니페스트를 기본값으로 사용하고, 가능하면 GitHub raw 매니페스트로 덮어씁니다.
 /// </summary>
 public sealed class LinkManager
 {
     private const string ManifestUrl =
         "https://raw.githubusercontent.com/byungmeo/GersangStation/master/GersangStation.WinUI/metadata/winui-links-manifest.json";
+    private const string LocalManifestRelativePath = "metadata/winui-links-manifest.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -27,44 +28,42 @@ public sealed class LinkManager
     private static readonly HttpClient Http = CreateHttpClient();
 
     private readonly object _syncRoot = new();
-    private IReadOnlyDictionary<string, LinkManifestItem> _links =
+    private IReadOnlyDictionary<string, LinkManifestItem> _embeddedLinks =
         new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
-    private LinkFallbackOptions _fallback = new();
-    private bool _initialized;
-    private Exception? _loadException;
+    private IReadOnlyDictionary<string, LinkManifestItem> _remoteLinks =
+        new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+    private LinkFallbackOptions _embeddedFallback = new();
+    private LinkFallbackOptions _remoteFallback = new();
+    private bool _localManifestLoaded;
+    private bool _remoteManifestLoaded;
+    private Exception? _remoteLoadException;
 
     /// <summary>
     /// 마지막 매니페스트 로드 실패 예외를 반환합니다.
     /// </summary>
-    public Exception? LoadException => _loadException;
+    public Exception? LoadException => _remoteLoadException;
 
     /// <summary>
-    /// 앱 시작 시 한 번만 GitHub에서 매니페스트를 읽어 캐시합니다.
+    /// 앱 시작 시 앱 내장 매니페스트를 먼저 확보하고, 가능하면 GitHub 매니페스트로 덮어씁니다.
     /// </summary>
     public void Initialize()
     {
-        if (_initialized)
-            return;
-
         lock (_syncRoot)
         {
-            if (_initialized)
-                return;
-
-            LoadManifestCore();
-            _initialized = true;
+            EnsureLocalManifestLoaded();
+            EnsureRemoteManifestLoaded();
         }
     }
 
     /// <summary>
-    /// 지정한 key에 매핑된 URL 문자열을 반환합니다.
+    /// 지정한 key에 매핑된 URL 문자열을 반환합니다. GitHub 값이 우선이고, 없으면 앱 내장 매니페스트를 확인합니다.
     /// </summary>
     public bool TryGetUrl(string key, out string url)
     {
-        Initialize();
+        EnsureAvailableManifests();
 
-        if (!string.IsNullOrWhiteSpace(key)
-            && _links.TryGetValue(key, out LinkManifestItem? item)
+        LinkManifestItem? item = GetLinkItem(key);
+        if (item is not null
             && !string.IsNullOrWhiteSpace(item.Url)
             && Uri.TryCreate(item.Url, UriKind.Absolute, out Uri? uri)
             && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
@@ -82,6 +81,8 @@ public sealed class LinkManager
     /// </summary>
     public LinkNavigationTarget ResolveNavigation(string key)
     {
+        EnsureAvailableManifests();
+
         if (TryGetUrl(key, out string url))
             return LinkNavigationTarget.ForUri(new Uri(url, UriKind.Absolute));
 
@@ -89,36 +90,102 @@ public sealed class LinkManager
     }
 
     /// <summary>
-    /// GitHub raw에서 매니페스트 JSON을 받아와 메모리에 적재합니다.
+    /// 앱 번들에 포함된 기본 매니페스트를 읽어옵니다.
     /// </summary>
-    private void LoadManifestCore()
+    private void EnsureLocalManifestLoaded()
     {
+        if (_localManifestLoaded)
+            return;
+
+        string localManifestPath = Path.Combine(AppContext.BaseDirectory, LocalManifestRelativePath);
+
         try
         {
-            string json = DownloadManifestJson();
-            WinUiLinksManifestDocument? manifest = JsonSerializer.Deserialize<WinUiLinksManifestDocument>(json, JsonOptions);
-
-            if (manifest?.Links is null)
+            if (!File.Exists(localManifestPath))
             {
-                _links = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
-                _fallback = manifest?.Fallback ?? new LinkFallbackOptions();
-                _loadException = new InvalidDataException("WinUI 링크 매니페스트의 links 섹션을 읽지 못했습니다.");
-                Debug.WriteLine("[LinkManager] Manifest links section is missing.");
+                Debug.WriteLine($"[LinkManager] Embedded manifest not found at '{localManifestPath}'.");
+                _embeddedLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+                _embeddedFallback = new LinkFallbackOptions();
+                _localManifestLoaded = true;
                 return;
             }
 
-            _fallback = manifest.Fallback ?? new LinkFallbackOptions();
-            _links = new Dictionary<string, LinkManifestItem>(manifest.Links, StringComparer.OrdinalIgnoreCase);
-            _loadException = null;
+            WinUiLinksManifestDocument? manifest = DeserializeManifest(File.ReadAllText(localManifestPath));
+            if (manifest?.Links is null)
+            {
+                Debug.WriteLine("[LinkManager] Embedded manifest links section is missing.");
+                _embeddedLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+                _embeddedFallback = manifest?.Fallback ?? new LinkFallbackOptions();
+                _localManifestLoaded = true;
+                return;
+            }
 
-            Debug.WriteLine($"[LinkManager] Manifest loaded from GitHub. Count={_links.Count}");
+            _embeddedLinks = new Dictionary<string, LinkManifestItem>(manifest.Links, StringComparer.OrdinalIgnoreCase);
+            _embeddedFallback = manifest.Fallback ?? new LinkFallbackOptions();
+            _localManifestLoaded = true;
+            Debug.WriteLine($"[LinkManager] Embedded manifest loaded. Count={_embeddedLinks.Count}");
         }
         catch (Exception ex)
         {
-            _links = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
-            _fallback = new LinkFallbackOptions();
-            _loadException = ex;
-            Debug.WriteLine($"[LinkManager] Failed to load manifest from GitHub: {ex}");
+            _embeddedLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+            _embeddedFallback = new LinkFallbackOptions();
+            _localManifestLoaded = true;
+            Debug.WriteLine($"[LinkManager] Failed to load embedded manifest: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// GitHub raw 매니페스트를 한 번만 읽고, 성공 시 로컬 기본값 위를 덮습니다.
+    /// 실패는 로그만 남기고 앱은 로컬 기본값으로 계속 동작합니다.
+    /// </summary>
+    private void EnsureRemoteManifestLoaded()
+    {
+        if (_remoteManifestLoaded)
+            return;
+
+        try
+        {
+            string json = DownloadManifestJson();
+            WinUiLinksManifestDocument? manifest = DeserializeManifest(json);
+
+            if (manifest?.Links is null)
+            {
+                _remoteLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+                _remoteFallback = manifest?.Fallback ?? new LinkFallbackOptions();
+                _remoteLoadException = new InvalidDataException("WinUI 링크 매니페스트의 links 섹션을 읽지 못했습니다.");
+                Debug.WriteLine("[LinkManager] Remote manifest links section is missing. Embedded manifest will be used as fallback.");
+                _remoteManifestLoaded = true;
+                return;
+            }
+
+            _remoteLinks = new Dictionary<string, LinkManifestItem>(manifest.Links, StringComparer.OrdinalIgnoreCase);
+            _remoteFallback = manifest.Fallback ?? new LinkFallbackOptions();
+            _remoteLoadException = null;
+            _remoteManifestLoaded = true;
+            Debug.WriteLine($"[LinkManager] Remote manifest loaded. Count={_remoteLinks.Count}");
+        }
+        catch (Exception ex)
+        {
+            _remoteLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+            _remoteFallback = new LinkFallbackOptions();
+            _remoteLoadException = ex;
+            _remoteManifestLoaded = true;
+            Debug.WriteLine($"[LinkManager] Failed to load remote manifest. Embedded manifest will be used. {ex}");
+        }
+    }
+
+    /// <summary>
+    /// 로컬/원격 매니페스트를 사용할 준비를 보장합니다.
+    /// </summary>
+    private void EnsureAvailableManifests()
+    {
+        if (_localManifestLoaded && _remoteManifestLoaded)
+            return;
+
+        lock (_syncRoot)
+        {
+            EnsureLocalManifestLoaded();
+            EnsureRemoteManifestLoaded();
         }
     }
 
@@ -167,15 +234,36 @@ public sealed class LinkManager
         };
     }
 
+    private static WinUiLinksManifestDocument? DeserializeManifest(string json)
+        => JsonSerializer.Deserialize<WinUiLinksManifestDocument>(json, JsonOptions);
+
+    /// <summary>
+    /// 원격 매니페스트를 우선하고, 없으면 앱 내장 매니페스트에서 링크를 찾습니다.
+    /// </summary>
+    private LinkManifestItem? GetLinkItem(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return null;
+
+        if (_remoteLinks.TryGetValue(key, out LinkManifestItem? remoteItem))
+            return remoteItem;
+
+        if (_embeddedLinks.TryGetValue(key, out LinkManifestItem? embeddedItem))
+            return embeddedItem;
+
+        return null;
+    }
+
     private string BuildFallbackHtml(string key)
     {
-        string title = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(_fallback.Title)
+        LinkFallbackOptions fallback = GetFallbackOptions();
+        string title = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fallback.Title)
             ? "링크를 불러오는데 실패하였습니다."
-            : _fallback.Title);
-        string message = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(_fallback.Message)
+            : fallback.Title);
+        string message = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(fallback.Message)
             ? "요청한 링크 정보를 준비하지 못했습니다."
-            : _fallback.Message);
-        string supportText = WebUtility.HtmlEncode(_fallback.SupportText ?? string.Empty);
+            : fallback.Message);
+        string supportText = WebUtility.HtmlEncode(fallback.SupportText ?? string.Empty);
         string encodedKey = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(key) ? "(empty)" : key);
         string encodedDetail = WebUtility.HtmlEncode(GetFailureDetail(key));
 
@@ -260,17 +348,32 @@ public sealed class LinkManager
 """;
     }
 
+    private LinkFallbackOptions GetFallbackOptions()
+    {
+        if (_remoteManifestLoaded && _remoteLoadException is null)
+            return _remoteFallback;
+
+        if (_localManifestLoaded)
+            return _embeddedFallback;
+
+        return new LinkFallbackOptions();
+    }
+
     private string GetFailureDetail(string key)
     {
         if (string.IsNullOrWhiteSpace(key))
             return "비어 있는 링크 키가 전달되었습니다.";
 
-        if (_loadException is not null)
-            return $"매니페스트 로드 실패: {_loadException.Message}";
+        if (_remoteLoadException is not null && _embeddedLinks.Count == 0)
+            return $"원격/내장 매니페스트를 모두 사용할 수 없습니다. 원격 로드 실패: {_remoteLoadException.Message}";
 
-        return _links.ContainsKey(key)
-            ? "링크 URL 형식이 올바르지 않습니다."
-            : "요청한 링크 키를 매니페스트에서 찾지 못했습니다.";
+        if (_remoteLoadException is not null)
+            return $"원격 매니페스트 로드에 실패했고, 앱 내장 매니페스트에도 '{key}' 키가 없습니다. 원격 로드 실패: {_remoteLoadException.Message}";
+
+        if (_embeddedLinks.ContainsKey(key) || _remoteLinks.ContainsKey(key))
+            return "링크 URL 형식이 올바르지 않습니다.";
+
+        return "요청한 링크 키를 원격/앱 내장 매니페스트 모두에서 찾지 못했습니다.";
     }
 
     private sealed class WinUiLinksManifestDocument
