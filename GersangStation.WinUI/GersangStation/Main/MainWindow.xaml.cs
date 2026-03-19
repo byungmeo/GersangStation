@@ -54,7 +54,6 @@ public sealed partial class MainWindow : Window
     private bool _hasShownStartupStoreUpdateDialog;
     private bool _isStartupFlowRunning;
     private bool _skipDefaultInitialNavigation;
-    private bool _hasSimulatedStoreUpdate = IsDevStoreUpdateSimulationEnabled;
     private MainShellSection _activeSection = MainShellSection.Station;
     private bool _suppressNavSelectionChanged = false;
     private SelectorBarItem _previousSelectedItem;
@@ -63,7 +62,7 @@ public sealed partial class MainWindow : Window
     private Task? _storeUpdateAvailabilityTask;
 
     public string CurrentAppVersionText { get; } = CreateCurrentVersionText();
-    public bool HasAvailableStoreUpdate => _hasSimulatedStoreUpdate || _availableStoreUpdates.Count > 0;
+    public bool HasAvailableStoreUpdate => _availableStoreUpdates.Count > 0;
     public bool StoreUpdateButtonEnabled => !_isStoreUpdateDialogOpen && HasAvailableStoreUpdate;
     public event EventHandler? StoreUpdateStateChanged;
 
@@ -89,21 +88,6 @@ public sealed partial class MainWindow : Window
 
         InitializeShellFrames();
         _previousSelectedItem = MainSelectorBar.SelectedItem;
-    }
-
-    /// <summary>
-    /// Dev 구성에서 Store 업데이트 UI를 실제 배포 없이 테스트할지 여부를 반환합니다.
-    /// </summary>
-    private static bool IsDevStoreUpdateSimulationEnabled
-    {
-        get
-        {
-#if DEV
-            return true;
-#else
-            return false;
-#endif
-        }
     }
 
     internal void RegisterWebViewManager(WebViewManager webviewManager)
@@ -304,9 +288,13 @@ public sealed partial class MainWindow : Window
 
         _hasShownStartupStoreUpdateDialog = true;
 
+#if DEV
+        return;
+#else
         await EnsureStoreUpdateAvailabilityLoadedAsync();
         if (HasAvailableStoreUpdate)
             await ShowStoreUpdateDialogAsync();
+#endif
     }
 
     /// <summary>
@@ -633,13 +621,6 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            if (IsDevStoreUpdateSimulationEnabled)
-            {
-                _availableStoreUpdates = [];
-                _hasSimulatedStoreUpdate = true;
-                return;
-            }
-
             _storeContext ??= CreateStoreContext();
             _availableStoreUpdates = await _storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
         }
@@ -699,21 +680,6 @@ public sealed partial class MainWindow : Window
             {
                 allowClose = false;
                 ConfigureStoreUpdateDialogForInstall(dialog, progressView);
-
-#if DEV
-                if (_hasSimulatedStoreUpdate)
-                {
-                    await SimulateStoreUpdateInstallAsync(progressView);
-                    _hasSimulatedStoreUpdate = false;
-                    _availableStoreUpdates = [];
-                    NotifyStoreUpdateStateChanged();
-
-                    isWaitingForCompletionConfirmation = true;
-                    allowClose = true;
-                    ConfigureStoreUpdateDialogForCompletion(dialog, progressView);
-                    return;
-                }
-#endif
 
                 StorePackageUpdateResult result = await InstallStoreUpdatesAsync(progress =>
                 {

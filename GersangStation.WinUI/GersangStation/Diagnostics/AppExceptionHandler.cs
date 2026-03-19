@@ -161,7 +161,7 @@ public sealed class AppExceptionHandler
     }
 
     /// <summary>
-    /// WinUI 예외 창을 표시할 수 있으면 표시하고, 실패하면 false를 반환합니다.
+    /// WinUI 예외 상세 ContentDialog를 표시할 수 있으면 표시하고, 실패하면 false를 반환합니다.
     /// </summary>
     private static async Task<bool> TryShowWindowAsync(Exception exception, string context, string details, string? logPath, bool isFatal)
     {
@@ -171,8 +171,10 @@ public sealed class AppExceptionHandler
 
         await dispatcherQueue.RunOrEnqueueAsync(async () =>
         {
-            var window = new ExceptionDisplayWindow(exception, context, details, logPath, isFatal);
-            await window.ShowAndWaitAsync();
+            if (App.CurrentWindow?.Content is not FrameworkElement rootElement || rootElement.XamlRoot is null)
+                throw new InvalidOperationException("예외 상세 대화상자를 표시할 XamlRoot를 찾을 수 없습니다.");
+
+            await ExceptionDisplayDialog.ShowAsync(rootElement.XamlRoot, context, details, logPath, isFatal);
 
             if (isFatal)
                 Application.Current.Exit();
