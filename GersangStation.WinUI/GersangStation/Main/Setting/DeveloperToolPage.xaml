@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.DeveloperToolPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main.Setting"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:model="using:Core.Models"
+    NavigationCacheMode="Disabled"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="16" VerticalScrollBarVisibility="Auto">
+        <StackPanel HorizontalAlignment="Left" Spacing="28">
+            <StackPanel Spacing="12">
+                <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="클라이언트 버전 다운그레이드" />
+                <TextBlock Opacity="0.72" Text="선택한 서버의 메인 클라이언트 Online\\vsn.dat 버전을 직접 낮춰 패치 흐름을 테스트합니다." />
+                <ComboBox
+                    x:Name="ComboBox_Server"
+                    DisplayMemberPath="DisplayName"
+                    Header="서버"
+                    ItemsSource="{x:Bind model:GameServerHelper.ServerOptions, Mode=OneTime}"
+                    SelectedIndex="0"
+                    SelectedValuePath="Server" />
+                <TextBox
+                    x:Name="TextBox_TargetDowngradeVersion"
+                    Header="목표 버전"
+                    InputScope="Number"
+                    PlaceholderText="예) 34000" />
+                <Button
+                    x:Name="Button_Downgrade"
+                    HorizontalAlignment="Left"
+                    Click="Button_Downgrade_Click"
+                    Content="다운그레이드"
+                    Style="{ThemeResource AccentButtonStyle}" />
+            </StackPanel>
+
+            <StackPanel MaxWidth="720" Spacing="12">
+                <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="예외 처리 테스트" />
+                <TextBlock Opacity="0.72" Text="복구 가능한 오류는 상세 창으로 표시하고, 전역 미처리 예외는 crash 전용 경로로 처리되는지 확인합니다. 치명적 오류 테스트는 창을 닫은 뒤 앱이 종료됩니다." />
+
+                <Grid ColumnSpacing="12" RowSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Click="Button_RaiseHandledError_Click"
+                        Content="복구 가능 오류 표시" />
+
+                    <Button
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Click="Button_RaiseFatalError_Click"
+                        Content="치명적 crash UI"
+                        Style="{ThemeResource AccentButtonStyle}" />
+
+                    <Button
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Click="Button_RaiseAsyncUiError_Click"
+                        Content="async UI 오류" />
+
+                    <Button
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Click="Button_RaiseDispatcherQueueError_Click"
+                        Content="DispatcherQueue 오류" />
+
+                    <Button
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Click="Button_RaiseUnobservedTaskError_Click"
+                        Content="Unobserved Task 오류" />
+
+                    <Button
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Click="Button_RaiseHandledAsyncError_Click"
+                        Content="비동기 일반 오류" />
+
+                    <Button
+                        Grid.Row="3"
+                        Grid.Column="0"
+                        Click="Button_RaiseHandledTaskRunError_Click"
+                        Content="안전 Task.Run 오류" />
+
+                    <Button
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        Click="Button_RaiseHandledTimerError_Click"
+                        Content="안전 Timer 오류" />
+
+                    <Button
+                        Grid.Row="4"
+                        Grid.Column="0"
+                        Click="Button_RaiseNativeFallbackError_Click"
+                        Content="Win32 fallback 오류" />
+                </Grid>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

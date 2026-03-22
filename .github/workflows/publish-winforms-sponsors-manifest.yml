@@ -1,0 +1,144 @@
+name: Publish WinForms Sponsors Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      sponsor_date:
+        description: "Sponsor date (yyyy-mm-dd)"
+        required: true
+        type: string
+      sponsor_name:
+        description: "Sponsor name"
+        required: true
+        type: string
+      sponsor_message:
+        description: "Sponsor message"
+        required: true
+        type: string
+      dry_run:
+        description: "Validate only without committing manifest"
+        required: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Validate workflow inputs
+        shell: bash
+        env:
+          SPONSOR_DATE: ${{ inputs.sponsor_date }}
+          SPONSOR_NAME: ${{ inputs.sponsor_name }}
+          SPONSOR_MESSAGE: ${{ inputs.sponsor_message }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$DRY_RUN" != "true" && "$REF_NAME" != "master" ]]; then
+            echo "Non-dry-run execution is restricted to the master branch. Current branch: $REF_NAME"
+            exit 1
+          fi
+
+          if [[ ! "$SPONSOR_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "sponsor_date must be in yyyy-mm-dd format."
+            exit 1
+          fi
+
+          if [[ -z "${SPONSOR_NAME// }" ]]; then
+            echo "sponsor_name must not be empty."
+            exit 1
+          fi
+
+          if [[ -z "${SPONSOR_MESSAGE// }" ]]; then
+            echo "sponsor_message must not be empty."
+            exit 1
+          fi
+
+      - name: Generate sponsors manifest
+        shell: bash
+        env:
+          SPONSOR_DATE: ${{ inputs.sponsor_date }}
+          SPONSOR_NAME: ${{ inputs.sponsor_name }}
+          SPONSOR_MESSAGE: ${{ inputs.sponsor_message }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          MANIFEST_PATH = "metadata/winforms-sponsors-manifest.json"
+          generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+          sponsor_line = f'{os.environ["SPONSOR_DATE"].strip()} [{os.environ["SPONSOR_NAME"].strip()}] {os.environ["SPONSOR_MESSAGE"].strip()}'
+          items = []
+
+          if os.path.exists(MANIFEST_PATH):
+              with open(MANIFEST_PATH, "r", encoding="utf-8") as file:
+                  existing = json.load(file)
+              sponsors = existing.get("sponsors")
+              if isinstance(sponsors, dict) and isinstance(sponsors.get("items"), list):
+                  for item in sponsors["items"]:
+                      if isinstance(item, str) and item.strip():
+                          items.append(item.strip())
+                      elif isinstance(item, dict):
+                          date = str(item.get("date", "")).strip()
+                          name = str(item.get("name", "")).strip()
+                          message = str(item.get("message", "")).strip()
+                          if date and name and message:
+                              items.append(f"{date} [{name}] {message}")
+
+          if sponsor_line not in items:
+              items.append(sponsor_line)
+
+          manifest = {
+              "schema_version": 1,
+              "product": "winforms",
+              "channel": "stable",
+              "generated_at": generated_at,
+              "sponsors": {
+                  "last_updated_at": generated_at,
+                  "items": items
+              }
+          }
+
+          os.makedirs("metadata", exist_ok=True)
+          with open(MANIFEST_PATH, "w", encoding="utf-8", newline="\n") as file:
+              json.dump(manifest, file, ensure_ascii=False, indent=2)
+              file.write("\n")
+          PY
+
+      - name: Upload sponsors manifest preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: winforms-sponsors-manifest-${{ github.run_id }}
+          path: metadata/winforms-sponsors-manifest.json
+
+      - name: Commit sponsors manifest
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metadata/winforms-sponsors-manifest.json
+
+          if git diff --cached --quiet; then
+            echo "Sponsors manifest did not change."
+            exit 0
+          fi
+
+          git commit -m "chore(winforms): update sponsors manifest"
+          git push origin "HEAD:${REF_NAME}"

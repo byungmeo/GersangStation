@@ -1,0 +1,595 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.StationPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Core.Models"
+    xmlns:service="using:GersangStation.Services"
+    d:DataContext="{d:DesignInstance Type=service:WebViewManager}"
+    Background="Transparent"
+    NavigationCacheMode="Enabled"
+    mc:Ignorable="d">
+    <Grid Padding="10,10,10,10" ColumnSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel
+            Grid.Row="0"
+            Grid.Column="0"
+            VerticalAlignment="Center"
+            Spacing="5">
+            <TextBlock
+                HorizontalAlignment="Center"
+                FontWeight="SemiBold"
+                Style="{ThemeResource TitleLargeTextBlockStyle}"
+                Text="GersangStation" />
+
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Orientation="Horizontal"
+                Spacing="8">
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Opacity="0.78"
+                    Text="{x:Bind CurrentAppVersionText, Mode=OneWay}"
+                    TextAlignment="Center" />
+                <Button
+                    VerticalAlignment="Center"
+                    Click="Button_UpdateFromStore_Click"
+                    IsEnabled="{x:Bind StoreUpdateButtonEnabled, Mode=OneWay}"
+                    IsTabStop="False"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Visibility="{x:Bind StoreUpdateButtonVisibility, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontSize="12" Glyph="&#xE896;" />
+                        <TextBlock FontSize="12" Text="업데이트" />
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </StackPanel>
+
+        <Grid
+            Grid.Row="1"
+            Grid.Column="0"
+            Padding="10,10,10,10"
+            BorderBrush="{ThemeResource ControlStrongFillColorDefault}"
+            BorderThickness="2"
+            CornerRadius="12"
+            RowSpacing="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Row="2" Grid.ColumnSpan="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <RadioButtons
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Grid.ColumnSpan="1"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    IsTabStop="False"
+                    SelectedIndex="{x:Bind SelectedPreset, Mode=TwoWay}">
+
+                    <RadioButton
+                        Content="프리셋1"
+                        FlowDirection="LeftToRight"
+                        FontSize="13"
+                        IsTabStop="False" />
+                    <RadioButton
+                        Content="프리셋2"
+                        FlowDirection="LeftToRight"
+                        FontSize="13"
+                        IsTabStop="False" />
+                    <RadioButton
+                        Content="프리셋3"
+                        FlowDirection="LeftToRight"
+                        FontSize="13"
+                        IsTabStop="False" />
+                    <RadioButton
+                        Content="프리셋4"
+                        FlowDirection="LeftToRight"
+                        FontSize="13"
+                        IsTabStop="False" />
+                </RadioButtons>
+
+                <StackPanel
+                    Grid.Row="0"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="2"
+                    HorizontalAlignment="Stretch"
+                    Spacing="12">
+                    <ComboBox
+                        x:Name="ComboBox_Account1"
+                        HorizontalAlignment="Stretch"
+                        DisplayMemberPath="DisplayName"
+                        IsTabStop="False"
+                        ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
+                        PlaceholderText="선택하지 않음"
+                        SelectedValue="{x:Bind SelectedAccount1Id, Mode=TwoWay}"
+                        SelectedValuePath="Id">
+                        <ComboBox.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="1클라 계정" />
+                            </DataTemplate>
+                        </ComboBox.HeaderTemplate>
+                    </ComboBox>
+                    <ComboBox
+                        x:Name="ComboBox_Account2"
+                        HorizontalAlignment="Stretch"
+                        DisplayMemberPath="DisplayName"
+                        IsTabStop="False"
+                        ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
+                        PlaceholderText="선택하지 않음"
+                        SelectedValue="{x:Bind SelectedAccount2Id, Mode=TwoWay}"
+                        SelectedValuePath="Id">
+                        <ComboBox.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="2클라 계정" />
+                            </DataTemplate>
+                        </ComboBox.HeaderTemplate>
+                    </ComboBox>
+                    <ComboBox
+                        x:Name="ComboBox_Account3"
+                        HorizontalAlignment="Stretch"
+                        DisplayMemberPath="DisplayName"
+                        IsTabStop="False"
+                        ItemsSource="{x:Bind AccountSelectionOptions, Mode=OneWay}"
+                        PlaceholderText="선택하지 않음"
+                        SelectedValue="{x:Bind SelectedAccount3Id, Mode=TwoWay}"
+                        SelectedValuePath="Id">
+                        <ComboBox.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock FontSize="12" Text="3클라 계정" />
+                            </DataTemplate>
+                        </ComboBox.HeaderTemplate>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+
+            <Grid
+                Grid.Row="4"
+                Grid.ColumnSpan="3"
+                HorizontalAlignment="Stretch"
+                ColumnSpacing="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="100" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <ComboBox
+                    x:Name="ComboBox_Server"
+                    Grid.Row="0"
+                    Grid.ColumnSpan="3"
+                    Margin="0,0,0,5"
+                    HorizontalAlignment="Stretch"
+                    DisplayMemberPath="DisplayName"
+                    IsTabStop="False"
+                    ItemsSource="{x:Bind models:GameServerHelper.ServerOptions, Mode=OneTime}"
+                    SelectedIndex="{x:Bind SelectedServerIndex, Mode=TwoWay}"
+                    SelectedValuePath="Server"
+                    SelectionChanged="ComboBox_Server_SelectionChanged">
+                    <ComboBox.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock FontSize="12" Text="거상 서버" />
+                        </DataTemplate>
+                    </ComboBox.HeaderTemplate>
+                </ComboBox>
+
+                <Grid Grid.Row="1" Grid.Column="0">
+                    <Button
+                        x:Name="Button_Client1_Execute"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Click="Button_Client1_Execute_Click"
+                        IsEnabled="{x:Bind Client1ButtonEnabled, Mode=OneWay}"
+                        IsTabStop="False">
+                        <StackPanel HorizontalAlignment="Center" Spacing="6">
+                            <TextBlock HorizontalAlignment="Center" Text="1클라 실행" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="12"
+                                Opacity="0.72"
+                                Text="{x:Bind Client1StatusText, Mode=OneWay}" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Width="28"
+                        Height="28"
+                        Margin="0,6,6,0"
+                        Padding="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Click="Button_Client1_Cancel_Click"
+                        IsTabStop="False"
+                        Style="{ThemeResource SubtleButtonStyle}"
+                        Visibility="{x:Bind Client1CancelVisibility, Mode=OneWay}">
+                        <FontIcon Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+                <Grid Grid.Row="1" Grid.Column="1">
+                    <Button
+                        x:Name="Button_Client2_Execute"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Click="Button_Client2_Execute_Click"
+                        IsEnabled="{x:Bind Client2ButtonEnabled, Mode=OneWay}"
+                        IsTabStop="False">
+                        <StackPanel HorizontalAlignment="Center" Spacing="6">
+                            <TextBlock HorizontalAlignment="Center" Text="2클라 실행" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="12"
+                                Opacity="0.72"
+                                Text="{x:Bind Client2StatusText, Mode=OneWay}" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Width="28"
+                        Height="28"
+                        Margin="0,6,6,0"
+                        Padding="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Click="Button_Client2_Cancel_Click"
+                        IsTabStop="False"
+                        Style="{ThemeResource SubtleButtonStyle}"
+                        Visibility="{x:Bind Client2CancelVisibility, Mode=OneWay}">
+                        <FontIcon Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+                <Grid Grid.Row="1" Grid.Column="2">
+                    <Button
+                        x:Name="Button_Client3_Execute"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Click="Button_Client3_Execute_Click"
+                        IsEnabled="{x:Bind Client3ButtonEnabled, Mode=OneWay}"
+                        IsTabStop="False">
+                        <StackPanel HorizontalAlignment="Center" Spacing="6">
+                            <TextBlock HorizontalAlignment="Center" Text="3클라 실행" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                FontSize="12"
+                                Opacity="0.72"
+                                Text="{x:Bind Client3StatusText, Mode=OneWay}" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        Width="28"
+                        Height="28"
+                        Margin="0,6,6,0"
+                        Padding="0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Click="Button_Client3_Cancel_Click"
+                        IsTabStop="False"
+                        Style="{ThemeResource SubtleButtonStyle}"
+                        Visibility="{x:Bind Client3CancelVisibility, Mode=OneWay}">
+                        <FontIcon Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+
+                <Grid
+                    Grid.Row="2"
+                    Grid.ColumnSpan="3"
+                    Padding="0,5,0,0"
+                    HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Name="TextBlock_Version"
+                        Grid.Column="0"
+                        Height="20"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Text="설치 버전: 확인불가 | 최신 버전: 확인불가" />
+                    <Button
+                        x:Name="Button_RefreshVersion"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Click="Button_RefreshVersion_Click"
+                        IsTabStop="False"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Visibility="Visible">
+                        <Viewbox Width="12" Stretch="Uniform">
+                            <SymbolIcon Symbol="Refresh" />
+                        </Viewbox>
+                    </Button>
+                    <Button
+                        x:Name="Button_Patch"
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Click="Button_Patch_Click"
+                        IsTabStop="False"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Visibility="Collapsed">
+                        <Viewbox Width="12" Stretch="Uniform">
+                            <SymbolIcon Symbol="Download" />
+                        </Viewbox>
+                    </Button>
+                    <Button
+                        Grid.Column="2"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Click="Button_ClientSetting_Click"
+                        IsTabStop="False"
+                        Style="{StaticResource DefaultButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <Viewbox
+                                Width="12"
+                                Margin="0,0,4,0"
+                                Stretch="Uniform">
+                                <SymbolIcon Symbol="Setting" />
+                            </Viewbox>
+                            <TextBlock FontSize="12" Text="클라설정" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Grid
+            Grid.RowSpan="2"
+            Grid.Column="1"
+            IsTabStop="False"
+            RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" IsTabStop="False">
+                <Grid
+                    x:Name="Grid_ThumbnailHost"
+                    VerticalAlignment="Top"
+                    IsTabStop="False"
+                    SizeChanged="Grid_ThumbnailHost_SizeChanged">
+                    <Border
+                        x:Name="Border_EventBorder"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        BorderBrush="{ThemeResource ControlStrongFillColorDefaultBrush}"
+                        BorderThickness="2"
+                        CornerRadius="18"
+                        IsTabStop="False">
+                        <FlipView
+                            x:Name="FlipView_Event"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            CornerRadius="18"
+                            IsTabStop="False"
+                            ItemsSource="{x:Bind EventItems, Mode=OneWay}"
+                            SelectionChanged="FlipView_Event_SelectionChanged">
+                            <FlipView.ItemTemplate>
+                                <DataTemplate x:DataType="local:StationEventThumbnailItem">
+                                    <HyperlinkButton
+                                        Padding="0"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="EventThumbnail_Click"
+                                        IsTabStop="False"
+                                        Tag="{x:Bind DetailUrl}">
+                                        <Grid IsTabStop="False">
+                                            <Image
+                                                IsTabStop="False"
+                                                Source="{x:Bind ThumbnailUrl}"
+                                                Stretch="UniformToFill" />
+                                        </Grid>
+                                    </HyperlinkButton>
+                                </DataTemplate>
+                            </FlipView.ItemTemplate>
+                        </FlipView>
+                    </Border>
+                </Grid>
+                <Border
+                    x:Name="Border_EventHeader"
+                    Margin="12,12,0,0"
+                    Padding="10,6,10,6"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Background="#99000000"
+                    CornerRadius="8">
+                    <TextBlock
+                        Foreground="White"
+                        Text="{x:Bind EventHeaderText, Mode=OneWay}"
+                        TextWrapping="NoWrap" />
+                </Border>
+                <Border
+                    Margin="0,12,12,0"
+                    Padding="10,6,10,6"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Background="#99000000"
+                    CornerRadius="8"
+                    IsTabStop="False"
+                    Visibility="{x:Bind EventPeriodOverlayVisibility, Mode=OneWay}">
+                    <StackPanel IsTabStop="False" Spacing="2">
+                        <TextBlock
+                            Foreground="White"
+                            IsTabStop="False"
+                            Text="{x:Bind CurrentEventPeriodOverlayText, Mode=OneWay}"
+                            TextWrapping="NoWrap" />
+                        <TextBlock
+                            FontWeight="SemiLight"
+                            Foreground="Lime"
+                            IsTabStop="False"
+                            Text="종료 임박! 보상을 수령하세요."
+                            Visibility="{x:Bind EventUrgencyTextVisibility, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="1" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border
+                    Grid.Column="0"
+                    Padding="16,14,16,14"
+                    VerticalAlignment="Top"
+                    BorderBrush="{ThemeResource ControlStrongFillColorDefault}"
+                    BorderThickness="2"
+                    CornerRadius="18">
+                    <Grid RowSpacing="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="게임 공지사항" />
+
+                        <StackPanel Grid.Row="1">
+                            <ItemsControl ItemsSource="{x:Bind HomepageNoticeItems, Mode=OneWay}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:StationHomepageNoticeItem">
+                                        <HyperlinkButton
+                                            Margin="0,0,0,3"
+                                            Padding="0"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Click="HomepageNotice_Click"
+                                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                            IsTabStop="False"
+                                            Tag="{x:Bind Url}">
+                                            <Grid ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="14"
+                                                    Text="{x:Bind Title}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    Opacity="0.72"
+                                                    Text="{x:Bind DateText}" />
+                                            </Grid>
+                                        </HyperlinkButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Text="{x:Bind HomepageNoticeStatusText, Mode=OneWay}"
+                                Visibility="{x:Bind HomepageNoticeEmptyVisibility, Mode=OneWay}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <Border
+                    Grid.Column="1"
+                    Padding="16,14,16,14"
+                    VerticalAlignment="Top"
+                    BorderBrush="{ThemeResource ControlStrongFillColorDefault}"
+                    BorderThickness="2"
+                    CornerRadius="18">
+                    <Grid RowSpacing="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="거상 스테이션 공지사항" />
+
+                        <StackPanel Grid.Row="1">
+                            <ItemsControl ItemsSource="{x:Bind GersangStationNoticeItems, Mode=OneWay}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="local:StationHomepageNoticeItem">
+                                        <HyperlinkButton
+                                            Margin="0,0,0,3"
+                                            Padding="0"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Click="GersangStationNotice_Click"
+                                            Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                            IsTabStop="False"
+                                            Tag="{x:Bind Url}">
+                                            <Grid ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    FontSize="14"
+                                                    Text="{x:Bind Title}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    FontSize="12"
+                                                    Opacity="0.72"
+                                                    Text="{x:Bind DateText}" />
+                                            </Grid>
+                                        </HyperlinkButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Text="{x:Bind GersangStationNoticeStatusText, Mode=OneWay}"
+                                Visibility="{x:Bind GersangStationNoticeEmptyVisibility, Mode=OneWay}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>

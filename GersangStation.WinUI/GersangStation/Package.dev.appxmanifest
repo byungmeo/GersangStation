@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10"
+  xmlns:uap18="http://schemas.microsoft.com/appx/manifest/uap/windows10/18"
+  IgnorableNamespaces="uap rescap systemai uap18">
+
+  <Identity
+    Name="GersangStation"
+    Publisher="CN=byungmeo.dev"
+    Version="2.0.2.0" />
+
+  <mp:PhoneIdentity PhoneProductId="f6396486-2156-43e1-b703-c284a582d1bc" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+
+  <Properties>
+    <DisplayName>GersangStation Dev</DisplayName>
+    <PublisherDisplayName>byungmeo.dev</PublisherDisplayName>
+    <Logo>Assets\Icons\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="$targetentrypoint$" >
+      <uap:VisualElements
+        DisplayName="GersangStation Dev"
+        Description="ms-resource:AppDescription"
+        BackgroundColor="transparent"
+        Square44x44Logo="Assets\Icons\Square44x44Logo.png" Square150x150Logo="Assets\Icons\Station-256x256.png">
+        <uap:DefaultTile Square71x71Logo="Assets\Icons\Square71x71Logo.png" Square310x310Logo="Assets\Icons\Square310x310Logo.png" Wide310x150Logo="Assets\Icons\Wide310x150Logo.png">
+          <uap:ShowNameOnTiles>
+            <uap:ShowOn Tile="square150x150Logo"/>
+            <uap:ShowOn Tile="wide310x150Logo"/>
+            <uap:ShowOn Tile="square310x310Logo"/>
+          </uap:ShowNameOnTiles>
+        </uap:DefaultTile>
+        <uap:SplashScreen Image="Assets\Icons\SplashScreen.png"/>
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

@@ -1,0 +1,235 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+		<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+		<RootNamespace>GersangStation</RootNamespace>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<Platforms>x64</Platforms>
+		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+		<PublishProfile>win-$(Platform).pubxml</PublishProfile>
+		<SelfContained>true</SelfContained>
+		<UseWinUI>true</UseWinUI>
+		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+		<WinUISDKReferences>false</WinUISDKReferences>
+		<EnableMsixTooling>true</EnableMsixTooling>
+		<Nullable>enable</Nullable>
+		<DefaultLanguage>ko-KR</DefaultLanguage>
+		<ResourceLanguages>ko-KR</ResourceLanguages>
+		<AppxBundleAutoResourcePackageQualifiers>Language</AppxBundleAutoResourcePackageQualifiers>
+		<AppxDefaultResourceQualifiers>Language=ko-KR</AppxDefaultResourceQualifiers>
+		<GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
+		<AppxBundleResourcesDirectoryCompilerFlags Condition="'$(AppxBundleResourcesDirectoryCompilerFlags)' == ''">/q ko-KR</AppxBundleResourcesDirectoryCompilerFlags>
+		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
+		<Configurations>Debug;Release;Dev</Configurations>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)' == 'Dev'">
+		<!-- Dev 구성에서도 Visual Studio가 Debug와 동일한 Hot Reload/XAML 진단 정보를 사용할 수 있게 맞춥니다. -->
+		<DefineConstants>$(DefineConstants);DEBUG;TRACE</DefineConstants>
+		<Optimize>false</Optimize>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>portable</DebugType>
+		<DisableXbfLineInfo>false</DisableXbfLineInfo>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Remove="Assets\Icons\SplashScreen.scale-100.png" />
+		<None Remove="Assets\Icons\SplashScreen.scale-125.png" />
+		<None Remove="Assets\Icons\SplashScreen.scale-150.png" />
+		<None Remove="Assets\Icons\SplashScreen.scale-200.png" />
+		<None Remove="Assets\Icons\SplashScreen.scale-400.png" />
+		<None Remove="Assets\Icons\Square310x310Logo.scale-100.png" />
+		<None Remove="Assets\Icons\Square310x310Logo.scale-125.png" />
+		<None Remove="Assets\Icons\Square310x310Logo.scale-150.png" />
+		<None Remove="Assets\Icons\Square310x310Logo.scale-200.png" />
+		<None Remove="Assets\Icons\Square310x310Logo.scale-400.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.scale-100.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.scale-125.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.scale-150.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.scale-200.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.scale-400.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-16.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-16_altform-lightunplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-16_altform-unplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-24.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-24_altform-lightunplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-24_altform-unplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-256.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-256_altform-lightunplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-256_altform-unplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-32.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-32_altform-lightunplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-32_altform-unplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-48.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-48_altform-lightunplated.png" />
+		<None Remove="Assets\Icons\Square44x44Logo.targetsize-48_altform-unplated.png" />
+		<None Remove="Assets\Icons\Square71x71Logo.scale-100.png" />
+		<None Remove="Assets\Icons\Square71x71Logo.scale-125.png" />
+		<None Remove="Assets\Icons\Square71x71Logo.scale-150.png" />
+		<None Remove="Assets\Icons\Square71x71Logo.scale-200.png" />
+		<None Remove="Assets\Icons\Square71x71Logo.scale-400.png" />
+		<None Remove="Assets\Icons\Station-256x256.scale-100.png" />
+		<None Remove="Assets\Icons\Station-256x256.scale-125.png" />
+		<None Remove="Assets\Icons\Station-256x256.scale-150.png" />
+		<None Remove="Assets\Icons\Station-256x256.scale-200.png" />
+		<None Remove="Assets\Icons\Station-256x256.scale-400.png" />
+		<None Remove="Assets\Icons\StoreLogo.scale-100.png" />
+		<None Remove="Assets\Icons\StoreLogo.scale-125.png" />
+		<None Remove="Assets\Icons\StoreLogo.scale-150.png" />
+		<None Remove="Assets\Icons\StoreLogo.scale-200.png" />
+		<None Remove="Assets\Icons\StoreLogo.scale-400.png" />
+		<None Remove="Assets\Icons\Wide310x150Logo.scale-100.png" />
+		<None Remove="Assets\Icons\Wide310x150Logo.scale-125.png" />
+		<None Remove="Assets\Icons\Wide310x150Logo.scale-150.png" />
+		<None Remove="Assets\Icons\Wide310x150Logo.scale-200.png" />
+		<None Remove="Assets\Icons\Wide310x150Logo.scale-400.png" />
+		<None Remove="Controls\ValidatedTextBox.xaml" />
+		<None Remove="Main\Setting\AccountSettingPage.xaml" />
+		<None Remove="Main\Setting\AdvancedSettingPage.xaml" />
+		<None Remove="Main\Setting\AppearanceSettingPage.xaml" />
+		<None Remove="Main\Setting\DeveloperToolPage.xaml" />
+		<None Remove="Main\Setting\GameInstallSettingPage.xaml" />
+		<None Remove="Main\Setting\GamePatchSettingPage.xaml" />
+		<None Remove="Main\Setting\InstallPathSettingPage.xaml" />
+		<None Remove="Main\Setting\ProgramInfoPage.xaml" />
+		<None Remove="Main\Setting\SettingPage.xaml" />
+		<None Remove="Main\MainWindow.xaml" />
+		<None Remove="Main\StationPage.xaml" />
+		<None Remove="Main\WebViewPage.xaml" />
+		<None Remove="Package.appxmanifest" />
+		<None Remove="Package.dev.appxmanifest" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)' == 'Dev'">
+		<AppxManifest Include="Package.dev.appxmanifest" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' != 'Dev'">
+		<AppxManifest Include="Package.appxmanifest" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="Assets\Policies\privacy-policy.txt" />
+		<Content Include="..\metadata\winui-links-manifest.json">
+			<Link>metadata\winui-links-manifest.json</Link>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Manifest Include="$(ApplicationManifest)" />
+	</ItemGroup>
+
+	<!--
+    Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+    Tools extension to be activated for this project even if the Windows App SDK Nuget
+    package has not yet been restored.
+  -->
+	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+		<ProjectCapability Include="Msix" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
+		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\Core\Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\AppearanceSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\ProgramInfoPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\GameInstallSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\DeveloperToolPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\AdvancedSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\NotificationSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\ServerInstallPathSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\GamePatchSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\InstallPathSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\AccountSettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\Setting\SettingPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\MainWindow.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\StationPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Main\WebViewPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Page Update="Controls\ValidatedTextBox.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+	</ItemGroup>
+	<ItemGroup>
+		<Folder Include="AppPackages\" />
+	</ItemGroup>
+
+	<!--
+    Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
+    Explorer "Package and Publish" context menu entry to be enabled for this project even if
+    the Windows App SDK Nuget package has not yet been restored.
+  -->
+	<PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+		<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+	</PropertyGroup>
+
+	<!-- Publish Properties -->
+	<PropertyGroup>
+		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Dev'">False</PublishReadyToRun>
+		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Dev'">True</PublishReadyToRun>
+		<PublishTrimmed Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Dev'">False</PublishTrimmed>
+		<PublishTrimmed Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Dev'">False</PublishTrimmed>
+		<PackageCertificateThumbprint Condition="'$(Configuration)' != 'Dev'">BAA9B7960D2A6F77AA1DFA5A192D2A3F21B37F80</PackageCertificateThumbprint>
+		<PackageCertificateThumbprint Condition="'$(Configuration)' == 'Dev'">1DD617E6DBF90725E342D08A2989BF21CE253DD3</PackageCertificateThumbprint>
+		<AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+	</PropertyGroup>
+</Project>

@@ -1,0 +1,128 @@
+name: Upsert WinUI Link Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      key:
+        description: "Manifest key to update"
+        required: true
+        type: string
+      url:
+        description: "HTTP or HTTPS URL value"
+        required: true
+        type: string
+      title:
+        description: "Optional display title"
+        required: false
+        type: string
+      category:
+        description: "Optional category"
+        required: false
+        type: string
+      description:
+        description: "Optional description"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  upsert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Upsert manifest entry
+        env:
+          INPUT_KEY: ${{ github.event.inputs.key }}
+          INPUT_URL: ${{ github.event.inputs.url }}
+          INPUT_TITLE: ${{ github.event.inputs.title }}
+          INPUT_CATEGORY: ${{ github.event.inputs.category }}
+          INPUT_DESCRIPTION: ${{ github.event.inputs.description }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const manifestPath = path.join(
+            process.cwd(),
+            'GersangStation.WinUI',
+            'metadata',
+            'winui-links-manifest.json'
+          );
+
+          const key = (process.env.INPUT_KEY || '').trim();
+          const url = (process.env.INPUT_URL || '').trim();
+          const title = (process.env.INPUT_TITLE || '').trim();
+          const category = (process.env.INPUT_CATEGORY || '').trim();
+          const description = (process.env.INPUT_DESCRIPTION || '').trim();
+
+          if (!key) {
+            throw new Error('key input is required.');
+          }
+
+          if (!url) {
+            throw new Error('url input is required.');
+          }
+
+          const parsedUrl = new URL(url);
+          if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+            throw new Error(`Only http/https URLs are supported. Received: ${url}`);
+          }
+
+          const defaultDocument = {
+            schemaVersion: 1,
+            updatedAtUtc: new Date().toISOString(),
+            fallback: {
+              title: '링크를 불러오는데 실패하였습니다.',
+              message: '요청한 링크 정보를 준비하지 못했습니다. 앱에 포함된 링크 매니페스트 또는 링크 키를 확인해 주세요.',
+              supportText: '문제가 계속되면 최신 앱 빌드와 GersangStation.WinUI/metadata/winui-links-manifest.json 구성을 함께 점검해 주세요.'
+            },
+            links: {}
+          };
+
+          let document = defaultDocument;
+          if (fs.existsSync(manifestPath)) {
+            document = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          } else {
+            fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+          }
+
+          document.schemaVersion ??= 1;
+          document.fallback ??= defaultDocument.fallback;
+          document.links ??= {};
+
+          const existing = document.links[key] || {};
+          document.links[key] = {
+            ...existing,
+            url,
+            title: title || existing.title || key,
+            category: category || existing.category || 'misc',
+            description: description || existing.description || ''
+          };
+
+          document.updatedAtUtc = new Date().toISOString();
+          document.links = Object.fromEntries(
+            Object.entries(document.links).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+          );
+
+          fs.writeFileSync(manifestPath, `${JSON.stringify(document, null, 2)}\n`, 'utf8');
+          NODE
+
+      - name: Commit and push changes
+        run: |
+          if git diff --quiet -- GersangStation.WinUI/metadata/winui-links-manifest.json; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add GersangStation.WinUI/metadata/winui-links-manifest.json
+          git commit -m "chore: upsert WinUI link manifest for ${{ github.event.inputs.key }}"
+          git push

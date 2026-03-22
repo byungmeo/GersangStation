@@ -1,0 +1,140 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Label="Globals">
+    <WebView2UseWinRT>False</WebView2UseWinRT>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows7.0</TargetFramework>
+    <RootNamespace>GersangStation</RootNamespace>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+    <AssemblyVersion>1.7.1</AssemblyVersion>
+    <FileVersion>1.7.1</FileVersion>
+    <Copyright>Copyright © 2026 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
+    <Company>Byungmeo</Company>
+    <Authors>Byungmeo</Authors>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/byungmeo/GersangStation</RepositoryUrl>
+    <Description>거상 다클라 종합 유틸리티</Description>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <COMReference Include="IWshRuntimeLibrary">
+      <WrapperTool>tlbimp</WrapperTool>
+      <VersionMinor>0</VersionMinor>
+      <VersionMajor>1</VersionMajor>
+      <Guid>f935dc20-1cf0-11d0-adb9-00c04fd58a0b</Guid>
+      <Lcid>0</Lcid>
+      <Isolated>false</Isolated>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3719.77" />
+    <PackageReference Include="Octokit" Version="14.0.0" />
+	<PackageReference Include="MaterialSkinKR" Version="1.0.1" />
+	<PackageReference Include="System.IO.Hashing" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Forms\Form_ShortcutSetting.cs" />
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Resources\Icons\" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<Content Include="Properties\PublishProfiles\Includes\1.사용자 설명서 (설치 및 사용방법).url">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<Link>..\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="Properties\PublishProfiles\Includes\2.이전 설정 불러오는 방법.url">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<Link>..\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="Properties\PublishProfiles\Includes\3.파일이 삭제되는 경우(백신 차단).url">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<Link>..\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="Properties\PublishProfiles\Includes\4.SNS 로그인 방법.url">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<Link>..\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.exe">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.dll">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.deps.json">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
+	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.runtimeconfig.json">
+		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		<Link>Updator\%(Filename)%(Extension)</Link>
+	</Content>
+  </ItemGroup>
+
+  <Target Name="BuildMiniUpdator" BeforeTargets="Build;Publish">
+    <MSBuild
+      Projects="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
+      Targets="Build"
+      Properties="Configuration=$(Configuration);Platform=AnyCPU"
+      RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun" />
+  </Target>
+</Project>

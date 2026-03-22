@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <OutputType>Exe</OutputType>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <!--
+      Displays error on console in addition to the log file. Note that this feature comes with a performance impact.
+      For more information, visit https://learn.microsoft.com/dotnet/core/testing/unit-testing-platform-integration-dotnet-test#show-failure-per-test
+      -->
+    <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+    <Configurations>Debug;Release;Dev</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.4.1" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.1.0" />
+    <PackageReference Include="MSTest" Version="4.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="SampleData\vsn.dat">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

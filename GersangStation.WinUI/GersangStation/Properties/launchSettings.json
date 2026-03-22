@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "GersangStation (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "GersangStation (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

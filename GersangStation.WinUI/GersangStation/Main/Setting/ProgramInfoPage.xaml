@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.ProgramInfoPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main.Setting"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    d:DataContext="{d:DesignInstance Type=local:ProgramInfoPage}"
+    NavigationCacheMode="Disabled"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Padding="24,24,24,40" Spacing="20">
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="{x:Bind AppDisplayName, Mode=OneTime}" />
+
+            <Border
+                Padding="20"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
+                <StackPanel Spacing="12">
+                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="프로그램 기본 정보" />
+                    <Grid ColumnSpacing="16" RowSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Text="프로그램명" />
+                        <TextBlock
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Text="{x:Bind AppDisplayName, Mode=OneTime}" />
+
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Text="버전" />
+                        <TextBlock
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Text="{x:Bind AppVersion, Mode=OneTime}" />
+
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Text="배포자" />
+                        <TextBlock
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Text="{x:Bind PublisherDisplayName, Mode=OneTime}" />
+
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            Text="설명" />
+                        <TextBlock
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Text="{x:Bind AppDescription, Mode=OneTime}"
+                            TextWrapping="WrapWholeWords" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border
+                Padding="20"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
+                <StackPanel Spacing="12">
+                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="오픈소스 라이선스" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="거상스테이션은 다음 오픈소스 구성 요소를 기반으로 동작합니다."
+                        TextWrapping="WrapWholeWords" />
+                    <StackPanel Spacing="8">
+                        <TextBlock Text=".NET Runtime - MIT License" />
+                        <TextBlock Text="WinUI 3 - MIT License" />
+                        <TextBlock Text="Windows App SDK - MIT License" />
+                        <TextBlock Text="7-Zip (7za.exe) - GNU LGPL, BSD 3-Clause, unRAR restriction" />
+                    </StackPanel>
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="각 라이선스 전문은 해당 프로젝트 저장소에서 확인하실 수 있습니다."
+                        TextWrapping="WrapWholeWords" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <HyperlinkButton
+                            Click="LinkButton_Click"
+                            Content=".NET"
+                            Tag="oss.dotnet.runtime.license" />
+                        <HyperlinkButton
+                            Click="LinkButton_Click"
+                            Content="WinUI 3"
+                            Tag="oss.winui3.license" />
+                        <HyperlinkButton
+                            Click="LinkButton_Click"
+                            Content="Windows App SDK"
+                            Tag="oss.windows-app-sdk.license" />
+                        <HyperlinkButton
+                            Click="LinkButton_Click"
+                            Content="7-Zip"
+                            Tag="oss.7zip.home" />
+                    </StackPanel>
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="이 제품에는 7-Zip의 7za.exe가 포함되어 있습니다."
+                        TextWrapping="WrapWholeWords" />
+                </StackPanel>
+            </Border>
+
+            <Border
+                Padding="20"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
+                <StackPanel Spacing="12">
+                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="개인정보처리방침" />
+                    <TextBlock Text="비밀번호는 Windows 자격 증명 관리자를 통해 로컬에 저장되며, 운영체제의 보안 메커니즘에 의해 보호됩니다." TextWrapping="WrapWholeWords" />
+                    <TextBlock Text="계정 정보는 로컬 저장을 기본으로 하며, 개발자 서버 또는 제3자에게 별도로 제공 및 저장하지 않습니다." TextWrapping="WrapWholeWords" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="자동 로그인을 위해 아이디와 비밀번호가 거상 공식 홈페이지로 전송될 수 있습니다."
+                        TextWrapping="WrapWholeWords" />
+                    <HyperlinkButton
+                        Click="LinkButton_Click"
+                        Content="개인정보처리방침 보기"
+                        Tag="{x:Bind PrivacyPolicyUri, Mode=OneTime}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

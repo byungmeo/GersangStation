@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="GersangStation.Main.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:GersangStation.Main"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="GersangStation"
+    mc:Ignorable="d">
+
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TitleBar>
+            <TitleBar.LeftHeader>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <ImageIcon
+                        Grid.Column="0"
+                        Width="30"
+                        Height="30"
+                        Margin="17,0,10,0"
+                        Source="/Assets/Icons/Square44x44Logo.png" />
+
+                    <SelectorBar
+                        x:Name="MainSelectorBar"
+                        Grid.Column="1"
+                        SelectionChanged="MainSelectorBar_SelectionChanged">
+                        <!--  메인 스테이션 바  -->
+                        <SelectorBarItem Icon="Home" Text="메인" />
+
+                        <!--  웹뷰 바  -->
+                        <SelectorBarItem
+                            x:Name="SelectorBarItem_Browser"
+                            Icon="World"
+                            Text="브라우저" />
+
+                        <!--  플래너 바  -->
+                        <SelectorBarItem
+                            Icon="Calendar"
+                            IsEnabled="False"
+                            Text="플래너" />
+
+                        <!--  환경설정 바  -->
+                        <SelectorBarItem
+                            x:Name="SelectorBarItem_Setting"
+                            Icon="Setting"
+                            Text="설정" />
+                    </SelectorBar>
+                </Grid>
+            </TitleBar.LeftHeader>
+        </TitleBar>
+
+        <Grid
+            x:Name="ShellContentHost"
+            Grid.Row="1"
+            Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}">
+            <Frame
+                x:Name="StationFrame"
+                IsNavigationStackEnabled="False" />
+            <Frame
+                x:Name="BrowserFrame"
+                IsNavigationStackEnabled="False"
+                Visibility="Collapsed" />
+            <Frame
+                x:Name="SettingFrame"
+                IsNavigationStackEnabled="False"
+                Visibility="Collapsed" />
+        </Grid>
+    </Grid>
+</Window>

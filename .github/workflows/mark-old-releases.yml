@@ -1,0 +1,104 @@
+name: Mark Outdated Releases
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  mark-outdated:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Update old releases
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log("🚀 [Start] 스크립트 시작");
+            console.log(`ℹ️ Event Type: ${context.eventName}`);
+
+            const markerRegex = /<!--MARKER[\s\S]*?<!--MARKER_END-->/;
+            const markerStart = '<!--MARKER(v1.1)-->';
+            const header = '# ⚠️이 버전은 최신 버전이 아닙니다.';
+            const content = '**[최신 버전 다운로드](https://github.com/byungmeo/GersangStation/releases/latest)**';
+            const markerEnd = '<!--MARKER_END-->';
+            const NEW_CONTENT_BLOCK = `${markerStart}\n${header}\n${content}\n${markerEnd}\n`;
+
+            // 1. 릴리즈 목록 가져오기
+            console.log("🔄 릴리즈 목록을 불러오는 중...");
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            console.log(`✅ 총 ${releases.length}개의 릴리즈를 찾았습니다.`);
+
+            // 2. 보호할(구식 처리 안 할) 최신 버전 ID 찾기
+            let currentReleaseId = null;
+            let currentReleaseTag = "Unknown";
+
+            if (context.payload && context.payload.release) {
+              // 자동 트리거
+              currentReleaseId = context.payload.release.id;
+              currentReleaseTag = context.payload.release.tag_name || context.payload.release.name;
+              console.log(`🎯 [Auto Trigger] 방금 생성된 릴리즈를 보호합니다 (ID: ${currentReleaseId}, Tag: ${currentReleaseTag})`);
+            } else if (releases.length > 0) {
+              // 수동 트리거
+              currentReleaseId = releases[0].id;
+              currentReleaseTag = releases[0].tag_name || releases[0].name;
+              console.log(`🎯 [Manual Trigger] 목록의 첫 번째(최신) 릴리즈를 보호합니다 (ID: ${currentReleaseId}, Tag: ${currentReleaseTag})`);
+            } else {
+              console.log("⚠️ 처리할 릴리즈가 없습니다. 스크립트를 종료합니다.");
+              return;
+            }
+
+            // 3. 순회하며 업데이트
+            console.log("---------------------------------------------------");
+            for (const release of releases) {
+              const releaseTag = release.tag_name || release.name || "No Name";
+              console.log(`🔍 검사 중: [${releaseTag}] (ID: ${release.id})`);
+
+              // Case A: 최신 버전(또는 방금 만든 Draft)인 경우
+              if (release.id === currentReleaseId) {
+                console.log(`   ⏭️ SKIP: 현재 최신 버전이므로 건너뜁니다.`);
+                continue;
+              }
+
+              let currentBody = release.body || "";
+              let updatedBody = "";
+
+              if (markerRegex.test(currentBody)) {
+                // 이미 마커가 있는 경우
+                if (currentBody.includes(markerStart)) {
+                  console.log(`🔍 [${releaseTag}] SKIP: 이미 최신 마커(${markerStart})가 존재합니다.`);
+                  continue;
+                } else {
+                  // 구버전 마커가 있다면 교체
+                  console.log(`🔍 [${releaseTag}] UPDATE: 마커 버전을 업데이트합니다.`);
+                  updatedBody = currentBody.replace(markerRegex, NEW_CONTENT_BLOCK);
+                }
+              } else {
+                // 마커가 없는 경우 상단에 추가
+                console.log(`🔍 [${releaseTag}] ADD: 마커를 새로 추가합니다.`);
+                updatedBody = `${NEW_CONTENT_BLOCK}\n\n${currentBody}`;
+              }
+
+              // Case C: 업데이트 대상
+              console.log(`   ✏️ UPDATE: 구식 버전 문구를 추가합니다...`);
+              try {
+                await github.rest.repos.updateRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: release.id,
+                  body: updatedBody
+                });
+                console.log(`   ✅ 성공: [${releaseTag}] 업데이트 완료.`);
+              } catch (error) {
+                console.error(`   ❌ 실패: [${releaseTag}] 업데이트 중 에러 발생!`);
+                console.error(error);
+              }
+            }
+            console.log("---------------------------------------------------");
+            console.log("🏁 [End] 모든 작업이 완료되었습니다.");

@@ -1,0 +1,123 @@
+name: Publish WinForms Announcements Manifest
+
+on:
+  workflow_dispatch:
+    inputs:
+      discussion_number:
+        description: "GitHub Discussions number"
+        required: true
+        type: string
+      title:
+        description: "Announcement title"
+        required: true
+        type: string
+      show_popup:
+        description: "Show popup on next app start"
+        required: true
+        type: boolean
+        default: true
+      dry_run:
+        description: "Validate only without committing manifest"
+        required: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Validate workflow inputs
+        shell: bash
+        env:
+          DISCUSSION_NUMBER: ${{ inputs.discussion_number }}
+          TITLE: ${{ inputs.title }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$DRY_RUN" != "true" && "$REF_NAME" != "master" ]]; then
+            echo "Non-dry-run execution is restricted to the master branch. Current branch: $REF_NAME"
+            exit 1
+          fi
+
+          if [[ ! "$DISCUSSION_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "discussion_number must be numeric."
+            exit 1
+          fi
+
+          if [[ -z "${TITLE// }" ]]; then
+            echo "title must not be empty."
+            exit 1
+          fi
+
+      - name: Generate announcements manifest
+        shell: bash
+        env:
+          DISCUSSION_NUMBER: ${{ inputs.discussion_number }}
+          TITLE: ${{ inputs.title }}
+          SHOW_POPUP: ${{ inputs.show_popup }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+          discussion_number = os.environ["DISCUSSION_NUMBER"].strip()
+
+          manifest = {
+              "schema_version": 1,
+              "product": "winforms",
+              "channel": "stable",
+              "generated_at": generated_at,
+              "announcement": {
+                  "id": discussion_number,
+                  "title": os.environ["TITLE"].strip(),
+                  "url": f"https://github.com/byungmeo/GersangStation/discussions/{discussion_number}",
+                  "published_at": generated_at,
+                  "show_popup": os.environ["SHOW_POPUP"].lower() == "true"
+              }
+          }
+
+          os.makedirs("metadata", exist_ok=True)
+          with open("metadata/winforms-announcements-manifest.json", "w", encoding="utf-8", newline="\n") as file:
+              json.dump(manifest, file, ensure_ascii=False, indent=2)
+              file.write("\n")
+          PY
+
+      - name: Upload announcements manifest preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: winforms-announcements-manifest-${{ github.run_id }}
+          path: metadata/winforms-announcements-manifest.json
+
+      - name: Commit announcements manifest
+        if: ${{ !inputs.dry_run }}
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          DISCUSSION_NUMBER: ${{ inputs.discussion_number }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add metadata/winforms-announcements-manifest.json
+
+          if git diff --cached --quiet; then
+            echo "Announcements manifest did not change."
+            exit 0
+          fi
+
+          git commit -m "chore(winforms): update announcement manifest for discussion ${DISCUSSION_NUMBER}"
+          git push origin "HEAD:${REF_NAME}"
