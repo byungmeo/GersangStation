@@ -78,9 +78,6 @@ namespace GersangStation
         /// </summary>
         private static void PrepareMainWindow(Window window)
         {
-            // 타이틀바 더블 클릭으로 인한 최대화 방지
-            window.PreventMaximizeOnTitleBarDoubleClick();
-
             AppWindow appWindow = window.AppWindow;
             var displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
             if (displayArea is not null)
