@@ -956,7 +956,8 @@ public sealed partial class MainWindow : Window
             </toast>
             """);
 
-        ToastNotificationManager.CreateToastNotifier()
-            .Show(new ToastNotification(toastXml));
+        ToastNotifier toastNotifier = ToastNotificationManager.CreateToastNotifier(Package.Current.Id.FamilyName + "!App");
+        ToastNotification toastNotification = new(toastXml);
+        toastNotifier.Show(toastNotification);
     }
 }
