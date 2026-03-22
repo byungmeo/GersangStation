@@ -20,7 +20,6 @@
 		<GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
 		<AppxBundleResourcesDirectoryCompilerFlags Condition="'$(AppxBundleResourcesDirectoryCompilerFlags)' == ''">/q ko-KR</AppxBundleResourcesDirectoryCompilerFlags>
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
-		<!-- DeploymentManager는 앱 코드에서 명시적으로 초기화해 Main/Singleton 패키지 실패를 제어합니다. -->
 		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
 		<Configurations>Debug;Release;Dev</Configurations>
 	</PropertyGroup>
