@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using static GerSDK.GamePathChecker;
 
 namespace GerSDK;
@@ -16,13 +15,21 @@ namespace GerSDK;
 public static class ClientCreator
 {
     /// <summary>
-    /// 
+    /// 원본 게임 폴더를 기준으로 다중 실행용 심볼릭 링크 클라이언트를 생성합니다.
     /// </summary>
-    /// <param name="sourceGamePath"></param>
-    /// <param name="destGamePath"></param>
-    /// <exception cref="ArgumentNullException"></exception>
-    /// <exception cref="ArgumentException"></exception>
-    /// <exception cref="NotSupportedException"></exception>
+    /// <param name="sourceGamePath">기준이 되는 원본 게임 폴더 경로입니다.</param>
+    /// <param name="destGamePath">생성할 다중 실행용 대상 게임 폴더 경로입니다.</param>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="sourceGamePath"/> 또는 <paramref name="destGamePath"/>가 <see langword="null"/>인 경우 발생합니다.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// 경로가 비어 있거나 잘못되었거나, 원본 게임 구조가 요구 조건을 만족하지 않거나,
+    /// 대상 경로가 원본과 같거나 중첩되었거나, 복사 및 링크 생성 과정에서 예외가 발생한 경우 발생합니다.
+    /// 일부 경우 실제 I/O 실패 원인은 InnerException을 통해 확인할 수 있습니다.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// <paramref name="destGamePath"/>가 위치한 파일 시스템이 심볼릭 링크를 지원하지 않는 경우 발생합니다.
+    /// </exception>
     public static void CreateSymbolClient(string sourceGamePath, string destGamePath)
     {
         // 게임 설치 시 기본적으로 포함되는 폴더 및 파일 (v34200 기준)
@@ -47,7 +54,7 @@ public static class ClientCreator
 
         try
         {
-            sourceGamePath = Path.GetFullPath(sourceGamePath);
+            sourceGamePath = FileSystemHelper.NormalizePath(sourceGamePath);
         }
         catch (Exception ex)
         {
@@ -108,19 +115,16 @@ public static class ClientCreator
 
         try
         {
-            destGamePath = Path.GetFullPath(destGamePath);
+            destGamePath = FileSystemHelper.NormalizePath(destGamePath);
         }
         catch (Exception ex)
         {
             throw new ArgumentException("Failed get DestGame full path", nameof(destGamePath), ex);
         }
 
-        // 두 경로가 동일할 수 없음
-        if (sourceGamePath.Equals(destGamePath, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException("DestGamePath == SourceGamePath", nameof(destGamePath));
-
         // 두 경로는 부모/자식 관계가 될 수 없음 (무한 재귀 복사 방지)
-        if (IsSameOrNestedPath(sourceGamePath, destGamePath) || IsSameOrNestedPath(destGamePath, sourceGamePath))
+        if (FileSystemHelper.IsSameOrNestedPath(sourceGamePath, destGamePath) ||
+            FileSystemHelper.IsSameOrNestedPath(destGamePath, sourceGamePath))
         {
             throw new ArgumentException(
                 "SourceGamePath and DestGamePath must not be the same path or nested paths.",
@@ -227,26 +231,11 @@ public static class ClientCreator
                             if (subDir.Name.Equals("Config", StringComparison.OrdinalIgnoreCase))
                             {
                                 DirectoryInfo destConfigDirInfo = Directory.CreateDirectory(destSubDirPath);
-                                DeepCopy(subDir, destConfigDirInfo.FullName);
+                                FileSystemHelper.DeepCopyDirectory(subDir, destConfigDirInfo.FullName);
                             }
                             else
                             {
-                                if (Directory.Exists(destSubDirPath))
-                                {
-                                    DirectoryInfo symbolDestDirInfo = new(destSubDirPath);
-                                    if (symbolDestDirInfo.LinkTarget is not null &&
-                                        IsSamePath(ResolveLinkTargetFullPath(destSubDirPath, symbolDestDirInfo.LinkTarget), subDir.FullName))
-                                    {
-                                        // 만약, 이미 동일한 대상을 가리키고 있는 심볼릭 링크라면 스킵한다
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        // 그렇지 않다면 예외를 던진다. (유일한 방법은 삭제이지만 너무 위험함)
-                                        throw new ArgumentException("심볼릭링크 생성 경로에 이미 LinkTarget이 다른 링크가 존재하거나 일반 파일이 또는 폴더가 존재합니다. 삭제 후 다시 생성 시도하세요.");
-                                    }
-                                }
-                                Directory.CreateSymbolicLink(destSubDirPath, subDir.FullName);
+                                FileSystemHelper.CreateOrReuseDirectorySymbolicLink(destSubDirPath, subDir.FullName);
                             }
                         }
                     }
@@ -258,10 +247,19 @@ public static class ClientCreator
             }
         };
 
+        // 아예 무시해야 하는 폴더들을 정의
+        HashSet<string> ignoredTargets = new(StringComparer.OrdinalIgnoreCase) { "TempFiles", "PatchTemp" };
+
         // 심볼릭 링크로 생성하면 되는 폴더들을 정의
         HashSet<string> symbolTargets = new(StringComparer.OrdinalIgnoreCase) { "DLL", "Online" };
+
         foreach (DirectoryInfo dir in sourceDirInfo.GetDirectories())
         {
+            if (ignoredTargets.Contains(dir.Name))
+            {
+                continue;
+            }
+
             string destPath = Path.Combine(destGamePath, dir.Name);
             if (customTargets.TryGetValue(dir.Name, out Action<DirectoryInfo, string>? value))
             {
@@ -269,25 +267,9 @@ public static class ClientCreator
             }
             else if (symbolTargets.Contains(dir.Name))
             {
-                if (Directory.Exists(destPath))
-                {
-                    DirectoryInfo symbolDestDirInfo = new(destPath);
-                    if (symbolDestDirInfo.LinkTarget is not null &&
-                        IsSamePath(ResolveLinkTargetFullPath(destPath, symbolDestDirInfo.LinkTarget), dir.FullName))
-                    {
-                        // 만약, 이미 동일한 대상을 가리키고 있는 심볼릭 링크라면 스킵한다
-                        continue;
-                    }
-                    else
-                    {
-                        // 그렇지 않다면 예외를 던진다. (유일한 방법은 삭제이지만 너무 위험함)
-                        throw new ArgumentException("심볼릭링크 생성 경로에 이미 LinkTarget이 다른 링크가 존재하거나 일반 파일이 또는 폴더가 존재합니다. 삭제 후 다시 생성 시도하세요.");
-                    }
-                }
-
                 try
                 {
-                    Directory.CreateSymbolicLink(destPath, dir.FullName);
+                    FileSystemHelper.CreateOrReuseDirectorySymbolicLink(destPath, dir.FullName);
                 }
                 catch (Exception ex)
                 {
@@ -297,88 +279,8 @@ public static class ClientCreator
             else
             {
                 // 별도로 표시하지 않았으면 무조건 깊은 복사
-                DeepCopy(dir, destPath);
+                FileSystemHelper.DeepCopyDirectory(dir, destPath);
             }
-        }
-    }
-
-    /// <summary>
-    /// 원본 경로와 대상 경로가 부모/자식 관계인지 여부를 확인
-    /// </summary>
-    /// <param name="basePath"></param>
-    /// <param name="otherPath"></param>
-    /// <returns></returns>
-    static bool IsSameOrNestedPath(string basePath, string otherPath)
-    {
-        string normalizedBase = Path.TrimEndingDirectorySeparator(Path.GetFullPath(basePath));
-        string normalizedOther = Path.TrimEndingDirectorySeparator(Path.GetFullPath(otherPath));
-
-        if (normalizedBase.Equals(normalizedOther, StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        return normalizedOther.StartsWith(
-            normalizedBase + Path.DirectorySeparatorChar,
-            StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// 두 경로가 동일한 실제 경로인지 확인
-    /// </summary>
-    /// <param name="path1"></param>
-    /// <param name="path2"></param>
-    /// <returns></returns>
-    static bool IsSamePath(string path1, string path2)
-    {
-        string normalizedPath1 = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path1));
-        string normalizedPath2 = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path2));
-
-        return normalizedPath1.Equals(normalizedPath2, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// 심볼릭 링크의 LinkTarget을 절대 경로로 정규화
-    /// </summary>
-    /// <param name="linkPath"></param>
-    /// <param name="linkTarget"></param>
-    /// <returns></returns>
-    static string ResolveLinkTargetFullPath(string linkPath, string linkTarget)
-    {
-        if (Path.IsPathFullyQualified(linkTarget))
-            return Path.GetFullPath(linkTarget);
-
-        string? linkParentPath = Path.GetDirectoryName(linkPath);
-        if (linkParentPath is null)
-            throw new ArgumentException("Failed to resolve symbolic link parent directory.", nameof(linkPath));
-
-        return Path.GetFullPath(Path.Combine(linkParentPath, linkTarget));
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="sourceDirInfo"></param>
-    /// <param name="deepCopyDestPath"></param>
-    /// <exception cref="ArgumentException"></exception>
-    static void DeepCopy(DirectoryInfo sourceDirInfo, string deepCopyDestPath)
-    {
-        try
-        {
-            Directory.CreateDirectory(deepCopyDestPath);
-
-            foreach (var file in sourceDirInfo.GetFiles())
-            {
-                string copyDestPath = Path.Combine(deepCopyDestPath, file.Name);
-                file.CopyTo(copyDestPath, true);
-            }
-
-            foreach (var subDir in sourceDirInfo.GetDirectories())
-            {
-                DeepCopy(subDir, Path.Combine(deepCopyDestPath, subDir.Name));
-            }
-        }
-        catch (Exception ex)
-        {
-            throw new ArgumentException($"An exception occurred while deep copy {sourceDirInfo.FullName} -> {deepCopyDestPath}", ex);
         }
     }
 }

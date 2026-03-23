@@ -42,4 +42,10 @@ public class Tests
         // 경로가 비어있거나 null인 경우
         Assert.Throws<ArgumentNullException>(() => GamePathChecker.IsSupportedSymlink(string.Empty));
     }
+
+    [Test]
+    public void Test_CreateSymbolClient()
+    {
+        ClientCreator.CreateSymbolClient($"F:\\Games\\AKInteractive\\Gersang4", $"F:\\Games\\AKInteractive\\Gersang5");
+    }
 }
