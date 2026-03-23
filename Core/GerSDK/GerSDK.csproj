@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks Condition="'$(LibraryFrameworks)'==''">net10.0;net6.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(LibraryFrameworks)'!=''">$(LibraryFrameworks)</TargetFrameworks>
+		<LangVersion>10.0</LangVersion>
+		<Authors>byungmeo</Authors>
+		<Product>GerSDK.NET</Product>
+		<Title>GerSDK.NET</Title>
+		<PackageId>GerSDK</PackageId>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RootNamespace>GerSDK</RootNamespace>
+		<AssemblyName>GerSDK</AssemblyName>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<PlatformTarget>x64</PlatformTarget>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<Platforms>x64</Platforms>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0'">
+		<AssemblyTitle>GerSDK.NET .NET 10.0</AssemblyTitle>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
+		<AssemblyTitle>GerSDK.NET .NET 6.0</AssemblyTitle>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+</Project>

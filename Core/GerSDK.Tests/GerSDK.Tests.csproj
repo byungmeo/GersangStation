@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <TargetFrameworks Condition="'$(LibraryFrameworks)'==''">net10.0;net6.0</TargetFrameworks>
+	  <TargetFrameworks Condition="'$(LibraryFrameworks)'!=''">$(LibraryFrameworks)</TargetFrameworks>
+	  <LangVersion>10.0</LangVersion>
+	  <Authors>byungmeo</Authors>
+	  <Product>GerSDK.NET</Product>
+	  <Title>GerSDK.NET</Title>
+	  <PackageId>GerSDK.Tests</PackageId>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <RootNamespace>GerSDK.Tests</RootNamespace>
+	  <AssemblyName>GerSDK.Tests</AssemblyName>
+	  <Nullable>enable</Nullable>
+	  <ImplicitUsings>disable</ImplicitUsings>
+	  <Platforms>x64</Platforms>
+	  <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)'=='net10.0'">
+		<AssemblyTitle>GerSDK.NET .NET 10.0</AssemblyTitle>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)'=='net6.0'">
+		<AssemblyTitle>GerSDK.NET .NET 6.0</AssemblyTitle>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="NUnit" Version="4.5.1" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.12.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GerSDK\GerSDK.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+</Project>
