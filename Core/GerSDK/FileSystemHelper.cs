@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace GerSDK;
@@ -187,6 +188,41 @@ internal static class FileSystemHelper
     }
 
     /// <summary>
+    /// 디렉터리 바로 아래에 있는 파일들만 복사합니다.
+    /// </summary>
+    /// <param name="sourceDirInfo">복사할 원본 디렉터리 정보입니다.</param>
+    /// <param name="destinationDirectoryPath">복사 대상 디렉터리 경로입니다.</param>
+    /// <param name="excludedFileExtensions">복사에서 제외할 확장자 목록입니다. <see langword="null"/>이면 모든 파일을 복사합니다.</param>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="sourceDirInfo"/>가 <see langword="null"/>인 경우 발생합니다.
+    /// </exception>
+    /// <exception cref="UnauthorizedAccessException">
+    /// 원본을 읽거나 대상에 쓸 권한이 없는 경우 발생할 수 있습니다.
+    /// </exception>
+    /// <exception cref="DirectoryNotFoundException">
+    /// 원본 또는 대상 경로 일부를 찾을 수 없는 경우 발생할 수 있습니다.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// 파일이 사용 중이거나 디스크 I/O 충돌이 있는 경우 발생할 수 있습니다.
+    /// </exception>
+    public static void CopyFilesInDirectory(DirectoryInfo sourceDirInfo, string destinationDirectoryPath, ISet<string>? excludedFileExtensions = null)
+    {
+        if (sourceDirInfo is null)
+            throw new ArgumentNullException(nameof(sourceDirInfo));
+
+        Directory.CreateDirectory(destinationDirectoryPath);
+
+        foreach (FileInfo file in sourceDirInfo.GetFiles())
+        {
+            if (excludedFileExtensions is not null && excludedFileExtensions.Contains(file.Extension))
+                continue;
+
+            string copyDestPath = Path.Combine(destinationDirectoryPath, file.Name);
+            file.CopyTo(copyDestPath, true);
+        }
+    }
+
+    /// <summary>
     /// 디렉터리를 하위 항목까지 모두 복사합니다.
     /// </summary>
     /// <param name="sourceDirInfo">복사할 원본 디렉터리 정보입니다.</param>
@@ -211,13 +247,7 @@ internal static class FileSystemHelper
     {
         try
         {
-            Directory.CreateDirectory(deepCopyDestPath);
-
-            foreach (FileInfo file in sourceDirInfo.GetFiles())
-            {
-                string copyDestPath = Path.Combine(deepCopyDestPath, file.Name);
-                file.CopyTo(copyDestPath, true);
-            }
+            CopyFilesInDirectory(sourceDirInfo, deepCopyDestPath);
 
             foreach (DirectoryInfo subDir in sourceDirInfo.GetDirectories())
             {

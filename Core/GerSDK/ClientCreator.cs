@@ -1,21 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using static GerSDK.GamePathChecker;
 
 namespace GerSDK;
 
-// 참고사항: TempFiles처럼 Symbol 이라서 문제가 생기는건 있어도, 그냥 복사해서 문제가 생기지는 않는다.
-// 따라서, 기본 정책은 복사-붙여넣기고, 특별하게 지정된 폴더 또는 파일만 복사를 건너뛰거나 Symbol로 만든다.
-
 /// <summary>
-/// 
+/// 원본 게임 폴더를 기준으로 다중 실행용 심볼릭 링크 클라이언트를 생성하는 기능을 제공합니다.
 /// </summary>
 public static class ClientCreator
 {
     /// <summary>
     /// 원본 게임 폴더를 기준으로 다중 실행용 심볼릭 링크 클라이언트를 생성합니다.
+    /// 기본 규칙을 사용하며, 세부 목록은 <see cref="SymbolClientCreateOptions"/>의 기본값을 따릅니다.
+    /// 기본값은 원본 필수 폴더 <c>"DLL"</c>, 원본 필수 파일 <c>"Run.exe"</c>,
+    /// 대상 기존 심볼릭 링크 허용 폴더 <c>"DLL"</c>,
+    /// 제외 확장자 <c>".bmp"</c>, <c>".dmp"</c>, <c>".tmp"</c>,
+    /// 사용자 지정 규칙 폴더 <c>"Assets"</c>,
+    /// 무시 폴더 <c>"TempFiles"</c>, <c>"PatchTemp"</c>,
+    /// 심볼릭 링크 생성 폴더 <c>"DLL"</c>, <c>"Online"</c>입니다.
     /// </summary>
     /// <param name="sourceGamePath">기준이 되는 원본 게임 폴더 경로입니다.</param>
     /// <param name="destGamePath">생성할 다중 실행용 대상 게임 폴더 경로입니다.</param>
@@ -32,10 +35,36 @@ public static class ClientCreator
     /// </exception>
     public static void CreateSymbolClient(string sourceGamePath, string destGamePath)
     {
+        CreateSymbolClient(sourceGamePath, destGamePath, null);
+    }
+
+    /// <summary>
+    /// 원본 게임 폴더를 기준으로 다중 실행용 심볼릭 링크 클라이언트를 생성합니다.
+    /// <paramref name="options"/>가 <see langword="null"/>이면 <see cref="SymbolClientCreateOptions"/>의 기본값을 사용합니다.
+    /// </summary>
+    /// <param name="sourceGamePath">기준이 되는 원본 게임 폴더 경로입니다.</param>
+    /// <param name="destGamePath">생성할 다중 실행용 대상 게임 폴더 경로입니다.</param>
+    /// <param name="options">필수 폴더, 필수 파일, 제외 확장자, 사용자 지정 규칙 등을 제어하는 옵션입니다.</param>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="sourceGamePath"/> 또는 <paramref name="destGamePath"/>가 <see langword="null"/>인 경우 발생합니다.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// 경로가 비어 있거나 잘못되었거나, 원본 게임 구조가 요구 조건을 만족하지 않거나,
+    /// 옵션 값이 잘못되었거나, 대상 경로가 원본과 같거나 중첩되었거나, 복사 및 링크 생성 과정에서 예외가 발생한 경우 발생합니다.
+    /// 일부 경우 실제 I/O 실패 원인은 <see cref="Exception.InnerException"/>에서 확인할 수 있습니다.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// <paramref name="destGamePath"/>가 위치한 파일 시스템이 심볼릭 링크를 지원하지 않는 경우 발생합니다.
+    /// </exception>
+    public static void CreateSymbolClient(string sourceGamePath, string destGamePath, SymbolClientCreateOptions? options)
+    {
+        options ??= new SymbolClientCreateOptions();
+        options.Validate();
+
         // 게임 설치 시 기본적으로 포함되는 폴더 및 파일 (v34200 기준)
         // 폴더: Online, DLL, Assets, XIGNCODE
         // 파일: AutopatchUpdater.exe, Gersang.exe, gersang.gcs, Korean.gts, Run.exe, run.ico, system.gcs, system.gts, zlib.dll, GersangKR.ini(서버별로 다름)
-        // 하지만, 이는 매번 바뀔 수 있기 때문에 강한 제약은 걸지 않고 DLL 폴더만 확인한다.
+        // 하지만, 이는 매번 바뀔 수 있기 때문에 기본적으로 강한 제약은 걸지 않고 DLL 폴더만 확인한다.
 
         // CreateSymbolClient에서 다루는 GamePath 정책
         // 1. GamePath는 DLL 폴더가 심볼릭 링크인지 여부에 따라 SourceGamePath와 SymbolGamePath로 구분한다.
@@ -64,45 +93,43 @@ public static class ClientCreator
         if (!Directory.Exists(sourceGamePath))
             throw new ArgumentException("SourceGamePath must be exists.", nameof(sourceGamePath));
 
-        string sourceRequiredDirectoryName = "DLL";
-        string sourceRequiredDirectoryPath = Path.Combine(sourceGamePath, sourceRequiredDirectoryName);
-
-        DirectoryInfo sourceRequiredDirectoryInfo;
-        try
+        foreach (string sourceRequiredDirectoryName in options.RequiredSourceDirectoryNames)
         {
-            sourceRequiredDirectoryInfo = new DirectoryInfo(sourceRequiredDirectoryPath);
-        }
-        catch (Exception ex)
-        {
-            // 예방 못 한 예외:
-            //   T:System.Security.SecurityException:
-            //     The caller does not have the required permission.
-            throw new ArgumentException($"An exception occurred while creating directoryInfo with sourceGamePath\\{sourceRequiredDirectoryName}", nameof(sourceGamePath), ex);
-        }
+            string sourceRequiredDirectoryPath = Path.Combine(sourceGamePath, sourceRequiredDirectoryName);
 
-        if (!sourceRequiredDirectoryInfo.Exists)
-            throw new ArgumentException($"SourceGamePath must contained {sourceRequiredDirectoryName} directory.", nameof(sourceGamePath));
-        if (sourceRequiredDirectoryInfo.LinkTarget is not null)
-            throw new ArgumentException($"SourceGamePath contained {sourceRequiredDirectoryName} must not be symlink.", nameof(sourceGamePath));
+            DirectoryInfo sourceRequiredDirectoryInfo;
+            try
+            {
+                sourceRequiredDirectoryInfo = new DirectoryInfo(sourceRequiredDirectoryPath);
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"An exception occurred while creating directoryInfo with sourceGamePath\\{sourceRequiredDirectoryName}", nameof(sourceGamePath), ex);
+            }
 
-        string sourceRequiredFileName = "Run.exe";
-        string sourceRequiredFilePath = Path.Combine(sourceGamePath, sourceRequiredFileName);
-
-        FileInfo requiredFileInfo;
-        try
-        {
-            requiredFileInfo = new FileInfo(sourceRequiredFilePath);
-        }
-        catch (Exception ex)
-        {
-            // 예방 못 한 예외:
-            //   T:System.Security.SecurityException:
-            //     The caller does not have the required permission.
-            throw new ArgumentException($"An exception occurred while creating directoryInfo with sourceGamePath\\{sourceRequiredFileName}", nameof(sourceGamePath), ex);
+            if (!sourceRequiredDirectoryInfo.Exists)
+                throw new ArgumentException($"SourceGamePath must contained {sourceRequiredDirectoryName} directory.", nameof(sourceGamePath));
+            if (sourceRequiredDirectoryInfo.LinkTarget is not null)
+                throw new ArgumentException($"SourceGamePath contained {sourceRequiredDirectoryName} must not be symlink.", nameof(sourceGamePath));
         }
 
-        if (!requiredFileInfo.Exists)
-            throw new ArgumentException($"SourceGamePath must contained {sourceRequiredFileName} file.", nameof(sourceGamePath));
+        foreach (string sourceRequiredFileName in options.RequiredSourceFileNames)
+        {
+            string sourceRequiredFilePath = Path.Combine(sourceGamePath, sourceRequiredFileName);
+
+            FileInfo requiredFileInfo;
+            try
+            {
+                requiredFileInfo = new FileInfo(sourceRequiredFilePath);
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException($"An exception occurred while creating fileInfo with sourceGamePath\\{sourceRequiredFileName}", nameof(sourceGamePath), ex);
+            }
+
+            if (!requiredFileInfo.Exists)
+                throw new ArgumentException($"SourceGamePath must contained {sourceRequiredFileName} file.", nameof(sourceGamePath));
+        }
 
         //
         // DestGamePath 검증
@@ -150,31 +177,37 @@ public static class ClientCreator
 
         if (Directory.Exists(destGamePath))
         {
-            string destRequiredDirectoryName = "DLL";
-            string destRequiredDirectoryPath = Path.Combine(destGamePath, destRequiredDirectoryName);
-            DirectoryInfo destRequiredDirectoryInfo;
-            try
+            foreach (string optionalDestinationSymbolDirectoryName in options.OptionalDestinationSymbolDirectoryNames)
             {
-                destRequiredDirectoryInfo = new DirectoryInfo(destRequiredDirectoryPath);
+                string optionalDestinationSymbolDirectoryPath = Path.Combine(destGamePath, optionalDestinationSymbolDirectoryName);
+                string sourceSymbolDirectoryPath = Path.Combine(sourceGamePath, optionalDestinationSymbolDirectoryName);
+
+                if (File.Exists(optionalDestinationSymbolDirectoryPath))
+                    throw new ArgumentException($"DestGamePath contained {optionalDestinationSymbolDirectoryName} must be symbolic link directory or not exists.", nameof(destGamePath));
+
+                if (!Directory.Exists(optionalDestinationSymbolDirectoryPath))
+                    continue;
+
+                try
+                {
+                    if (!FileSystemHelper.IsDirectorySymbolicLinkPointingTo(optionalDestinationSymbolDirectoryPath, sourceSymbolDirectoryPath))
+                    {
+                        throw new ArgumentException($"DestGamePath contained {optionalDestinationSymbolDirectoryName} must be symbolic link pointing to sourceGamePath\\{optionalDestinationSymbolDirectoryName} or not exists.", nameof(destGamePath));
+                    }
+                }
+                catch (ArgumentException ex) when (ex.ParamName != nameof(destGamePath))
+                {
+                    throw new ArgumentException($"An exception occurred while validating destGamePath\\{optionalDestinationSymbolDirectoryName}", nameof(destGamePath), ex);
+                }
             }
-            catch (Exception ex)
-            {
-                // 예방 못 한 예외:
-                //   T:System.Security.SecurityException:
-                //     The caller does not have the required permission.
-                throw new ArgumentException($"An exception occurred while creating directoryInfo with destGamePath\\{destRequiredDirectoryName}", nameof(destGamePath), ex);
-            }
-            if (destRequiredDirectoryInfo.Exists && destRequiredDirectoryInfo.LinkTarget is null)
-                throw new ArgumentException($"DestGamePath contained {destRequiredDirectoryName} must be symlink or not exists.", nameof(destGamePath));
         }
 
         //
         // 다클라 생성
         //
-        DirectoryInfo destDirInfo;
         try
         {
-            destDirInfo = Directory.CreateDirectory(destGamePath);
+            Directory.CreateDirectory(destGamePath);
         }
         catch (Exception ex)
         {
@@ -184,20 +217,12 @@ public static class ClientCreator
             throw new ArgumentException($"An exception occurred while creating directory with destGamePath", nameof(destGamePath), ex);
         }
 
-        HashSet<string> excludeExtensions = new(StringComparer.OrdinalIgnoreCase) { ".bmp", ".dmp", ".tmp" };
         DirectoryInfo sourceDirInfo;
         try
         {
             // 게임 폴더 최상위에 있는 파일들은 일부 확장자를 제외하고 모두 복사한다
             sourceDirInfo = new(sourceGamePath);
-            foreach (FileInfo file in sourceDirInfo.GetFiles())
-            {
-                if (!excludeExtensions.Contains(file.Extension))
-                {
-                    string copyDestPath = Path.Combine(destGamePath, file.Name);
-                    file.CopyTo(copyDestPath, true);
-                }
-            }
+            FileSystemHelper.CopyFilesInDirectory(sourceDirInfo, destGamePath, options.ExcludedFileExtensions);
         }
         catch (Exception ex)
         {
@@ -209,63 +234,19 @@ public static class ClientCreator
             throw new ArgumentException($"An exception occurred while copy files in top level game path", nameof(destGamePath), ex);
         }
 
-        // 특수한 복사 규칙을 가진 폴더들을 정의
-        Dictionary<string, Action<DirectoryInfo, string>> customTargets = new(StringComparer.OrdinalIgnoreCase)
-        {
-            // Assets 폴더는 안의 파일들은 모두 덮어쓰기 복사하고, Config 폴더는 깊은 복사, 나머지는 심볼릭 링크 생성
-            {"Assets", (sourceDirInfo, destPath) =>
-                {
-                    try
-                    {
-                        Directory.CreateDirectory(destPath);
-
-                        foreach (var file in sourceDirInfo.GetFiles())
-                        {
-                            string copyDestPath = Path.Combine(destPath, file.Name);
-                            file.CopyTo(copyDestPath, true);
-                        }
-
-                        foreach (var subDir in sourceDirInfo.GetDirectories())
-                        {
-                            string destSubDirPath = Path.Combine(destPath, subDir.Name);
-                            if (subDir.Name.Equals("Config", StringComparison.OrdinalIgnoreCase))
-                            {
-                                DirectoryInfo destConfigDirInfo = Directory.CreateDirectory(destSubDirPath);
-                                FileSystemHelper.DeepCopyDirectory(subDir, destConfigDirInfo.FullName);
-                            }
-                            else
-                            {
-                                FileSystemHelper.CreateOrReuseDirectorySymbolicLink(destSubDirPath, subDir.FullName);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new ArgumentException($"An exception occurred while custom copy {sourceDirInfo.FullName} -> {destPath}", ex);
-                    }
-                }
-            }
-        };
-
-        // 아예 무시해야 하는 폴더들을 정의
-        HashSet<string> ignoredTargets = new(StringComparer.OrdinalIgnoreCase) { "TempFiles", "PatchTemp" };
-
-        // 심볼릭 링크로 생성하면 되는 폴더들을 정의
-        HashSet<string> symbolTargets = new(StringComparer.OrdinalIgnoreCase) { "DLL", "Online" };
-
         foreach (DirectoryInfo dir in sourceDirInfo.GetDirectories())
         {
-            if (ignoredTargets.Contains(dir.Name))
+            if (options.IgnoredDirectoryNames.Contains(dir.Name))
             {
                 continue;
             }
 
             string destPath = Path.Combine(destGamePath, dir.Name);
-            if (customTargets.TryGetValue(dir.Name, out Action<DirectoryInfo, string>? value))
+            if (options.CustomDirectoryHandlers.TryGetValue(dir.Name, out SymbolClientCustomDirectoryHandler? value))
             {
                 value(dir, destPath);
             }
-            else if (symbolTargets.Contains(dir.Name))
+            else if (options.SymbolicLinkDirectoryNames.Contains(dir.Name))
             {
                 try
                 {
