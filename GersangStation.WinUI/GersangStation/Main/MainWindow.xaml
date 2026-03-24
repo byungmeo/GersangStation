@@ -15,49 +15,47 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar>
-            <TitleBar.LeftHeader>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+        <Grid
+            x:Name="AppTitleBar"
+            MinHeight="48">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-                    <ImageIcon
-                        Grid.Column="0"
-                        Width="30"
-                        Height="30"
-                        Margin="17,0,10,0"
-                        Source="/Assets/Icons/Square44x44Logo.png" />
+            <ImageIcon
+                Grid.Column="0"
+                Width="30"
+                Height="30"
+                Margin="17,0,10,0"
+                Source="/Assets/Icons/Square44x44Logo.png" />
 
-                    <SelectorBar
-                        x:Name="MainSelectorBar"
-                        Grid.Column="1"
-                        SelectionChanged="MainSelectorBar_SelectionChanged">
-                        <!--  메인 스테이션 바  -->
-                        <SelectorBarItem Icon="Home" Text="메인" />
+            <SelectorBar
+                x:Name="MainSelectorBar"
+                Grid.Column="1"
+                SelectionChanged="MainSelectorBar_SelectionChanged">
+                <!--  메인 스테이션 바  -->
+                <SelectorBarItem Icon="Home" Text="메인" />
 
-                        <!--  웹뷰 바  -->
-                        <SelectorBarItem
-                            x:Name="SelectorBarItem_Browser"
-                            Icon="World"
-                            Text="브라우저" />
+                <!--  웹뷰 바  -->
+                <SelectorBarItem
+                    x:Name="SelectorBarItem_Browser"
+                    Icon="World"
+                    Text="브라우저" />
 
-                        <!--  플래너 바  -->
-                        <SelectorBarItem
-                            Icon="Calendar"
-                            IsEnabled="False"
-                            Text="플래너" />
+                <!--  플래너 바  -->
+                <SelectorBarItem
+                    Icon="Calendar"
+                    IsEnabled="False"
+                    Text="플래너" />
 
-                        <!--  환경설정 바  -->
-                        <SelectorBarItem
-                            x:Name="SelectorBarItem_Setting"
-                            Icon="Setting"
-                            Text="설정" />
-                    </SelectorBar>
-                </Grid>
-            </TitleBar.LeftHeader>
-        </TitleBar>
+                <!--  환경설정 바  -->
+                <SelectorBarItem
+                    x:Name="SelectorBarItem_Setting"
+                    Icon="Setting"
+                    Text="설정" />
+            </SelectorBar>
+        </Grid>
 
         <Grid
             x:Name="ShellContentHost"

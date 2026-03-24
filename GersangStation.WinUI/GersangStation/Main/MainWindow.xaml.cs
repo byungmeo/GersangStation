@@ -71,6 +71,7 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
         Activated += OnActivated;
         Root.Loaded += OnRootLoaded;
         Closed += OnClosed;
