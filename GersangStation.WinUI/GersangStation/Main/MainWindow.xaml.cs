@@ -325,20 +325,26 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 창 닫기 시 현재 페이지의 종료 확인 로직을 한 번만 실행하고, 승인되면 명시적으로 창을 닫습니다.
+    /// 창 닫기 시 저장된 기본 동작에 따라 트레이 숨김 또는 종료 확인을 처리합니다.
     /// </summary>
     private async void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         if (_allowForceClose)
             return;
 
-        // AppWindowClosingEventArgs는 deferral을 제공하지 않으므로
-        // 일단 종료를 막고 확인 결과에 따라 명시적으로 다시 닫습니다.
         args.Cancel = true;
+
+        if (AppDataManager.CloseBehavior == AppDataManager.WindowCloseBehavior.HideToSystemTray)
+        {
+            _systemTrayService.HideWindowToTray();
+            return;
+        }
 
         if (_isCloseConfirmationPending)
             return;
 
+        // AppWindowClosingEventArgs는 deferral을 제공하지 않으므로
+        // 일단 종료를 막고 확인 결과에 따라 명시적으로 다시 닫습니다.
         _isCloseConfirmationPending = true;
 
         try
@@ -415,6 +421,14 @@ public sealed partial class MainWindow : Window
     public void EnsureWindowVisible()
     {
         _systemTrayService.RestoreWindow();
+    }
+
+    /// <summary>
+    /// 현재 창을 시스템 트레이로 숨깁니다.
+    /// </summary>
+    public void HideWindowToTray()
+    {
+        _systemTrayService.HideWindowToTray();
     }
 
     /// <summary>
@@ -951,7 +965,7 @@ public sealed partial class MainWindow : Window
               <visual>
                 <binding template="ToastGeneric">
                   <text>시스템 트레이로 이동하였습니다.</text>
-                  <text>창 최소화 시 기본 동작은 설정 - 모양에서 변경하실 수 있습니다.</text>
+                  <text>창 최소화 시 기본 동작은 설정 - 동작에서 변경하실 수 있습니다.</text>
                 </binding>
               </visual>
             </toast>

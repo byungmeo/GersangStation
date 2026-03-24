@@ -78,19 +78,19 @@
                     </StackPanel>
                 </NavigationViewItem.Content>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="NavigationViewItem_Appearance" Tag="AppearanceSettingPage">
+            <NavigationViewItem x:Name="NavigationViewItem_Behavior" Tag="BehaviorSettingPage">
                 <NavigationViewItem.Content>
                     <StackPanel Orientation="Horizontal">
                         <Viewbox
                             Width="17"
                             Height="17"
                             Stretch="UniformToFill">
-                            <FontIcon Glyph="&#xE771;" />
+                            <FontIcon Glyph="&#xE912;" />
                         </Viewbox>
                         <TextBlock
                             Margin="15,0,0,0"
                             VerticalAlignment="Center"
-                            Text="모양" />
+                            Text="동작" />
                     </StackPanel>
                 </NavigationViewItem.Content>
             </NavigationViewItem>

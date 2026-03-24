@@ -99,6 +99,15 @@ public sealed class SystemTrayService : IDisposable
     }
 
     /// <summary>
+    /// 사용자의 명시적인 요청으로 현재 창을 시스템 트레이로 숨깁니다.
+    /// </summary>
+    public void HideWindowToTray()
+    {
+        ThrowIfDisposed();
+        HideToTray();
+    }
+
+    /// <summary>
     /// 서브클래스와 트레이 아이콘 리소스를 정리합니다.
     /// </summary>
     public void Dispose()

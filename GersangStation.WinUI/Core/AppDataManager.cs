@@ -14,6 +14,12 @@ public static class AppDataManager
         MinimizeToTaskbar = 1
     }
 
+    public enum WindowCloseBehavior
+    {
+        ExitApplication = 0,
+        HideToSystemTray = 1
+    }
+
     /// <summary>
     /// 앱 데이터 작업 실패를 원인 범주별로 구분합니다.
     /// </summary>
@@ -74,6 +80,7 @@ public static class AppDataManager
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
     private const string WindowSwitchingEnabled_SettingKey = "WindowSwitchingEnabled";
     private const string WindowMinimizeBehavior_SettingKey = "WindowMinimizeBehavior";
+    private const string WindowCloseBehavior_SettingKey = "WindowCloseBehavior";
     private const string SelectedPreset_SettingKey = "SelectedPreset";
     private const string SelectedServer_SettingKey = "SelectedServer";
     private const string EventUrgencyThresholdDays_SettingKey = "EventUrgencyThresholdDays";
@@ -157,6 +164,29 @@ public static class AppDataManager
                 MinimizeBehaviorChanged?.Invoke(null, sanitizedValue);
         }
     }
+    public static WindowCloseBehavior CloseBehavior
+    {
+        get
+        {
+            int storedValue = LoadLocalSetting(
+                WindowCloseBehavior_SettingKey,
+                defaultValue: (int)WindowCloseBehavior.ExitApplication);
+            return Enum.IsDefined(typeof(WindowCloseBehavior), storedValue)
+                ? (WindowCloseBehavior)storedValue
+                : WindowCloseBehavior.ExitApplication;
+        }
+        set
+        {
+            WindowCloseBehavior sanitizedValue = Enum.IsDefined(typeof(WindowCloseBehavior), value)
+                ? value
+                : WindowCloseBehavior.ExitApplication;
+            WindowCloseBehavior previous = CloseBehavior;
+            SaveLocalSetting(WindowCloseBehavior_SettingKey, (int)sanitizedValue);
+
+            if (previous != sanitizedValue)
+                CloseBehaviorChanged?.Invoke(null, sanitizedValue);
+        }
+    }
     public static int SelectedPreset
     {
         get => LoadLocalSetting(SelectedPreset_SettingKey, defaultValue: 0);
@@ -178,6 +208,7 @@ public static class AppDataManager
     public static event EventHandler<bool>? MouseConfinementEnabledChanged;
     public static event EventHandler<bool>? WindowSwitchingEnabledChanged;
     public static event EventHandler<WindowMinimizeBehavior>? MinimizeBehaviorChanged;
+    public static event EventHandler<WindowCloseBehavior>? CloseBehaviorChanged;
 
     private static AppDataOperationResult Ok(string operation, string target = "")
         => AppDataOperationResult.Ok(operation, target);
