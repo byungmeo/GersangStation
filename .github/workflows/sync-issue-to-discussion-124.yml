@@ -19,7 +19,7 @@ jobs:
           script: |
             const discussionNumber = 124;
             const issueNumber = context.payload.issue.number;
-            const issueLine = `- #${issueNumber}`;
+            const issueLine = '- #' + issueNumber;
 
             const normalize = (value) =>
               String(value ?? '')
@@ -50,7 +50,7 @@ jobs:
             };
 
             const markerKey = ({ label, priority = '' }) =>
-              `label=${label}|priority=${priority}`;
+              'label=' + label + '|priority=' + priority;
 
             const issueLabels = (context.payload.issue.labels || [])
               .map((label) => normalize(label.name))
@@ -86,7 +86,7 @@ jobs:
 
             const discussion = queryResult.repository?.discussion;
             if (!discussion) {
-              core.setFailed(\`Discussion #\${discussionNumber}을(를) 찾지 못했습니다.\`);
+              core.setFailed('Discussion #' + discussionNumber + '을(를) 찾지 못했습니다.');
               return;
             }
 
@@ -136,7 +136,7 @@ jobs:
 
             for (const target of targets.sort((a, b) => b.index - a.index)) {
               if (sectionAlreadyHasIssue(target.index)) {
-                core.info(\`이미 \${issueLine} 이(가) 섹션에 있습니다: \${target.key}\`);
+                core.info('이미 ' + issueLine + ' 이(가) 섹션에 있습니다: ' + target.key);
                 continue;
               }
 
@@ -169,4 +169,4 @@ jobs:
               body: newBody,
             });
 
-            core.info(\`Discussion #\${discussionNumber} 업데이트 완료\`);
+            core.info('Discussion #' + discussionNumber + ' 업데이트 완료');
