@@ -33,6 +33,13 @@ public enum TryLoginResult
     NullWebview
 }
 
+internal enum LoginAttemptStage
+{
+    None,
+    Preparing,
+    CredentialsSubmitted
+}
+
 public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 {
     #region Gersang Homepage Controller
@@ -75,7 +82,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
     }
 
-    private string _cachedLoginId = string.Empty;
+    private string _loginAttemptTargetId = string.Empty;
+    private LoginAttemptStage _loginAttemptStage = LoginAttemptStage.None;
     private Exception? _lastCredentialVaultException;
     private string _roughLoginRecoveryTargetId = string.Empty;
     private bool _roughLoginRecoveryBypassUsed;
@@ -128,6 +136,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private const string Url_Gersang_Main_Apex = "https://gersang.co.kr";
     private const string Url_Gersang_Otp = "https://www.gersang.co.kr/member/otp.gs";
     private const string Url_Gersang_Logout = "https://www.gersang.co.kr/member/logoutProc.gs";
+    private const string Url_Gersang_IpBlockedFaq = "https://www.gersang.co.kr/customer/faq_view.gs?str_thread=00&str_sthread=&str_word=IP&cateUid=52&uid=373&page=1";
     private Uri? _pendingNavigationUri;
     private string? _pendingHtmlContent;
     private bool _initialHomeNavigationCompleted;
@@ -186,6 +195,60 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         _roughLoginRecoveryTargetId = string.Empty;
         _roughLoginRecoveryBypassUsed = false;
+    }
+
+    /// <summary>
+    /// 현재 로그인 시도 대상을 같은 계정으로 이어가는 중인지 확인합니다.
+    /// </summary>
+    private bool IsCurrentLoginAttemptTarget(string id)
+    {
+        return !string.IsNullOrWhiteSpace(_loginAttemptTargetId)
+            && LoginIdComparer.EqualsForComparison(_loginAttemptTargetId, id);
+    }
+
+    /// <summary>
+    /// 로그인 시도 상태가 유지 중인지 확인합니다.
+    /// </summary>
+    private bool HasPendingLoginAttempt()
+    {
+        return TryingLogin && !string.IsNullOrWhiteSpace(_loginAttemptTargetId);
+    }
+
+    /// <summary>
+    /// 현재 로그인 시도에서 아이디와 비밀번호 제출까지 완료했는지 확인합니다.
+    /// </summary>
+    private bool HasSubmittedLoginCredentials()
+    {
+        return _loginAttemptStage == LoginAttemptStage.CredentialsSubmitted;
+    }
+
+    /// <summary>
+    /// 새 로그인 시도를 시작하거나, 같은 로그인 시도를 이어갈 준비 상태로 표시합니다.
+    /// </summary>
+    private void BeginLoginAttempt(string id)
+    {
+        _loginAttemptTargetId = id;
+        _loginAttemptStage = LoginAttemptStage.Preparing;
+        TryingLogin = true;
+    }
+
+    /// <summary>
+    /// 현재 로그인 시도에서 로그인 폼 제출까지 완료되었음을 표시합니다.
+    /// </summary>
+    private void MarkLoginCredentialsSubmitted()
+    {
+        if (_loginAttemptStage != LoginAttemptStage.None)
+            _loginAttemptStage = LoginAttemptStage.CredentialsSubmitted;
+    }
+
+    /// <summary>
+    /// 현재 로그인 시도 상태를 정리합니다.
+    /// </summary>
+    private void ResetLoginAttemptState()
+    {
+        _loginAttemptTargetId = string.Empty;
+        _loginAttemptStage = LoginAttemptStage.None;
+        TryingLogin = false;
     }
 
     /// <summary>
@@ -302,10 +365,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _pendingNavigationUri = null;
         _pendingHtmlContent = null;
-        TryingLogin = false;
+        ResetLoginAttemptState();
         TryingLogout = false;
         TryingGameStart = false;
-        _cachedLoginId = string.Empty;
         _cachedGameStartId = string.Empty;
         _cachedGameStartClientIndex = -1;
         _cachedInstallPath = string.Empty;
@@ -449,12 +511,36 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     public async Task<TryLoginResult> TryLogin(string id)
     {
+        return await TryLoginCoreAsync(id, continueExistingAttempt: false);
+    }
+
+    /// <summary>
+    /// 현재 보류 중인 로그인 시도를 이어서 진행합니다.
+    /// </summary>
+    private async Task<TryLoginResult> ContinuePendingLoginAttemptAsync()
+    {
+        if (!HasPendingLoginAttempt())
+            return TryLoginResult.InvalidId;
+
+        return await TryLoginCoreAsync(_loginAttemptTargetId, continueExistingAttempt: true);
+    }
+
+    /// <summary>
+    /// 새 로그인 시도를 시작하거나, 로그아웃/메인 페이지 이동 뒤 동일 시도를 이어서 진행합니다.
+    /// </summary>
+    private async Task<TryLoginResult> TryLoginCoreAsync(string id, bool continueExistingAttempt)
+    {
         if (_webview is null)
             return TryLoginResult.NullWebview;
 
-        // True 상태로 TryLogin 함수에 진입한 경우를 대비
+        bool isContinuingAttempt = continueExistingAttempt && HasPendingLoginAttempt() && IsCurrentLoginAttemptTarget(id);
+
         _lastCredentialVaultException = null;
-        TryingLogin = false;
+        if (!isContinuingAttempt)
+            ResetLoginAttemptState();
+
+        if (string.IsNullOrWhiteSpace(id))
+            return TryLoginResult.InvalidId;
 
         if (LoggedIn)
         {
@@ -463,6 +549,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             {
                 // 로그인 하려는 아이디와 현재 로그인 된 아이디가 같으면 로그인 할 필요 없다
                 ResetRoughLoginRecoveryState();
+                ResetLoginAttemptState();
                 Debug.WriteLine("이미 동일한 계정으로 로그인 되어 있으므로 로그인 과정을 스킵합니다.");
                 return TryLoginResult.Success;
             }
@@ -471,8 +558,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             {
                 // 로그아웃 해야 한다
                 Debug.WriteLine("다른 계정으로 로그인 되어 있으므로 로그아웃 후 로그인을 시도합니다.");
-                TryingLogin = true;
-                _cachedLoginId = id;
+                BeginLoginAttempt(id);
                 await TryLogout();
                 return TryLoginResult.Success;
             }
@@ -481,6 +567,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 && !_roughLoginRecoveryBypassUsed)
             {
                 _roughLoginRecoveryBypassUsed = true;
+                ResetLoginAttemptState();
                 Debug.WriteLine("[WebViewManager] rough 로그인 복구 후에도 memberID를 확인하지 못했습니다. 무한 로그인을 막기 위해 현재 세션으로 진행합니다.");
                 return TryLoginResult.Success;
             }
@@ -488,32 +575,40 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             Debug.WriteLine("[WebViewManager] 로그인 상태는 확인됐지만 memberID 쿠키를 찾지 못했습니다. 선택된 계정으로 다시 로그인하기 위해 로그아웃합니다.");
             _roughLoginRecoveryTargetId = id;
             _roughLoginRecoveryBypassUsed = false;
-            TryingLogin = true;
-            _cachedLoginId = id;
+            BeginLoginAttempt(id);
             await TryLogout();
             return TryLoginResult.Success;
         }
-            
-        if (string.IsNullOrWhiteSpace(id))
-            return TryLoginResult.InvalidId;
 
         PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(id);
         if (!passwordResult.Success)
         {
             _lastCredentialVaultException = passwordResult.Exception;
+            ResetLoginAttemptState();
             return TryLoginResult.VaultUnavailable;
         }
 
         string? pw = passwordResult.HasCredential ? passwordResult.Password : null;
         if (string.IsNullOrWhiteSpace(pw))
+        {
+            ResetLoginAttemptState();
             return TryLoginResult.NotFoundPw;
+        }
 
-        TryingLogin = true;
+        if (!isContinuingAttempt)
+            BeginLoginAttempt(id);
+        else
+            TryingLogin = true;
+
+        if (HasSubmittedLoginCredentials())
+        {
+            Debug.WriteLine("[WebViewManager] 현재 로그인 시도에서는 이미 로그인 폼을 제출했습니다. 자동 재제출은 건너뜁니다.");
+            return TryLoginResult.Success;
+        }
 
         // 로그인 시도는 현재 위치와 관계없이 거상 메인 페이지에서 다시 이어갑니다.
         if (!IsGersangMainPage(_webview.Source))
         {
-            _cachedLoginId = id;
             NavigateToGersangMain("로그인");
             return TryLoginResult.Success;
         }
@@ -521,6 +616,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         await _webview.ExecuteScriptAsync(InputIdScript(id));
         await _webview.ExecuteScriptAsync(InputPwScript(pw));
         await _webview.ExecuteScriptAsync(TryLoginScript);
+        MarkLoginCredentialsSubmitted();
 
         return TryLoginResult.Success;
     }
@@ -657,6 +753,21 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         await StartGameThroughLocalSocketAsync(selectedServer, _cachedGameStartClientIndex, param, clientInstallPath);
     }
 
+    /// <summary>
+    /// 게임 실행 중 로그인 폼을 이미 한 번 제출했는데도 메인 페이지 비로그인 상태로 돌아오면 자동 재시도를 중단합니다.
+    /// </summary>
+    private void CancelRepeatedGameStartLoginAttempt()
+    {
+        const string message =
+            "로그인 시도 후에도 로그인 완료 상태를 확인하지 못했습니다.\n" +
+            "무한 재시도를 막기 위해 게임 실행을 중단했습니다.\n" +
+            "브라우저 탭에서 로그인 상태를 확인한 뒤 다시 시도해 주세요.";
+
+        Debug.WriteLine("[WebViewManager] 게임 실행 로그인 재시도 루프를 감지하여 자동 재시도를 중단합니다.");
+        CancelLaunchAttemptWithRetryCooldown("로그인 상태 확인 실패");
+        QueueLaunchFailureDialog(message);
+    }
+
     private async Task UpdateLoginStateByCookieAsync()
     {
         if (_webview is null)
@@ -707,14 +818,17 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (enteredRoughLogin)
             await WaitForRoughLoginNoticeAsync();
 
+        bool isOnGersangMainPage =
+            Uri.TryCreate(_currentSource, UriKind.Absolute, out Uri? currentUri)
+            && IsGersangMainPage(currentUri);
+
         if (LoggedIn)
         {
-            TryingLogin = false;
+            ResetLoginAttemptState();
 
             if (TryingGameStart)
             {
-                if (Uri.TryCreate(_currentSource, UriKind.Absolute, out Uri? currentUri)
-                    && IsGersangMainPage(currentUri))
+                if (isOnGersangMainPage)
                 {
                     await TryGameStart(_cachedGameStartId, _cachedGameStartClientIndex);
                 }
@@ -729,20 +843,33 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             if (TryingLogout)
             {
                 TryingLogout = false;
-                if (TryingLogin)
+                if (HasPendingLoginAttempt())
+                    await ContinuePendingLoginAttemptAsync();
+            }
+            else if (HasPendingLoginAttempt())
+            {
+                if (HasSubmittedLoginCredentials())
                 {
-                    await TryLogin(_cachedLoginId);
-                    _cachedLoginId = string.Empty;
+                    if (isOnGersangMainPage)
+                    {
+                        if (TryingGameStart)
+                            CancelRepeatedGameStartLoginAttempt();
+                        else
+                        {
+                            Debug.WriteLine("[WebViewManager] 로그인 폼은 이미 한 번 제출되었습니다. 메인 페이지에서 자동 재시도 없이 로그인 시도를 종료합니다.");
+                            ResetLoginAttemptState();
+                        }
+
+                        return;
+                    }
+                }
+                else
+                {
+                    await ContinuePendingLoginAttemptAsync();
                 }
             }
-            else if (TryingLogin && !string.IsNullOrWhiteSpace(_cachedLoginId))
-            {
-                await TryLogin(_cachedLoginId);
-                _cachedLoginId = string.Empty;
-            }
             else if (TryingGameStart
-                && Uri.TryCreate(_currentSource, UriKind.Absolute, out Uri? currentUri)
-                && IsGersangMainPage(currentUri)
+                && isOnGersangMainPage
                 && !string.IsNullOrWhiteSpace(_cachedGameStartId)
                 && _cachedGameStartClientIndex is >= 0 and < 3)
             {
@@ -1200,9 +1327,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         } 
         else
         {
-            TryingLogin = false;
+            ResetLoginAttemptState();
             TryingLogout = false;
-            _cachedLoginId = string.Empty;
             if (TryingGameStart || (_cachedGameStartClientIndex >= 0 && _cachedGameStartClientIndex < 3))
                 CancelPendingGameStart("OTP 입력 취소");
 
@@ -1216,6 +1342,18 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 || message.Contains("아이디 또는 패스워드 오류", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("아이디 혹은 비밀번호 오류", StringComparison.OrdinalIgnoreCase)
                 || message.Contains("아이디 혹은 패스워드 오류", StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsPasswordChangeRequiredMessage(string message)
+        => !string.IsNullOrWhiteSpace(message)
+            && message.Contains("연속", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("5회", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("오류", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsIpBlockedMessage(string message)
+        => !string.IsNullOrWhiteSpace(message)
+            && message.Contains("IP", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("차단", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("고객센터", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsRetryBlockedMessage(string message)
         => !string.IsNullOrWhiteSpace(message)
@@ -1282,6 +1420,23 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// IP 로그인 차단 안내가 표시되면 시도를 중단하고 FAQ 페이지를 브라우저 탭으로 엽니다.
+    /// </summary>
+    private void QueueIpBlockedFaqNavigation()
+    {
+        _ = _webview.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_currentWindow is MainWindow mainWindow)
+            {
+                mainWindow.NavigateToWebViewPage(Url_Gersang_IpBlockedFaq);
+                return;
+            }
+
+            Navigate(new Uri(Url_Gersang_IpBlockedFaq));
+        });
+    }
+
+    /// <summary>
     /// 로그인 실패/재시도 제한 알림을 표시하고 필요 시 계정 설정 페이지로 이동합니다.
     /// </summary>
     private async Task ShowLaunchFailureDialogAsync(string message)
@@ -1314,8 +1469,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         bool hasPendingGameStart = clientIndex >= 0 && clientIndex < 3;
 
         TryingLogout = false;
-        TryingLogin = false;
-        _cachedLoginId = string.Empty;
+        ResetLoginAttemptState();
 
         if (hasPendingGameStart)
         {
@@ -1412,7 +1566,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (sender.DocumentTitle.Contains("점검"))
         {
-            TryingLogout = TryingLogin = TryingGameStart = false;
+            TryingLogout = false;
+            ResetLoginAttemptState();
+            TryingGameStart = false;
             CancelPendingGameStart("점검 페이지 진입");
         }
 
@@ -1471,6 +1627,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         string message = args.Message ?? string.Empty;
         bool isOtpFailure = IsOtpFailureMessage(message);
         bool isCredentialFailure = IsCredentialFailureMessage(message);
+        bool isPasswordChangeRequired = IsPasswordChangeRequiredMessage(message);
+        bool isIpBlocked = IsIpBlockedMessage(message);
         bool isRetryBlocked = IsRetryBlockedMessage(message);
 
         if (isOtpFailure)
@@ -1480,7 +1638,15 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             return;
         }
 
-        if (isCredentialFailure || isRetryBlocked)
+        if (isIpBlocked)
+        {
+            args.Accept();
+            CancelLaunchAttemptWithRetryCooldown(message);
+            QueueIpBlockedFaqNavigation();
+            return;
+        }
+
+        if (isCredentialFailure || isPasswordChangeRequired || isRetryBlocked)
         {
             args.Accept();
             CancelLaunchAttemptWithRetryCooldown(message);
