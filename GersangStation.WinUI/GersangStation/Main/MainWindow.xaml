@@ -15,9 +15,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid
-            x:Name="AppTitleBar"
-            MinHeight="48">
+        <Grid x:Name="AppTitleBar" MinHeight="48">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
@@ -61,9 +59,7 @@
             x:Name="ShellContentHost"
             Grid.Row="1"
             Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}">
-            <Frame
-                x:Name="StationFrame"
-                IsNavigationStackEnabled="False" />
+            <Frame x:Name="StationFrame" IsNavigationStackEnabled="False" />
             <Frame
                 x:Name="BrowserFrame"
                 IsNavigationStackEnabled="False"
