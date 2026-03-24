@@ -1245,7 +1245,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 선택한 슬롯에서 다클라 생성이 필요할 때 설정상 활성화된 복제 클라이언트를 함께 생성합니다.
+    /// 선택한 슬롯에서 다클라 생성이 필요할 때 해당 복제 클라이언트 하나만 생성합니다.
     /// </summary>
     private async Task<MultiClientCreationAttemptResult> TryCreateMissingMultiClientAsync(GameServer server, int clientIndex)
     {
@@ -1268,33 +1268,28 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
                 : GameClientHelper.MultiClientLayoutPolicy.Legacy;
 
-        bool shouldCreateClient2 = settings.UseMultiClient && settings.UseClient2;
-        bool shouldCreateClient3 = settings.UseMultiClient && settings.UseClient3;
-        if (!shouldCreateClient2 && !shouldCreateClient3)
-            return new(false, "현재 서버 설정에서 다클라 사용이 비활성화되어 있습니다.");
+        string clientLabel = clientIndex == 1 ? "2클라" : "3클라";
+        if (!IsMultiClientSlotEnabled(settings, clientIndex))
+            return new(false, $"{clientLabel} 사용이 현재 서버 설정에서 비활성화되어 있습니다.");
 
-        if (shouldCreateClient2)
+        string targetPath = clientIndex switch
         {
-            DirectoryWriteProbeResult client2ProbeResult =
-                PathWriteProbe.TryProbeDirectoryWriteAccess(settings.Client2Path);
-            if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client2ProbeResult))
-                return new(false, "2클라 경로 권한 확인 단계에서 작업을 중단했습니다.", client2ProbeResult.Exception);
-        }
+            1 => settings.Client2Path,
+            2 => settings.Client3Path,
+            _ => string.Empty
+        };
 
-        if (shouldCreateClient3)
-        {
-            DirectoryWriteProbeResult client3ProbeResult =
-                PathWriteProbe.TryProbeDirectoryWriteAccess(settings.Client3Path);
-            if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client3ProbeResult))
-                return new(false, "3클라 경로 권한 확인 단계에서 작업을 중단했습니다.", client3ProbeResult.Exception);
-        }
+        DirectoryWriteProbeResult targetProbeResult =
+            PathWriteProbe.TryProbeDirectoryWriteAccess(targetPath);
+        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, targetProbeResult))
+            return new(false, $"{clientLabel} 경로 권한 확인 단계에서 작업을 중단했습니다.", targetProbeResult.Exception);
 
         CreateSymbolMultiClientResult createResult = GameClientHelper.TryCreateSymbolMultiClient(
             new CreateSymbolMultiClientArgs
             {
                 InstallPath = installPath,
-                DestPath2 = shouldCreateClient2 ? settings.Client2Path : string.Empty,
-                DestPath3 = shouldCreateClient3 ? settings.Client3Path : string.Empty,
+                DestPath2 = clientIndex == 1 ? settings.Client2Path : string.Empty,
+                DestPath3 = clientIndex == 2 ? settings.Client3Path : string.Empty,
                 OverwriteConfig = settings.OverwriteMultiClientConfig,
                 LayoutPolicy = layoutPolicy
             });
