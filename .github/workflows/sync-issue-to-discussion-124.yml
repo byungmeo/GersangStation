@@ -1,0 +1,172 @@
+name: Sync new issue to discussion 124
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  discussions: write
+  issues: read
+
+jobs:
+  update-discussion:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Insert issue number into discussion #124
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const discussionNumber = 124;
+            const issueNumber = context.payload.issue.number;
+            const issueLine = `- #${issueNumber}`;
+
+            const normalize = (value) =>
+              String(value ?? '')
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ');
+
+            const parseMarker = (line) => {
+              const match = line.match(/^\s*<!--\s*issue-list:\s*(.*?)\s*-->\s*$/);
+              if (!match) return null;
+
+              const attrs = {};
+              for (const part of match[1].split(';')) {
+                const [rawKey, ...rawValueParts] = part.split('=');
+                if (!rawKey || rawValueParts.length === 0) continue;
+
+                const key = normalize(rawKey);
+                const value = normalize(rawValueParts.join('='));
+                attrs[key] = value;
+              }
+
+              if (!attrs.label) return null;
+
+              return {
+                label: attrs.label,
+                priority: attrs.priority ?? '',
+              };
+            };
+
+            const markerKey = ({ label, priority = '' }) =>
+              `label=${label}|priority=${priority}`;
+
+            const issueLabels = (context.payload.issue.labels || [])
+              .map((label) => normalize(label.name))
+              .filter(Boolean);
+
+            const hasHighPriority = issueLabels.includes('high priority');
+
+            const baseLabels = [...new Set(
+              issueLabels.filter((label) => label !== 'high priority')
+            )];
+
+            if (baseLabels.length === 0) {
+              core.info('처리할 기본 라벨이 없습니다.');
+              return;
+            }
+
+            const query = `
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  discussion(number: $number) {
+                    id
+                    body
+                  }
+                }
+              }
+            `;
+
+            const queryResult = await github.graphql(query, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              number: discussionNumber,
+            });
+
+            const discussion = queryResult.repository?.discussion;
+            if (!discussion) {
+              core.setFailed(\`Discussion #\${discussionNumber}을(를) 찾지 못했습니다.\`);
+              return;
+            }
+
+            const lines = (discussion.body ?? '').split(/\r?\n/);
+            const markerIndexByKey = new Map();
+
+            for (let i = 0; i < lines.length; i += 1) {
+              const marker = parseMarker(lines[i]);
+              if (!marker) continue;
+
+              const key = markerKey(marker);
+              if (!markerIndexByKey.has(key)) {
+                markerIndexByKey.set(key, i);
+              }
+            }
+
+            const targets = [];
+            for (const label of baseLabels) {
+              const key = markerKey({
+                label,
+                priority: hasHighPriority ? 'high' : '',
+              });
+
+              const index = markerIndexByKey.get(key);
+              if (index === undefined) continue;
+
+              targets.push({ key, index });
+            }
+
+            if (targets.length === 0) {
+              core.info('매칭되는 discussion 마커가 없습니다.');
+              return;
+            }
+
+            const isMarkerLine = (line) =>
+              /^\s*<!--\s*issue-list:\s*.*?-->\s*$/.test(line);
+
+            const sectionAlreadyHasIssue = (startIndex) => {
+              for (let i = startIndex + 1; i < lines.length; i += 1) {
+                if (isMarkerLine(lines[i])) break;
+                if (lines[i].trim() === issueLine) return true;
+              }
+              return false;
+            };
+
+            let changed = false;
+
+            for (const target of targets.sort((a, b) => b.index - a.index)) {
+              if (sectionAlreadyHasIssue(target.index)) {
+                core.info(\`이미 \${issueLine} 이(가) 섹션에 있습니다: \${target.key}\`);
+                continue;
+              }
+
+              lines.splice(target.index + 1, 0, issueLine);
+              changed = true;
+            }
+
+            if (!changed) {
+              core.info('변경할 내용이 없습니다.');
+              return;
+            }
+
+            const newBody = lines.join('\n');
+
+            const mutation = `
+              mutation($discussionId: ID!, $body: String!) {
+                updateDiscussion(input: {
+                  discussionId: $discussionId,
+                  body: $body
+                }) {
+                  discussion {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(mutation, {
+              discussionId: discussion.id,
+              body: newBody,
+            });
+
+            core.info(\`Discussion #\${discussionNumber} 업데이트 완료\`);
