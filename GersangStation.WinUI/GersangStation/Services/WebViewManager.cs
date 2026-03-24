@@ -1297,6 +1297,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 Children = { inputTextBox, errorTextBox }
             },
             PrimaryButtonText = "확인",
+            SecondaryButtonText = "직접 입력",
             CloseButtonText = "취소",
             DefaultButton = ContentDialogButton.Primary
         };
@@ -1324,7 +1325,17 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         {
             await _webview.ExecuteScriptAsync(InputOtpScript(inputTextBox.Text));
             await _webview.ExecuteScriptAsync(SubmitOtpScript);
-        } 
+        }
+        else if (result == ContentDialogResult.Secondary)
+        {
+            ResetLoginAttemptState();
+            TryingLogout = false;
+            if (TryingGameStart || (_cachedGameStartClientIndex >= 0 && _cachedGameStartClientIndex < 3))
+                CancelPendingGameStart("OTP 직접 입력");
+
+            if (_currentWindow is MainWindow mainWindow)
+                mainWindow.NavigateToWebViewPage();
+        }
         else
         {
             ResetLoginAttemptState();
