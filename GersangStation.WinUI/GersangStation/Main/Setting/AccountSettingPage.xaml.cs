@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -21,6 +22,12 @@ namespace GersangStation.Main.Setting;
 /// </summary>
 public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 {
+    private enum AccountListDisplayMode
+    {
+        Grouped = 0,
+        Ordered = 1
+    }
+
     public sealed class AccountEditor : INotifyPropertyChanged
     {
         private string _originalId = "";
@@ -123,8 +130,10 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     private bool _isLoadingAccounts;
     private bool _hasBlockingAccountLoadFailure;
     private List<Account> _loadedAccounts = [];
+    private AccountListDisplayMode _accountListDisplayMode = AccountListDisplayMode.Grouped;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public ObservableCollection<Account> OrderedAccounts { get; } = [];
 
     private bool RequiresPassword => !Editor.IsEditingExisting || Editor.IsChangingPassword;
 
@@ -148,8 +157,32 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     public Visibility PasswordBoxVisibility => !Editor.IsEditingExisting || Editor.IsChangingPassword ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ResetButtonVisibility => Editor.IsEditingExisting ? Visibility.Collapsed : Visibility.Visible;
     public Visibility CancelEditButtonVisibility => Editor.IsEditingExisting ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility GroupedListVisibility => _accountListDisplayMode == AccountListDisplayMode.Grouped ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility OrderedListVisibility => _accountListDisplayMode == AccountListDisplayMode.Ordered ? Visibility.Visible : Visibility.Collapsed;
 
     public AccountEditor Editor { get; } = new();
+
+    /// <summary>
+    /// 계정 목록 표시 방식을 그룹 보기 또는 순서 보기로 전환합니다.
+    /// </summary>
+    public int AccountListDisplayModeIndex
+    {
+        get => _accountListDisplayMode == AccountListDisplayMode.Ordered ? 1 : 0;
+        set
+        {
+            AccountListDisplayMode nextMode = value == 1
+                ? AccountListDisplayMode.Ordered
+                : AccountListDisplayMode.Grouped;
+
+            if (_accountListDisplayMode == nextMode)
+                return;
+
+            _accountListDisplayMode = nextMode;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(GroupedListVisibility));
+            OnPropertyChanged(nameof(OrderedListVisibility));
+        }
+    }
 
     public AccountSettingPage()
     {
@@ -170,8 +203,25 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (_suppressSelectionChanged)
             return;
 
+        ApplySelectionFrom(AccountListView.SelectedItems.OfType<Account>());
+    }
+
+    private void OrderedAccountListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressSelectionChanged)
+            return;
+
+        ApplySelectionFrom(OrderedAccountListView.SelectedItems.OfType<Account>());
+    }
+
+    private async void OrderedAccountListView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+        => await SaveReorderedAccountsAsync();
+
+    private void ApplySelectionFrom(IEnumerable<Account> accounts)
+    {
         _selectedAccounts.Clear();
-        _selectedAccounts.AddRange(AccountListView.SelectedItems.OfType<Account>());
+        _selectedAccounts.AddRange(accounts);
+        SyncListSelections();
         NotifySelectionStateChanged();
     }
 
@@ -380,6 +430,10 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             .Select(account => account.Clone())
             .ToList();
 
+        OrderedAccounts.Clear();
+        foreach (Account account in _loadedAccounts)
+            OrderedAccounts.Add(account);
+
         AccountsCVS.Source = Account.GetAccountsGrouped(_loadedAccounts
             .Where(account => !string.IsNullOrWhiteSpace(account.Id))
             .ToList());
@@ -401,14 +455,31 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     {
         _selectedAccounts.Clear();
 
+        SyncListSelections();
+        NotifySelectionStateChanged();
+    }
+
+    private void SyncListSelections()
+    {
+        List<Account> selectedAccounts = _selectedAccounts.ToList();
+
         if (AccountListView is not null)
         {
             _suppressSelectionChanged = true;
             AccountListView.SelectedItems.Clear();
+            foreach (Account account in selectedAccounts)
+                AccountListView.SelectedItems.Add(account);
             _suppressSelectionChanged = false;
         }
 
-        NotifySelectionStateChanged();
+        if (OrderedAccountListView is not null)
+        {
+            _suppressSelectionChanged = true;
+            OrderedAccountListView.SelectedItems.Clear();
+            foreach (Account account in selectedAccounts)
+                OrderedAccountListView.SelectedItems.Add(account);
+            _suppressSelectionChanged = false;
+        }
     }
 
     private void NotifySelectionStateChanged()
@@ -518,6 +589,61 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         OnPropertyChanged(nameof(PasswordBoxVisibility));
         OnPropertyChanged(nameof(ResetButtonVisibility));
         OnPropertyChanged(nameof(CancelEditButtonVisibility));
+    }
+
+    /// <summary>
+    /// 순서 보기에서 드래그로 바뀐 계정 배열 순서를 그대로 저장합니다.
+    /// </summary>
+    private async Task SaveReorderedAccountsAsync()
+    {
+        if (_isLoadingAccounts || _hasBlockingAccountLoadFailure)
+            return;
+
+        string[] currentOrder = _loadedAccounts.Select(account => account.Id).ToArray();
+        string[] reorderedOrder = OrderedAccounts.Select(account => account.Id).ToArray();
+        if (currentOrder.SequenceEqual(reorderedOrder, StringComparer.Ordinal))
+            return;
+
+        HashSet<string> selectedIds = _selectedAccounts
+            .Select(account => account.Id.Trim())
+            .Where(id => id.Length > 0)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        List<Account> nextAccounts = OrderedAccounts
+            .Where(account => !string.IsNullOrWhiteSpace(account.Id))
+            .Select(account => account.Clone())
+            .ToList();
+
+        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult saveResult) =
+            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts);
+
+        if (!saveResult.Success)
+        {
+            ApplyAccounts(_loadedAccounts);
+            await AppDataOperationDialog.ShowFailureAsync(
+                XamlRoot,
+                "계정 순서 저장 실패",
+                "계정 표시 순서를 저장하지 못했습니다.",
+                saveResult);
+            return;
+        }
+
+        ApplyAccounts(savedAccounts);
+        RestoreSelectionByIds(selectedIds);
+    }
+
+    /// <summary>
+    /// 계정 컬렉션을 다시 그린 뒤에도 기존 선택 계정을 ID 기준으로 복원합니다.
+    /// </summary>
+    private void RestoreSelectionByIds(IReadOnlyCollection<string> selectedIds)
+    {
+        if (selectedIds.Count == 0)
+            return;
+
+        _selectedAccounts.Clear();
+        _selectedAccounts.AddRange(_loadedAccounts.Where(account => selectedIds.Contains(account.Id.Trim(), StringComparer.OrdinalIgnoreCase)));
+        SyncListSelections();
+        NotifySelectionStateChanged();
     }
 
     /// <summary>

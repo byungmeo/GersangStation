@@ -73,6 +73,14 @@
                 Grid.Row="0"
                 Orientation="Horizontal"
                 Spacing="5">
+                <RadioButtons
+                    Margin="0,0,8,0"
+                    HorizontalAlignment="Left"
+                    MaxColumns="2"
+                    SelectedIndex="{x:Bind AccountListDisplayModeIndex, Mode=TwoWay}">
+                    <x:String>그룹으로 보기</x:String>
+                    <x:String>순서대로 보기</x:String>
+                </RadioButtons>
                 <Button
                     x:Name="Button_Edit"
                     Click="Button_Edit_Click"
@@ -86,36 +94,52 @@
                     IsEnabled="{x:Bind CanDeleteSelectedAccount, Mode=OneWay}"
                     IsTabStop="False" />
             </StackPanel>
-            <ListView
-                x:Name="AccountListView"
-                Grid.Row="1"
-                VerticalAlignment="Top"
-                IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
-                IsTabStop="False"
-                ItemTemplate="{StaticResource AccountListViewTemplate}"
-                ItemsSource="{x:Bind AccountsCVS.View, Mode=OneWay}"
-                SelectionChanged="AccountListView_SelectionChanged"
-                SelectionMode="Multiple">
-                <ListView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsStackPanel AreStickyGroupHeadersEnabled="True" />
-                    </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-                <ListView.GroupStyle>
-                    <GroupStyle>
-                        <GroupStyle.HeaderTemplate>
-                            <DataTemplate x:DataType="models:AccountGroupInfoList">
-                                <Border AutomationProperties.AccessibilityView="Raw">
-                                    <TextBlock
-                                        AutomationProperties.AccessibilityView="Raw"
-                                        Style="{ThemeResource TitleTextBlockStyle}"
-                                        Text="{x:Bind Key}" />
-                                </Border>
-                            </DataTemplate>
-                        </GroupStyle.HeaderTemplate>
-                    </GroupStyle>
-                </ListView.GroupStyle>
-            </ListView>
+            <Grid Grid.Row="1">
+                <ListView
+                    x:Name="AccountListView"
+                    VerticalAlignment="Top"
+                    IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
+                    IsTabStop="False"
+                    ItemTemplate="{StaticResource AccountListViewTemplate}"
+                    ItemsSource="{x:Bind AccountsCVS.View, Mode=OneWay}"
+                    SelectionChanged="AccountListView_SelectionChanged"
+                    SelectionMode="Multiple"
+                    Visibility="{x:Bind GroupedListVisibility, Mode=OneWay}">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsStackPanel AreStickyGroupHeadersEnabled="True" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate x:DataType="models:AccountGroupInfoList">
+                                    <Border AutomationProperties.AccessibilityView="Raw">
+                                        <TextBlock
+                                            AutomationProperties.AccessibilityView="Raw"
+                                            Style="{ThemeResource TitleTextBlockStyle}"
+                                            Text="{x:Bind Key}" />
+                                    </Border>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListView.GroupStyle>
+                </ListView>
+
+                <ListView
+                    x:Name="OrderedAccountListView"
+                    AllowDrop="True"
+                    CanDragItems="True"
+                    CanReorderItems="True"
+                    IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
+                    IsTabStop="False"
+                    ItemTemplate="{StaticResource AccountListViewTemplate}"
+                    ItemsSource="{x:Bind OrderedAccounts, Mode=OneWay}"
+                    SelectionChanged="OrderedAccountListView_SelectionChanged"
+                    SelectionMode="Multiple"
+                    DragItemsCompleted="OrderedAccountListView_DragItemsCompleted"
+                    Visibility="{x:Bind OrderedListVisibility, Mode=OneWay}" />
+            </Grid>
         </Grid>
 
         <Border
