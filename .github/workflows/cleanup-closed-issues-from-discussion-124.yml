@@ -1,0 +1,153 @@
+name: Cleanup closed issues from discussion 124
+
+on:
+  workflow_dispatch:
+
+permissions:
+  discussions: write
+  issues: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Remove closed issue lines from discussion #124
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const discussionNumber = 124;
+
+            const markerRegex = /^\s*<!--\s*issue-list:\s*.*?-->\s*$/;
+            const issueLineRegex = /^\s*-\s+#(\d+)\s*$/;
+
+            const query = `
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  discussion(number: $number) {
+                    id
+                    body
+                  }
+                }
+              }
+            `;
+
+            const queryResult = await github.graphql(query, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              number: discussionNumber,
+            });
+
+            const discussion = queryResult.repository?.discussion;
+            if (!discussion) {
+              core.setFailed('Discussion #' + discussionNumber + '을(를) 찾지 못했습니다.');
+              return;
+            }
+
+            const lines = (discussion.body ?? '').split(/\r?\n/);
+
+            const issueNumbers = new Set();
+            let inManagedBlock = false;
+
+            for (const line of lines) {
+              if (markerRegex.test(line)) {
+                inManagedBlock = true;
+                continue;
+              }
+
+              if (!inManagedBlock) {
+                continue;
+              }
+
+              const match = line.match(issueLineRegex);
+              if (match) {
+                issueNumbers.add(Number(match[1]));
+                continue;
+              }
+
+              inManagedBlock = false;
+            }
+
+            if (issueNumbers.size === 0) {
+              core.info('관리 대상 이슈 줄이 없습니다.');
+              return;
+            }
+
+            const closedIssueNumbers = new Set();
+
+            for (const issue_number of issueNumbers) {
+              const response = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+              });
+
+              if (response.data.state === 'closed') {
+                closedIssueNumbers.add(issue_number);
+              }
+            }
+
+            if (closedIssueNumbers.size === 0) {
+              core.info('삭제할 closed 이슈 줄이 없습니다.');
+              return;
+            }
+
+            const newLines = [];
+            inManagedBlock = false;
+            let changed = false;
+
+            for (const line of lines) {
+              if (markerRegex.test(line)) {
+                inManagedBlock = true;
+                newLines.push(line);
+                continue;
+              }
+
+              if (!inManagedBlock) {
+                newLines.push(line);
+                continue;
+              }
+
+              const match = line.match(issueLineRegex);
+              if (match) {
+                const issueNumber = Number(match[1]);
+
+                if (closedIssueNumbers.has(issueNumber)) {
+                  changed = true;
+                  continue;
+                }
+
+                newLines.push(line);
+                continue;
+              }
+
+              inManagedBlock = false;
+              newLines.push(line);
+            }
+
+            if (!changed) {
+              core.info('변경할 내용이 없습니다.');
+              return;
+            }
+
+            const newBody = newLines.join('\n');
+
+            const mutation = `
+              mutation($discussionId: ID!, $body: String!) {
+                updateDiscussion(input: {
+                  discussionId: $discussionId,
+                  body: $body
+                }) {
+                  discussion {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(mutation, {
+              discussionId: discussion.id,
+              body: newBody,
+            });
+
+            core.info('Discussion #' + discussionNumber + ' 정리 완료');
