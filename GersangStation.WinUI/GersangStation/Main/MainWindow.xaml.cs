@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
@@ -723,12 +724,11 @@ public sealed partial class MainWindow : Window
             catch (Exception ex)
             {
                 allowClose = true;
+                Debug.WriteLine($"[MainWindow] Store update install failed.{Environment.NewLine}{ex}");
                 ConfigureStoreUpdateDialogForRetry(
                     dialog,
                     progressView,
-                    "업데이트를 설치하는 중 문제가 발생했습니다. 다시 시도하거나 나중에 설치해 주세요.");
-
-                await App.ExceptionHandler.ShowRecoverableAsync(ex, "MainWindow.ShowStoreUpdateDialogAsync.Install");
+                    BuildStoreUpdateInstallFailureMessage(ex));
             }
             finally
             {
@@ -899,6 +899,24 @@ public sealed partial class MainWindow : Window
         progressView.StatusTextBlock.Visibility = Visibility.Visible;
         progressView.StatusTextBlock.Text = "상태: 설치 중단";
         progressView.ProgressBar.IsIndeterminate = false;
+    }
+
+    /// <summary>
+    /// Store 업데이트 설치 실패를 현재 대화 상자 안에서 다시 안내할 사용자 메시지로 변환합니다.
+    /// </summary>
+    private static string BuildStoreUpdateInstallFailureMessage(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+
+        string detail = string.IsNullOrWhiteSpace(exception.Message)
+            ? exception.GetType().Name
+            : exception.Message.Trim();
+
+        return
+            "업데이트를 설치하는 중 문제가 발생했습니다. 다시 시도하거나 나중에 설치해 주세요." +
+            Environment.NewLine +
+            Environment.NewLine +
+            $"세부 정보: {detail}";
     }
 
     /// <summary>

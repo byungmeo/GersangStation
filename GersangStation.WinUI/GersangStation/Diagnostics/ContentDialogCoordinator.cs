@@ -20,11 +20,21 @@ public sealed class ContentDialogCoordinator
     {
         ArgumentNullException.ThrowIfNull(dialog);
 
-        await _gate.WaitAsync().ConfigureAwait(false);
+        await _gate.WaitAsync();
         try
         {
-            EnsureXamlRoot(dialog);
-            return await dialog.ShowAsync();
+            Microsoft.UI.Dispatching.DispatcherQueue? dispatcherQueue = App.UiDispatcherQueue ?? App.CurrentWindow?.DispatcherQueue;
+            if (dispatcherQueue is null)
+                throw new InvalidOperationException("ContentDialog를 표시할 UI DispatcherQueue를 찾을 수 없습니다.");
+
+            ContentDialogResult result = ContentDialogResult.None;
+            await dispatcherQueue.RunOrEnqueueAsync(async () =>
+            {
+                EnsureXamlRoot(dialog);
+                result = await dialog.ShowAsync();
+            });
+
+            return result;
         }
         finally
         {
