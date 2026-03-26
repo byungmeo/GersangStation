@@ -18,7 +18,10 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
 {
     private const string StartupTaskId = "GersangStationStartup";
     private static readonly AdminStartupRegistrationService AdminStartupRegistrationService = new();
-    private static readonly AdminLaunchDesktopShortcutService AdminLaunchDesktopShortcutService = new(AdminStartupRegistrationService.TaskName);
+    private static readonly AdminLaunchDesktopShortcutService AdminLaunchDesktopShortcutService = new(
+        AdminStartupRegistrationService.TaskName,
+        AdminStartupRegistrationService.DesktopShortcutIconPath,
+        "GersangStation Admin.lnk");
 
     private int _minimizeBehaviorIndex = AppDataManager.MinimizeBehavior == AppDataManager.WindowMinimizeBehavior.HideToSystemTray
         ? 0
@@ -158,6 +161,7 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
                 return;
             }
 
+            await AdminStartupRegistrationService.EnsureLauncherSupportFilesAsync();
             DesktopShortcutCreationResult result = AdminLaunchDesktopShortcutService.CreateShortcut();
             StartupRegistrationMessage = result.Success
                 ? $"관리자 실행 바로가기를 바탕화면에 만들었습니다: {result.ShortcutPath}"
@@ -274,6 +278,7 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
             if (!disableRegularResult.Success)
                 return disableRegularResult;
 
+            AdminLaunchDesktopShortcutService.DeleteShortcutIfExists();
             AppDataManager.IsStartupRunAsAdministratorEnabled = false;
             return new StartupRegistrationOperationResult(true, string.Empty);
         }
@@ -288,6 +293,7 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
                     "현재 Windows 정책으로 일반 자동 실행이 강제로 켜져 있어 관리자 권한 자동 실행으로 전환할 수 없습니다.");
             }
 
+            await AdminStartupRegistrationService.EnsureLauncherSupportFilesAsync();
             StartupRegistrationOperationResult enableAdminResult = await AdminStartupRegistrationService.EnableAsync();
             if (!enableAdminResult.Success)
                 return enableAdminResult;
@@ -299,6 +305,7 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
                 return disableRegularResult;
             }
 
+            AdminLaunchDesktopShortcutService.RefreshShortcutIfExists();
             AppDataManager.IsStartupRunAsAdministratorEnabled = true;
             return new StartupRegistrationOperationResult(true, string.Empty);
         }
@@ -317,6 +324,8 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
 
                 return disableAdminResult;
             }
+
+            AdminLaunchDesktopShortcutService.DeleteShortcutIfExists();
         }
 
         AppDataManager.IsStartupRunAsAdministratorEnabled = false;

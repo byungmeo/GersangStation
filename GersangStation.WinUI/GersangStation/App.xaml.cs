@@ -4,10 +4,12 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Storage;
+using WinRT.Interop;
 
 namespace GersangStation
 {
@@ -16,6 +18,15 @@ namespace GersangStation
     /// </summary>
     public partial class App : Application
     {
+        private const int SwRestore = 9;
+        private const uint SwpNoMove = 0x0002;
+        private const uint SwpNoSize = 0x0001;
+        private const uint SwpNoActivate = 0x0010;
+        private const uint SwpNoOwnerZOrder = 0x0200;
+        private static readonly nint HwndTop = IntPtr.Zero;
+        private static readonly nint HwndTopMost = new(-1);
+        private static readonly nint HwndNoTopMost = new(-2);
+
         public static Window? CurrentWindow { get; private set; }
         public static Microsoft.UI.Dispatching.DispatcherQueue? UiDispatcherQueue { get; private set; }
         public static AppExceptionHandler ExceptionHandler { get; } = new();
@@ -71,6 +82,19 @@ namespace GersangStation
             CurrentWindow = mainWindow;
             PrepareMainWindow(CurrentWindow);
             BringCurrentWindowToForeground();
+            EnsureForegroundAfterLaunchAsync()
+                .FireAndForgetHandled($"{nameof(App)}.{nameof(EnsureForegroundAfterLaunchAsync)}");
+        }
+
+        /// <summary>
+        /// 작업 스케줄러나 외부 런처로 시작될 때 첫 Activate가 묻히는 경우를 보정합니다.
+        /// </summary>
+        private static async Task EnsureForegroundAfterLaunchAsync()
+        {
+            await Task.Delay(250);
+            UiDispatcherQueue?.TryEnqueueHandled(
+                () => BringCurrentWindowToForeground(),
+                $"{nameof(App)}.{nameof(EnsureForegroundAfterLaunchAsync)}.Dispatcher");
         }
 
         /// <summary>
@@ -115,21 +139,60 @@ namespace GersangStation
         /// <summary>
         /// 현재 메인 창을 복원하고 전면    에 표시합니다.
         /// </summary>      
-                public static void BringCurrentWindowToForeground()                 
-        {           
+        public static void BringCurrentWindowToForeground()
+        {
             if (CurrentWindow is null)
                 return;
-                    
+
+            nint windowHandle = WindowNative.GetWindowHandle(CurrentWindow);
+
             if (CurrentWindow is Main.MainWindow mainWindow)
-                mainWindow.EnsureWindowVisible();   
+                mainWindow.EnsureWindowVisible();
 
             if (CurrentWindow.AppWindow.Presenter is OverlappedPresenter presenter &&
                 presenter.State == OverlappedPresenterState.Minimized)
             {
                 presenter.Restore();
             }
-                    
+
+            ShowWindow(windowHandle, SwRestore);
             CurrentWindow.Activate();
+            SetForegroundWindow(windowHandle);
+            PulseWindowToFront(windowHandle);
+        }
+
+        /// <summary>
+        /// 창 전환 기능과 같은 방식으로 TopMost 펄스를 줘 다른 창 뒤로 묻히는 상황을 줄입니다.
+        /// </summary>
+        private static void PulseWindowToFront(nint windowHandle)
+        {
+            if (windowHandle == IntPtr.Zero)
+                return;
+
+            _ = SetWindowPos(
+                windowHandle,
+                HwndTopMost,
+                0,
+                0,
+                0,
+                0,
+                SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
+            _ = SetWindowPos(
+                windowHandle,
+                HwndNoTopMost,
+                0,
+                0,
+                0,
+                0,
+                SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
+            _ = SetWindowPos(
+                windowHandle,
+                HwndTop,
+                0,
+                0,
+                0,
+                0,
+                SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
         }
 
         private void CurrentWindow_Closed(object sender, WindowEventArgs args)
@@ -193,5 +256,24 @@ namespace GersangStation
                 e.Exception,
                 "TaskScheduler.UnobservedTaskException");
         }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow(nint hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetForegroundWindow(nint hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPos(
+            nint hWnd,
+            nint hWndInsertAfter,
+            int x,
+            int y,
+            int cx,
+            int cy,
+            uint uFlags);
     }
 }
