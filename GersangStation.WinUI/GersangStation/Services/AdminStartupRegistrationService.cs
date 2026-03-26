@@ -22,6 +22,11 @@ public sealed class AdminStartupRegistrationService
     private static readonly XNamespace TaskSchemaNamespace = "http://schemas.microsoft.com/windows/2004/02/mit/task";
 
     private readonly string _taskName = $"GersangStation.AdminStartup.{Package.Current.Id.Name}";
+    /// <summary>
+    /// 현재 패키지에 대응하는 관리자 자동 실행 작업 이름입니다.
+    /// </summary>
+    public string TaskName => _taskName;
+
     private readonly string _packageName = Package.Current.Id.Name;
     private readonly string _launcherExecutableName = Path.GetFileName(Environment.ProcessPath) ?? "GersangStation.exe";
 

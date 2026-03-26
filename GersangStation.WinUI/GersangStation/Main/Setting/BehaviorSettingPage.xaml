@@ -44,6 +44,12 @@
                             Style="{ThemeResource CaptionTextBlockStyle}"
                             Text="이 옵션을 켜면 일반 시작 프로그램 대신 작업 스케줄러를 사용합니다. 등록 또는 해제 시 Windows 관리자 권한 승인이 필요할 수 있습니다."
                             TextWrapping="WrapWholeWords" />
+                        <Button
+                            x:Name="Button_CreateAdminLaunchDesktopShortcut"
+                            Click="Button_CreateAdminLaunchDesktopShortcut_Click"
+                            Style="{ThemeResource AccentButtonStyle}"
+                            Content="바탕화면에 관리자 실행 바로가기 만들기"
+                            HorizontalAlignment="Left" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{ThemeResource CaptionTextBlockStyle}"

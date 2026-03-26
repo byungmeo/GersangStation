@@ -18,6 +18,7 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
 {
     private const string StartupTaskId = "GersangStationStartup";
     private static readonly AdminStartupRegistrationService AdminStartupRegistrationService = new();
+    private static readonly AdminLaunchDesktopShortcutService AdminLaunchDesktopShortcutService = new(AdminStartupRegistrationService.TaskName);
 
     private int _minimizeBehaviorIndex = AppDataManager.MinimizeBehavior == AppDataManager.WindowMinimizeBehavior.HideToSystemTray
         ? 0
@@ -100,6 +101,7 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
     public BehaviorSettingPage()
     {
         InitializeComponent();
+        Button_CreateAdminLaunchDesktopShortcut.IsEnabled = false;
     }
 
     /// <summary>
@@ -136,6 +138,40 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
             enabled: true,
             runAsAdministrator: ToggleSwitch_StartupRegistrationRunAsAdministrator.IsOn,
             changedByAdministratorToggle: true);
+    }
+
+    /// <summary>
+    /// 관리자 자동 실행 작업을 호출하는 바탕화면 바로가기를 생성합니다.
+    /// </summary>
+    private async void Button_CreateAdminLaunchDesktopShortcut_Click(object sender, RoutedEventArgs e)
+    {
+        Button_CreateAdminLaunchDesktopShortcut.IsEnabled = false;
+
+        try
+        {
+            AdminStartupRegistrationState adminState = await AdminStartupRegistrationService.GetStateAsync();
+            if (!adminState.IsRegistered)
+            {
+                StartupRegistrationMessage = string.IsNullOrWhiteSpace(adminState.Message)
+                    ? "관리자 실행 바로가기를 만들려면 먼저 자동 실행 시 관리자 권한으로 실행을 켜주세요."
+                    : adminState.Message;
+                return;
+            }
+
+            DesktopShortcutCreationResult result = AdminLaunchDesktopShortcutService.CreateShortcut();
+            StartupRegistrationMessage = result.Success
+                ? $"관리자 실행 바로가기를 바탕화면에 만들었습니다: {result.ShortcutPath}"
+                : result.Message;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to create admin desktop shortcut: {ex}");
+            StartupRegistrationMessage = "관리자 실행 바로가기를 만들지 못했습니다. 다시 시도해도 안 되면 바탕화면 쓰기 권한과 Windows 바로가기 구성을 확인해주세요.";
+        }
+        finally
+        {
+            Button_CreateAdminLaunchDesktopShortcut.IsEnabled = _isStartupRegistrationEnabled && _isStartupRegistrationRunAsAdministrator;
+        }
     }
 
     /// <summary>
@@ -430,6 +466,7 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
             ToggleSwitch_StartupRegistration.IsOn = enabled;
             ToggleSwitch_StartupRegistrationRunAsAdministrator.IsOn = enabled && runAsAdministrator;
             ToggleSwitch_StartupRegistrationRunAsAdministrator.IsEnabled = enabled;
+            Button_CreateAdminLaunchDesktopShortcut.IsEnabled = enabled && runAsAdministrator;
         }
         finally
         {
@@ -444,6 +481,10 @@ public sealed partial class BehaviorSettingPage : Page, INotifyPropertyChanged
     {
         ToggleSwitch_StartupRegistration.IsEnabled = isInteractive;
         ToggleSwitch_StartupRegistrationRunAsAdministrator.IsEnabled = isInteractive && ToggleSwitch_StartupRegistration.IsOn;
+        Button_CreateAdminLaunchDesktopShortcut.IsEnabled =
+            isInteractive &&
+            _isStartupRegistrationEnabled &&
+            _isStartupRegistrationRunAsAdministrator;
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
