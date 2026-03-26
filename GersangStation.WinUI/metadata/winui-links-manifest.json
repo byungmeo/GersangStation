@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAtUtc": "2026-03-17T07:35:35.689Z",
+  "updatedAtUtc": "2026-03-26T03:04:21.070Z",
   "fallback": {
     "title": "링크를 불러오는데 실패하였습니다.",
     "message": "요청한 링크 정보를 준비하지 못했습니다. 앱에 포함된 링크 매니페스트 또는 링크 키를 확인해 주세요.",
@@ -13,17 +13,17 @@
       "category": "help",
       "description": "마우스 가두기와 창 전환 기능의 관리자 권한 안내"
     },
-    "help.general": {
-      "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A",
-      "title": "설정 도움말",
-      "category": "help",
-      "description": "설정 페이지의 일반 도움말 링크"
-    },
     "help.credential-vault": {
       "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A#%EC%9E%90%EA%B2%A9-%EC%A6%9D%EB%AA%85-%EC%A0%80%EC%9E%A5%EC%86%8C-%EC%98%A4%EB%A5%98",
       "title": "자격 증명 저장소 오류 도움말",
       "category": "help",
       "description": "Windows 자격 증명 관리자 서비스 오류 해결 가이드"
+    },
+    "help.general": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/Q&A",
+      "title": "설정 도움말",
+      "category": "help",
+      "description": "설정 페이지의 일반 도움말 링크"
     },
     "help.install.symbolic-link": {
       "url": "https://github.com/byungmeo/GersangStation/discussions/39",
@@ -42,6 +42,12 @@
       "title": "다클라 권한 문제 도움말",
       "category": "help",
       "description": "다클라 생성 권한 문제 해결 가이드"
+    },
+    "help.update.manual": {
+      "url": "https://github.com/byungmeo/GersangStation/wiki/%EC%95%B1-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8-%EC%95%88%EB%82%B4",
+      "title": "앱 수동 업데이트 안내",
+      "category": "help",
+      "description": "앱 수동 업데이트 안내"
     },
     "help.update.release-note": {
       "url": "https://github.com/byungmeo/GersangStation/wiki/%EA%B1%B0%EC%83%81%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%85%98-%ED%8C%A8%EC%B9%98%EB%85%B8%ED%8A%B8",
