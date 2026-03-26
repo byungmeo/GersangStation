@@ -46,10 +46,10 @@
                             TextWrapping="WrapWholeWords" />
                         <Button
                             x:Name="Button_CreateAdminLaunchDesktopShortcut"
+                            HorizontalAlignment="Left"
                             Click="Button_CreateAdminLaunchDesktopShortcut_Click"
-                            Style="{ThemeResource AccentButtonStyle}"
                             Content="바탕화면에 관리자 실행 바로가기 만들기"
-                            HorizontalAlignment="Left" />
+                            Style="{ThemeResource AccentButtonStyle}" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{ThemeResource CaptionTextBlockStyle}"

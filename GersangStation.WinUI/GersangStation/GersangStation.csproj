@@ -83,6 +83,7 @@
 		<None Remove="Assets\Icons\Wide310x150Logo.scale-150.png" />
 		<None Remove="Assets\Icons\Wide310x150Logo.scale-200.png" />
 		<None Remove="Assets\Icons\Wide310x150Logo.scale-400.png" />
+		<None Remove="Controls\Tile.xaml" />
 		<None Remove="Controls\ValidatedTextBox.xaml" />
 		<None Remove="Main\Setting\AccountSettingPage.xaml" />
 		<None Remove="Main\Setting\AdvancedSettingPage.xaml" />
@@ -214,6 +215,11 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Folder Include="AppPackages\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Page Update="Controls\Tile.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 
 	<!--
