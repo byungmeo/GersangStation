@@ -29,6 +29,9 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     #region Properties
     private const int ManualUpgradeBoundaryVersion = 34100;
     private const string VersionWarningLinkPlaceholderText = "참고 링크";
+    private const int InitialPatchReadmeRenderCount = 12;
+    private const int PatchReadmeRenderBatchCount = 8;
+    private const double PatchReadmeRenderThreshold = 240d;
 
     private GameServer _selectedGameServer = GameServer.Korea_Live;
     private string _displayLatestVersion = string.Empty;
@@ -52,6 +55,9 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private string _latestVersionStatusMessage = string.Empty;
     private bool _suppressServerSelectionChanged;
     private bool _suppressClientSettingsPersistence;
+    private List<PatchReadmeInfoItem> _allPatchReadmeItems = [];
+    private int _nextPatchReadmeRenderIndex;
+    private bool _isRenderingPatchReadmeBatch;
 
     public ObservableCollection<PatchReadmeInfoItem> Versions { get; } = [];
 
@@ -199,8 +205,8 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         if (!e.Cancel)
         {
             CancelPatchInfoLoad();
+            ResetPatchReadmeRendering();
             Versions.Clear();
-            RichTextBlock_PatchReadme.Blocks.Clear();
         }
     }
 
@@ -237,7 +243,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
             SelectedVersionItem = null;
             Versions.Clear();
-            RichTextBlock_PatchReadme.Blocks.Clear();
+            ResetPatchReadmeRendering();
             NotifyPatchStateChanged();
 
             List<PatchReadmeInfoItem> items;
@@ -275,47 +281,14 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             _latestVersionStatusMessage = string.Empty;
             DisplayLatestVersion = latestPatchInfo.Display;
 
-            Brush headerBrush = (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
-            Brush contentBrush = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
             foreach (PatchReadmeInfoItem item in items)
             {
                 if ((_currentClientVersion ?? -1) >= item.Version)
                     Versions.Add(item);
-
-                bool shouldHighlightHeader = item.Version > (_currentClientVersion ?? 0);
-                string headerText = $"[{item.Date:yyyy-MM-dd} 거상 업데이트 v{item.Version}]";
-
-                Run headerRun = new()
-                {
-                    Text = headerText,
-                    FontWeight = FontWeights.SemiBold,
-                    FontSize = 18
-                };
-
-                Paragraph headerParagraph = new();
-                if (shouldHighlightHeader)
-                {
-                    headerParagraph.Inlines.Add(new InlineUIContainer
-                    {
-                        Child = new FontIcon
-                        {
-                            Glyph = "\uE896"
-                        }
-                    });
-                    headerRun.Foreground = headerBrush;
-                }
-                headerParagraph.Inlines.Add(headerRun);
-                RichTextBlock_PatchReadme.Blocks.Add(headerParagraph);
-
-                for (int i = 0; i < item.Details.Count; i++)
-                {
-                    Paragraph detailParagraph = new();
-                    detailParagraph.Inlines.Add(new Run { Text = item.Details[i], FontSize = 12, Foreground = contentBrush });
-                    if (i == item.Details.Count - 1)
-                        detailParagraph.Inlines.Add(new LineBreak());
-                    RichTextBlock_PatchReadme.Blocks.Add(detailParagraph);
-                }
             }
+
+            _allPatchReadmeItems = items;
+            RenderNextPatchReadmeBatch(InitialPatchReadmeRenderCount);
             SelectedVersionItem = Versions.FirstOrDefault();
             NotifyPatchStateChanged();
         }
@@ -422,6 +395,107 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         _patchInfoLoadCts?.Dispose();
         _patchInfoLoadCts = null;
         IsLoadingPatchInfo = false;
+    }
+
+    /// <summary>
+    /// 패치 내역 렌더링 상태를 초기화하고 현재 문서를 비웁니다.
+    /// </summary>
+    private void ResetPatchReadmeRendering()
+    {
+        _allPatchReadmeItems = [];
+        _nextPatchReadmeRenderIndex = 0;
+        _isRenderingPatchReadmeBatch = false;
+        RichTextBlock_PatchReadme.Blocks.Clear();
+    }
+
+    /// <summary>
+    /// 아직 그리지 않은 패치 내역을 일정 개수만큼 RichTextBlock에 추가합니다.
+    /// </summary>
+    private void RenderNextPatchReadmeBatch(int batchSize)
+    {
+        if (_isRenderingPatchReadmeBatch || _nextPatchReadmeRenderIndex >= _allPatchReadmeItems.Count)
+            return;
+
+        _isRenderingPatchReadmeBatch = true;
+        try
+        {
+            Brush headerBrush = (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"];
+            Brush contentBrush = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"];
+            int renderUntil = Math.Min(_nextPatchReadmeRenderIndex + batchSize, _allPatchReadmeItems.Count);
+
+            for (int index = _nextPatchReadmeRenderIndex; index < renderUntil; index++)
+                AppendPatchReadmeBlock(_allPatchReadmeItems[index], headerBrush, contentBrush);
+
+            _nextPatchReadmeRenderIndex = renderUntil;
+        }
+        finally
+        {
+            _isRenderingPatchReadmeBatch = false;
+        }
+    }
+
+    /// <summary>
+    /// 개별 패치 항목 하나를 제목과 세부 문단들로 변환해 현재 문서에 추가합니다.
+    /// </summary>
+    private void AppendPatchReadmeBlock(PatchReadmeInfoItem item, Brush headerBrush, Brush contentBrush)
+    {
+        bool shouldHighlightHeader = item.Version > (_currentClientVersion ?? 0);
+        string headerText = $"[{item.Date:yyyy-MM-dd} 거상 업데이트 v{item.Version}]";
+
+        Run headerRun = new()
+        {
+            Text = headerText,
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 18
+        };
+
+        Paragraph headerParagraph = new();
+        if (shouldHighlightHeader)
+        {
+            headerParagraph.Inlines.Add(new InlineUIContainer
+            {
+                Child = new FontIcon
+                {
+                    Glyph = "\uE896"
+                }
+            });
+            headerRun.Foreground = headerBrush;
+        }
+
+        headerParagraph.Inlines.Add(headerRun);
+        RichTextBlock_PatchReadme.Blocks.Add(headerParagraph);
+
+        for (int i = 0; i < item.Details.Count; i++)
+        {
+            Paragraph detailParagraph = new();
+            detailParagraph.Inlines.Add(new Run
+            {
+                Text = item.Details[i],
+                FontSize = 12,
+                Foreground = contentBrush
+            });
+
+            if (i == item.Details.Count - 1)
+                detailParagraph.Inlines.Add(new LineBreak());
+
+            RichTextBlock_PatchReadme.Blocks.Add(detailParagraph);
+        }
+    }
+
+    /// <summary>
+    /// 패치 내역 스크롤이 하단 근처로 오면 다음 배치를 이어서 렌더링합니다.
+    /// </summary>
+    private void ScrollViewer_PatchReadme_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (_isRenderingPatchReadmeBatch || _nextPatchReadmeRenderIndex >= _allPatchReadmeItems.Count)
+            return;
+
+        if (sender is not ScrollViewer scrollViewer)
+            return;
+
+        double remainingDistance = scrollViewer.ScrollableHeight - scrollViewer.VerticalOffset;
+        if (remainingDistance <= PatchReadmeRenderThreshold)
+            RenderNextPatchReadmeBatch(PatchReadmeRenderBatchCount);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

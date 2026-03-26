@@ -273,16 +273,22 @@
                     VerticalAlignment="Top"
                     Style="{ThemeResource TitleTextBlockStyle}"
                     Text="패치내역" />
-                <ScrollView
+                <ScrollViewer
+                    x:Name="ScrollViewer_PatchReadme"
                     Grid.Row="1"
                     Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}"
                     HorizontalScrollBarVisibility="Hidden"
-                    HorizontalScrollMode="Disabled">
-                    <RichTextBlock
-                        x:Name="RichTextBlock_PatchReadme"
-                        Padding="10,10,10,10"
-                        TextAlignment="Justify" />
-                </ScrollView>
+                    HorizontalScrollMode="Disabled"
+                    ViewChanged="ScrollViewer_PatchReadme_ViewChanged">
+                    <Grid Width="{Binding ElementName=ScrollViewer_PatchReadme, Path=ViewportWidth}">
+                        <RichTextBlock
+                            x:Name="RichTextBlock_PatchReadme"
+                            HorizontalAlignment="Stretch"
+                            Padding="10,10,10,10"
+                            TextAlignment="Justify"
+                            TextWrapping="Wrap" />
+                    </Grid>
+                </ScrollViewer>
             </Grid>
             <!--#endregion Right Contents-->
         </Grid>
