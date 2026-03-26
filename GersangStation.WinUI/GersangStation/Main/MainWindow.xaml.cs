@@ -210,7 +210,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task<bool> HandleStartupAdministratorPromptAsync()
     {
-        if (App.IsRunningAsAdministrator || Root.XamlRoot is null)
+        if (App.IsRunningAsAdministrator || !AppDataManager.IsStartupAdminPromptEnabled || Root.XamlRoot is null)
             return true;
 
         ContentDialog dialog = new()
@@ -218,12 +218,20 @@ public sealed partial class MainWindow : Window
             XamlRoot = Content.XamlRoot,
             Title = "관리자 권한으로 실행하지 않음",
             Content = "현재 앱이 관리자 권한으로 실행되지 않았습니다.\n관리자 권한이 없으면 일부 기능이 동작하지 않을 수 있습니다.\n그래도 계속 하시겠습니까?",
-            PrimaryButtonText = "해결 방법 확인한 뒤 종료",
-            CloseButtonText = "네, 계속 하겠습니다.",
+            PrimaryButtonText = "방법 확인 후 종료",
+            SecondaryButtonText = "다음부터 안내 무시",
+            CloseButtonText = "무시하고 진행",
             DefaultButton = ContentDialogButton.Primary
         };
 
         ContentDialogResult result = await dialog.ShowManagedAsync();
+        if (result == ContentDialogResult.Secondary)
+        {
+            _skipDefaultInitialNavigation = true;
+            NavigateToSettingPage(SettingSection.Notification);
+            return true;
+        }
+
         if (result != ContentDialogResult.Primary)
             return true;
 

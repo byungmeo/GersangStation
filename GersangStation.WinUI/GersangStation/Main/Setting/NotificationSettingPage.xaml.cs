@@ -14,6 +14,7 @@ namespace GersangStation.Main.Setting;
 public sealed partial class NotificationSettingPage : Page, INotifyPropertyChanged
 {
     private double _eventUrgencyThresholdDays = AppDataManager.EventUrgencyThresholdDays;
+    private bool _isInitializing;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -38,6 +39,20 @@ public sealed partial class NotificationSettingPage : Page, INotifyPropertyChang
     public NotificationSettingPage()
     {
         InitializeComponent();
+        _isInitializing = true;
+        ToggleSwitch_StartupAdminPrompt.IsOn = AppDataManager.IsStartupAdminPromptEnabled;
+        _isInitializing = false;
+    }
+
+    /// <summary>
+    /// 초기 바인딩이 끝난 뒤 사용자가 토글을 바꾸면 시작 관리자 권한 안내 표시 여부를 저장합니다.
+    /// </summary>
+    private void ToggleSwitch_StartupAdminPrompt_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        AppDataManager.IsStartupAdminPromptEnabled = ToggleSwitch_StartupAdminPrompt.IsOn;
     }
 
     /// <summary>

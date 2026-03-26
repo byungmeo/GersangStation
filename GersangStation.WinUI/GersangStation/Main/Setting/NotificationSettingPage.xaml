@@ -20,6 +20,27 @@
                     BorderThickness="1"
                     CornerRadius="12">
                     <StackPanel Spacing="12">
+                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="관리자 권한 안내" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="앱이 관리자 권한 없이 시작될 때 표시되는 안내 메시지의 표시 여부를 설정합니다."
+                            TextWrapping="WrapWholeWords" />
+                        <ToggleSwitch
+                            x:Name="ToggleSwitch_StartupAdminPrompt"
+                            Header="관리자 권한 안내 메시지 표시 여부"
+                            OffContent="숨김"
+                            OnContent="표시"
+                            Toggled="ToggleSwitch_StartupAdminPrompt_Toggled" />
+                    </StackPanel>
+                </Border>
+
+                <Border
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                    <StackPanel Spacing="12">
                         <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="종료 임박 이벤트 하이라이트" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"

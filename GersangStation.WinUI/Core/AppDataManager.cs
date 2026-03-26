@@ -77,6 +77,7 @@ public static class AppDataManager
     private const string LatestVersion_SettingKey = "PrevVersion";
     private const string UseSymbol_SettingKey = "useSymbol";
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
+    private const string StartupAdminPromptEnabled_SettingKey = "StartupAdminPromptEnabled";
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
     private const string WindowSwitchingEnabled_SettingKey = "WindowSwitchingEnabled";
     private const string WindowMinimizeBehavior_SettingKey = "WindowMinimizeBehavior";
@@ -116,6 +117,11 @@ public static class AppDataManager
             if (previous != value)
                 DeveloperToolEnabledChanged?.Invoke(null, value);
         }
+    }
+    public static bool IsStartupAdminPromptEnabled
+    {
+        get => LoadLocalSetting(StartupAdminPromptEnabled_SettingKey, defaultValue: true);
+        set => SaveLocalSetting(StartupAdminPromptEnabled_SettingKey, value);
     }
     public static bool IsMouseConfinementEnabled
     {
