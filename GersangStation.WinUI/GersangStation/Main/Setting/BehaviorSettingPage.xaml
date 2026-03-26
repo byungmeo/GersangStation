@@ -33,6 +33,17 @@
                             OffContent="해제"
                             OnContent="등록"
                             Toggled="ToggleSwitch_StartupRegistration_Toggled" />
+                        <ToggleSwitch
+                            x:Name="ToggleSwitch_StartupRegistrationRunAsAdministrator"
+                            Header="자동 실행 시 관리자 권한으로 실행"
+                            OffContent="일반 권한"
+                            OnContent="관리자 권한"
+                            Toggled="ToggleSwitch_StartupRegistrationRunAsAdministrator_Toggled" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Text="이 옵션을 켜면 일반 시작 프로그램 대신 작업 스케줄러를 사용합니다. 등록 또는 해제 시 Windows 관리자 권한 승인이 필요할 수 있습니다."
+                            TextWrapping="WrapWholeWords" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{ThemeResource CaptionTextBlockStyle}"
