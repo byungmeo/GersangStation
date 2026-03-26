@@ -8,6 +8,7 @@ public static class AppLinkKeys
     public const string HelpGeneral = "help.general";
     public const string HelpCredentialVault = "help.credential-vault";
     public const string HelpPermissionMultiClient = "help.permission.multi-client";
+    public const string HelpUpdateManual = "help.update.manual";
     public const string HelpAdminClipMouse = "help.admin.clip-mouse";
     public const string HelpPatchLegacyVersion = "help.patch.legacy-version";
     public const string HelpInstallSymbolicLink = "help.install.symbolic-link";

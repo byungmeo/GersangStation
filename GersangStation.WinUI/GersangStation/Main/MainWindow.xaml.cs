@@ -46,6 +46,7 @@ public sealed partial class MainWindow : Window
     public WindowSwitchService WindowSwitchService { get; }
 
     private readonly SystemTrayService _systemTrayService;
+    private readonly StoreUpdateFallbackManifestService _storeUpdateFallbackManifestService = new();
     private bool _hasHandledInitialNavigation;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
@@ -61,10 +62,12 @@ public sealed partial class MainWindow : Window
     private StoreContext? _storeContext;
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
     private Task? _storeUpdateAvailabilityTask;
+    private StoreUpdateManualFallbackContext? _persistentStoreUpdateFallbackContext;
 
     public string CurrentAppVersionText { get; } = CreateCurrentVersionText();
     public bool HasAvailableStoreUpdate => _availableStoreUpdates.Count > 0;
-    public bool StoreUpdateButtonEnabled => !_isStoreUpdateDialogOpen && HasAvailableStoreUpdate;
+    public bool ShouldShowStoreUpdateButton => HasAvailableStoreUpdate || _persistentStoreUpdateFallbackContext is not null;
+    public bool StoreUpdateButtonEnabled => !_isStoreUpdateDialogOpen && ShouldShowStoreUpdateButton;
     public event EventHandler? StoreUpdateStateChanged;
 
     public MainWindow()
@@ -295,7 +298,13 @@ public sealed partial class MainWindow : Window
 #else
         await EnsureStoreUpdateAvailabilityLoadedAsync();
         if (HasAvailableStoreUpdate)
+        {
             await ShowStoreUpdateDialogAsync();
+            return;
+        }
+
+        if (_persistentStoreUpdateFallbackContext is not null)
+            await ShowManualStoreUpdateGuidanceAsync(_persistentStoreUpdateFallbackContext);
 #endif
     }
 
@@ -639,10 +648,15 @@ public sealed partial class MainWindow : Window
         {
             _storeContext ??= CreateStoreContext();
             _availableStoreUpdates = await _storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
+            _persistentStoreUpdateFallbackContext = _availableStoreUpdates.Count == 0
+                ? await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.NoStoreUpdatesReported)
+                : null;
         }
         catch (Exception ex)
         {
             _availableStoreUpdates = [];
+            _persistentStoreUpdateFallbackContext =
+                await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.StoreCheckFailed);
             await App.ExceptionHandler.ShowRecoverableAsync(ex, "MainWindow.LoadStoreUpdateAvailabilityAsync");
         }
         finally
@@ -661,7 +675,12 @@ public sealed partial class MainWindow : Window
 
         await EnsureStoreUpdateAvailabilityLoadedAsync();
         if (!HasAvailableStoreUpdate)
+        {
+            if (_persistentStoreUpdateFallbackContext is not null)
+                await ShowManualStoreUpdateGuidanceAsync(_persistentStoreUpdateFallbackContext);
+
             return;
+        }
 
         _isStoreUpdateDialogOpen = true;
         NotifyStoreUpdateStateChanged();
@@ -669,6 +688,7 @@ public sealed partial class MainWindow : Window
         bool shouldExitAfterConfirmation = false;
         bool isWaitingForCompletionConfirmation = false;
         bool allowClose = true;
+        StoreUpdateManualFallbackContext? installFailureFallbackContext = null;
         StoreUpdateDialogProgressView progressView = CreateStoreUpdateDialogProgressView();
 
         var dialog = new ContentDialog
@@ -695,6 +715,7 @@ public sealed partial class MainWindow : Window
             try
             {
                 allowClose = false;
+                installFailureFallbackContext = null;
                 ConfigureStoreUpdateDialogForInstall(dialog, progressView);
 
                 StorePackageUpdateResult result = await InstallStoreUpdatesAsync(progress =>
@@ -714,21 +735,25 @@ public sealed partial class MainWindow : Window
                 }
 
                 allowClose = true;
+                installFailureFallbackContext =
+                    string.Equals(result.OverallState.ToString(), "Canceled", StringComparison.OrdinalIgnoreCase)
+                        ? null
+                        : await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.StoreInstallFailed);
                 ConfigureStoreUpdateDialogForRetry(
                     dialog,
                     progressView,
-                    string.Equals(result.OverallState.ToString(), "Canceled", StringComparison.OrdinalIgnoreCase)
-                        ? "업데이트 설치가 취소되었습니다. 다시 시도하거나 나중에 설치할 수 있습니다."
-                        : $"업데이트 설치를 완료하지 못했습니다. 상태: {result.OverallState}");
+                    BuildStoreUpdateRetryMessage(result.OverallState.ToString(), installFailureFallbackContext));
             }
             catch (Exception ex)
             {
                 allowClose = true;
                 Debug.WriteLine($"[MainWindow] Store update install failed.{Environment.NewLine}{ex}");
+                installFailureFallbackContext =
+                    await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.StoreInstallFailed);
                 ConfigureStoreUpdateDialogForRetry(
                     dialog,
                     progressView,
-                    BuildStoreUpdateInstallFailureMessage(ex));
+                    BuildStoreUpdateInstallFailureMessage(ex, installFailureFallbackContext));
             }
             finally
             {
@@ -747,6 +772,9 @@ public sealed partial class MainWindow : Window
             ContentDialogResult result = await dialog.ShowManagedAsync();
             if (shouldExitAfterConfirmation && result == ContentDialogResult.Primary)
                 ForceCloseForInstalledStoreUpdate();
+
+            if (installFailureFallbackContext is not null)
+                await ShowManualStoreUpdateGuidanceAsync(installFailureFallbackContext);
         }
         finally
         {
@@ -904,7 +932,9 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// Store 업데이트 설치 실패를 현재 대화 상자 안에서 다시 안내할 사용자 메시지로 변환합니다.
     /// </summary>
-    private static string BuildStoreUpdateInstallFailureMessage(Exception exception)
+    private static string BuildStoreUpdateInstallFailureMessage(
+        Exception exception,
+        StoreUpdateManualFallbackContext? fallbackContext)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
@@ -912,11 +942,43 @@ public sealed partial class MainWindow : Window
             ? exception.GetType().Name
             : exception.Message.Trim();
 
-        return
+        string message =
             "업데이트를 설치하는 중 문제가 발생했습니다. 다시 시도하거나 나중에 설치해 주세요." +
             Environment.NewLine +
             Environment.NewLine +
             $"세부 정보: {detail}";
+
+        return AppendManualUpdateFallbackHint(message, fallbackContext);
+    }
+
+    /// <summary>
+    /// Store 설치 결과 문자열을 재시도 안내 문구로 변환합니다.
+    /// </summary>
+    private static string BuildStoreUpdateRetryMessage(
+        string overallState,
+        StoreUpdateManualFallbackContext? fallbackContext)
+    {
+        string message = string.Equals(overallState, "Canceled", StringComparison.OrdinalIgnoreCase)
+            ? "업데이트 설치가 취소되었습니다. 다시 시도하거나 나중에 설치할 수 있습니다."
+            : $"업데이트 설치를 완료하지 못했습니다. 상태: {overallState}";
+
+        return AppendManualUpdateFallbackHint(message, fallbackContext);
+    }
+
+    /// <summary>
+    /// 수동 업데이트 fallback 예정이 있으면 현재 안내 문구 끝에 후속 동작 힌트를 덧붙입니다.
+    /// </summary>
+    private static string AppendManualUpdateFallbackHint(
+        string message,
+        StoreUpdateManualFallbackContext? fallbackContext)
+    {
+        if (fallbackContext is null)
+            return message;
+
+        return message +
+            Environment.NewLine +
+            Environment.NewLine +
+            "현재 버전 이후 필수 업데이트가 확인되어, 이 대화 상자를 닫은 뒤 수동 업데이트 안내를 표시합니다.";
     }
 
     /// <summary>
@@ -951,6 +1013,51 @@ public sealed partial class MainWindow : Window
             "ErrorWiFiDownload" => "Wi-Fi 다운로드 대기 중",
             _ => state
         };
+    }
+
+    /// <summary>
+    /// 원격 버전 매니페스트 기준으로 수동 업데이트 안내가 필요한지 계산합니다.
+    /// </summary>
+    private async Task<StoreUpdateManualFallbackContext?> TryBuildManualUpdateFallbackContextAsync(
+        StoreUpdateManualFallbackReason reason)
+    {
+        try
+        {
+            AppUpdateRequirementEvaluation evaluation =
+                await _storeUpdateFallbackManifestService.EvaluateRequiredManualUpdateAsync();
+
+            return evaluation.HasRequiredUpdate
+                ? new StoreUpdateManualFallbackContext(reason, evaluation.RequiredVersions)
+                : null;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MainWindow] Failed to evaluate manual update fallback.{Environment.NewLine}{ex}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// 사용자에게 수동 업데이트 안내를 표시하고, 요청 시 외부 브라우저로 안내 페이지를 엽니다.
+    /// </summary>
+    private async Task ShowManualStoreUpdateGuidanceAsync(StoreUpdateManualFallbackContext context)
+    {
+        if (Root.XamlRoot is null)
+            return;
+
+        if (!await ManualAppUpdateGuidanceDialog.ShowAsync(Root.XamlRoot, context))
+            return;
+
+        LinkNavigationTarget target = App.LinkManager.ResolveNavigation(AppLinkKeys.HelpUpdateManual);
+        if (target.Uri is Uri uri)
+        {
+            bool launched = await Launcher.LaunchUriAsync(uri);
+            if (launched)
+                return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(target.HtmlContent))
+            NavigateToWebViewPageHtml(target.HtmlContent);
     }
 
     /// <summary>

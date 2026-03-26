@@ -974,7 +974,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private void SyncStoreUpdateState(MainWindow window)
     {
         CurrentAppVersionText = window.CurrentAppVersionText;
-        StoreUpdateButtonVisibility = window.HasAvailableStoreUpdate ? Visibility.Visible : Visibility.Collapsed;
+        StoreUpdateButtonVisibility = window.ShouldShowStoreUpdateButton ? Visibility.Visible : Visibility.Collapsed;
         StoreUpdateButtonEnabled = window.StoreUpdateButtonEnabled;
         OnPropertyChanged(nameof(CurrentAppVersionText));
         OnPropertyChanged(nameof(StoreUpdateButtonVisibility));
