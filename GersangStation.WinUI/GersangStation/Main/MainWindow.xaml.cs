@@ -63,9 +63,10 @@ public sealed partial class MainWindow : Window
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
     private Task? _storeUpdateAvailabilityTask;
     private StoreUpdateManualFallbackContext? _persistentStoreUpdateFallbackContext;
+    private bool _hasSimulatedStoreUpdateAvailable;
 
     public string CurrentAppVersionText { get; } = CreateCurrentVersionText();
-    public bool HasAvailableStoreUpdate => _availableStoreUpdates.Count > 0;
+    public bool HasAvailableStoreUpdate => _availableStoreUpdates.Count > 0 || _hasSimulatedStoreUpdateAvailable;
     public bool ShouldShowStoreUpdateButton => HasAvailableStoreUpdate || _persistentStoreUpdateFallbackContext is not null;
     public bool StoreUpdateButtonEnabled => !_isStoreUpdateDialogOpen && ShouldShowStoreUpdateButton;
     public event EventHandler? StoreUpdateStateChanged;
@@ -181,8 +182,8 @@ public sealed partial class MainWindow : Window
 
             await HandleStartupFirstRunPromptAsync();
             HandleInitialNavigation();
-
-            await EnsureStartupStoreUpdateDialogAsync();
+            EnsureStartupStoreUpdateDialogAsync()
+                .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(EnsureStartupStoreUpdateDialogAsync)}");
         }
         finally
         {
@@ -293,7 +294,11 @@ public sealed partial class MainWindow : Window
 
         _hasShownStartupStoreUpdateDialog = true;
 
+        // Loaded 직후 한 프레임 양보해 첫 렌더링과 입력 반응이 스토어 체크에 막히지 않게 합니다.
+        await Task.Yield();
+
 #if DEV
+        await EnsureStoreUpdateAvailabilityLoadedAsync();
         return;
 #else
         await EnsureStoreUpdateAvailabilityLoadedAsync();
@@ -644,10 +649,19 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task LoadStoreUpdateAvailabilityAsync()
     {
+#if DEV
+        _availableStoreUpdates = [];
+        _persistentStoreUpdateFallbackContext = null;
+        _hasSimulatedStoreUpdateAvailable = true;
+        NotifyStoreUpdateStateChanged();
+        await Task.CompletedTask;
+        return;
+#else
         try
         {
             _storeContext ??= CreateStoreContext();
             _availableStoreUpdates = await _storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
+            _hasSimulatedStoreUpdateAvailable = false;
             _persistentStoreUpdateFallbackContext = _availableStoreUpdates.Count == 0
                 ? await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.NoStoreUpdatesReported)
                 : null;
@@ -655,14 +669,16 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             _availableStoreUpdates = [];
+            _hasSimulatedStoreUpdateAvailable = false;
             _persistentStoreUpdateFallbackContext =
                 await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.StoreCheckFailed);
-            await App.ExceptionHandler.ShowRecoverableAsync(ex, "MainWindow.LoadStoreUpdateAvailabilityAsync");
+            Debug.WriteLine($"[MainWindow] Store update availability check failed.{Environment.NewLine}{ex}");
         }
         finally
         {
             NotifyStoreUpdateStateChanged();
         }
+#endif
     }
 
     /// <summary>
@@ -697,6 +713,7 @@ public sealed partial class MainWindow : Window
             Title = "업데이트 설치",
             Content = CreateStoreUpdateDialogContent(progressView),
             PrimaryButtonText = "설치",
+            SecondaryButtonText = "수동 설치",
             CloseButtonText = "나중에",
             DefaultButton = ContentDialogButton.Primary
         };
@@ -718,6 +735,17 @@ public sealed partial class MainWindow : Window
                 installFailureFallbackContext = null;
                 ConfigureStoreUpdateDialogForInstall(dialog, progressView);
 
+#if DEV
+                await SimulateStoreUpdateInstallAsync(progressView);
+                _hasSimulatedStoreUpdateAvailable = false;
+                _availableStoreUpdates = [];
+                NotifyStoreUpdateStateChanged();
+
+                isWaitingForCompletionConfirmation = true;
+                allowClose = true;
+                ConfigureStoreUpdateDialogForCompletion(dialog, progressView);
+                return;
+#else
                 StorePackageUpdateResult result = await InstallStoreUpdatesAsync(progress =>
                 {
                     _ = DispatcherQueue.TryEnqueue(() => UpdateStoreUpdateDialogProgress(progressView, progress));
@@ -743,6 +771,7 @@ public sealed partial class MainWindow : Window
                     dialog,
                     progressView,
                     BuildStoreUpdateRetryMessage(result.OverallState.ToString(), installFailureFallbackContext));
+#endif
             }
             catch (Exception ex)
             {
@@ -754,6 +783,21 @@ public sealed partial class MainWindow : Window
                     dialog,
                     progressView,
                     BuildStoreUpdateInstallFailureMessage(ex, installFailureFallbackContext));
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        };
+
+        dialog.SecondaryButtonClick += async (sender, args) =>
+        {
+            ContentDialogButtonClickDeferral deferral = args.GetDeferral();
+
+            try
+            {
+                installFailureFallbackContext = null;
+                await OpenManualStoreUpdateHelpAsync();
             }
             finally
             {
@@ -885,6 +929,7 @@ public sealed partial class MainWindow : Window
     private static void ConfigureStoreUpdateDialogForInstall(ContentDialog dialog, StoreUpdateDialogProgressView progressView)
     {
         dialog.IsPrimaryButtonEnabled = false;
+        dialog.SecondaryButtonText = string.Empty;
         dialog.CloseButtonText = string.Empty;
         progressView.MessageTextBlock.Text = "업데이트를 설치하고 있습니다. 스토어 확인 창이 나타나면 설치를 허용해 주세요.";
         progressView.ProgressBar.Visibility = Visibility.Visible;
@@ -903,6 +948,7 @@ public sealed partial class MainWindow : Window
     {
         dialog.PrimaryButtonText = "확인";
         dialog.IsPrimaryButtonEnabled = true;
+        dialog.SecondaryButtonText = string.Empty;
         dialog.CloseButtonText = string.Empty;
         progressView.MessageTextBlock.Text = "업데이트가 완료되었습니다. 앱을 다시 실행해주세요.";
         progressView.StatusTextBlock.Visibility = Visibility.Visible;
@@ -922,6 +968,7 @@ public sealed partial class MainWindow : Window
     {
         dialog.PrimaryButtonText = "다시 시도";
         dialog.IsPrimaryButtonEnabled = true;
+        dialog.SecondaryButtonText = "수동 설치";
         dialog.CloseButtonText = "닫기";
         progressView.MessageTextBlock.Text = message;
         progressView.StatusTextBlock.Visibility = Visibility.Visible;
@@ -1048,6 +1095,14 @@ public sealed partial class MainWindow : Window
         if (!await ManualAppUpdateGuidanceDialog.ShowAsync(Root.XamlRoot, context))
             return;
 
+        await OpenManualStoreUpdateHelpAsync();
+    }
+
+    /// <summary>
+    /// 수동 업데이트 안내 링크를 외부 브라우저로 열고, 실패 시 앱 내 HTML fallback을 표시합니다.
+    /// </summary>
+    private async Task OpenManualStoreUpdateHelpAsync()
+    {
         LinkNavigationTarget target = App.LinkManager.ResolveNavigation(AppLinkKeys.HelpUpdateManual);
         if (target.Uri is Uri uri)
         {

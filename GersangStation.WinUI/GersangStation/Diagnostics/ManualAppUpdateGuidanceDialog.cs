@@ -42,13 +42,13 @@ internal static class ManualAppUpdateGuidanceDialog
         string summary = context.Reason switch
         {
             StoreUpdateManualFallbackReason.NoStoreUpdatesReported =>
-                "Microsoft Store에서 업데이트 가능한 목록이 없다고 응답했지만, 원격 버전 매니페스트 기준으로 현재 버전 이후 필수 업데이트가 확인되었습니다.",
+                "현재 버전 이후 필수 업데이트가 존재하지만, Microsoft Store를 통해 업데이트를 불러오는데 실패하였습니다.",
             StoreUpdateManualFallbackReason.StoreCheckFailed =>
-                "Microsoft Store 업데이트 확인을 완료하지 못했고, 원격 버전 매니페스트 기준으로 현재 버전 이후 필수 업데이트가 확인되었습니다.",
+                "현재 버전 이후 필수 업데이트가 존재하지만, Microsoft Store를 통해 업데이트를 불러오는데 실패하였습니다.",
             StoreUpdateManualFallbackReason.StoreInstallFailed =>
-                "Microsoft Store 업데이트 설치를 완료하지 못했고, 원격 버전 매니페스트 기준으로 현재 버전 이후 필수 업데이트가 확인되었습니다.",
+                "Microsoft Store에서 필수 업데이트를 설치하던 중 실패하였습니다.",
             _ =>
-                "원격 버전 매니페스트 기준으로 현재 버전 이후 필수 업데이트가 확인되었습니다."
+                "현재 버전 이후 필수 업데이트가 확인되었습니다."
         };
 
         string requiredVersions = context.RequiredVersions.Count == 0
@@ -61,7 +61,7 @@ internal static class ManualAppUpdateGuidanceDialog
                 summary,
                 string.Empty,
                 requiredVersions,
-                "수동 업데이트 안내 페이지를 열어 직접 업데이트를 진행해주세요."
+                "수동 업데이트 안내를 통해 직접 업데이트를 진행해주세요."
             ]);
     }
 }

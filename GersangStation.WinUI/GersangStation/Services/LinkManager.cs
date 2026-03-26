@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace GersangStation.Services;
 
@@ -37,6 +38,7 @@ public sealed class LinkManager
     private bool _localManifestLoaded;
     private bool _remoteManifestLoaded;
     private Exception? _remoteLoadException;
+    private Task? _remoteManifestLoadTask;
 
     /// <summary>
     /// 마지막 매니페스트 로드 실패 예외를 반환합니다.
@@ -51,7 +53,7 @@ public sealed class LinkManager
         lock (_syncRoot)
         {
             EnsureLocalManifestLoaded();
-            EnsureRemoteManifestLoaded();
+            StartRemoteManifestLoad();
         }
     }
 
@@ -135,43 +137,14 @@ public sealed class LinkManager
     }
 
     /// <summary>
-    /// GitHub raw 매니페스트를 한 번만 읽고, 성공 시 로컬 기본값 위를 덮습니다.
-    /// 실패는 로그만 남기고 앱은 로컬 기본값으로 계속 동작합니다.
+    /// GitHub raw 매니페스트 로드를 한 번만 비동기로 시작합니다.
     /// </summary>
-    private void EnsureRemoteManifestLoaded()
+    private void StartRemoteManifestLoad()
     {
-        if (_remoteManifestLoaded)
+        if (_remoteManifestLoaded || _remoteManifestLoadTask is not null)
             return;
 
-        try
-        {
-            string json = DownloadManifestJson();
-            WinUiLinksManifestDocument? manifest = DeserializeManifest(json);
-
-            if (manifest?.Links is null)
-            {
-                _remoteLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
-                _remoteFallback = manifest?.Fallback ?? new LinkFallbackOptions();
-                _remoteLoadException = new InvalidDataException("WinUI 링크 매니페스트의 links 섹션을 읽지 못했습니다.");
-                Debug.WriteLine("[LinkManager] Remote manifest links section is missing. Embedded manifest will be used as fallback.");
-                _remoteManifestLoaded = true;
-                return;
-            }
-
-            _remoteLinks = new Dictionary<string, LinkManifestItem>(manifest.Links, StringComparer.OrdinalIgnoreCase);
-            _remoteFallback = manifest.Fallback ?? new LinkFallbackOptions();
-            _remoteLoadException = null;
-            _remoteManifestLoaded = true;
-            Debug.WriteLine($"[LinkManager] Remote manifest loaded. Count={_remoteLinks.Count}");
-        }
-        catch (Exception ex)
-        {
-            _remoteLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
-            _remoteFallback = new LinkFallbackOptions();
-            _remoteLoadException = ex;
-            _remoteManifestLoaded = true;
-            Debug.WriteLine($"[LinkManager] Failed to load remote manifest. Embedded manifest will be used. {ex}");
-        }
+        _remoteManifestLoadTask = LoadRemoteManifestAsync();
     }
 
     /// <summary>
@@ -185,14 +158,56 @@ public sealed class LinkManager
         lock (_syncRoot)
         {
             EnsureLocalManifestLoaded();
-            EnsureRemoteManifestLoaded();
+            StartRemoteManifestLoad();
         }
     }
 
     /// <summary>
-    /// GitHub raw URL에서 매니페스트 JSON 문자열을 내려받습니다.
+    /// GitHub raw 매니페스트를 백그라운드에서 읽고 결과를 상태에 반영합니다.
     /// </summary>
-    private static string DownloadManifestJson()
+    private async Task LoadRemoteManifestAsync()
+    {
+        try
+        {
+            string json = await DownloadManifestJsonAsync().ConfigureAwait(false);
+            WinUiLinksManifestDocument? manifest = DeserializeManifest(json);
+
+            lock (_syncRoot)
+            {
+                if (manifest?.Links is null)
+                {
+                    _remoteLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+                    _remoteFallback = manifest?.Fallback ?? new LinkFallbackOptions();
+                    _remoteLoadException = new InvalidDataException("WinUI 링크 매니페스트의 links 섹션을 읽지 못했습니다.");
+                    _remoteManifestLoaded = true;
+                    Debug.WriteLine("[LinkManager] Remote manifest links section is missing. Embedded manifest will be used as fallback.");
+                    return;
+                }
+
+                _remoteLinks = new Dictionary<string, LinkManifestItem>(manifest.Links, StringComparer.OrdinalIgnoreCase);
+                _remoteFallback = manifest.Fallback ?? new LinkFallbackOptions();
+                _remoteLoadException = null;
+                _remoteManifestLoaded = true;
+                Debug.WriteLine($"[LinkManager] Remote manifest loaded. Count={_remoteLinks.Count}");
+            }
+        }
+        catch (Exception ex)
+        {
+            lock (_syncRoot)
+            {
+                _remoteLinks = new Dictionary<string, LinkManifestItem>(StringComparer.OrdinalIgnoreCase);
+                _remoteFallback = new LinkFallbackOptions();
+                _remoteLoadException = ex;
+                _remoteManifestLoaded = true;
+                Debug.WriteLine($"[LinkManager] Failed to load remote manifest. Embedded manifest will be used. {ex}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// GitHub raw URL에서 매니페스트 JSON 문자열을 비동기로 내려받습니다.
+    /// </summary>
+    private static async Task<string> DownloadManifestJsonAsync()
     {
         using HttpRequestMessage request = new(HttpMethod.Get, ManifestUrl);
 
@@ -206,19 +221,15 @@ public sealed class LinkManager
         request.Headers.Pragma.Add(new NameValueHeaderValue("no-cache"));
         request.Headers.UserAgent.ParseAdd("GersangStation/1.0");
 
-        using HttpResponseMessage response = Http
+        using HttpResponseMessage response = await Http
             .SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
-            .ConfigureAwait(false)
-            .GetAwaiter()
-            .GetResult();
+            .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
 
-        return response.Content
+        return await response.Content
             .ReadAsStringAsync()
-            .ConfigureAwait(false)
-            .GetAwaiter()
-            .GetResult();
+            .ConfigureAwait(false);
     }
 
     private static HttpClient CreateHttpClient()
