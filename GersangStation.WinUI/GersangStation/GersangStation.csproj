@@ -112,6 +112,10 @@
 			<Link>metadata\winui-links-manifest.json</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
+		<None Include="..\metadata\winui-store-update-version-manifest.json">
+			<Link>metadata\winui-store-update-version-manifest.json</Link>
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
 
 	<ItemGroup>
