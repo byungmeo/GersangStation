@@ -4,10 +4,11 @@
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10"
   xmlns:uap18="http://schemas.microsoft.com/appx/manifest/uap/windows10/18"
-  IgnorableNamespaces="uap rescap systemai uap18">
+  IgnorableNamespaces="uap desktop rescap systemai uap18">
 
   <Identity
     Name="GersangStation"
@@ -49,6 +50,17 @@
         </uap:DefaultTile>
         <uap:SplashScreen Image="Assets\Icons\SplashScreen.png"/>
       </uap:VisualElements>
+      <Extensions>
+        <desktop:Extension
+          Category="windows.startupTask"
+          Executable="GersangStation.exe"
+          EntryPoint="Windows.FullTrustApplication">
+          <desktop:StartupTask
+            TaskId="GersangStationStartup"
+            Enabled="false"
+            DisplayName="GersangStation Dev" />
+        </desktop:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

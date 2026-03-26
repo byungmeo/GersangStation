@@ -7,12 +7,40 @@
     xmlns:local="using:GersangStation.Main.Setting"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DataContext="{d:DesignInstance Type=local:BehaviorSettingPage}"
+    Loaded="BehaviorSettingPage_Loaded"
     mc:Ignorable="d">
 
     <Grid>
         <ScrollViewer>
             <StackPanel Padding="24,24,24,40" Spacing="20">
                 <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="동작 설정" />
+
+                <Border
+                    Padding="20"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="윈도우 시작 자동 실행" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text="Windows에 로그인할 때 거상스테이션을 자동으로 실행합니다."
+                            TextWrapping="WrapWholeWords" />
+                        <ToggleSwitch
+                            x:Name="ToggleSwitch_StartupRegistration"
+                            Header="윈도우 시작 시 프로그램 자동 실행"
+                            OffContent="해제"
+                            OnContent="등록"
+                            Toggled="ToggleSwitch_StartupRegistration_Toggled" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Text="{x:Bind StartupRegistrationMessage, Mode=OneWay}"
+                            TextWrapping="WrapWholeWords"
+                            Visibility="{x:Bind StartupRegistrationMessageVisibility, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
 
                 <Border
                     Padding="20"
