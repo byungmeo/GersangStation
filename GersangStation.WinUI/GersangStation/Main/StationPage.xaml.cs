@@ -89,6 +89,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
     private bool _isInitializing = true;
     private bool _isShellActive;
+    private bool _isViewUnloaded;
     private MainWindow? _shellWindow;
     private GameStarter? _gameStarter;
     private readonly ClientLaunchAvailability[] _clientLaunchAvailability = new ClientLaunchAvailability[3];
@@ -283,10 +284,31 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         RefreshStateFromStorage();
         InitializeComponent();
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
         _eventFlipTimer.Interval = EventFlipInterval;
         _eventFlipTimer.Tick += EventFlipTimer_Tick;
         _eventUrgencyTimer.Tick += EventUrgencyTimer_Tick;
         _isInitializing = false;
+    }
+
+    /// <summary>
+    /// 페이지가 다시 시각 트리에 연결되면 컨트롤 접근 가능 상태로 되돌립니다.
+    /// </summary>
+    private void OnLoaded(object sender, RoutedEventArgs e)
+    {
+        _isViewUnloaded = false;
+    }
+
+    /// <summary>
+    /// 페이지가 시각 트리에서 제거되면 이후 지연 UI 갱신이 해제된 XAML 컨트롤을 건드리지 않게 차단합니다.
+    /// </summary>
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        _isViewUnloaded = true;
+        _eventPeriodOverlayVersion++;
+        StopEventFlipTimer();
+        StopEventUrgencyTimer(resetHighlight: true);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -340,6 +362,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             return;
 
         _isShellActive = false;
+        _eventPeriodOverlayVersion++;
         StopEventFlipTimer();
         StopEventUrgencyTimer(resetHighlight: true);
         CancelEventLoad();
@@ -1338,6 +1361,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private readonly DispatcherTimer _eventUrgencyTimer = new();
     private bool _isEventUrgencyHighlighted;
     private int _eventUrgencyPhaseIndex;
+    private int _selectedEventIndex = -1;
     public IReadOnlyList<StationEventThumbnailItem> EventItems { get; private set; } = [];
     public IReadOnlyList<StationHomepageNoticeItem> HomepageNoticeItems { get; private set; } = [];
     public IReadOnlyList<StationHomepageNoticeItem> GersangStationNoticeItems { get; private set; } = [];
@@ -1357,7 +1381,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             if (EventItems.Count == 0)
                 return _eventHeaderWhenEmpty;
 
-            int selectedIndex = FlipView_Event?.SelectedIndex ?? -1;
+            int selectedIndex = _selectedEventIndex;
             int currentPage = selectedIndex >= 0 && selectedIndex < EventItems.Count
                 ? selectedIndex + 1
                 : 1;
@@ -1370,7 +1394,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         get
         {
-            int selectedIndex = FlipView_Event?.SelectedIndex ?? -1;
+            int selectedIndex = _selectedEventIndex;
             if (selectedIndex < 0 || selectedIndex >= EventItems.Count)
             {
                 return string.Empty;
@@ -1413,7 +1437,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 .ToList();
 
             _eventHeaderWhenEmpty = "진행 중인 이벤트가 없습니다";
-            FlipView_Event.SelectedIndex = EventItems.Count > 0 ? 0 : -1;
+            SetSelectedEventIndex(EventItems.Count > 0 ? 0 : -1);
             _lastEventLoadedAt = DateTimeOffset.UtcNow;
             OnPropertyChanged(nameof(EventItems));
             OnPropertyChanged(nameof(EventHeaderText));
@@ -1431,7 +1455,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         {
             EventItems = [];
             _eventHeaderWhenEmpty = "이벤트를 불러올 수 없습니다.";
-            FlipView_Event.SelectedIndex = -1;
+            SetSelectedEventIndex(-1);
             EventPeriodOverlayVisibility = Visibility.Collapsed;
             OnPropertyChanged(nameof(EventItems));
             OnPropertyChanged(nameof(EventHeaderText));
@@ -1587,10 +1611,8 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         if (EventItems.Count > 1)
         {
-            if (FlipView_Event.SelectedIndex < 0 || FlipView_Event.SelectedIndex >= EventItems.Count)
-            {
-                FlipView_Event.SelectedIndex = 0;
-            }
+            if (_selectedEventIndex < 0 || _selectedEventIndex >= EventItems.Count)
+                SetSelectedEventIndex(0);
 
             ResetEventFlipTimer();
             return;
@@ -1643,7 +1665,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         int version = ++_eventPeriodOverlayVersion;
         await Task.Delay(EventPeriodOverlayShowDelay);
 
-        if (version != _eventPeriodOverlayVersion)
+        if (version != _eventPeriodOverlayVersion || _isViewUnloaded || !_isShellActive)
             return;
 
         if (EventItems.Count > 0)
@@ -1668,13 +1690,13 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         }
 
         HideEventPeriodOverlay();
-        int nextIndex = FlipView_Event.SelectedIndex + 1;
+        int nextIndex = _selectedEventIndex + 1;
         if (nextIndex >= EventItems.Count || nextIndex < 0)
         {
             nextIndex = 0;
         }
 
-        FlipView_Event.SelectedIndex = nextIndex;
+        SetSelectedEventIndex(nextIndex);
     }
 
     /// <summary>
@@ -1682,6 +1704,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// </summary>
     private void FlipView_Event_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        _selectedEventIndex = FlipView_Event?.SelectedIndex ?? -1;
         HideEventPeriodOverlay();
         OnPropertyChanged(nameof(EventHeaderText));
         OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
@@ -1746,11 +1769,25 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// </summary>
     private StationEventThumbnailItem? GetCurrentEventItem()
     {
-        int selectedIndex = FlipView_Event?.SelectedIndex ?? -1;
+        int selectedIndex = _selectedEventIndex;
         if (selectedIndex < 0 || selectedIndex >= EventItems.Count)
             return null;
 
         return EventItems[selectedIndex];
+    }
+
+    /// <summary>
+    /// 선택 이벤트 인덱스 캐시를 갱신하고, 아직 살아 있는 FlipView가 있으면 동일한 인덱스로 동기화합니다.
+    /// </summary>
+    private void SetSelectedEventIndex(int index)
+    {
+        _selectedEventIndex = index;
+
+        if (_isViewUnloaded || FlipView_Event is null)
+            return;
+
+        if (FlipView_Event.SelectedIndex != index)
+            FlipView_Event.SelectedIndex = index;
     }
 
     /// <summary>
