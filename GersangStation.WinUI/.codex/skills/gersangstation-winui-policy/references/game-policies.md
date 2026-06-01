@@ -9,12 +9,14 @@
 - Treat a path without `\Online\vsn.dat` as invalid for launch and multi-client creation, because the current client version cannot be determined.
 - For multi-client creation on `v34100+` layouts, hard-copy direct files under `Online` with overwrite while keeping subdirectories under `Online` as symbolic links.
 - For multi-client creation on `v34100+` layouts, apply the config overwrite policy to `\Assets\Config` and everything under it instead of symbolic-linking that tree.
+- Use station-managed clone folder names with the `_CreatedByStation` suffix, such as `Gersang2_CreatedByStation` and `Gersang3_CreatedByStation`, instead of plain `Gersang2` and `Gersang3`.
 - Skip top-level `PatchTemp` and `GersangDown` directories entirely during multi-client creation; do not copy or symbolic-link them into clones.
 - Keep top-level `ScreenShots` as a per-client user data directory during multi-client creation; do not copy or symbolic-link it into clones, preserve existing real clone folders, and remove existing clone symbolic links for that folder.
 - Choose the multi-client layout policy from the current client version only; do not fetch the latest server version just to decide the local layout rule.
 - Before starting install, patch, or multi-client creation, probe write access on the current or planned target path; if the probe fails due to permission, show the shared permission-warning dialog with the wiki help link before letting the user continue anyway.
 - If install, patch, or multi-client creation still fails with a permission-related exception after preflight, show the shared permission guidance dialog instead of only surfacing a generic failure message.
 - When probing whether an existing path is symbolic, check `CanUseSymbol` first; if the drive does not support symbolic links, treat the path as definitively non-symbolic and skip reparse-point probing.
+- If a multi-client path contains a real directory where the current layout requires a symbolic directory, do not delete it automatically; report a symbolic directory conflict with the exact path so the user can inspect and clean it up.
 - When overwriting a destination file during multi-client creation, delete the destination first if it is a symbolic file and then copy the source file.
 - Constrain the cursor only while the foreground window belongs to a process named exactly `Gersang` and the cursor is already inside that window's client area; recompute bounds for whichever `Gersang` window is active, suspend the confinement only while `Alt` is held, keep it released while the cursor remains outside the client area, and resume it only after the cursor re-enters.
 - Keep the clip-mouse feature fully disabled unless GersangStation itself is running with administrator privileges, even if the saved toggle is on.

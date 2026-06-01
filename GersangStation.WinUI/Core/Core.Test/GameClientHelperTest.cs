@@ -139,6 +139,125 @@ public sealed class GameClientHelperTest
         }
     }
 
+    [TestMethod]
+    public void TryCreateSymbolMultiClient_FailsWithSymbolicDirectoryConflictForRealOnlineMapDirectory()
+    {
+        string root = CreateTempRoot();
+        string sourcePath = Path.Combine(root, "Main");
+        string destPath = Path.Combine(root, "Clone2");
+        string sourceMapPath = Path.Combine(sourcePath, "Online", "Map");
+        string destMapPath = Path.Combine(destPath, "Online", "Map");
+
+        try
+        {
+            EnsureSymbolicLinksAvailable(root);
+            CreateMinimalClient(sourcePath, version: 34100, "source-version");
+            CreateDirectoryWithFile(destMapPath, "clone.map", "clone");
+
+            CreateSymbolMultiClientArgs args = new()
+            {
+                InstallPath = sourcePath,
+                DestPath2 = destPath,
+                LayoutPolicy = GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
+            };
+
+            CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(GameClientHelper.MultiClientCreationFailureStage.ValidateDestinationPath, result.FailureStage);
+            GameClientHelper.MultiClientCreationException creationException =
+                Assert.IsInstanceOfType<GameClientHelper.MultiClientCreationException>(result.Exception);
+            GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException =
+                Assert.IsInstanceOfType<GameClientHelper.MultiClientSymbolicDirectoryConflictException>(creationException.InnerException);
+            Assert.AreEqual(sourceMapPath, conflictException.SourcePath);
+            Assert.AreEqual(destMapPath, conflictException.DestinationPath);
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(root);
+        }
+    }
+
+    [TestMethod]
+    public void TryCreateSymbolMultiClient_FailsWithSymbolicDirectoryConflictForRealTopLevelDirectory()
+    {
+        string root = CreateTempRoot();
+        string sourcePath = Path.Combine(root, "Main");
+        string destPath = Path.Combine(root, "Clone2");
+        string sourceDllPath = Path.Combine(sourcePath, "DLL");
+        string destDllPath = Path.Combine(destPath, "DLL");
+
+        try
+        {
+            EnsureSymbolicLinksAvailable(root);
+            CreateMinimalClient(sourcePath, version: 34100, "source-version");
+            CreateDirectoryWithFile(sourceDllPath, "source.dll", "source");
+            PrepareExistingCloneWithSymbolicFile(sourcePath, destPath);
+            CreateDirectoryWithFile(destDllPath, "clone.dll", "clone");
+
+            CreateSymbolMultiClientArgs args = new()
+            {
+                InstallPath = sourcePath,
+                DestPath2 = destPath,
+                LayoutPolicy = GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
+            };
+
+            CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
+
+            Assert.IsFalse(result.Success);
+            Assert.AreEqual(GameClientHelper.MultiClientCreationFailureStage.CopyTopLevelDirectories, result.FailureStage);
+            GameClientHelper.MultiClientCreationException creationException =
+                Assert.IsInstanceOfType<GameClientHelper.MultiClientCreationException>(result.Exception);
+            GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException =
+                Assert.IsInstanceOfType<GameClientHelper.MultiClientSymbolicDirectoryConflictException>(creationException.InnerException);
+            Assert.AreEqual(sourceDllPath, conflictException.SourcePath);
+            Assert.AreEqual(destDllPath, conflictException.DestinationPath);
+            Assert.IsTrue(Directory.Exists(destDllPath));
+            Assert.IsFalse(GameClientHelper.IsSymbolDirectory(destDllPath));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(root);
+        }
+    }
+
+    [TestMethod]
+    public void TryCreateSymbolMultiClient_RecreatesExistingSymbolicTopLevelDirectory()
+    {
+        string root = CreateTempRoot();
+        string sourcePath = Path.Combine(root, "Main");
+        string destPath = Path.Combine(root, "Clone2");
+        string sourceDllPath = Path.Combine(sourcePath, "DLL");
+        string destDllPath = Path.Combine(destPath, "DLL");
+        string oldDllTargetPath = Path.Combine(root, "OldDllTarget");
+
+        try
+        {
+            EnsureSymbolicLinksAvailable(root);
+            CreateMinimalClient(sourcePath, version: 34100, "source-version");
+            CreateDirectoryWithFile(sourceDllPath, "source.dll", "source");
+            PrepareExistingCloneWithSymbolicFile(sourcePath, destPath);
+            Directory.CreateDirectory(oldDllTargetPath);
+            Directory.CreateSymbolicLink(destDllPath, oldDllTargetPath);
+
+            CreateSymbolMultiClientArgs args = new()
+            {
+                InstallPath = sourcePath,
+                DestPath2 = destPath,
+                LayoutPolicy = GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
+            };
+
+            CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
+
+            Assert.IsTrue(result.Success, result.Reason);
+            Assert.IsTrue(GameClientHelper.IsSymbolDirectory(destDllPath));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(root);
+        }
+    }
+
     private static string CreateTempRoot()
         => Path.Combine(Path.GetTempPath(), "GersangStation", nameof(GameClientHelperTest), Guid.NewGuid().ToString("N"));
 
@@ -206,6 +325,12 @@ public sealed class GameClientHelperTest
         string screenShotsPath = Path.Combine(root, "ScreenShots");
         Directory.CreateDirectory(screenShotsPath);
         File.WriteAllText(Path.Combine(screenShotsPath, fileName), content);
+    }
+
+    private static void CreateDirectoryWithFile(string path, string fileName, string content)
+    {
+        Directory.CreateDirectory(path);
+        File.WriteAllText(Path.Combine(path, fileName), content);
     }
 
     private static void DeleteDirectoryIfExists(string path)

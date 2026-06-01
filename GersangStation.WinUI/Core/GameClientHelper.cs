@@ -84,6 +84,22 @@ public static class GameClientHelper
     }
 
     /// <summary>
+    /// 다클라 대상에 심볼릭 링크로 대체해야 하는 폴더가 일반 폴더로 존재할 때 발생합니다.
+    /// </summary>
+    public sealed class MultiClientSymbolicDirectoryConflictException : IOException
+    {
+        public string SourcePath { get; }
+        public string DestinationPath { get; }
+
+        public MultiClientSymbolicDirectoryConflictException(string sourcePath, string destinationPath)
+            : base($"심볼릭 링크로 생성해야 하는 폴더가 일반 폴더로 존재합니다. Path={destinationPath}")
+        {
+            SourcePath = sourcePath;
+            DestinationPath = destinationPath;
+        }
+    }
+
+    /// <summary>
     /// 심볼릭 링크 지원 가능 여부 확인 결과를 포맷 및 실패 문맥과 함께 반환합니다.
     /// </summary>
     public sealed record SymbolSupportResult(
@@ -472,14 +488,29 @@ public static class GameClientHelper
     }
 
     /// <summary>
-    /// 기존 대상이 있으면 정리한 뒤 디렉터리 심볼릭 링크를 다시 만듭니다.
+    /// 기존 대상이 심볼릭 링크면 정리한 뒤 디렉터리 심볼릭 링크를 다시 만듭니다.
     /// </summary>
     private static void RecreateSymbolicDirectory(string sourceDirPath, string destDirPath)
     {
         if (Directory.Exists(destDirPath))
+        {
+            SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(destDirPath);
+            if (!symbolDirectoryResult.ProbeSuccess)
+            {
+                throw new IOException(
+                    $"Failed to inspect whether '{destDirPath}' is a symbolic directory.",
+                    symbolDirectoryResult.Exception);
+            }
+
+            if (!symbolDirectoryResult.IsSymbolDirectory)
+                throw new MultiClientSymbolicDirectoryConflictException(sourceDirPath, destDirPath);
+
             Directory.Delete(destDirPath);
+        }
         else if (File.Exists(destDirPath))
+        {
             File.Delete(destDirPath);
+        }
 
         Directory.CreateSymbolicLink(destDirPath, sourceDirPath);
     }
@@ -633,10 +664,12 @@ public static class GameClientHelper
 
             if (!destMapProbeResult.IsSymbolDirectory)
             {
+                string sourceOnlineMapPath = Path.Combine(orgInstallPath, "Online", "Map");
                 return CreateFailureResult(
-                    $"{clientPrefix}이미 경로에 복사-붙여넣기로 생성한 클라이언트 존재",
+                    $"{clientPrefix}기존 다클라 경로에 심볼릭 링크로 생성해야 하는 폴더가 일반 폴더로 존재합니다.",
                     clientNumber,
                     MultiClientCreationFailureStage.ValidateDestinationPath,
+                    new MultiClientSymbolicDirectoryConflictException(sourceOnlineMapPath, destOnlineMapPath),
                     sourcePath: orgInstallPath,
                     destinationPath: destPath);
             }

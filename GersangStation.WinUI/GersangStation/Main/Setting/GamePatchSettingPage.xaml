@@ -198,6 +198,7 @@
                             Grid.Row="0"
                             Grid.Column="0"
                             Height="8"
+                            Foreground="{x:Bind PatchProgressForeground, Mode=OneWay}"
                             HorizontalAlignment="Stretch"
                             Maximum="{x:Bind ProgressMaximum, Mode=OneWay}"
                             Value="{x:Bind ProgressValue, Mode=OneWay}" />
@@ -316,5 +317,14 @@
             </StackPanel>
         </Grid>
         <!--#endregion 로딩 오버레이-->
+
+        <TeachingTip
+            x:Name="TeachingTip_PatchResult"
+            Grid.RowSpan="2"
+            ActionButtonClick="TeachingTip_PatchResult_ActionButtonClick"
+            CloseButtonContent="닫기"
+            IsLightDismissEnabled="True"
+            PlacementMargin="20"
+            PreferredPlacement="Auto" />
     </Grid>
 </Page>

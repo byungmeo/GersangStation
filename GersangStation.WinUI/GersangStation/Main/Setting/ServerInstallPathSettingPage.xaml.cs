@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Windows.Storage.Pickers;
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ namespace GersangStation.Main.Setting
     public sealed partial class ServerInstallPathSettingPage : Page, INotifyPropertyChanged, IConfirmLeave
     {
         private GameServer currentGameServer = GameServer.Korea_Live;
+        private string? _multiClientConflictExplorerPath;
 
         private bool _isDirty = false;
         public bool IsDirty
@@ -274,6 +276,7 @@ namespace GersangStation.Main.Setting
 
             if (!installPathValidation.Success)
             {
+                ResetGeneralTeachingTipAction();
                 TeachingTip_General.Title = "다클라 생성 실패";
                 TeachingTip_General.Subtitle = BuildInstallPathValidationMessage(currentGameServer, TextBox_Path1.Text, installPathValidation);
                 TeachingTip_General.IsOpen = true;
@@ -283,6 +286,7 @@ namespace GersangStation.Main.Setting
             ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(TextBox_Path1.Text);
             if (!currentVersionResult.Success || currentVersionResult.Version is null or <= 0)
             {
+                ResetGeneralTeachingTipAction();
                 TeachingTip_General.Title = "다클라 생성 실패";
                 TeachingTip_General.Subtitle = "현재 클라이언트 버전을 확인할 수 없습니다. 설치 경로를 다시 확인해주세요.";
                 TeachingTip_General.IsOpen = true;
@@ -309,16 +313,186 @@ namespace GersangStation.Main.Setting
 
             if (createResult.Success)
             {
+                ResetGeneralTeachingTipAction();
                 TeachingTip_General.Title = "다클라 생성 성공";
                 TeachingTip_General.Subtitle = "";
             }
+            else if (TryShowMultiClientSymbolicDirectoryConflictTeachingTip(createResult.Exception))
+            {
+                return;
+            }
             else
             {
-                await App.ExceptionHandler.ShowRecoverableAsync(createResult.Exception, $"ServerInstallPathSettingPage.Button_CreateMultiClient_Click");
+                Exception exception = createResult.Exception ?? new IOException(createResult.Reason);
+                await App.ExceptionHandler.ShowRecoverableAsync(exception, $"ServerInstallPathSettingPage.Button_CreateMultiClient_Click");
                 return;
             }
 
             TeachingTip_General.IsOpen = true;
+        }
+
+        /// <summary>
+        /// 심볼릭 링크로 대체해야 하는 폴더가 일반 폴더로 존재하는 충돌을 경로 설정 화면의 TeachingTip으로 안내합니다.
+        /// </summary>
+        private bool TryShowMultiClientSymbolicDirectoryConflictTeachingTip(Exception? exception)
+        {
+            GameClientHelper.MultiClientSymbolicDirectoryConflictException? conflictException =
+                FindException<GameClientHelper.MultiClientSymbolicDirectoryConflictException>(exception);
+            if (conflictException is null)
+                return false;
+
+            GameClientHelper.MultiClientCreationException? creationException =
+                FindException<GameClientHelper.MultiClientCreationException>(exception);
+
+            _multiClientConflictExplorerPath = ResolveMultiClientConflictExplorerPath(creationException, conflictException);
+            TeachingTip_General.IconSource = new FontIconSource
+            {
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+                Glyph = "\uEA39"
+            };
+            TeachingTip_General.ActionButtonContent = "상위 폴더 열기";
+            TeachingTip_General.CloseButtonContent = "닫기";
+            TeachingTip_General.Title = "다클라 생성 실패";
+            TeachingTip_General.Subtitle = BuildMultiClientSymbolicDirectoryConflictMessage(creationException, conflictException);
+            TeachingTip_General.IsOpen = true;
+            return true;
+        }
+
+        private static string BuildMultiClientSymbolicDirectoryConflictMessage(
+            GameClientHelper.MultiClientCreationException? creationException,
+            GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException)
+        {
+            string targetPath = creationException?.DestinationPath ?? conflictException.DestinationPath;
+            string targetFolderName = TryGetDirectoryName(targetPath) ?? targetPath;
+            return $"{targetFolderName}{Environment.NewLine}위 폴더를 삭제하신 후 다시 다클라를 생성해주세요.";
+        }
+
+        private void ResetGeneralTeachingTipAction()
+        {
+            _multiClientConflictExplorerPath = null;
+            TeachingTip_General.IconSource = null;
+            TeachingTip_General.ActionButtonContent = null;
+            TeachingTip_General.CloseButtonContent = "네, 확인했습니다.";
+        }
+
+        private void TeachingTip_General_ActionButtonClick(TeachingTip sender, object args)
+        {
+            if (string.IsNullOrWhiteSpace(_multiClientConflictExplorerPath))
+                return;
+
+            try
+            {
+                if (!Directory.Exists(_multiClientConflictExplorerPath))
+                {
+                    TeachingTip_General.Subtitle = "대상 폴더를 찾을 수 없습니다.";
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_multiClientConflictExplorerPath}\"")
+                {
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                TeachingTip_General.Subtitle = $"폴더 열기 실패: {ex.Message}";
+            }
+        }
+
+        private static string ResolveMultiClientConflictExplorerPath(
+            GameClientHelper.MultiClientCreationException? creationException,
+            GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException)
+        {
+            string sourcePath = creationException?.SourcePath ?? conflictException.SourcePath;
+            string destinationPath = creationException?.DestinationPath ?? conflictException.DestinationPath;
+            string? sourceParent = TryGetParentDirectory(sourcePath);
+            string? destinationParent = TryGetParentDirectory(destinationPath);
+
+            if (!string.IsNullOrWhiteSpace(sourceParent)
+                && string.Equals(sourceParent, destinationParent, StringComparison.OrdinalIgnoreCase))
+            {
+                return sourceParent;
+            }
+
+            return TryGetCommonDirectory(sourcePath, destinationPath)
+                ?? destinationParent
+                ?? sourceParent
+                ?? TryGetParentDirectory(conflictException.DestinationPath)
+                ?? conflictException.DestinationPath;
+        }
+
+        private static string? TryGetParentDirectory(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+
+            try
+            {
+                string fullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(path.Trim()));
+                return Directory.GetParent(fullPath)?.FullName;
+            }
+            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
+            {
+                return null;
+            }
+        }
+
+        private static string? TryGetDirectoryName(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return null;
+
+            try
+            {
+                string fullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(path.Trim()));
+                return Path.GetFileName(fullPath);
+            }
+            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
+            {
+                return null;
+            }
+        }
+
+        private static string? TryGetCommonDirectory(string firstPath, string secondPath)
+        {
+            try
+            {
+                string firstFullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(firstPath.Trim()));
+                string secondFullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(secondPath.Trim()));
+                DirectoryInfo? current = Directory.Exists(firstFullPath)
+                    ? new DirectoryInfo(firstFullPath)
+                    : Directory.GetParent(firstFullPath);
+
+                while (current is not null)
+                {
+                    string candidate = current.FullName;
+                    if (secondFullPath.StartsWith(
+                        Path.TrimEndingDirectorySeparator(candidate) + Path.DirectorySeparatorChar,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        return candidate;
+                    }
+
+                    current = current.Parent;
+                }
+            }
+            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
+            {
+            }
+
+            return null;
+        }
+
+        private static TException? FindException<TException>(Exception? exception)
+            where TException : Exception
+        {
+            for (Exception? current = exception; current is not null; current = current.InnerException)
+            {
+                if (current is TException matched)
+                    return matched;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -374,8 +548,8 @@ namespace GersangStation.Main.Setting
             OnPropertyChanged(nameof(textBox.IsValid));
             if (validationResult.Success)
             {
-                CheckBox_UseClient2.Content = $"2클라 사용 {textBox.Text}2";
-                CheckBox_UseClient3.Content = $"3클라 사용 {textBox.Text}3";
+                CheckBox_UseClient2.Content = $"2클라 사용 {textBox.Text}2{ClientSettings.StationManagedMultiClientSuffix}";
+                CheckBox_UseClient3.Content = $"3클라 사용 {textBox.Text}3{ClientSettings.StationManagedMultiClientSuffix}";
             } 
             else
             {

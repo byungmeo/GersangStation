@@ -41,6 +41,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private string _tempPath = string.Empty;
     private double _progressMaximum = 100;
     private double _progressValue = 0;
+    private Brush? _patchProgressForeground;
     private string _progressText = string.Empty;
     private bool _isLoadingPatchInfo = false;
     private bool _isDownloadingPatch = false;
@@ -58,6 +59,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private List<PatchReadmeInfoItem> _allPatchReadmeItems = [];
     private int _nextPatchReadmeRenderIndex;
     private bool _isRenderingPatchReadmeBatch;
+    private string? _patchResultExplorerPath;
 
     public ObservableCollection<PatchReadmeInfoItem> Versions { get; } = [];
 
@@ -128,6 +130,11 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     {
         get => _progressValue;
         set => SetProperty(ref _progressValue, value);
+    }
+    public Brush? PatchProgressForeground
+    {
+        get => _patchProgressForeground;
+        set => SetProperty(ref _patchProgressForeground, value);
     }
     public string ProgressText
     {
@@ -666,6 +673,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         {
             IsDownloading = true;
             ShowPatchProgress();
+            ResetPatchProgressForeground();
 
             ProgressMaximum = 1;
             ProgressValue = 0;
@@ -710,6 +718,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
             ProgressValue = ProgressMaximum;
             ProgressText = "패치가 완료되었습니다.";
+            ShowPatchResultTeachingTip("패치 성공", ProgressText);
         }
         catch (OperationCanceledException)
         {
@@ -717,13 +726,22 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         }
         catch (Exception ex)
         {
+            MarkPatchProgressAsFailed();
+
+            if (TryShowMultiClientSymbolicDirectoryConflictTeachingTip(ex))
+                return;
+
             if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, ex, "게임 패치"))
             {
-                ProgressText = "패치에 실패했습니다.\n권한 문제 해결 방법을 확인해 주세요.";
+                string failureMessage = "패치에 실패했습니다.\n권한 문제 해결 방법을 확인해 주세요.";
+                ProgressText = "패치 실패";
+                ShowPatchResultTeachingTip("패치 실패", failureMessage, isError: true);
                 return;
             }
 
-            ProgressText = $"패치에 실패했습니다.\n{ex.Message}";
+            string defaultFailureMessage = $"패치에 실패했습니다.\n{ex.Message}";
+            ProgressText = "패치 실패";
+            ShowPatchResultTeachingTip("패치 실패", defaultFailureMessage, isError: true);
         }
         finally
         {
@@ -732,6 +750,197 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             _patchCts?.Dispose();
             _patchCts = null;
         }
+    }
+
+    private void MarkPatchProgressAsFailed()
+    {
+        ShowPatchProgress();
+        if (ProgressMaximum <= 0)
+            ProgressMaximum = 1;
+
+        ProgressValue = ProgressMaximum;
+        PatchProgressForeground = GetResourceBrush("SystemFillColorCriticalBrush");
+    }
+
+    private void ResetPatchProgressForeground()
+    {
+        PatchProgressForeground =
+            GetResourceBrush("AccentFillColorDefaultBrush")
+            ?? GetResourceBrush("AccentTextFillColorPrimaryBrush");
+    }
+
+    private void ShowPatchResultTeachingTip(string title, string subtitle, bool isError = false)
+    {
+        _patchResultExplorerPath = null;
+        TeachingTip_PatchResult.Title = title;
+        TeachingTip_PatchResult.Subtitle = subtitle;
+        TeachingTip_PatchResult.IconSource = isError ? CreateErrorBadgeIconSource() : null;
+        TeachingTip_PatchResult.ActionButtonContent = null;
+        TeachingTip_PatchResult.CloseButtonContent = "닫기";
+        TeachingTip_PatchResult.IsOpen = true;
+    }
+
+    private bool TryShowMultiClientSymbolicDirectoryConflictTeachingTip(Exception exception)
+    {
+        GameClientHelper.MultiClientSymbolicDirectoryConflictException? conflictException =
+            FindException<GameClientHelper.MultiClientSymbolicDirectoryConflictException>(exception);
+        if (conflictException is null)
+            return false;
+
+        GameClientHelper.MultiClientCreationException? creationException =
+            FindException<GameClientHelper.MultiClientCreationException>(exception);
+
+        string failureMessage = BuildMultiClientSymbolicDirectoryConflictMessage(creationException, conflictException);
+        ProgressText = "패치 실패";
+        _patchResultExplorerPath = ResolveMultiClientConflictExplorerPath(creationException, conflictException);
+        TeachingTip_PatchResult.Title = "패치 실패";
+        TeachingTip_PatchResult.Subtitle = failureMessage;
+        TeachingTip_PatchResult.IconSource = CreateErrorBadgeIconSource();
+        TeachingTip_PatchResult.ActionButtonContent = "상위 폴더 열기";
+        TeachingTip_PatchResult.CloseButtonContent = "닫기";
+        TeachingTip_PatchResult.IsOpen = true;
+        return true;
+    }
+
+    private void TeachingTip_PatchResult_ActionButtonClick(TeachingTip sender, object args)
+    {
+        if (string.IsNullOrWhiteSpace(_patchResultExplorerPath))
+            return;
+
+        try
+        {
+            if (!Directory.Exists(_patchResultExplorerPath))
+            {
+                TeachingTip_PatchResult.Subtitle = "대상 폴더를 찾을 수 없습니다.";
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_patchResultExplorerPath}\"")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            TeachingTip_PatchResult.Subtitle = $"폴더 열기 실패: {ex.Message}";
+        }
+    }
+
+    private static FontIconSource CreateErrorBadgeIconSource()
+    {
+        return new FontIconSource
+        {
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            Glyph = "\uEA39"
+        };
+    }
+
+    private static Brush? GetResourceBrush(string resourceKey)
+        => Application.Current.Resources[resourceKey] as Brush;
+
+    private static string BuildMultiClientSymbolicDirectoryConflictMessage(
+        GameClientHelper.MultiClientCreationException? creationException,
+        GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException)
+    {
+        string targetPath = creationException?.DestinationPath ?? conflictException.DestinationPath;
+        string targetFolderName = TryGetDirectoryName(targetPath) ?? targetPath;
+        return $"{targetFolderName}{Environment.NewLine}위 폴더를 삭제하신 후 다시 다클라를 생성해주세요.";
+    }
+
+    private static string ResolveMultiClientConflictExplorerPath(
+        GameClientHelper.MultiClientCreationException? creationException,
+        GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException)
+    {
+        string sourcePath = creationException?.SourcePath ?? conflictException.SourcePath;
+        string destinationPath = creationException?.DestinationPath ?? conflictException.DestinationPath;
+        string? sourceParent = TryGetParentDirectory(sourcePath);
+        string? destinationParent = TryGetParentDirectory(destinationPath);
+
+        if (!string.IsNullOrWhiteSpace(sourceParent)
+            && string.Equals(sourceParent, destinationParent, StringComparison.OrdinalIgnoreCase))
+        {
+            return sourceParent;
+        }
+
+        return TryGetCommonDirectory(sourcePath, destinationPath)
+            ?? destinationParent
+            ?? sourceParent
+            ?? TryGetParentDirectory(conflictException.DestinationPath)
+            ?? conflictException.DestinationPath;
+    }
+
+    private static string? TryGetParentDirectory(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        try
+        {
+            string fullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(path.Trim()));
+            return Directory.GetParent(fullPath)?.FullName;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+    }
+
+    private static string? TryGetDirectoryName(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        try
+        {
+            string fullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(path.Trim()));
+            return Path.GetFileName(fullPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
+        {
+            return null;
+        }
+    }
+
+    private static string? TryGetCommonDirectory(string firstPath, string secondPath)
+    {
+        try
+        {
+            string firstFullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(firstPath.Trim()));
+            string secondFullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(secondPath.Trim()));
+            DirectoryInfo? current = Directory.Exists(firstFullPath)
+                ? new DirectoryInfo(firstFullPath)
+                : Directory.GetParent(firstFullPath);
+
+            while (current is not null)
+            {
+                string candidate = current.FullName;
+                if (secondFullPath.StartsWith(
+                    Path.TrimEndingDirectorySeparator(candidate) + Path.DirectorySeparatorChar,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return candidate;
+                }
+
+                current = current.Parent;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
+        {
+        }
+
+        return null;
+    }
+
+    private static TException? FindException<TException>(Exception? exception)
+        where TException : Exception
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is TException matched)
+                return matched;
+        }
+
+        return null;
     }
 
     private void Button_PatchStop_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

@@ -12,6 +12,7 @@ public sealed class AllServerClientSettings
 
 public sealed class ClientSettings : INotifyPropertyChanged
 {
+    public const string StationManagedMultiClientSuffix = "_CreatedByStation";
 
     [JsonIgnore] private string _installPath = string.Empty;
     [JsonPropertyName("InstallPath")]
@@ -62,10 +63,23 @@ public sealed class ClientSettings : INotifyPropertyChanged
     }
 
     [JsonIgnore] public string TempPathRoot => $"{InstallPath}\\PatchTemp";
-    [JsonIgnore] public string Client2Path => $"{InstallPath}2";
-    [JsonIgnore] public string Client3Path => $"{InstallPath}3";
+    [JsonIgnore] public string Client2Path => BuildStationManagedMultiClientPath(2);
+    [JsonIgnore] public string Client3Path => BuildStationManagedMultiClientPath(3);
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>
+    /// 메인 클라이언트의 형제 폴더로 거상스테이션 관리 다클라 경로를 만듭니다.
+    /// </summary>
+    private string BuildStationManagedMultiClientPath(int clientNumber)
+    {
+        if (string.IsNullOrWhiteSpace(InstallPath))
+            return string.Empty;
+
+        string installPath = Path.TrimEndingDirectorySeparator(InstallPath.Trim());
+        return $"{installPath}{clientNumber}{StationManagedMultiClientSuffix}";
+    }
+
     private bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? name = null)
     {
         if (EqualityComparer<T>.Default.Equals(storage, value))

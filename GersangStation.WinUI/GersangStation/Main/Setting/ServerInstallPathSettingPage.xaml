@@ -131,6 +131,7 @@
                 x:Name="TeachingTip_General"
                 Title="Title"
                 Grid.RowSpan="3"
+                ActionButtonClick="TeachingTip_General_ActionButtonClick"
                 CloseButtonContent="네, 확인했습니다."
                 IsLightDismissEnabled="True"
                 PlacementMargin="20"
