@@ -139,6 +139,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private const string Url_Gersang_Logout = "https://www.gersang.co.kr/member/logoutProc.gs";
     private const string Url_Gersang_IpBlockedFaq = "https://www.gersang.co.kr/customer/faq_view.gs?str_thread=00&str_sthread=&str_word=IP&cateUid=52&uid=373&page=1";
     private Uri? _pendingNavigationUri;
+    private Uri? _pendingPostLoginEventUri;
     private string? _pendingHtmlContent;
     private bool _initialHomeNavigationCompleted;
     private bool _isDisplayingHtmlDocument;
@@ -368,6 +369,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _pendingNavigationUri = null;
         _pendingHtmlContent = null;
+        ClearPendingPostLoginEventPage();
         ResetLoginAttemptState();
         TryingLogout = false;
         TryingGameStart = false;
@@ -502,6 +504,49 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 계정 전환 후 복원할 수 있는 거상 이벤트 페이지인지 확인합니다.
+    /// </summary>
+    private static bool IsGersangEventPage(Uri? uri)
+    {
+        if (!IsGersangDomain(uri))
+            return false;
+
+        string path = uri!.AbsolutePath;
+        return path.Equals("/event", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/event/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// 브라우저 계정 전환 중이면 현재 이벤트 페이지를 로그인 완료 후 복원 대상으로 보관합니다.
+    /// </summary>
+    private void CapturePendingPostLoginEventPageIfNeeded()
+    {
+        if (TryingGameStart || _webview?.Source is not Uri source || !IsGersangEventPage(source))
+            return;
+
+        _pendingPostLoginEventUri = source;
+    }
+
+    /// <summary>
+    /// 보관된 이벤트 페이지가 있으면 로그인 완료 후 다시 이동합니다.
+    /// </summary>
+    private bool TryNavigateToPendingPostLoginEventPage()
+    {
+        if (_webview is null || _pendingPostLoginEventUri is not Uri pendingUri)
+            return false;
+
+        _pendingPostLoginEventUri = null;
+        _isDisplayingHtmlDocument = false;
+        _webview.Source = pendingUri;
+        return true;
+    }
+
+    private void ClearPendingPostLoginEventPage()
+    {
+        _pendingPostLoginEventUri = null;
+    }
+
+    /// <summary>
     /// 로그인 또는 게임 실행 전에 거상 공식 메인 페이지로 이동시킵니다.
     /// </summary>
     private void NavigateToGersangMain(string reason)
@@ -542,7 +587,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _lastCredentialVaultException = null;
         if (!isContinuingAttempt)
+        {
             ResetLoginAttemptState();
+            ClearPendingPostLoginEventPage();
+        }
 
         if (string.IsNullOrWhiteSpace(id))
             return TryLoginResult.InvalidId;
@@ -563,6 +611,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             {
                 // 로그아웃 해야 한다
                 Debug.WriteLine("다른 계정으로 로그인 되어 있으므로 로그아웃 후 로그인을 시도합니다.");
+                CapturePendingPostLoginEventPageIfNeeded();
                 BeginLoginAttempt(id);
                 await TryLogout();
                 return TryLoginResult.Success;
@@ -574,12 +623,14 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 _roughLoginRecoveryBypassUsed = true;
                 ResetLoginAttemptState();
                 Debug.WriteLine("[WebViewManager] rough 로그인 복구 후에도 memberID를 확인하지 못했습니다. 무한 로그인을 막기 위해 현재 세션으로 진행합니다.");
+                TryNavigateToPendingPostLoginEventPage();
                 return TryLoginResult.Success;
             }
 
             Debug.WriteLine("[WebViewManager] 로그인 상태는 확인됐지만 memberID 쿠키를 찾지 못했습니다. 선택된 계정으로 다시 로그인하기 위해 로그아웃합니다.");
             _roughLoginRecoveryTargetId = id;
             _roughLoginRecoveryBypassUsed = false;
+            CapturePendingPostLoginEventPageIfNeeded();
             BeginLoginAttempt(id);
             await TryLogout();
             return TryLoginResult.Success;
@@ -590,6 +641,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         {
             _lastCredentialVaultException = passwordResult.Exception;
             ResetLoginAttemptState();
+            ClearPendingPostLoginEventPage();
             return TryLoginResult.VaultUnavailable;
         }
 
@@ -597,8 +649,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(pw))
         {
             ResetLoginAttemptState();
+            ClearPendingPostLoginEventPage();
             return TryLoginResult.NotFoundPw;
         }
+
+        if (!isContinuingAttempt)
+            CapturePendingPostLoginEventPageIfNeeded();
 
         if (!isContinuingAttempt)
             BeginLoginAttempt(id);
@@ -829,6 +885,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (LoggedIn)
         {
+            bool shouldRestoreEventPage = !TryingGameStart && _pendingPostLoginEventUri is not null;
             ResetLoginAttemptState();
 
             if (TryingGameStart)
@@ -841,6 +898,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 {
                     NavigateToGersangMain("게임 실행");
                 }
+            }
+            else if (shouldRestoreEventPage)
+            {
+                TryNavigateToPendingPostLoginEventPage();
             }
         }
         else
@@ -863,6 +924,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         {
                             Debug.WriteLine("[WebViewManager] 로그인 폼은 이미 한 번 제출되었습니다. 메인 페이지에서 자동 재시도 없이 로그인 시도를 종료합니다.");
                             ResetLoginAttemptState();
+                            ClearPendingPostLoginEventPage();
                         }
 
                         return;
@@ -1336,6 +1398,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         else if (result == ContentDialogResult.Secondary)
         {
             ResetLoginAttemptState();
+            ClearPendingPostLoginEventPage();
             TryingLogout = false;
             if (TryingGameStart || (_cachedGameStartClientIndex >= 0 && _cachedGameStartClientIndex < 3))
                 CancelPendingGameStart("OTP 직접 입력");
@@ -1346,6 +1409,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         else
         {
             ResetLoginAttemptState();
+            ClearPendingPostLoginEventPage();
             TryingLogout = false;
             if (TryingGameStart || (_cachedGameStartClientIndex >= 0 && _cachedGameStartClientIndex < 3))
                 CancelPendingGameStart("OTP 입력 취소");
@@ -1489,6 +1553,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         TryingLogout = false;
         ResetLoginAttemptState();
+        ClearPendingPostLoginEventPage();
 
         if (hasPendingGameStart)
         {
@@ -1587,6 +1652,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         {
             TryingLogout = false;
             ResetLoginAttemptState();
+            ClearPendingPostLoginEventPage();
             TryingGameStart = false;
             CancelPendingGameStart("점검 페이지 진입");
         }
