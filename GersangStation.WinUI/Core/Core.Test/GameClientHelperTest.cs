@@ -67,6 +67,78 @@ public sealed class GameClientHelperTest
         }
     }
 
+    [TestMethod]
+    public void TryCreateSymbolMultiClient_PreservesExistingRealScreenshotsDirectory()
+    {
+        string root = CreateTempRoot();
+        string sourcePath = Path.Combine(root, "Main");
+        string destPath = Path.Combine(root, "Clone2");
+
+        try
+        {
+            EnsureSymbolicLinksAvailable(root);
+            CreateMinimalClient(sourcePath, version: 34100, "source-version");
+            CreateScreenShotsDirectory(sourcePath, "main.txt", "main screenshot");
+            PrepareExistingCloneWithSymbolicFile(sourcePath, destPath);
+            CreateScreenShotsDirectory(destPath, "clone.txt", "clone screenshot");
+
+            CreateSymbolMultiClientArgs args = new()
+            {
+                InstallPath = sourcePath,
+                DestPath2 = destPath,
+                LayoutPolicy = GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
+            };
+
+            CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
+
+            Assert.IsTrue(result.Success, result.Reason);
+
+            string destScreenShotsPath = Path.Combine(destPath, "ScreenShots");
+            Assert.IsTrue(Directory.Exists(destScreenShotsPath));
+            Assert.IsFalse(GameClientHelper.IsSymbolDirectory(destScreenShotsPath));
+            Assert.AreEqual("clone screenshot", File.ReadAllText(Path.Combine(destScreenShotsPath, "clone.txt")));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(root);
+        }
+    }
+
+    [TestMethod]
+    public void TryCreateSymbolMultiClient_RemovesExistingSymbolicScreenshotsDirectory()
+    {
+        string root = CreateTempRoot();
+        string sourcePath = Path.Combine(root, "Main");
+        string destPath = Path.Combine(root, "Clone2");
+        string oldScreenShotsTargetPath = Path.Combine(root, "OldScreenShotsTarget");
+
+        try
+        {
+            EnsureSymbolicLinksAvailable(root);
+            CreateMinimalClient(sourcePath, version: 34100, "source-version");
+            CreateScreenShotsDirectory(sourcePath, "main.txt", "main screenshot");
+            PrepareExistingCloneWithSymbolicFile(sourcePath, destPath);
+            Directory.CreateDirectory(oldScreenShotsTargetPath);
+            Directory.CreateSymbolicLink(Path.Combine(destPath, "ScreenShots"), oldScreenShotsTargetPath);
+
+            CreateSymbolMultiClientArgs args = new()
+            {
+                InstallPath = sourcePath,
+                DestPath2 = destPath,
+                LayoutPolicy = GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
+            };
+
+            CreateSymbolMultiClientResult result = GameClientHelper.TryCreateSymbolMultiClient(args);
+
+            Assert.IsTrue(result.Success, result.Reason);
+            Assert.IsFalse(Directory.Exists(Path.Combine(destPath, "ScreenShots")));
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(root);
+        }
+    }
+
     private static string CreateTempRoot()
         => Path.Combine(Path.GetTempPath(), "GersangStation", nameof(GameClientHelperTest), Guid.NewGuid().ToString("N"));
 
@@ -127,6 +199,13 @@ public sealed class GameClientHelperTest
         string oldTargetPath = Path.Combine(destPath, "old-vsn.txt");
         File.WriteAllText(oldTargetPath, "old-version");
         File.CreateSymbolicLink(Path.Combine(destOnlinePath, "vsn.dat"), oldTargetPath);
+    }
+
+    private static void CreateScreenShotsDirectory(string root, string fileName, string content)
+    {
+        string screenShotsPath = Path.Combine(root, "ScreenShots");
+        Directory.CreateDirectory(screenShotsPath);
+        File.WriteAllText(Path.Combine(screenShotsPath, fileName), content);
     }
 
     private static void DeleteDirectoryIfExists(string path)

@@ -10,6 +10,7 @@
 - For multi-client creation on `v34100+` layouts, hard-copy direct files under `Online` with overwrite while keeping subdirectories under `Online` as symbolic links.
 - For multi-client creation on `v34100+` layouts, apply the config overwrite policy to `\Assets\Config` and everything under it instead of symbolic-linking that tree.
 - Skip top-level `PatchTemp` and `GersangDown` directories entirely during multi-client creation; do not copy or symbolic-link them into clones.
+- Keep top-level `ScreenShots` as a per-client user data directory during multi-client creation; do not copy or symbolic-link it into clones, preserve existing real clone folders, and remove existing clone symbolic links for that folder.
 - Choose the multi-client layout policy from the current client version only; do not fetch the latest server version just to decide the local layout rule.
 - Before starting install, patch, or multi-client creation, probe write access on the current or planned target path; if the probe fails due to permission, show the shared permission-warning dialog with the wiki help link before letting the user continue anyway.
 - If install, patch, or multi-client creation still fails with a permission-related exception after preflight, show the shared permission guidance dialog instead of only surfacing a generic failure message.

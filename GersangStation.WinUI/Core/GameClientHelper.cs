@@ -11,7 +11,8 @@ public static class GameClientHelper
         "XIGNCODE",
         "PatchTemp",
         "TempFiles",
-        "GersangDown"
+        "GersangDown",
+        "ScreenShots"
     };
 
     public enum MultiClientLayoutPolicy
