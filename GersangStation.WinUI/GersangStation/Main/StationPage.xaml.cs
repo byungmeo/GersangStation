@@ -354,6 +354,12 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 앱 창 복귀 시 진행 중 이벤트 목록을 기존 캐시 정책에 맞춰 다시 동기화합니다.
+    /// </summary>
+    internal Task RefreshEventsAfterWindowActivationAsync()
+        => LoadEventsAsync();
+
+    /// <summary>
     /// Station 섹션이 숨겨질 때 타이머와 구독을 정리합니다.
     /// </summary>
     internal void OnShellDeactivated()

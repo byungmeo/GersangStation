@@ -44,6 +44,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 {
     #region Gersang Homepage Controller
     private static readonly TimeSpan LaunchRetryCooldown = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan WindowActivationRefreshMinimumInterval = TimeSpan.FromSeconds(5);
     private static bool _roughLoginNoticeSuppressedForSession;
     private static bool _roughLoginNoticeShowing;
     private static Task? _roughLoginNoticeTask;
@@ -140,6 +141,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private Uri? _pendingNavigationUri;
     private string? _pendingHtmlContent;
     private bool _initialHomeNavigationCompleted;
+    private bool _isDisplayingHtmlDocument;
+    private DateTimeOffset _lastWindowActivationRefreshAt = DateTimeOffset.MinValue;
 
     private const string TryLoginScript = $"document.getElementById('btn_Login').click()";
     private const string SubmitOtpScript = $"document.querySelector('form[action=\"otpProc.gs\"]').submit()";
@@ -462,6 +465,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     public async Task TryLogout()
     {
+        _isDisplayingHtmlDocument = false;
         _webview.Source = new Uri(Url_Gersang_Logout);
         TryingLogout = true;
     }
@@ -503,6 +507,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private void NavigateToGersangMain(string reason)
     {
         Debug.WriteLine($"{reason} 시도 전에 거상 메인 페이지로 이동합니다. CurrentSource: {_webview.Source}");
+        _isDisplayingHtmlDocument = false;
         _webview.Source = new Uri(Url_Gersang_Main);
     }
 
@@ -1083,6 +1088,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             _initialHomeNavigationCompleted = false;
             _pendingNavigationUri = null;
             _pendingHtmlContent = null;
+            _isDisplayingHtmlDocument = false;
             SubscribeWebViewEvents();
 
             CoreWebView2EnvironmentOptions environmentOptions = new CoreWebView2EnvironmentOptions();
@@ -1097,6 +1103,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             // https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2settings?view=webview2-winrt-1.0.3719.77#ispasswordautosaveenabled
             _webview.CoreWebView2.Settings.IsPasswordAutosaveEnabled = false;
             SubscribeCoreEvents();
+            _isDisplayingHtmlDocument = false;
             _webview.Source = new Uri(Url_Gersang_Main);
         }
         catch (Exception ex)
@@ -1343,6 +1350,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             if (TryingGameStart || (_cachedGameStartClientIndex >= 0 && _cachedGameStartClientIndex < 3))
                 CancelPendingGameStart("OTP 입력 취소");
 
+            _isDisplayingHtmlDocument = false;
             _webview.Source = new Uri(Url_Gersang_Main);
         }
     }
@@ -1608,6 +1616,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             if (_pendingNavigationUri is Uri pendingUri)
             {
                 _pendingNavigationUri = null;
+                _isDisplayingHtmlDocument = false;
                 _webview.Source = pendingUri;
                 return;
             }
@@ -1720,6 +1729,22 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         _webview?.Reload();
     }
 
+    /// <summary>
+    /// 창 포커스가 돌아왔을 때 오래된 WebView 세션을 복구하기 위해 현재 페이지를 조건부로 새로고침합니다.
+    /// </summary>
+    internal void RefreshAfterWindowActivation()
+    {
+        if (_webview is null || TryingLogin || TryingGameStart || TryingLogout || IsBusy || _isDisplayingHtmlDocument)
+            return;
+
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        if (now - _lastWindowActivationRefreshAt < WindowActivationRefreshMinimumInterval)
+            return;
+
+        _lastWindowActivationRefreshAt = now;
+        _webview.Reload();
+    }
+
     internal void GoHome()
     {
         if (_webview is not null)
@@ -1740,11 +1765,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (!_initialHomeNavigationCompleted)
         {
+            _isDisplayingHtmlDocument = false;
             _pendingHtmlContent = null;
             _pendingNavigationUri = uri;
             return;
         }
 
+        _isDisplayingHtmlDocument = false;
         _pendingHtmlContent = null;
         _pendingNavigationUri = null;
         NavigateToUri(uri);
@@ -1762,11 +1789,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (!_initialHomeNavigationCompleted)
         {
+            _isDisplayingHtmlDocument = true;
             _pendingNavigationUri = null;
             _pendingHtmlContent = htmlContent;
             return;
         }
 
+        _isDisplayingHtmlDocument = true;
         _pendingNavigationUri = null;
         _pendingHtmlContent = null;
         _webview.CoreWebView2?.NavigateToString(htmlContent);
@@ -1782,10 +1811,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (_webview.CoreWebView2 is CoreWebView2 core)
         {
+            _isDisplayingHtmlDocument = false;
             core.Navigate(uri.AbsoluteUri);
             return;
         }
 
+        _isDisplayingHtmlDocument = false;
         _webview.Source = uri;
     }
     #endregion WebViewManager Core

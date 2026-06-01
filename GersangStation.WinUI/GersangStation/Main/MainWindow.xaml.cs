@@ -157,13 +157,30 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// 창 활성 상태를 추적하고 WebView 메모리 정책을 갱신합니다.
     /// </summary>
-    private async void OnActivated(object sender, WindowActivatedEventArgs args)
+    private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
+        bool wasWindowActive = _isWindowActive;
         _isWindowActive = args.WindowActivationState != WindowActivationState.Deactivated;
         UpdateWebViewMemoryMode();
 
-        if (args.WindowActivationState == WindowActivationState.Deactivated)
-            return;
+        if (!wasWindowActive && _isWindowActive)
+        {
+            SafeExecution.RunHandledAsync(
+                RefreshAfterWindowActivationAsync,
+                $"{nameof(MainWindow)}.{nameof(OnActivated)}.{nameof(RefreshAfterWindowActivationAsync)}")
+                .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(OnActivated)}");
+        }
+    }
+
+    /// <summary>
+    /// 창이 다시 활성화되면 현재 셸 섹션에서 복귀 갱신이 필요한 콘텐츠를 갱신합니다.
+    /// </summary>
+    private async Task RefreshAfterWindowActivationAsync()
+    {
+        WebViewManager?.RefreshAfterWindowActivation();
+
+        if (_activeSection == MainShellSection.Station && StationFrame.Content is StationPage stationPage)
+            await stationPage.RefreshEventsAfterWindowActivationAsync();
     }
 
     /// <summary>
