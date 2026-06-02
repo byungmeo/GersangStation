@@ -21,7 +21,7 @@
 - [X] 브라우저 페이지에서 간편하게 이벤트 보상 수령<br>
 - [X] 향상된 마우스 가두기 (Contributed By [@chlrhkd4](https://github.com/chlrhkd4))
 - [X] 향상된 창 전환 (1,2,3클 전환을 빠르고 쉽게)
-- [ ] (개발 중) 플래너 (휴면계정 및 생산시설 일정 관리, 공성/국가토벌전/미궁 알림 등)
+- [ ] (개발 중) 플래너 (휴면계정 및 생산시설 일정 관리, 공성/국가토벌전 알림 등)
 
 # :zap: 거상스테이션 미니 | GersangStation Mini
 ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/byungmeo/GersangStation)
