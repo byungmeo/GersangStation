@@ -709,7 +709,15 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// 시작 대화 상자나 StationPage 버튼에서 공용 Store 업데이트 설치 대화 상자를 엽니다.
     /// </summary>
-    public async Task ShowStoreUpdateDialogAsync()
+    public Task ShowStoreUpdateDialogAsync()
+    {
+        return DispatcherQueue.RunOrEnqueueAsync(ShowStoreUpdateDialogCoreAsync);
+    }
+
+    /// <summary>
+    /// Store 업데이트 설치 대화 상자를 UI 스레드에서 생성하고 표시합니다.
+    /// </summary>
+    private async Task ShowStoreUpdateDialogCoreAsync()
     {
         if (_isStoreUpdateDialogOpen || Root.XamlRoot is null)
             return;
