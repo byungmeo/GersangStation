@@ -324,6 +324,9 @@ namespace GersangStation.Main.Setting
             else
             {
                 Exception exception = createResult.Exception ?? new IOException(createResult.Reason);
+                if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, exception, "다클라 생성"))
+                    return;
+
                 await App.ExceptionHandler.ShowRecoverableAsync(exception, $"ServerInstallPathSettingPage.Button_CreateMultiClient_Click");
                 return;
             }

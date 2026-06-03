@@ -13,6 +13,7 @@ namespace GersangStation.Diagnostics;
 public static class PathPermissionDialog
 {
     private const int AccessDeniedHResult = unchecked((int)0x80070005);
+    private const int PrivilegeNotHeldHResult = unchecked((int)0x80070522);
 
     /// <summary>
     /// 권한 부족일 때만 해결 방법 링크 또는 계속 진행 여부를 묻는 대화상자를 표시합니다.
@@ -93,8 +94,11 @@ public static class PathPermissionDialog
     {
         for (Exception? current = exception; current is not null; current = current.InnerException)
         {
-            if (current is UnauthorizedAccessException || current.HResult == AccessDeniedHResult)
+            if (current is UnauthorizedAccessException ||
+                current.HResult is AccessDeniedHResult or PrivilegeNotHeldHResult)
+            {
                 return true;
+            }
         }
 
         return false;
