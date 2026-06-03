@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Windows.ApplicationModel;
+using Windows.Storage;
 
 namespace GersangStation.Services;
 
@@ -314,7 +315,7 @@ public sealed class AdminStartupRegistrationService
         => Path.Combine(GetSupportDirectoryPath(), "GersangStationShortcut.ico");
 
     private string GetSupportDirectoryPath()
-        => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GersangStation", "AdminStartup");
+        => Path.Combine(ApplicationData.Current.LocalFolder.Path, "AdminStartup");
 
     private string GetDesktopShortcutPath()
         => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), DesktopShortcutFileName);
