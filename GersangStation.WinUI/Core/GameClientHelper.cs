@@ -347,6 +347,13 @@ public static class GameClientHelper
             return CreateInstallPathFailure("❌ 설치 경로가 비어있습니다.", InstallPathValidationFailureReason.EmptyPath);
         }
 
+        if (!Path.IsPathFullyQualified(rawPath))
+        {
+            return CreateInstallPathFailure(
+                "❌ 설치 경로 형식이 올바르지 않습니다.",
+                InstallPathValidationFailureReason.InvalidPathFormat);
+        }
+
         string path;
         try
         {

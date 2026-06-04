@@ -4,6 +4,35 @@ namespace Core.Test;
 public sealed class GameClientHelperTest
 {
     [TestMethod]
+    public void TryValidateInstallPath_ReturnsInvalidPathFormat_ForDriveSeparatorMissingPath()
+    {
+        GameClientHelper.InstallPathValidationResult result =
+            GameClientHelper.TryValidateInstallPath(@"C\AKInteractive\Gersang");
+
+        Assert.IsFalse(result.Success);
+        Assert.AreEqual(GameClientHelper.InstallPathValidationFailureReason.InvalidPathFormat, result.FailureReason);
+    }
+
+    [TestMethod]
+    public void TryValidateInstallPath_ReturnsSuccess_ForFullyQualifiedValidPath()
+    {
+        string root = CreateTempRoot();
+
+        try
+        {
+            CreateMinimalClient(root, version: 34100, "source-version");
+
+            GameClientHelper.InstallPathValidationResult result = GameClientHelper.TryValidateInstallPath(root);
+
+            Assert.IsTrue(result.Success, result.Reason);
+        }
+        finally
+        {
+            DeleteDirectoryIfExists(root);
+        }
+    }
+
+    [TestMethod]
     public void TryIsSymbolFile_ReturnsTrue_ForSymbolicFile()
     {
         string root = CreateTempRoot();
