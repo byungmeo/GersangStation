@@ -85,6 +85,18 @@ public sealed class AdminLaunchDesktopShortcutService
     }
 
     /// <summary>
+    /// 현재 사용자 바탕화면에 관리자 실행 바로가기가 있는지 확인합니다.
+    /// </summary>
+    public bool ShortcutExists()
+    {
+        string desktopDirectory = GetDesktopDirectory();
+        if (string.IsNullOrWhiteSpace(desktopDirectory))
+            return false;
+
+        return File.Exists(Path.Combine(desktopDirectory, _shortcutFileName));
+    }
+
+    /// <summary>
     /// 현재 사용자 바탕화면에서 관리자 실행 바로가기를 조용히 제거합니다.
     /// </summary>
     public void DeleteShortcutIfExists()

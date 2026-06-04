@@ -2,17 +2,17 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Windows.ApplicationModel;
-using Windows.Storage;
 
 namespace GersangStation.Services;
 
 /// <summary>
-/// 작업 스케줄러를 사용해 로그인 시 관리자 권한으로 앱을 시작하는 등록을 관리합니다.
+/// 작업 스케줄러를 사용해 관리자 권한으로 앱을 시작하는 등록을 관리합니다.
 /// </summary>
 public sealed class AdminStartupRegistrationService
 {
@@ -37,7 +37,7 @@ public sealed class AdminStartupRegistrationService
     private readonly string _launcherExecutableName = Path.GetFileName(Environment.ProcessPath) ?? "GersangStation.exe";
 
     /// <summary>
-    /// 현재 사용자에 대한 관리자 권한 자동 실행 작업이 올바르게 등록되어 있는지 확인합니다.
+    /// 현재 사용자에 대한 관리자 권한 실행 작업이 올바르게 등록되어 있는지 확인합니다.
     /// </summary>
     public async Task<AdminStartupRegistrationState> GetStateAsync()
     {
@@ -47,7 +47,7 @@ public sealed class AdminStartupRegistrationService
             elevate: false).ConfigureAwait(false);
 
         if (queryResult.ExitCode != 0 || string.IsNullOrWhiteSpace(queryResult.StandardOutput))
-            return new AdminStartupRegistrationState(false, string.Empty);
+            return new AdminStartupRegistrationState(false, false, string.Empty);
 
         try
         {
@@ -77,6 +77,10 @@ public sealed class AdminStartupRegistrationService
                 .Element(TaskSchemaNamespace + "Principal")?
                 .Element(TaskSchemaNamespace + "LogonType")?
                 .Value;
+            bool hasLogonTrigger = document.Root?
+                .Element(TaskSchemaNamespace + "Triggers")?
+                .Elements(TaskSchemaNamespace + "LogonTrigger")
+                .Any() == true;
 
             bool hasExpectedCommand = string.Equals(
                 Path.GetFileName(command ?? string.Empty),
@@ -90,13 +94,13 @@ public sealed class AdminStartupRegistrationService
                 string.Equals(logonType, "InteractiveToken", StringComparison.OrdinalIgnoreCase);
 
             return hasExpectedCommand && hasExpectedArguments && hasExpectedSecurity
-                ? new AdminStartupRegistrationState(true, string.Empty)
-                : new AdminStartupRegistrationState(false, "관리자 권한 자동 실행 작업이 현재 앱 설정과 일치하지 않아 다시 등록이 필요합니다.");
+                ? new AdminStartupRegistrationState(true, hasLogonTrigger, string.Empty)
+                : new AdminStartupRegistrationState(false, false, "관리자 권한 실행 작업이 현재 앱 설정과 일치하지 않아 다시 등록이 필요합니다.");
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Failed to parse admin startup task XML: {ex}");
-            return new AdminStartupRegistrationState(false, "관리자 권한 자동 실행 작업 상태를 확인하지 못했습니다.");
+            return new AdminStartupRegistrationState(false, false, "관리자 권한 실행 작업 상태를 확인하지 못했습니다.");
         }
     }
 
@@ -104,11 +108,20 @@ public sealed class AdminStartupRegistrationService
     /// 현재 사용자 로그인 시 관리자 권한으로 앱을 시작하는 작업을 등록하거나 갱신합니다.
     /// </summary>
     public async Task<StartupRegistrationOperationResult> EnableAsync()
+        => await RegisterOrUpdateAsync(enableLogonTrigger: true).ConfigureAwait(false);
+
+    /// <summary>
+    /// 관리자 권한 실행 작업을 수동 실행 전용으로 등록하거나 갱신합니다.
+    /// </summary>
+    public async Task<StartupRegistrationOperationResult> EnableManualLaunchAsync()
+        => await RegisterOrUpdateAsync(enableLogonTrigger: false).ConfigureAwait(false);
+
+    private async Task<StartupRegistrationOperationResult> RegisterOrUpdateAsync(bool enableLogonTrigger)
     {
         try
         {
             await EnsureLauncherSupportFilesAsync().ConfigureAwait(false);
-            string xmlPath = await WriteTaskDefinitionAsync().ConfigureAwait(false);
+            string xmlPath = await WriteTaskDefinitionAsync(enableLogonTrigger).ConfigureAwait(false);
 
             try
             {
@@ -121,16 +134,16 @@ public sealed class AdminStartupRegistrationService
                 {
                     return new StartupRegistrationOperationResult(
                         false,
-                        "관리자 권한 자동 실행을 등록하지 못했습니다. 다시 시도해도 안 되면 작업 스케줄러에서 직접 확인해주세요.");
+                        "관리자 권한 실행 작업을 등록하지 못했습니다. 다시 시도해도 안 되면 작업 스케줄러에서 직접 확인해주세요.");
                 }
 
                 AdminStartupRegistrationState state = await GetStateAsync().ConfigureAwait(false);
-                return state.IsRegistered
+                return state.IsRegistered && state.HasLogonTrigger == enableLogonTrigger
                     ? new StartupRegistrationOperationResult(true, string.Empty)
                     : new StartupRegistrationOperationResult(
                         false,
                         string.IsNullOrWhiteSpace(state.Message)
-                            ? "관리자 권한 자동 실행이 정상적으로 등록되지 않았습니다."
+                            ? "관리자 권한 실행 작업이 정상적으로 등록되지 않았습니다."
                             : state.Message);
             }
             finally
@@ -143,7 +156,7 @@ public sealed class AdminStartupRegistrationService
             Debug.WriteLine($"Failed to enable admin startup registration: {ex}");
             return new StartupRegistrationOperationResult(
                 false,
-                "관리자 권한 자동 실행을 등록하지 못했습니다. 다시 시도해도 안 되면 작업 스케줄러에서 직접 확인해주세요.");
+                "관리자 권한 실행 작업을 등록하지 못했습니다. 다시 시도해도 안 되면 작업 스케줄러에서 직접 확인해주세요.");
         }
     }
 
@@ -196,11 +209,20 @@ public sealed class AdminStartupRegistrationService
             File.Copy(sourceIconPath, GetSupportIconPath(), overwrite: true);
     }
 
-    private async Task<string> WriteTaskDefinitionAsync()
+    private async Task<string> WriteTaskDefinitionAsync(bool enableLogonTrigger)
     {
         string currentUserSid = WindowsIdentity.GetCurrent().User?.Value
             ?? throw new InvalidOperationException("Current user SID is unavailable.");
         string tempFilePath = Path.Combine(Path.GetTempPath(), $"{_taskName}.xml");
+        XElement triggersElement = new(TaskSchemaNamespace + "Triggers");
+        if (enableLogonTrigger)
+        {
+            triggersElement.Add(
+                new XElement(
+                    TaskSchemaNamespace + "LogonTrigger",
+                    new XElement(TaskSchemaNamespace + "Enabled", "true"),
+                    new XElement(TaskSchemaNamespace + "UserId", currentUserSid)));
+        }
 
         XDocument document = new(
             new XDeclaration("1.0", "UTF-16", null),
@@ -210,13 +232,8 @@ public sealed class AdminStartupRegistrationService
                 new XElement(
                     TaskSchemaNamespace + "RegistrationInfo",
                     new XElement(TaskSchemaNamespace + "Author", "GersangStation"),
-                    new XElement(TaskSchemaNamespace + "Description", "Launch GersangStation at user logon with highest privileges.")),
-                new XElement(
-                    TaskSchemaNamespace + "Triggers",
-                    new XElement(
-                        TaskSchemaNamespace + "LogonTrigger",
-                        new XElement(TaskSchemaNamespace + "Enabled", "true"),
-                        new XElement(TaskSchemaNamespace + "UserId", currentUserSid))),
+                    new XElement(TaskSchemaNamespace + "Description", "Launch GersangStation with highest privileges.")),
+                triggersElement,
                 new XElement(
                     TaskSchemaNamespace + "Principals",
                     new XElement(
@@ -315,7 +332,10 @@ public sealed class AdminStartupRegistrationService
         => Path.Combine(GetSupportDirectoryPath(), "GersangStationShortcut.ico");
 
     private string GetSupportDirectoryPath()
-        => Path.Combine(ApplicationData.Current.LocalFolder.Path, "AdminStartup");
+        => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "GersangStation",
+            "AdminStartup");
 
     private string GetDesktopShortcutPath()
         => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), DesktopShortcutFileName);
@@ -380,7 +400,7 @@ public sealed class AdminStartupRegistrationService
 /// <summary>
 /// 관리자 권한 자동 실행 작업의 현재 등록 상태입니다.
 /// </summary>
-public readonly record struct AdminStartupRegistrationState(bool IsRegistered, string Message);
+public readonly record struct AdminStartupRegistrationState(bool IsRegistered, bool HasLogonTrigger, string Message);
 
 /// <summary>
 /// 시작 프로그램 구성 변경 결과입니다.
