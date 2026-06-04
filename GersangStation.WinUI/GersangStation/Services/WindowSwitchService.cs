@@ -31,7 +31,7 @@ public sealed partial class WindowSwitchService : IDisposable
     private static readonly nint HwndTop = IntPtr.Zero;
     private static readonly nint HwndTopMost = new(-1);
     private static readonly nint HwndNoTopMost = new(-2);
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
 
     private readonly object _syncRoot = new();
     private readonly GameStarter _gameStarter;

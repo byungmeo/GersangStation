@@ -21,5 +21,6 @@
 ## Game Window Control
 
 - Keep clip-mouse disabled unless GersangStation runs as administrator, constrain only the foreground top-level `Gersang` window, and suspend confinement while `Alt` is held or temporary window browsing is active.
-- Enable the first window-switch mode only as administrator; implement it by polling the fixed `Alt` + `` ` `` chord, cycling running launch slots, and using only short z-order raises without persistent `TopMost`.
+- Enable the first window-switch mode only as administrator; implement game-window control by polling at a fixed 5ms interval.
+- Window switching uses the fixed `Alt` + `` ` `` chord, cycles running launch slots, and uses only short z-order raises without persistent `TopMost`.
 - During window browsing, reserve `Alt` + `` ` `` for additional cycling and end browsing on the first left-click; normalize tracked windows to stable top-level root-owner handles.

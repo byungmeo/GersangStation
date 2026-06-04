@@ -17,7 +17,7 @@ public sealed partial class ClipMouseService : IDisposable
     private const int VkMenu = 0x12;
     private const int VkLMenu = 0xA4;
     private const int VkRMenu = 0xA5;
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
 
     private readonly object _syncRoot = new();
     private Timer? _monitorTimer;
