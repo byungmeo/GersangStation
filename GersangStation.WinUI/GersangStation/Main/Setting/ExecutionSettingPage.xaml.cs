@@ -173,11 +173,24 @@ public sealed partial class ExecutionSettingPage : Page, INotifyPropertyChanged
 
         StartupRegistrationOperationResult disableOldRegularResult = await DisableRegularStartupAsync(allowPolicyEnabledState: true);
         if (!disableOldRegularResult.Success)
+        {
+            await RestoreManualAdminTaskAfterStartupFailureAsync();
             return disableOldRegularResult;
+        }
 
         AdminLaunchDesktopShortcutService.RefreshShortcutIfExists();
         AppDataManager.IsStartupRunAsAdministratorEnabled = true;
         return new StartupRegistrationOperationResult(true, string.Empty);
+    }
+
+    private static async Task RestoreManualAdminTaskAfterStartupFailureAsync()
+    {
+        StartupRegistrationOperationResult rollbackResult = AdminLaunchDesktopShortcutService.ShortcutExists()
+            ? await AdminStartupRegistrationService.EnableManualLaunchAsync()
+            : await AdminStartupRegistrationService.DisableAsync();
+
+        if (!rollbackResult.Success)
+            Debug.WriteLine($"Failed to roll back admin startup task after regular startup disable failure: {rollbackResult.Message}");
     }
 
     private static async Task DisableRegularStartupTaskIfPossibleAsync()
