@@ -11,11 +11,13 @@ Apply this skill for repository-specific app policy that is too detailed for the
 
 ## Reference Map
 
-- Read `references/architecture.md` for class responsibility boundaries, WebView URL handling, and the preference to avoid unnecessary XAML restructuring.
-- Read `references/game-policies.md` for launch-state behavior, client and account limits, install-path validation, and multi-client copy or link rules.
-- Read `references/release-and-policy-assets.md` for privacy-policy asset placement and in-app linking, plus release packaging constraints.
+- Read `references/architecture.md` for responsibility boundaries, WebView navigation ownership, and XAML restructuring preferences.
+- Read `references/game-policies.md` for game launch state, install-path validation, patch permissions, multi-client layout, and game-window control.
+- Read `references/release-and-policy-assets.md` for privacy-policy assets, link manifests, Store update fallback data, and release packaging constraints.
 
 ## Maintenance Rules
 
 - Keep repository-wide standing rules in `AGENTS.md`, but store detailed product or implementation policy in this skill.
+- Load only the reference file that matches the change unless the task crosses categories.
 - Update the relevant reference file in the same change whenever the user adds, retires, or revises one of these policies.
+- Merge new policy into the nearest existing category; avoid appending narrow one-off bullets or implementation history.

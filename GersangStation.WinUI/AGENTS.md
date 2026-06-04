@@ -7,7 +7,6 @@
 ## Solution Layout
 - `GersangStation/`: WinUI 3 desktop app
 - `Core/`: shared library
-- `Core/Core.Test/`: tests for `Core`
 
 ## Build
 - Preferred full build:
@@ -16,9 +15,9 @@
   - `dotnet build .\GersangStation.WinUI.slnx -c Debug -p:Platform=x64`
 
 ## Test
-- The repository opts `dotnet test` into `Microsoft.Testing.Platform` via the root `global.json`. Keep that file in place when updating test infrastructure for .NET 10 SDK or later.
-- Run core tests with:
-  - `dotnet test --project .\Core\Core.Test\Core.Test.csproj -c Debug`
+- Do not add or maintain committed test projects or test source files unless the user explicitly changes this policy.
+- If a change needs test-code validation, create temporary test code in an untracked sandbox path, run it, and remove it before finishing.
+- Default validation is build-only unless the user asks for a specific runtime or manual check.
 
 ## Repository Skills
 - Use `.codex\skills\gersangstation-winui-policy\SKILL.md` when changing WinUI page or service responsibilities, game launch rules, multi-client layout behavior, privacy-policy assets or links, or release packaging settings.
@@ -32,6 +31,7 @@
 - Prefer storing user-facing Korean text in existing resource files or other files already verified to use a Unicode-safe encoding rather than introducing Korean text into newly touched source files.
 - When a cross-cutting repository rule changes, update this `AGENTS.md`.
 - When a detailed app policy changes, update `.codex\skills\gersangstation-winui-policy\SKILL.md` or one of its reference files in the same change.
+- When updating policy documents, merge related rules into the existing category instead of appending one-off bullets, and keep only the durable policy wording.
 
 ## Git Workflow Rules
 - Default issue workflow is: create a GitHub issue, create a related branch, then make all commits on that branch with the issue reference in the commit message.
