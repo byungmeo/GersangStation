@@ -16,7 +16,6 @@ namespace GersangStation.Services;
 /// </summary>
 public sealed class AdminStartupRegistrationService
 {
-    private const string WScriptExecutableName = "wscript.exe";
     private const string PowerShellExecutableName = "powershell.exe";
     private const string DesktopShortcutFileName = "GersangStation Admin.lnk";
 
@@ -31,7 +30,7 @@ public sealed class AdminStartupRegistrationService
     /// <summary>
     /// 관리자 실행 바로가기에서 사용할 아이콘 경로입니다.
     /// </summary>
-    public string DesktopShortcutIconPath => GetSupportIconPath();
+    public string DesktopShortcutIconPath => GetSourceIconPath();
 
     private readonly string _packageName = Package.Current.Id.Name;
     private readonly string _launcherExecutableName = Path.GetFileName(Environment.ProcessPath) ?? "GersangStation.exe";
@@ -51,7 +50,6 @@ public sealed class AdminStartupRegistrationService
 
         try
         {
-            string expectedVbsPath = GetTaskLauncherScriptPath();
             XDocument document = XDocument.Parse(queryResult.StandardOutput);
 
             string? command = document.Root?
@@ -84,11 +82,12 @@ public sealed class AdminStartupRegistrationService
 
             bool hasExpectedCommand = string.Equals(
                 Path.GetFileName(command ?? string.Empty),
-                WScriptExecutableName,
+                PowerShellExecutableName,
                 StringComparison.OrdinalIgnoreCase);
-            bool hasExpectedArguments =
-                !string.IsNullOrWhiteSpace(arguments) &&
-                arguments.Contains(expectedVbsPath, StringComparison.OrdinalIgnoreCase);
+            bool hasExpectedArguments = string.Equals(
+                arguments,
+                BuildPowerShellLauncherArguments(),
+                StringComparison.Ordinal);
             bool hasExpectedSecurity =
                 string.Equals(runLevel, "HighestAvailable", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(logonType, "InteractiveToken", StringComparison.OrdinalIgnoreCase);
@@ -120,7 +119,10 @@ public sealed class AdminStartupRegistrationService
     {
         try
         {
-            await EnsureLauncherSupportFilesAsync().ConfigureAwait(false);
+            StartupRegistrationOperationResult powerShellResult = await VerifyPowerShellExecutableAsync().ConfigureAwait(false);
+            if (!powerShellResult.Success)
+                return powerShellResult;
+
             string xmlPath = await WriteTaskDefinitionAsync(enableLogonTrigger).ConfigureAwait(false);
 
             try
@@ -192,28 +194,16 @@ public sealed class AdminStartupRegistrationService
     }
 
     /// <summary>
-    /// 관리자 실행에 필요한 외부 지원 파일을 최신 상태로 생성합니다.
+    /// 현재 관리자 실행 방식은 외부 지원 파일을 만들지 않지만 기존 호출 흐름과 호환됩니다.
     /// </summary>
-    public async Task EnsureLauncherSupportFilesAsync()
-    {
-        string scriptPath = GetLauncherScriptPath();
-        string supportDirectory = GetSupportDirectoryPath();
-        Directory.CreateDirectory(supportDirectory);
-        await File.WriteAllTextAsync(scriptPath, BuildLauncherScriptContent(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
-            .ConfigureAwait(false);
-        await File.WriteAllTextAsync(GetTaskLauncherScriptPath(), BuildWindowlessLauncherScriptContent(scriptPath), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
-            .ConfigureAwait(false);
-
-        string sourceIconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "GersangStationShortcut.ico");
-        if (File.Exists(sourceIconPath))
-            File.Copy(sourceIconPath, GetSupportIconPath(), overwrite: true);
-    }
+    public Task EnsureLauncherSupportFilesAsync()
+        => Task.CompletedTask;
 
     private async Task<string> WriteTaskDefinitionAsync(bool enableLogonTrigger)
     {
         string currentUserSid = WindowsIdentity.GetCurrent().User?.Value
             ?? throw new InvalidOperationException("Current user SID is unavailable.");
-        string tempFilePath = Path.Combine(Path.GetTempPath(), $"{_taskName}.xml");
+        string tempFilePath = Path.Combine(Path.GetTempPath(), $"{_taskName}.{Guid.NewGuid():N}.xml");
         XElement triggersElement = new(TaskSchemaNamespace + "Triggers");
         if (enableLogonTrigger)
         {
@@ -268,13 +258,19 @@ public sealed class AdminStartupRegistrationService
                     new XAttribute("Context", "Author"),
                     new XElement(
                         TaskSchemaNamespace + "Exec",
-                        new XElement(TaskSchemaNamespace + "Command", WScriptExecutableName),
+                        new XElement(TaskSchemaNamespace + "Command", PowerShellExecutableName),
                         new XElement(
                             TaskSchemaNamespace + "Arguments",
-                            QuoteArgument(GetTaskLauncherScriptPath()))))));
+                            BuildPowerShellLauncherArguments())))));
 
         await File.WriteAllTextAsync(tempFilePath, document.ToString(), Encoding.Unicode).ConfigureAwait(false);
         return tempFilePath;
+    }
+
+    private string BuildPowerShellLauncherArguments()
+    {
+        string command = Convert.ToBase64String(Encoding.Unicode.GetBytes(BuildLauncherScriptContent()));
+        return $"-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -EncodedCommand {command}";
     }
 
     private string BuildLauncherScriptContent()
@@ -310,32 +306,37 @@ public sealed class AdminStartupRegistrationService
             "Start-Process -FilePath $exePath -WorkingDirectory $installLocation | Out-Null";
     }
 
-    private string BuildWindowlessLauncherScriptContent(string powerShellScriptPath)
+    private static string GetSourceIconPath()
+        => Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "GersangStationShortcut.ico");
+
+    private static async Task<StartupRegistrationOperationResult> VerifyPowerShellExecutableAsync()
     {
-        string escapedPowerShellPath = powerShellScriptPath.Replace("\"", "\"\"", StringComparison.Ordinal);
-        string powerShellCommand =
-            $"{PowerShellExecutableName} -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File \"\"{escapedPowerShellPath}\"\"";
+        try
+        {
+            CommandResult result = await RunCommandAsync(
+                PowerShellExecutableName,
+                "-NoProfile -NonInteractive -Command \"exit 0\"",
+                elevate: false).ConfigureAwait(false);
 
-        return
-            "Set shell = CreateObject(\"WScript.Shell\")" + Environment.NewLine +
-            $"command = \"{powerShellCommand}\"" + Environment.NewLine +
-            "shell.Run command, 0, False";
+            return result.ExitCode == 0
+                ? new StartupRegistrationOperationResult(true, string.Empty)
+                : new StartupRegistrationOperationResult(
+                    false,
+                    "Windows PowerShell을 실행하지 못해 관리자 권한 실행 작업을 등록할 수 없습니다.");
+        }
+        catch (Win32Exception)
+        {
+            return new StartupRegistrationOperationResult(
+                false,
+                "Windows PowerShell 실행 파일을 찾지 못해 관리자 권한 실행 작업을 등록할 수 없습니다.");
+        }
+        catch (InvalidOperationException)
+        {
+            return new StartupRegistrationOperationResult(
+                false,
+                "Windows PowerShell 실행 파일을 찾지 못해 관리자 권한 실행 작업을 등록할 수 없습니다.");
+        }
     }
-
-    private string GetLauncherScriptPath()
-        => Path.Combine(GetSupportDirectoryPath(), $"{_taskName}.ps1");
-
-    private string GetTaskLauncherScriptPath()
-        => Path.Combine(GetSupportDirectoryPath(), $"{_taskName}.task.vbs");
-
-    private string GetSupportIconPath()
-        => Path.Combine(GetSupportDirectoryPath(), "GersangStationShortcut.ico");
-
-    private string GetSupportDirectoryPath()
-        => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "GersangStation",
-            "AdminStartup");
 
     private string GetDesktopShortcutPath()
         => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), DesktopShortcutFileName);
@@ -365,10 +366,17 @@ public sealed class AdminStartupRegistrationService
 
             using Process process = Process.Start(startInfo)
                 ?? throw new InvalidOperationException($"Failed to start process '{fileName}'.");
-            await process.WaitForExitAsync().ConfigureAwait(false);
 
-            string standardOutput = elevate ? string.Empty : await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
-            string standardError = elevate ? string.Empty : await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+            Task<string> standardOutputTask = elevate
+                ? Task.FromResult(string.Empty)
+                : process.StandardOutput.ReadToEndAsync();
+            Task<string> standardErrorTask = elevate
+                ? Task.FromResult(string.Empty)
+                : process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync().ConfigureAwait(false);
+            string standardOutput = await standardOutputTask.ConfigureAwait(false);
+            string standardError = await standardErrorTask.ConfigureAwait(false);
 
             return new CommandResult(process.ExitCode, standardOutput, standardError);
         }
