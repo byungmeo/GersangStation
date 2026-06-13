@@ -5,13 +5,13 @@ namespace GersangStation.Services;
 /// </summary>
 public static class AppLinkKeys
 {
-    public const string HelpGeneral = "help.general";
     public const string HelpCredentialVault = "help.credential-vault";
     public const string HelpPermissionMultiClient = "help.permission.multi-client";
     public const string HelpUpdateManual = "help.update.manual";
     public const string HelpAdminClipMouse = "help.admin.clip-mouse";
     public const string HelpPatchLegacyVersion = "help.patch.legacy-version";
     public const string HelpInstallSymbolicLink = "help.install.symbolic-link";
+    public const string HelpUserGuide = "help.user-guide";
     public const string PolicyPrivacyStore = "policy.privacy.store";
     public const string OssDotNetRuntimeLicense = "oss.dotnet.runtime.license";
     public const string OssWinUi3License = "oss.winui3.license";

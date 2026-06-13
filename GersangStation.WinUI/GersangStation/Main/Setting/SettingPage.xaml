@@ -122,10 +122,6 @@
                 Content="고급 설정"
                 Icon="Setting"
                 Tag="AdvancedSettingPage" />
-            <NavigationViewItem
-                Content="도움말"
-                Icon="Help"
-                Tag="HelpPage" />
             <NavigationViewItem IsEnabled="False" Tag="SponsorPage">
                 <NavigationViewItem.Content>
                     <StackPanel Orientation="Horizontal">

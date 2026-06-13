@@ -350,7 +350,7 @@ public sealed partial class MainWindow : Window
         {
             XamlRoot = Root.XamlRoot,
             Title = "최초 실행 안내",
-            Content = "거상스테이션을 처음 실행하셨습니다. 설정 페이지로 이동하시겠습니까?",
+            Content = "거상스테이션을 처음 실행하셨습니다. 사용자 설명서를 읽으시겠습니까?",
             PrimaryButtonText = "예",
             CloseButtonText = "아니오",
             DefaultButton = ContentDialogButton.Primary
@@ -360,7 +360,7 @@ public sealed partial class MainWindow : Window
         if (result == ContentDialogResult.Primary)
         {
             _skipDefaultInitialNavigation = true;
-            NavigateToSettingPage();
+            NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpUserGuide);
         }
     }
 

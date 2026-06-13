@@ -1,6 +1,5 @@
 using Core;
 using Core.Models;
-using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -58,7 +57,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         {"GersangStation.Main.Setting.DeveloperToolPage", typeof(GersangStation.Main.Setting.DeveloperToolPage)},
         {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
         // {"GersangStation.Main.Setting.BrowserSettingPage", typeof(GersangStation.Main.Setting.BrowserSettingPage)},
-        // {"GersangStation.Main.Setting.HelpPage", typeof(GersangStation.Main.Setting.HelpPage)},
         // {"GersangStation.Main.Setting.SponsorPage", typeof(GersangStation.Main.Setting.SponsorPage)},
         // {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
     };
@@ -124,12 +122,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
 
         if (selectedItem != null)
         {
-            if (string.Equals((string?)selectedItem.Tag, "HelpPage", StringComparison.Ordinal))
-            {
-                NavigateToHelpPage();
-                return;
-            }
-
             Type? pageType = ResolvePageType(selectedItem);
             if (pageType is not null)
                 ContentFrame.Navigate(pageType);
@@ -176,17 +168,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         string pageName = "GersangStation.Main.Setting." + selectedItemTag;
         PageDictionary.TryGetValue(pageName, out Type? pageType);
         return pageType;
-    }
-
-    /// <summary>
-    /// 설정의 도움말 항목을 선택하면 앱 내부 브라우저 페이지에서 위키 Q&A를 엽니다.
-    /// </summary>
-    private void NavigateToHelpPage()
-    {
-        SyncNavigationSelection(ContentFrame.Content?.GetType());
-
-        if (App.CurrentWindow is MainWindow window)
-            window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpGeneral);
     }
 
     /// <summary>
