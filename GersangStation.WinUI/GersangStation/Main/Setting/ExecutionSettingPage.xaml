@@ -46,7 +46,7 @@
                         <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="윈도우 시작 자동 실행" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="Windows에 로그인할 때 거상스테이션을 자동으로 실행합니다."
+                            Text="윈도우 시작 시 거상스테이션을 자동으로 실행합니다."
                             TextWrapping="WrapWholeWords" />
                         <ToggleSwitch
                             x:Name="ToggleSwitch_StartupRegistration"
@@ -54,11 +54,6 @@
                             OffContent="해제"
                             OnContent="등록"
                             Toggled="ToggleSwitch_StartupRegistration_Toggled" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Style="{ThemeResource CaptionTextBlockStyle}"
-                            Text="등록 또는 해제 시 Windows 관리자 권한 승인이 필요할 수 있습니다."
-                            TextWrapping="WrapWholeWords" />
                     </StackPanel>
                 </Border>
 
