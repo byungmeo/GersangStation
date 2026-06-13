@@ -66,11 +66,24 @@ namespace GersangStation
         {
             try
             {
+                TryCleanupLegacyStartupTask();
                 OpenMainWindow();
             }
             catch (Exception ex)
             {
                 await ExceptionHandler.HandleFatalUiExceptionAsync(ex, "App.OnLaunched");
+            }
+        }
+
+        private static void TryCleanupLegacyStartupTask()
+        {
+            try
+            {
+                new StartupRegistrationService().CleanupLegacyScheduledTaskIfNeeded();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to start legacy startup task cleanup: {ex}");
             }
         }
 

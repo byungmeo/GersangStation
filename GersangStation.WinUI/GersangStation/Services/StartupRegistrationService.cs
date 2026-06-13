@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 
@@ -12,11 +13,24 @@ namespace GersangStation.Services;
 public sealed class StartupRegistrationService
 {
     private const string StartupTaskId = "GersangStationStartup";
+    private const string LegacyScheduledTaskPrefix = "GersangStation.AdminStartup.";
+    private static int _legacyScheduledTaskCleanupStarted;
 
     /// <summary>
     /// 바로가기에서 사용할 아이콘 경로입니다.
     /// </summary>
     public string DesktopShortcutIconPath => GetSourceIconPath();
+
+    /// <summary>
+    /// 과거 작업 스케줄러 기반 자동 실행 작업을 사용자 알림 없이 제거합니다.
+    /// </summary>
+    public void CleanupLegacyScheduledTaskIfNeeded()
+    {
+        if (Interlocked.Exchange(ref _legacyScheduledTaskCleanupStarted, 1) == 1)
+            return;
+
+        _ = Task.Run(DeleteLegacyScheduledTask);
+    }
 
     /// <summary>
     /// 현재 사용자에 대한 Windows 시작 앱 등록 상태를 확인합니다.
@@ -99,6 +113,35 @@ public sealed class StartupRegistrationService
 
     private static string GetSourceIconPath()
         => Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "GersangStationShortcut.ico");
+
+    private static void DeleteLegacyScheduledTask()
+    {
+        try
+        {
+            string packageName = Package.Current.Id.Name;
+            if (string.IsNullOrWhiteSpace(packageName))
+                return;
+
+            string taskName = LegacyScheduledTaskPrefix + packageName;
+            ProcessStartInfo startInfo = new()
+            {
+                FileName = "schtasks.exe",
+                Arguments = $"/Delete /TN {QuoteArgument(taskName)} /F",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            };
+
+            using Process? process = Process.Start(startInfo);
+            process?.WaitForExit();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Failed to delete legacy startup scheduled task: {ex}");
+        }
+    }
+
+    private static string QuoteArgument(string value)
+        => "\"" + value.Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
 }
 
 /// <summary>
