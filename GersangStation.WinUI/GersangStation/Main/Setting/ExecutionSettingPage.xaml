@@ -44,10 +44,6 @@
                     CornerRadius="12">
                     <StackPanel Spacing="12">
                         <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="윈도우 시작 자동 실행" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="윈도우 시작 시 거상스테이션을 자동으로 실행합니다."
-                            TextWrapping="WrapWholeWords" />
                         <ToggleSwitch
                             x:Name="ToggleSwitch_StartupRegistration"
                             Header="윈도우 시작 시 프로그램 자동 실행"

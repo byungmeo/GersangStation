@@ -608,7 +608,6 @@
                 </Grid>
             </ScrollView>
 
-
             <StackPanel
                 Grid.Row="1"
                 VerticalAlignment="Bottom"
@@ -617,7 +616,8 @@
                 <controls:Tile
                     Title="처음 사용하시나요?"
                     Description="사용자 설명서"
-                    Link="https://github.com/byungmeo/GersangStation/wiki/%EA%B1%B0%EC%83%81-%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%85%98-2.0-%EC%82%AC%EC%9A%A9%EC%9E%90-%EC%84%A4%EB%AA%85%EC%84%9C">
+                    Link="https://github.com/byungmeo/GersangStation/wiki/%EA%B1%B0%EC%83%81-%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%85%98-2.0-%EC%82%AC%EC%9A%A9%EC%9E%90-%EC%84%A4%EB%AA%85%EC%84%9C"
+                    TileStyle="Accent">
                     <controls:Tile.Source>
                         <FontIcon FontSize="18" Glyph="&#xE7BE;" />
                     </controls:Tile.Source>

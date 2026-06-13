@@ -9,9 +9,45 @@
     mc:Ignorable="d">
 
     <Grid
+        x:Name="RootGrid"
         Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
         BorderBrush="{ThemeResource SurfaceStrokeColorFlyoutBrush}"
         CornerRadius="8">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="TileInteractionStates">
+                <VisualState x:Name="DefaultNormal" />
+                <VisualState x:Name="AccentNormal">
+                    <VisualState.Setters>
+                        <Setter Target="RootGrid.Background" Value="{ThemeResource AccentButtonBackground}" />
+                        <Setter Target="RootGrid.BorderBrush" Value="{ThemeResource AccentButtonBorderBrush}" />
+                        <Setter Target="IconGlyph.Foreground" Value="{ThemeResource AccentButtonForeground}" />
+                        <Setter Target="SourcePresenter.Foreground" Value="{ThemeResource AccentButtonForeground}" />
+                        <Setter Target="TitleText.Foreground" Value="{ThemeResource AccentButtonForeground}" />
+                        <Setter Target="DescriptionText.Foreground" Value="{ThemeResource AccentButtonForeground}" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="AccentPointerOver">
+                    <VisualState.Setters>
+                        <Setter Target="RootGrid.Background" Value="{ThemeResource AccentButtonBackgroundPointerOver}" />
+                        <Setter Target="RootGrid.BorderBrush" Value="{ThemeResource AccentButtonBorderBrushPointerOver}" />
+                        <Setter Target="IconGlyph.Foreground" Value="{ThemeResource AccentButtonForegroundPointerOver}" />
+                        <Setter Target="SourcePresenter.Foreground" Value="{ThemeResource AccentButtonForegroundPointerOver}" />
+                        <Setter Target="TitleText.Foreground" Value="{ThemeResource AccentButtonForegroundPointerOver}" />
+                        <Setter Target="DescriptionText.Foreground" Value="{ThemeResource AccentButtonForegroundPointerOver}" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="AccentPressed">
+                    <VisualState.Setters>
+                        <Setter Target="RootGrid.Background" Value="{ThemeResource AccentButtonBackgroundPressed}" />
+                        <Setter Target="RootGrid.BorderBrush" Value="{ThemeResource AccentButtonBorderBrushPressed}" />
+                        <Setter Target="IconGlyph.Foreground" Value="{ThemeResource AccentButtonForegroundPressed}" />
+                        <Setter Target="SourcePresenter.Foreground" Value="{ThemeResource AccentButtonForegroundPressed}" />
+                        <Setter Target="TitleText.Foreground" Value="{ThemeResource AccentButtonForegroundPressed}" />
+                        <Setter Target="DescriptionText.Foreground" Value="{ThemeResource AccentButtonForegroundPressed}" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Grid.Resources>
             <ResourceDictionary>
                 <ResourceDictionary.ThemeDictionaries>
@@ -37,6 +73,11 @@
             </ResourceDictionary>
         </Grid.Resources>
         <HyperlinkButton
+            PointerEntered="HyperlinkButton_PointerEntered"
+            PointerExited="HyperlinkButton_PointerExited"
+            PointerPressed="HyperlinkButton_PointerPressed"
+            PointerReleased="HyperlinkButton_PointerReleased"
+            PointerCanceled="HyperlinkButton_PointerCanceled"
             Padding="-1"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Stretch"
@@ -54,6 +95,7 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <FontIcon
+                    x:Name="IconGlyph"
                     Grid.RowSpan="3"
                     Margin="-12"
                     HorizontalAlignment="Right"
@@ -62,8 +104,10 @@
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Glyph="&#xE8A7;" />
                 <ContentPresenter
+                    x:Name="SourcePresenter"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top"
+                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"
                     Content="{x:Bind Source}" />
                 <StackPanel
                     Grid.Row="1"
@@ -75,6 +119,7 @@
                         Style="{StaticResource BodyStrongTextBlockStyle}"
                         Text="{x:Bind Title}" />
                     <TextBlock
+                        x:Name="DescriptionText"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Style="{StaticResource CaptionTextBlockStyle}"
                         Text="{x:Bind Description}" />
