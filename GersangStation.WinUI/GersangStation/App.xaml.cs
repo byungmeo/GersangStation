@@ -87,7 +87,7 @@ namespace GersangStation
         }
 
         /// <summary>
-        /// 작업 스케줄러나 외부 런처로 시작될 때 첫 Activate가 묻히는 경우를 보정합니다.
+        /// 시작 앱 또는 외부 런처로 시작될 때 첫 Activate가 묻히는 경우를 보정합니다.
         /// </summary>
         private static async Task EnsureForegroundAfterLaunchAsync()
         {

@@ -22,16 +22,16 @@
                     BorderThickness="1"
                     CornerRadius="12">
                     <StackPanel Spacing="12">
-                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="관리자 권한 바로가기 생성" />
+                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="바탕화면 바로가기 생성" />
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="관리자 권한으로 거상스테이션을 실행하는 바로가기를 바탕화면에 만듭니다."
+                            Text="거상스테이션을 실행하는 바로가기를 바탕화면에 만듭니다."
                             TextWrapping="WrapWholeWords" />
                         <Button
-                            x:Name="Button_CreateAdminLaunchDesktopShortcut"
+                            x:Name="Button_CreateDesktopShortcut"
                             HorizontalAlignment="Left"
-                            Click="Button_CreateAdminLaunchDesktopShortcut_Click"
-                            Content="바탕화면에 관리자 실행 바로가기 만들기"
+                            Click="Button_CreateDesktopShortcut_Click"
+                            Content="바탕화면에 바로가기 만들기"
                             Style="{ThemeResource AccentButtonStyle}" />
                     </StackPanel>
                 </Border>
@@ -57,7 +57,7 @@
                         <TextBlock
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             Style="{ThemeResource CaptionTextBlockStyle}"
-                            Text="등록 또는 해제 시 Windows 관리자 권한 승인이 필요할 수 있습니다. 자동 실행은 관리자 권한으로만 등록됩니다."
+                            Text="등록 또는 해제 시 Windows 관리자 권한 승인이 필요할 수 있습니다."
                             TextWrapping="WrapWholeWords" />
                     </StackPanel>
                 </Border>
