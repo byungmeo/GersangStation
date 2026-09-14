@@ -20,7 +20,9 @@
 
 ## Game Window Control
 
-- Keep clip-mouse disabled unless GersangStation runs as administrator, constrain only the foreground top-level `Gersang` window, and suspend confinement while `Alt` is held or temporary window browsing is active.
+- Keep mouse confinement disabled unless GersangStation runs as administrator, target only the foreground top-level `Gersang` window, and suspend correction while `Alt` is held or temporary window browsing is active.
+- Do not compete with the game's global `ClipCursor` ownership; use an app-owned `WH_MOUSE_LL` hook for client-area edge corrections and keep the 5ms poll as a fallback. Activate confinement only after client entry, release it on `Alt`, and bypass correction throughout drags started outside the client. Rearm only after the drag ends and the cursor re-enters the client; retry failed `SetCursorPos` calls on the next poll.
+- Revalidate the foreground HWND, its process ID, and current service state immediately before cursor correction. Invalidate pending observations on release or stop. A low-level hook must pass input through when service state is busy, and must not hold the service lock while invoking the next hook.
 - Enable the first window-switch mode only as administrator; implement game-window control by polling at a fixed 5ms interval.
 - Window switching uses the fixed `Alt` + `` ` `` chord, cycles running launch slots, and uses only short z-order raises without persistent `TopMost`.
 - During window browsing, reserve `Alt` + `` ` `` for additional cycling and end browsing on the first left-click; normalize tracked windows to stable top-level root-owner handles.

@@ -1,6 +1,5 @@
 using GersangStation.Diagnostics;
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -8,32 +7,43 @@ using System.Threading;
 namespace GersangStation.Services;
 
 /// <summary>
-/// Monitors the foreground window and confines the cursor to the active Gersang window.
+/// Monitors the foreground window and corrects cursor movement at the active Gersang client edges.
 /// </summary>
 public sealed partial class ClipMouseService : IDisposable
 {
     private const string TargetProcessName = "Gersang";
     private const int ClipInsetPixels = 2;
+    private const int WhMouseLl = 14;
+    private const int WmMouseMove = 0x0200;
+    private const int WmLButtonDown = 0x0201;
+    private const int WmLButtonUp = 0x0202;
+    private const int VkLButton = 0x01;
     private const int VkMenu = 0x12;
     private const int VkLMenu = 0xA4;
     private const int VkRMenu = 0xA5;
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
 
     private readonly object _syncRoot = new();
+    private readonly LowLevelMouseProc _mouseHookProcedure;
     private Timer? _monitorTimer;
+    private nint _mouseHookHandle;
     private bool _isEnabled;
     private bool _isDisposed;
     private bool _isExternallySuspended;
-    private bool _hasActiveClip;
-    private nint _clippedWindowHandle;
-    private NativeRect _clippedBounds;
+    private bool _hasCachedTarget;
+    private WindowClipTarget _cachedTarget;
+    private bool _isConfinementActive;
+    private bool _isOutsideDrag;
+    private int _stateVersion;
     private int _isPolling;
+    private int _isApplyingCursorCorrection;
 
     /// <summary>
     /// Creates the service and optionally starts foreground monitoring immediately.
     /// </summary>
     public ClipMouseService(bool isEnabled)
     {
+        _mouseHookProcedure = MouseHookCallback;
         SetEnabled(isEnabled);
     }
 
@@ -72,12 +82,12 @@ public sealed partial class ClipMouseService : IDisposable
             _isExternallySuspended = isSuspended;
 
             if (isSuspended)
-                ReleaseCursorClipCore_NoLock();
+                ClearCachedTarget_NoLock();
         }
     }
 
     /// <summary>
-    /// Stops monitoring and releases any active cursor clip.
+    /// Stops monitoring without changing the game-owned OS cursor clip.
     /// </summary>
     public void Dispose()
     {
@@ -93,7 +103,7 @@ public sealed partial class ClipMouseService : IDisposable
     }
 
     /// <summary>
-    /// Polls the foreground window and updates the cursor clip state.
+    /// Polls the foreground window and corrects cursor positions that leave its client area.
     /// </summary>
     private void PollCursorClip()
     {
@@ -102,32 +112,46 @@ public sealed partial class ClipMouseService : IDisposable
 
         try
         {
+            int stateVersion;
+            lock (_syncRoot)
+                stateVersion = _stateVersion;
+
             if (!IsMonitoringEnabled())
             {
-                ReleaseCursorClipIfNeeded();
+                ClearCachedTarget();
                 return;
             }
 
             if (IsSuspendKeyPressed())
             {
-                ReleaseCursorClipIfNeeded();
+                ReleaseConfinement();
                 return;
             }
 
             nint foregroundWindow = GetForegroundWindow();
             if (!TryGetClipTarget(foregroundWindow, out WindowClipTarget target))
             {
-                ReleaseCursorClipIfNeeded();
+                ClearCachedTarget();
                 return;
             }
 
-            if (!GetCursorPos(out NativePoint cursorPosition) || !target.Bounds.Contains(cursorPosition))
+            if (!TrySetCachedTarget(target, stateVersion))
+                return;
+            if (IsOutsideDrag())
             {
-                ReleaseCursorClipIfNeeded();
+                // A mouse-up can be skipped when the input chain must not wait for our lock.
+                if (!IsKeyDown(VkLButton))
+                    EndOutsideDrag();
                 return;
             }
 
-            ApplyCursorClip(target);
+            if (!GetCursorPos(out NativePoint cursorPosition))
+                return;
+
+            if (ShouldBypassCorrection(target, cursorPosition, stateVersion))
+                return;
+
+            _ = TryCorrectCursorPosition(target, cursorPosition, isHookMove: false, stateVersion);
         }
         finally
         {
@@ -145,6 +169,7 @@ public sealed partial class ClipMouseService : IDisposable
 
     private void StartMonitor_NoLock()
     {
+        InstallMouseHook_NoLock();
         _monitorTimer ??= SafeExecution.StartHandledTimer(
             PollCursorClip,
             TimeSpan.Zero,
@@ -157,60 +182,357 @@ public sealed partial class ClipMouseService : IDisposable
     {
         _monitorTimer?.Dispose();
         _monitorTimer = null;
-        ReleaseCursorClipCore_NoLock();
-    }
 
-    private void ApplyCursorClip(WindowClipTarget target)
-    {
-        lock (_syncRoot)
-        {
-            if (!_isEnabled || _isDisposed)
-                return;
-
-            if (_hasActiveClip &&
-                _clippedWindowHandle == target.WindowHandle &&
-                _clippedBounds.Equals(target.Bounds))
-            {
-                return;
-            }
-
-            NativeRect bounds = target.Bounds;
-            if (!ClipCursor(ref bounds))
-            {
-                throw new Win32Exception(
-                    Marshal.GetLastWin32Error(),
-                    "Failed to confine the cursor to the active Gersang window.");
-            }
-
-            _hasActiveClip = true;
-            _clippedWindowHandle = target.WindowHandle;
-            _clippedBounds = bounds;
-        }
-    }
-
-    private void ReleaseCursorClipIfNeeded()
-    {
-        lock (_syncRoot)
-        {
-            ReleaseCursorClipCore_NoLock();
-        }
-    }
-
-    private void ReleaseCursorClipCore_NoLock()
-    {
-        if (!_hasActiveClip)
+        ClearCachedTarget_NoLock();
+        if (_mouseHookHandle == IntPtr.Zero)
             return;
 
-        if (!ClipCursor(IntPtr.Zero))
+        if (!UnhookWindowsHookEx(_mouseHookHandle))
         {
-            throw new Win32Exception(
-                Marshal.GetLastWin32Error(),
-                "Failed to release the cursor clip.");
+            Debug.WriteLine(
+                $"[ClipMouse] Failed to remove the low-level mouse hook. " +
+                $"Win32Error={Marshal.GetLastWin32Error()}");
+            return;
         }
 
-        _hasActiveClip = false;
-        _clippedWindowHandle = IntPtr.Zero;
-        _clippedBounds = default;
+        _mouseHookHandle = IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// Installs the low-level hook on the current UI thread. Polling remains active if installation fails.
+    /// </summary>
+    private void InstallMouseHook_NoLock()
+    {
+        if (_mouseHookHandle != IntPtr.Zero)
+            return;
+
+        _mouseHookHandle = SetWindowsHookEx(
+            WhMouseLl,
+            _mouseHookProcedure,
+            GetModuleHandle(null),
+            0);
+
+        if (_mouseHookHandle == IntPtr.Zero)
+        {
+            Debug.WriteLine(
+                $"[ClipMouse] Failed to install the low-level mouse hook. " +
+                $"Polling fallback remains active. Win32Error={Marshal.GetLastWin32Error()}");
+        }
+    }
+
+    /// <summary>
+    /// Never waits for service state from the global input chain. Only corrected moves are consumed.
+    /// </summary>
+    private nint MouseHookCallback(int code, nint wParam, nint lParam)
+    {
+        if (code < 0 || lParam == IntPtr.Zero ||
+            Volatile.Read(ref _isApplyingCursorCorrection) != 0 ||
+            !Monitor.TryEnter(_syncRoot))
+        {
+            return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
+        }
+
+        bool needsCorrection;
+        WindowClipTarget target;
+        NativePoint cursorPosition;
+        try
+        {
+            needsCorrection = ProcessMouseHookMessage(
+                unchecked((int)wParam.ToInt64()), lParam, out target, out cursorPosition);
+        }
+        finally
+        {
+            Monitor.Exit(_syncRoot);
+        }
+
+        // Both native cursor writes and the next hook run outside our state lock.
+        bool consumed = needsCorrection &&
+            TryCorrectCursorPosition(target, cursorPosition) == CursorCorrectionResult.Corrected;
+        return consumed ? (nint)1 : CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
+    }
+
+    /// <summary>
+    /// Tracks client entry and outside drags under the callback's nonblocking state lock.
+    /// </summary>
+    private bool ProcessMouseHookMessage(
+        int mouseMessage, nint lParam, out WindowClipTarget target, out NativePoint cursorPosition)
+    {
+        target = default;
+        cursorPosition = default;
+        if (!IsMonitoringEnabled())
+            return false;
+
+        if (mouseMessage != WmMouseMove &&
+            mouseMessage != WmLButtonDown &&
+            mouseMessage != WmLButtonUp)
+        {
+            return false;
+        }
+
+        if (!TryGetCachedTarget(out target) ||
+            GetForegroundWindow() != target.WindowHandle)
+        {
+            ClearCachedTarget_NoLock();
+            return false;
+        }
+
+        NativeMouseHookData mouseData = Marshal.PtrToStructure<NativeMouseHookData>(lParam);
+        cursorPosition = mouseData.Point;
+        bool isSuspendKeyPressed = IsSuspendKeyPressed();
+
+        if (mouseMessage == WmLButtonDown)
+        {
+            if (isSuspendKeyPressed)
+                ReleaseConfinement();
+
+            bool isEscapeActive = isSuspendKeyPressed || ShouldBypassCorrection(target, mouseData.Point);
+            BeginOutsideDrag(target, mouseData.Point, isEscapeActive);
+            return false;
+        }
+
+        if (mouseMessage == WmLButtonUp)
+        {
+            EndOutsideDrag();
+            return false;
+        }
+
+        if (isSuspendKeyPressed)
+        {
+            ReleaseConfinement();
+            return false;
+        }
+
+        if (IsOutsideDrag())
+            return false;
+
+        if (ShouldBypassCorrection(target, mouseData.Point))
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// Publishes geometry only if no release, stop, or foreground invalidation occurred during lookup.
+    /// </summary>
+    private bool TrySetCachedTarget(WindowClipTarget target, int stateVersion)
+    {
+        lock (_syncRoot)
+        {
+            if (!_isEnabled || _isDisposed || _isExternallySuspended ||
+                stateVersion != _stateVersion || GetForegroundWindow() != target.WindowHandle)
+                return false;
+
+            if (!_hasCachedTarget || _cachedTarget.WindowHandle != target.WindowHandle ||
+                _cachedTarget.ProcessId != target.ProcessId)
+            {
+                _isConfinementActive = false;
+                _isOutsideDrag = false;
+            }
+
+            _cachedTarget = target;
+            _hasCachedTarget = true;
+            return true;
+        }
+    }
+
+    private bool TryGetCachedTarget(out WindowClipTarget target)
+    {
+        lock (_syncRoot)
+        {
+            target = _cachedTarget;
+            return _hasCachedTarget;
+        }
+    }
+
+    private void ClearCachedTarget()
+    {
+        lock (_syncRoot)
+        {
+            ClearCachedTarget_NoLock();
+        }
+    }
+
+    private void ClearCachedTarget_NoLock()
+    {
+        _hasCachedTarget = false;
+        _cachedTarget = default;
+        _isConfinementActive = false;
+        _isOutsideDrag = false;
+        _stateVersion++;
+    }
+
+    /// <summary>
+    /// Releases confinement until client re-entry without discarding a drag in progress.
+    /// </summary>
+    private void ReleaseConfinement()
+    {
+        lock (_syncRoot)
+        {
+            if (_isEnabled && !_isDisposed && !_isExternallySuspended)
+            {
+                _isConfinementActive = false;
+                _stateVersion++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Activates only on client entry; outside movement is corrected only after activation.
+    /// </summary>
+    private bool ShouldBypassCorrection(WindowClipTarget target, NativePoint cursorPosition, int? stateVersion = null)
+    {
+        lock (_syncRoot)
+        {
+            if ((stateVersion.HasValue && stateVersion.Value != _stateVersion) ||
+                !IsMonitoringEnabled() || !_hasCachedTarget || !_cachedTarget.Equals(target) ||
+                _isOutsideDrag || IsSuspendKeyPressed())
+                return true;
+
+            // Do not rearm mid-drag even if its initial button event was skipped or another app owned it.
+            if (!_isConfinementActive && IsKeyDown(VkLButton))
+                return true;
+
+            if (target.Bounds.Contains(cursorPosition))
+                _isConfinementActive = true;
+
+            return !_isConfinementActive;
+        }
+    }
+
+    /// <summary>
+    /// Tracks a drag that starts outside the client while correction is released.
+    /// This is a conservative outside-drag bypass, not a native title-bar hit test.
+    /// </summary>
+    private void BeginOutsideDrag(
+        WindowClipTarget target,
+        NativePoint cursorPosition,
+        bool isEscapeActive)
+    {
+        lock (_syncRoot)
+        {
+            _isOutsideDrag = isEscapeActive && !target.Bounds.Contains(cursorPosition);
+            if (_isOutsideDrag)
+            {
+                _isConfinementActive = false;
+                _stateVersion++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ends the temporary native non-client drag bypass when the left mouse button is released.
+    /// </summary>
+    private void EndOutsideDrag()
+    {
+        lock (_syncRoot)
+        {
+            if (_isOutsideDrag)
+            {
+                _isConfinementActive = false;
+                _stateVersion++;
+            }
+            _isOutsideDrag = false;
+        }
+    }
+
+    /// <summary>
+    /// Reports whether a drag that started outside the client is currently bypassing correction.
+    /// </summary>
+    private bool IsOutsideDrag()
+    {
+        lock (_syncRoot)
+        {
+            return _isOutsideDrag;
+        }
+    }
+
+    /// <summary>
+    /// Revalidates the target at the write boundary and rejects invalidated observations.
+    /// Failed SetCursorPos calls remain eligible for the next 5ms poll.
+    /// </summary>
+    private CursorCorrectionResult TryCorrectCursorPosition(
+        WindowClipTarget target,
+        NativePoint cursorPosition,
+        bool isHookMove = true,
+        int? stateVersion = null)
+    {
+        if (Interlocked.Exchange(ref _isApplyingCursorCorrection, 1) != 0)
+            return CursorCorrectionResult.Retry;
+
+        try
+        {
+            if (!Monitor.TryEnter(_syncRoot))
+                return CursorCorrectionResult.Retry;
+
+            NativePoint correctedPosition;
+            int correctionVersion;
+            try
+            {
+                if ((stateVersion.HasValue && stateVersion.Value != _stateVersion) ||
+                    !IsMonitoringEnabled() || !_hasCachedTarget || !_cachedTarget.Equals(target) ||
+                    !_isConfinementActive || _isOutsideDrag || IsSuspendKeyPressed())
+                    return CursorCorrectionResult.NotNeeded;
+
+                // HWND values can be reused after destruction. Validate the cached owner as well.
+                _ = GetWindowThreadProcessId(target.WindowHandle, out int processId);
+                if (processId != target.ProcessId || !IsWindowVisible(target.WindowHandle) ||
+                    IsIconic(target.WindowHandle) || GetForegroundWindow() != target.WindowHandle)
+                {
+                    ClearCachedTarget_NoLock();
+                    return CursorCorrectionResult.NotNeeded;
+                }
+
+                // Poll observations can age while waiting for a hook or a state transition.
+                if (!isHookMove && !GetCursorPos(out cursorPosition))
+                    return CursorCorrectionResult.NotNeeded;
+
+                if (!TryGetCorrectedCursorPosition(target, cursorPosition, out correctedPosition))
+                    return CursorCorrectionResult.NotNeeded;
+
+                correctionVersion = _stateVersion;
+            }
+            finally
+            {
+                Monitor.Exit(_syncRoot);
+            }
+
+            // SetCursorPos may reenter the hook thread; do not make that thread wait for our lock.
+            // Windows does not provide an atomic foreground-check-and-cursor-write operation.
+            if (Volatile.Read(ref _stateVersion) != correctionVersion ||
+                GetForegroundWindow() != target.WindowHandle || IsSuspendKeyPressed())
+                return CursorCorrectionResult.NotNeeded;
+
+            return SetCursorPos(correctedPosition.X, correctedPosition.Y)
+                ? CursorCorrectionResult.Corrected
+                : CursorCorrectionResult.Retry;
+        }
+        finally
+        {
+            Volatile.Write(ref _isApplyingCursorCorrection, 0);
+        }
+    }
+
+    /// <summary>
+    /// Calculates a corrected screen position within the active client area.
+    /// </summary>
+    private static bool TryGetCorrectedCursorPosition(
+        WindowClipTarget target,
+        NativePoint cursorPosition,
+        out NativePoint correctedPosition)
+    {
+        correctedPosition = cursorPosition;
+
+        if (cursorPosition.X < target.Bounds.Left)
+            correctedPosition.X = target.Bounds.Left;
+        else if (cursorPosition.X >= target.Bounds.Right)
+            correctedPosition.X = target.Bounds.Right - 1;
+
+        if (cursorPosition.Y < target.Bounds.Top)
+            correctedPosition.Y = target.Bounds.Top;
+        else if (cursorPosition.Y >= target.Bounds.Bottom)
+            correctedPosition.Y = target.Bounds.Bottom - 1;
+
+        return correctedPosition.X != cursorPosition.X || correctedPosition.Y != cursorPosition.Y;
     }
 
     private static bool TryGetClipTarget(nint windowHandle, out WindowClipTarget target)
@@ -248,6 +570,9 @@ public sealed partial class ClipMouseService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Resolves the active client-area bounds used for cursor correction.
+    /// </summary>
     private static bool TryGetClientBounds(nint windowHandle, out NativeRect bounds)
     {
         bounds = default;
@@ -261,12 +586,17 @@ public sealed partial class ClipMouseService : IDisposable
             !ClientToScreen(windowHandle, ref bottomRight))
             return false;
 
+        int screenLeft = Math.Min(topLeft.X, bottomRight.X);
+        int screenTop = Math.Min(topLeft.Y, bottomRight.Y);
+        int screenRight = Math.Max(topLeft.X, bottomRight.X);
+        int screenBottom = Math.Max(topLeft.Y, bottomRight.Y);
+
         bounds = new NativeRect
         {
-            Left = Math.Min(topLeft.X, bottomRight.X),
-            Top = Math.Min(topLeft.Y, bottomRight.Y),
-            Right = Math.Max(topLeft.X, bottomRight.X),
-            Bottom = Math.Max(topLeft.Y, bottomRight.Y)
+            Left = screenLeft,
+            Top = screenTop,
+            Right = screenRight,
+            Bottom = screenBottom
         };
 
         bounds.Inset(ClipInsetPixels);
@@ -285,10 +615,23 @@ public sealed partial class ClipMouseService : IDisposable
     private static bool IsAnyKeyDown(int key1, int key2, int key3)
         => IsKeyDown(key1) || IsKeyDown(key2) || IsKeyDown(key3);
 
-    private readonly record struct WindowClipTarget(nint WindowHandle, int ProcessId, NativeRect Bounds);
+    private readonly record struct WindowClipTarget(
+        nint WindowHandle,
+        int ProcessId,
+        NativeRect Bounds);
+
+    private enum CursorCorrectionResult
+    {
+        NotNeeded,
+        Corrected,
+        Retry
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    private delegate nint LowLevelMouseProc(int code, nint wParam, nint lParam);
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct NativeRect : IEquatable<NativeRect>
+    private struct NativeRect
     {
         public int Left;
         public int Top;
@@ -296,6 +639,10 @@ public sealed partial class ClipMouseService : IDisposable
         public int Bottom;
 
         public bool IsEmpty => Right <= Left || Bottom <= Top;
+
+        public bool Contains(NativePoint point)
+            => point.X >= Left && point.X < Right &&
+               point.Y >= Top && point.Y < Bottom;
 
         public void Inset(int pixels)
         {
@@ -310,24 +657,6 @@ public sealed partial class ClipMouseService : IDisposable
             Right -= insetX;
             Bottom -= insetY;
         }
-
-        public bool Contains(NativePoint point)
-            => point.X >= Left
-               && point.X < Right
-               && point.Y >= Top
-               && point.Y < Bottom;
-
-        public bool Equals(NativeRect other)
-            => Left == other.Left
-               && Top == other.Top
-               && Right == other.Right
-               && Bottom == other.Bottom;
-
-        public override bool Equals(object? obj)
-            => obj is NativeRect other && Equals(other);
-
-        public override int GetHashCode()
-            => HashCode.Combine(Left, Top, Right, Bottom);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -335,6 +664,16 @@ public sealed partial class ClipMouseService : IDisposable
     {
         public int X;
         public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeMouseHookData
+    {
+        public NativePoint Point;
+        public uint MouseData;
+        public uint Flags;
+        public uint Time;
+        public nint ExtraInfo;
     }
 
     [DllImport("user32.dll")]
@@ -366,11 +705,28 @@ public sealed partial class ClipMouseService : IDisposable
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint lpPoint);
 
-    [DllImport("user32.dll", EntryPoint = "ClipCursor", SetLastError = true)]
+    [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool ClipCursor(ref NativeRect lpRect);
+    private static extern bool SetCursorPos(int x, int y);
 
-    [DllImport("user32.dll", EntryPoint = "ClipCursor", SetLastError = true)]
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern nint SetWindowsHookEx(
+        int hookType,
+        LowLevelMouseProc hookProcedure,
+        nint moduleHandle,
+        uint threadId);
+
+    [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool ClipCursor(nint lpRect);
+    private static extern bool UnhookWindowsHookEx(nint hookHandle);
+
+    [DllImport("user32.dll")]
+    private static extern nint CallNextHookEx(
+        nint hookHandle,
+        int code,
+        nint wParam,
+        nint lParam);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern nint GetModuleHandle(string? moduleName);
 }
