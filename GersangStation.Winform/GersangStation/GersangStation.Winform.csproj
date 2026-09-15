@@ -63,6 +63,15 @@
 	<PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
 
+  <!-- The WebView2 package adds its WPF assembly to every .NET 5+ managed project.
+       This application uses only the WinForms control; removing the unused WPF
+       reference avoids its incompatible WindowsBase 5.0 reference. -->
+  <Target Name="RemoveUnusedWebView2WpfReference" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Reference.Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <Compile Update="Forms\Form_ShortcutSetting.cs" />
     <Compile Update="Properties\Resources.Designer.cs">
