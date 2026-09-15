@@ -91,17 +91,26 @@ jobs:
             const assetName = process.env.ASSET_NAME;
             const manifestTag = `winforms-v${version}`;
             const compatibilityTag = version;
+            const releaseTagsToTry = [compatibilityTag, manifestTag];
 
             let release;
-            try {
-              const response = await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: compatibilityTag
-              });
-              release = response.data;
-            } catch (error) {
-              core.setFailed(`Release not found for compatibility tag ${compatibilityTag}: ${error.message}`);
+            let lastError;
+            for (const releaseTag of releaseTagsToTry) {
+              try {
+                const response = await github.rest.repos.getReleaseByTag({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  tag: releaseTag
+                });
+                release = response.data;
+                break;
+              } catch (error) {
+                lastError = error;
+              }
+            }
+
+            if (!release) {
+              core.setFailed(`Release not found for any expected tag (${releaseTagsToTry.join(", ")}): ${lastError?.message ?? "unknown error"}`);
               return;
             }
 

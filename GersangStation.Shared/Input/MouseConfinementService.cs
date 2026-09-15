@@ -22,6 +22,7 @@ public sealed class MouseConfinementService : IDisposable
     private const int VkMenu = 0x12;
     private const int VkLMenu = 0xA4;
     private const int VkRMenu = 0xA5;
+    private static readonly nint DpiAwarenessContextPerMonitorAwareV2 = new(-4);
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(5);
 
     // Keep installed delegates alive even if native unhooking fails during disposal.
@@ -155,7 +156,7 @@ public sealed class MouseConfinementService : IDisposable
                 return;
             }
 
-            if (!GetCursorPos(out NativePoint cursorPosition))
+            if (!TryGetPerMonitorCursorPosition(out NativePoint cursorPosition))
                 return;
 
             if (ShouldBypassCorrection(target, cursorPosition, stateVersion))
@@ -588,7 +589,7 @@ public sealed class MouseConfinementService : IDisposable
                 }
 
                 // Poll observations can age while waiting for a hook or a state transition.
-                if (!isHookMove && !GetCursorPos(out cursorPosition))
+                if (!isHookMove && !TryGetPerMonitorCursorPosition(out cursorPosition))
                     return CursorCorrectionResult.NotNeeded;
 
                 if (!TryGetCorrectedCursorPosition(target, cursorPosition, out correctedPosition))
@@ -607,7 +608,7 @@ public sealed class MouseConfinementService : IDisposable
                 GetForegroundWindow() != target.WindowHandle || IsSuspendKeyPressed())
                 return CursorCorrectionResult.NotNeeded;
 
-            return SetCursorPos(correctedPosition.X, correctedPosition.Y)
+            return TrySetPerMonitorCursorPosition(correctedPosition)
                 ? CursorCorrectionResult.Corrected
                 : CursorCorrectionResult.Retry;
         }
@@ -681,31 +682,66 @@ public sealed class MouseConfinementService : IDisposable
     private static bool TryGetClientBounds(nint windowHandle, out NativeRect bounds)
     {
         bounds = default;
-        if (!GetClientRect(windowHandle, out NativeRect clientRect) || clientRect.IsEmpty)
-            return false;
-
-        // 좌상단과 우하단을 각각 화면 좌표로 변환해 배율 반올림 오차 누적을 피합니다.
-        NativePoint topLeft = new() { X = clientRect.Left, Y = clientRect.Top };
-        NativePoint bottomRight = new() { X = clientRect.Right, Y = clientRect.Bottom };
-        if (!ClientToScreen(windowHandle, ref topLeft) ||
-            !ClientToScreen(windowHandle, ref bottomRight))
-            return false;
-
-        int screenLeft = Math.Min(topLeft.X, bottomRight.X);
-        int screenTop = Math.Min(topLeft.Y, bottomRight.Y);
-        int screenRight = Math.Max(topLeft.X, bottomRight.X);
-        int screenBottom = Math.Max(topLeft.Y, bottomRight.Y);
-
-        bounds = new NativeRect
+        // MSLLHOOKSTRUCT uses per-monitor-aware screen pixels. Temporarily use
+        // that same context for the target's client rectangle so a DPI-unaware
+        // WinForms host cannot receive a virtualized high-DPI game rectangle.
+        nint previousContext = SetThreadDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2);
+        try
         {
-            Left = screenLeft,
-            Top = screenTop,
-            Right = screenRight,
-            Bottom = screenBottom
-        };
+            if (!GetClientRect(windowHandle, out NativeRect clientRect) || clientRect.IsEmpty)
+                return false;
+
+            // Convert both corners independently to avoid accumulated scaling rounding.
+            NativePoint topLeft = new() { X = clientRect.Left, Y = clientRect.Top };
+            NativePoint bottomRight = new() { X = clientRect.Right, Y = clientRect.Bottom };
+            if (!ClientToScreen(windowHandle, ref topLeft) ||
+                !ClientToScreen(windowHandle, ref bottomRight))
+                return false;
+
+            bounds = new NativeRect
+            {
+                Left = Math.Min(topLeft.X, bottomRight.X),
+                Top = Math.Min(topLeft.Y, bottomRight.Y),
+                Right = Math.Max(topLeft.X, bottomRight.X),
+                Bottom = Math.Max(topLeft.Y, bottomRight.Y)
+            };
+        }
+        finally
+        {
+            if (previousContext != IntPtr.Zero)
+                _ = SetThreadDpiAwarenessContext(previousContext);
+        }
 
         bounds.Inset(ClipInsetPixels);
         return !bounds.IsEmpty;
+    }
+
+    private static bool TryGetPerMonitorCursorPosition(out NativePoint cursorPosition)
+    {
+        nint previousContext = SetThreadDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2);
+        try
+        {
+            return GetCursorPos(out cursorPosition);
+        }
+        finally
+        {
+            if (previousContext != IntPtr.Zero)
+                _ = SetThreadDpiAwarenessContext(previousContext);
+        }
+    }
+
+    private static bool TrySetPerMonitorCursorPosition(NativePoint cursorPosition)
+    {
+        nint previousContext = SetThreadDpiAwarenessContext(DpiAwarenessContextPerMonitorAwareV2);
+        try
+        {
+            return SetCursorPos(cursorPosition.X, cursorPosition.Y);
+        }
+        finally
+        {
+            if (previousContext != IntPtr.Zero)
+                _ = SetThreadDpiAwarenessContext(previousContext);
+        }
     }
 
     /// <summary>
@@ -817,6 +853,9 @@ public sealed class MouseConfinementService : IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetCursorPos(int x, int y);
+
+    [DllImport("user32.dll")]
+    private static extern nint SetThreadDpiAwarenessContext(nint dpiContext);
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern nint SetWindowsHookEx(
