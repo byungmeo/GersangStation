@@ -5,13 +5,19 @@ internal partial class Form1 : Form
     private readonly UpdateArguments options;
     private readonly CancellationTokenSource cancellationTokenSource = new();
     private bool updateCompleted;
+    private readonly System.Windows.Forms.Timer closeTimer;
+    private readonly System.Diagnostics.Stopwatch completedElapsed = new();
 
     public Form1(UpdateArguments options)
     {
         InitializeComponent();
+        components ??= new System.ComponentModel.Container();
+        closeTimer = new System.Windows.Forms.Timer(components) { Interval = 200 };
+        closeTimer.Tick += (_, _) => UpdateCloseCountdown();
         this.options = options;
         Shown += Form1_Shown;
         FormClosing += Form1_FormClosing;
+        FormClosed += (_, _) => cancellationTokenSource.Dispose();
     }
 
     private async void Form1_Shown(object? sender, EventArgs e)
@@ -32,6 +38,10 @@ internal partial class Form1 : Form
             buttonClose.Text = "닫기";
             labelStatusValue.Text = "업데이트 완료";
             AppendLog("업데이트가 완료되었습니다.");
+            AppendLog("10초 후 업데이트 창이 자동으로 닫힙니다.");
+            completedElapsed.Start();
+            UpdateCloseCountdown();
+            closeTimer.Start();
         }
         catch (OperationCanceledException)
         {
@@ -56,9 +66,22 @@ internal partial class Form1 : Form
 
     private void HandleProgress(UpdateProgressInfo progress)
     {
+        if (updateCompleted || IsDisposed) return;
         labelStatusValue.Text = progress.Message;
         progressBarMain.Value = Math.Clamp(progress.Percent, progressBarMain.Minimum, progressBarMain.Maximum);
         AppendLog(progress.Message);
+    }
+
+    private void UpdateCloseCountdown()
+    {
+        int remaining = Math.Max(0, (int)Math.Ceiling(10 - completedElapsed.Elapsed.TotalSeconds));
+        labelStatusValue.Text = $"업데이트 완료 · {remaining}초 후 자동으로 닫힙니다.";
+        buttonClose.Text = $"닫기 ({remaining})";
+        if (remaining == 0)
+        {
+            closeTimer.Stop();
+            Close();
+        }
     }
 
     private void AppendLog(string message)

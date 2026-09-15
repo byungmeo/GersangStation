@@ -116,7 +116,8 @@
   <ItemGroup>
     <ProjectReference Include="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
                       ReferenceOutputAssembly="false"
-                      GlobalPropertiesToRemove="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun" />
+                      Private="false"
+                      GlobalPropertiesToRemove="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun;Version;AssemblyVersion;FileVersion" />
     <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
   </ItemGroup>
 
@@ -124,7 +125,7 @@
   <Target Name="GetMiniUpdaterFiles" DependsOnTargets="ResolveProjectReferences">
     <MSBuild Projects="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
              Targets="GetTargetPath" Properties="Configuration=$(Configuration);Platform=x64"
-             RemoveProperties="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun">
+             RemoveProperties="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun;Version;AssemblyVersion;FileVersion">
       <Output TaskParameter="TargetOutputs" ItemName="_MiniUpdaterTarget" />
     </MSBuild>
     <ItemGroup>
@@ -133,6 +134,13 @@
   </Target>
   <Target Name="CopyMiniUpdaterToOutput" AfterTargets="Build" DependsOnTargets="GetMiniUpdaterFiles">
     <Copy SourceFiles="@(_MiniUpdaterFiles)" DestinationFolder="$(TargetDir)Updator" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="EmbedMiniUpdater" BeforeTargets="AssignTargetPaths" DependsOnTargets="GetMiniUpdaterFiles">
+    <ItemGroup>
+      <EmbeddedResource Include="@(_MiniUpdaterFiles)">
+        <LogicalName>MiniUpdater.%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
   </Target>
   <Target Name="IncludeMiniUpdaterInPublish" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="GetMiniUpdaterFiles">
     <ItemGroup>

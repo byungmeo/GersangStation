@@ -944,10 +944,6 @@ public partial class Form1 : MaterialForm {
         }
 
         string updaterPath = Path.Combine(System.Windows.Forms.Application.StartupPath, "Updator", "GersangStationMiniUpdator.exe");
-        if(!File.Exists(updaterPath)) {
-            Trace.WriteLine($"MiniUpdator not found: {updaterPath}");
-            return false;
-        }
 
         try {
             ProcessStartInfo startInfo = new() {
@@ -977,7 +973,7 @@ public partial class Form1 : MaterialForm {
                 startInfo.ArgumentList.Add(targetVersion.Trim());
             }
 
-            Process.Start(startInfo);
+            MiniUpdaterMaintenance.StartUpdater(startInfo);
             return true;
         } catch(Exception ex) {
             errorMessage = ex.Message;

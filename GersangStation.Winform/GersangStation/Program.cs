@@ -56,6 +56,8 @@ internal static class Program {
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
 
+        MiniUpdaterMaintenance.Start();
+
         Logger.Log("Application.Run(new Form1())");
         Application.Run(new Form1());
         ClipMouse.Stop(true);
