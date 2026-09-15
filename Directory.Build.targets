@@ -1,0 +1,7 @@
+<Project>
+  <Target Name="ValidateSupportedPlatform" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(Platform)' != 'x64'" Text="The only supported solution/project platform is x64." />
+    <Error Condition="'$(PlatformTarget)' != 'x64'" Text="GersangStation supports Windows 10 or later on x64 only." />
+    <Error Condition="'$(RuntimeIdentifier)' != '' and '$(RuntimeIdentifier)' != 'win-x64'" Text="The only supported RuntimeIdentifier is win-x64." />
+  </Target>
+</Project>

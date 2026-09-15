@@ -2,7 +2,7 @@
 
 - Keep `WebViewManager` focused on WebView2 and browser orchestration.
 - Keep launcher execution and game-process tracking logic in `GameStarter`.
-- Keep foreground-window mouse confinement in a dedicated service instead of expanding `GameStarter` or `StationPage`.
+- Keep foreground-window mouse confinement in `GersangStation.Shared/Input/MouseConfinementService`; the WinUI `ClipMouseService` is an adapter for permissions, settings, and diagnostics. WinForms alone enables compatibility options.
 - Keep Alt+`-based game-window cycling and temporary TopMost management in a dedicated service instead of expanding `GameStarter` or `StationPage`.
 - Keep app single-instance redirection in the startup entry point, and keep window reactivation behavior in `App`.
 - Keep UI policy in `StationPage` and process or runtime policy in services when possible.

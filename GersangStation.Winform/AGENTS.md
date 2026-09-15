@@ -1,17 +1,17 @@
-# GersangStation WinForms Legacy
+# GersangStation WinForms
 
 ## Purpose
 
-Maintain this legacy Windows Forms build as a stable production line even though the WinUI 3 rewrite lives at `E:\Projects\dotnet\GersangStation\GersangStation.WinUI`.
+Maintain this legacy Windows Forms build as a stable production line even though the WinUI 3 rewrite lives at `C:\Workspace\GersangStation\GersangStation.WinUI`.
 Use the WinUI project as a comparison point for behavior or copy, but do not assume the legacy app should be structurally rewritten to match it unless the user asks.
 Treat this document as working guidance for the current codebase state, not as an immutable architecture contract. If the user requests a redesign of versioning, release flow, repository integration, or update behavior, follow the request and then update this document to match the new design.
 
 ## Repository Layout
 
-- Git root is `E:\Projects\dotnet\GersangStation`, not the `WinformLegacy` folder.
+- Git root is `C:\Workspace\GersangStation`, not the `GersangStation.Winform` folder.
 - This repository currently contains at least:
   - `GersangStation.WinUI`: the WinUI 3 rewrite
-  - `WinformLegacy`: this maintained Windows Forms line
+  - `GersangStation.Winform`: this maintained Windows Forms line
   - `Website`: related site assets/content
   - `.github`: shared repository automation/configuration
 - When checking history, branches, CI, release notes, README content, or repository-wide assets, work from the repo root context rather than assuming the legacy project is isolated.
@@ -23,7 +23,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 ## Delivery Model
 
 - `GersangStation.WinUI` is distributed through Microsoft Store as a Release/MSIX package.
-- `WinformLegacy` is distributed as a WinExe build, then packaged and uploaded through GitHub Releases.
+- `GersangStation.Winform` is distributed as a WinExe build, then packaged and uploaded through GitHub Releases.
 - Do not assume both apps share the same versioning scheme, release cadence, packaging metadata, or update channel unless the user explicitly asks to unify them.
 - New WinForms release tags should use `winforms-v{version}`.
 - New WinUI release tags should use `winui-v{version}`.
@@ -32,7 +32,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 
 ## Project Map
 
-- `GersangStation/GersangStation.csproj`: `net6.0-windows7.0` Windows Forms app with `MaterialSkinKR`, `WebView2`, `Octokit`, `System.IO.Hashing`, and a COM reference to `IWshRuntimeLibrary`.
+- `GersangStation/GersangStation.Winform.csproj`: `net10.0-windows10.0.19041.0` Windows Forms app with `MaterialSkinKR`, `WebView2`, `Octokit`, `System.IO.Hashing`, and a COM reference to `IWshRuntimeLibrary`.
 - `GersangStation/Program.cs`: single-instance startup, tray-window restore, DPI comments, application entry point.
 - `GersangStation/Forms/Form1.cs`: main shell, WebView2 login automation, preset/account selection, tray menu, announcements, sponsor list, update check, mouse-clip integration.
 - `GersangStation/Forms/Form_ClientSetting.cs`: per-server client path management, auto-update option, symbolic multi-client creation, patch dialog entry.
@@ -43,7 +43,7 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 - `GersangStation/Modules/ConfigManager.cs`: appSettings bootstrap, migration from older config files, runtime save helpers.
 - `GersangStation/Modules/WinFormsManifestLoader.cs`: WinForms release/announcement/sponsors manifest DTOs and JSON fetch helpers.
 - `GersangStation/Modules/ClientCreator.cs`: WinUI-aligned path validation, `v34100` patch reinstall guidance gate, and symbolic-link-based client cloning with legacy/pre-`34100` and post-`34100` layout policies.
-- `GersangStation/Modules/ClipMouse.cs`: Win32 cursor clipping thread, hotkey registration, game window detection.
+- `GersangStation/Modules/ClipMouse.cs`: WinForms adapter for the shared mouse confinement engine, hotkey registration, and tray notifications.
 - `GersangStation/Properties/App.config`: shipped default config keys and values.
 - `GersangStation/Properties/PublishProfiles/FolderRelease_win-x64.pubxml`: current single-file release publish settings.
 - `GersangStationMiniUpdator/GersangStationMiniUpdator.csproj`: standalone WinForms updater for `GersangStationMini`, using a temp extraction folder and selective file apply.
@@ -107,13 +107,11 @@ Use `$winforms-app` for WinForms-specific work in this repository.
 
 - `dotnet build` is not sufficient for this solution because the project uses a COM reference (`IWshRuntimeLibrary`) and fails under .NET Core MSBuild with `MSB4803`.
 - Use Visual Studio MSBuild instead:
-  - `& "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" GersangStation.sln /t:Build /p:Configuration=Debug`
+  - `& "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" ..\GersangStation.slnx /restore /t:Build /p:Configuration=Debug /p:Platform=x64`
 - Expect existing warnings for:
-  - `NETSDK1138` because `net6.0-windows7.0` is out of support
-  - `System.IO.Hashing 10.0.2` not officially supporting `net6.0-windows7.0`
   - `MSB3277` `WindowsBase` version conflict from `WebView2.Wpf`
 - Publish configuration currently lives in `GersangStation/Properties/PublishProfiles/FolderRelease_win-x64.pubxml`.
-- Final release packaging can be generated with `scripts/Publish-GersangStationMiniRelease.ps1`, which publishes the app, injects the root `LICENSE`, removes shipped config files, and creates `GersangStation_v.<version>.zip` in the legacy release format.
+- Final release packaging can be generated with `scripts/Publish-GersangStationMiniRelease.ps1`, which publishes the app, injects the root `LICENSE`, removes shipped config files, and creates `GersangStation_mini_v.<version>.zip` in the legacy release format.
 
 ## Verification Checklist
 

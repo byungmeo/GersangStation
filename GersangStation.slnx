@@ -1,0 +1,39 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Dev" />
+    <BuildType Name="Release" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/WinForms/">
+    <Project Path="GersangStation.Winform/GersangStation/GersangStation.Winform.csproj">
+      <Platform Project="x64" />
+      <BuildType Solution="Dev|*" Project="Debug" />
+    </Project>
+    <Project Path="GersangStation.Winform/GersangStationMiniUpdator/GersangStationMiniUpdator.csproj">
+      <Platform Project="x64" />
+      <BuildType Solution="Dev|*" Project="Debug" />
+    </Project>
+  </Folder>
+  <Folder Name="/WinUI/">
+    <Project Path="GersangStation.WinUI/Core/Core.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="GersangStation.WinUI/GersangStation/GersangStation.csproj">
+      <Platform Project="x64" />
+      <Deploy />
+    </Project>
+  </Folder>
+  <Project Path="GersangStation.Shared/GersangStation.Shared.csproj">
+    <Platform Project="x64" />
+    <BuildType Solution="Dev|*" Project="Debug" />
+  </Project>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="README.md" />
+    <File Path="LICENSE" />
+  </Folder>
+</Solution>

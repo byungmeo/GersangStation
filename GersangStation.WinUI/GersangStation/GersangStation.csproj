@@ -132,11 +132,12 @@
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260317003" />
+		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+		<PackageReference Include="Microsoft.WindowsAppSDK" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Core\Core.csproj" />
+        <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<Page Update="Main\Setting\BehaviorSettingPage.xaml">

@@ -1,18 +1,19 @@
 # AGENTS.md
 
 ## Scope
-- This file applies to the entire worktree rooted at `E:\Projects\dotnet\GersangStation\GersangStation.WinUI`.
+- This file applies to the entire worktree rooted at `C:\Workspace\GersangStation\GersangStation.WinUI`.
 - If a subdirectory defines its own `AGENTS.md`, the more specific file takes precedence for that subtree.
 
 ## Solution Layout
 - `GersangStation/`: WinUI 3 desktop app
-- `Core/`: shared library
+- `Core/`: WinUI data and game support library
+- `../GersangStation.Shared/`: UI-independent shared mouse engine
 
 ## Build
 - Preferred full build:
   - `dotnet build .\GersangStation\GersangStation.csproj -c Debug -p:Platform=x64`
 - Solution-level build if needed:
-  - `dotnet build .\GersangStation.WinUI.slnx -c Debug -p:Platform=x64`
+  - `& "C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe" ..\GersangStation.slnx /restore /t:Build /p:Configuration=Debug /p:Platform=x64`
 
 ## Test
 - Do not add or maintain committed test projects or test source files unless the user explicitly changes this policy.

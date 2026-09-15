@@ -17,6 +17,8 @@ Apply this skill for repository-specific app policy that is too detailed for the
 
 ## Maintenance Rules
 
+- Treat this skill as reference guidance; explicit user instructions take precedence. Clarify ambiguous decisions with the user. The shared mouse module defines a UI-independent diagnostic contract rather than depending on the WinUI exception pipeline.
+
 - Keep repository-wide standing rules in `AGENTS.md`, but store detailed product or implementation policy in this skill.
 - Load only the reference file that matches the change unless the task crosses categories.
 - Update the relevant reference file in the same change whenever the user adds, retires, or revises one of these policies.

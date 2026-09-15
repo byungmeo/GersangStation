@@ -571,6 +571,11 @@ public partial class Form1 : MaterialForm {
             textBox_clipToggleHotKey.Text = ((Keys)int.Parse(hotKey)).ToString();
 
         ClipMouse.icon = notifyIcon2;
+        ClipMouse.MonitoringStopped += () => materialCheckbox_mouseClip.Checked = false;
+        FormClosed += (_, _) => {
+            ClipMouse.UnregisterHotKey(Handle);
+            ClipMouse.Stop(true);
+        };
         ClipMouse.RegisterHotKey(this.Handle, hotKey);
     }
 
@@ -1234,6 +1239,7 @@ public partial class Form1 : MaterialForm {
 
     private void checkBox_clipDisableHotKey_CheckedChanged(object sender, EventArgs e) {
         ConfigManager.SetConfig("use_clip_disable_hotkey", ((CheckBox)sender).Checked.ToString());
+        ClipMouse.UpdateOptions();
     }
 
     private void checkBox_clipToggleHotKey_CheckedChanged(object sender, EventArgs e) {
@@ -1242,8 +1248,8 @@ public partial class Form1 : MaterialForm {
 
     private void checkBox_onlyFirstClip_CheckedChanged(object sender, EventArgs e) {
         ConfigManager.SetConfig("use_clip_only_first", ((CheckBox)sender).Checked.ToString());
-        ClipMouse.firstGameHandle = IntPtr.Zero;
-        ClipMouse.isOnlyFirstClip = ((CheckBox)sender).Checked;
+        ClipMouse.ResetFirstWindow();
+        ClipMouse.UpdateOptions();
     }
 
     private void linkLabel_clipInformation_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {

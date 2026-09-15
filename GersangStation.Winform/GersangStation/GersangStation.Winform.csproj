@@ -6,13 +6,16 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows7.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <RootNamespace>GersangStation</RootNamespace>
+    <AssemblyName>GersangStation</AssemblyName>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <AssemblyVersion>1.7.1</AssemblyVersion>
     <FileVersion>1.7.1</FileVersion>
     <Copyright>Copyright © 2026 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
@@ -24,11 +27,11 @@
     <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
@@ -53,10 +56,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3719.77" />
-    <PackageReference Include="Octokit" Version="14.0.0" />
-	<PackageReference Include="MaterialSkinKR" Version="1.0.1" />
-	<PackageReference Include="System.IO.Hashing" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Web.WebView2" />
+    <PackageReference Include="Octokit" />
+	<PackageReference Include="MaterialSkinKR" />
+	<PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
 
   <ItemGroup>
@@ -108,33 +111,36 @@
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		<Link>..\%(Filename)%(Extension)</Link>
 	</Content>
-	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.exe">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		<Link>Updator\%(Filename)%(Extension)</Link>
-	</Content>
-	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.dll">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		<Link>Updator\%(Filename)%(Extension)</Link>
-	</Content>
-	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.deps.json">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		<Link>Updator\%(Filename)%(Extension)</Link>
-	</Content>
-	<Content Include="..\GersangStationMiniUpdator\bin\$(Configuration)\net6.0-windows7.0\GersangStationMiniUpdator.runtimeconfig.json">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-		<Link>Updator\%(Filename)%(Extension)</Link>
-	</Content>
   </ItemGroup>
 
-  <Target Name="BuildMiniUpdator" BeforeTargets="Build;Publish">
-    <MSBuild
-      Projects="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
-      Targets="Build"
-      Properties="Configuration=$(Configuration);Platform=AnyCPU"
-      RemoveProperties="RuntimeIdentifier;SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun" />
+  <ItemGroup>
+    <ProjectReference Include="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
+                      ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun" />
+    <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
+  </ItemGroup>
+
+  <!-- Resolve the updater output from MSBuild instead of hard-coding its TFM/output layout. -->
+  <Target Name="GetMiniUpdaterFiles" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
+             Targets="GetTargetPath" Properties="Configuration=$(Configuration);Platform=x64"
+             RemoveProperties="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun">
+      <Output TaskParameter="TargetOutputs" ItemName="_MiniUpdaterTarget" />
+    </MSBuild>
+    <ItemGroup>
+      <_MiniUpdaterFiles Include="@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.exe');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.dll');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.deps.json');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.runtimeconfig.json')" />
+    </ItemGroup>
+  </Target>
+  <Target Name="CopyMiniUpdaterToOutput" AfterTargets="Build" DependsOnTargets="GetMiniUpdaterFiles">
+    <Copy SourceFiles="@(_MiniUpdaterFiles)" DestinationFolder="$(TargetDir)Updator" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="IncludeMiniUpdaterInPublish" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="GetMiniUpdaterFiles">
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(_MiniUpdaterFiles)">
+        <RelativePath>Updator/%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
   </Target>
 </Project>
