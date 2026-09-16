@@ -2,21 +2,21 @@
   "schema_version": 1,
   "product": "winforms",
   "channel": "stable",
-  "generated_at": "2026-09-15T14:56:02Z",
+  "generated_at": "2026-03-18T13:39:42Z",
   "release": {
-    "version": "1.7.2",
-    "tag": "winforms-v1.7.2",
-    "compatibility_tag": "1.7.2",
-    "published_at": "2026-09-15T14:54:46Z",
+    "version": "1.7.1",
+    "tag": "winforms-v1.7.1",
+    "compatibility_tag": "1.7.1",
+    "published_at": "2026-03-18T02:44:15Z",
     "is_mandatory": false,
-    "title": "거상스테이션 1.7.2 출시 안내",
-    "message": "분기패치 이후 마우스 가두기 문제를 해결한 버전입니다.",
-    "notes_url": "https://github.com/byungmeo/GersangStation/releases/tag/winforms-v1.7.2",
+    "title": "거상스테이션 1.7.1 출시 안내",
+    "message": "거상스테이션 1.7.1이 출시되었습니다.",
+    "notes_url": "https://github.com/byungmeo/GersangStation/releases/tag/1.7.1",
     "download": {
-      "asset_name": "GersangStation_mini_v.1.7.2.zip",
-      "url": "https://github.com/byungmeo/GersangStation/releases/download/winforms-v1.7.2/GersangStation_mini_v.1.7.2.zip",
-      "sha256": "6e74389f5813bf49e729eb67c282429deee4abe78d9203c9704a67a1057bdb68",
-      "size": 26241367
+      "asset_name": "GersangStation_mini_v.1.7.1.zip",
+      "url": "https://github.com/byungmeo/GersangStation/releases/download/1.7.1/GersangStation_mini_v.1.7.1.zip",
+      "sha256": "967f141cd7d7382af4ccb09e955f05233c43b094f4e393dd36b8449150d8e674",
+      "size": 19125258
     }
   }
 }
