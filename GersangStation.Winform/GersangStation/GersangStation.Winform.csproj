@@ -1,164 +1,168 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup Label="Globals">
+		<WebView2UseWinRT>False</WebView2UseWinRT>
+	</PropertyGroup>
 
-  <PropertyGroup Label="Globals">
-    <WebView2UseWinRT>False</WebView2UseWinRT>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+		<RootNamespace>GersangStation</RootNamespace>
+		<AssemblyName>GersangStation</AssemblyName>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<SelfContained>false</SelfContained>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+		<Version>1.7.2</Version>
+		<AssemblyVersion>1.7.2</AssemblyVersion>
+		<FileVersion>1.7.2</FileVersion>
+		<Copyright>Copyright © 2026 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
+		<Company>Byungmeo</Company>
+		<Authors>Byungmeo</Authors>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/byungmeo/GersangStation</RepositoryUrl>
+		<Description>거상 다클라 종합 유틸리티</Description>
+		<ApplicationIcon>icon.ico</ApplicationIcon>
+	</PropertyGroup>
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
-    <RootNamespace>GersangStation</RootNamespace>
-    <AssemblyName>GersangStation</AssemblyName>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>false</SelfContained>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
-    <Version>1.7.2</Version>
-    <AssemblyVersion>1.7.2</AssemblyVersion>
-    <FileVersion>1.7.2</FileVersion>
-    <Copyright>Copyright © 2026 byungmeo &lt;wlsrlfvkr@gmail.com&gt;</Copyright>
-    <Company>Byungmeo</Company>
-    <Authors>Byungmeo</Authors>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/byungmeo/GersangStation</RepositoryUrl>
-    <Description>거상 다클라 종합 유틸리티</Description>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
-  </PropertyGroup>
+	<!-- #188 -->
+	<PropertyGroup>
+		<CETCompat>false</CETCompat>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<DebugType>embedded</DebugType>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<DebugType>embedded</DebugType>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <COMReference Include="IWshRuntimeLibrary">
-      <WrapperTool>tlbimp</WrapperTool>
-      <VersionMinor>0</VersionMinor>
-      <VersionMajor>1</VersionMajor>
-      <Guid>f935dc20-1cf0-11d0-adb9-00c04fd58a0b</Guid>
-      <Lcid>0</Lcid>
-      <Isolated>false</Isolated>
-      <EmbedInteropTypes>true</EmbedInteropTypes>
-    </COMReference>
-  </ItemGroup>
+	<ItemGroup>
+		<COMReference Include="IWshRuntimeLibrary">
+			<WrapperTool>tlbimp</WrapperTool>
+			<VersionMinor>0</VersionMinor>
+			<VersionMajor>1</VersionMajor>
+			<Guid>f935dc20-1cf0-11d0-adb9-00c04fd58a0b</Guid>
+			<Lcid>0</Lcid>
+			<Isolated>false</Isolated>
+			<EmbedInteropTypes>true</EmbedInteropTypes>
+		</COMReference>
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Include="icon.ico" />
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="icon.ico" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\.editorconfig" Link=".editorconfig" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Include="..\.editorconfig" Link=".editorconfig" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Web.WebView2" />
-    <PackageReference Include="Octokit" />
-	<PackageReference Include="MaterialSkinKR" />
-	<PackageReference Include="System.IO.Hashing" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Web.WebView2" />
+		<PackageReference Include="Octokit" />
+		<PackageReference Include="MaterialSkinKR" />
+		<PackageReference Include="System.IO.Hashing" />
+	</ItemGroup>
 
-  <!-- The WebView2 package adds its WPF assembly to every .NET 5+ managed project.
+	<!-- The WebView2 package adds its WPF assembly to every .NET 5+ managed project.
        This application uses only the WinForms control; removing the unused WPF
        reference avoids its incompatible WindowsBase 5.0 reference. -->
-  <Target Name="RemoveUnusedWebView2WpfReference" BeforeTargets="ResolveAssemblyReferences">
-    <ItemGroup>
-      <Reference Remove="@(Reference)" Condition="'%(Reference.Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
-    </ItemGroup>
-  </Target>
+	<Target Name="RemoveUnusedWebView2WpfReference" BeforeTargets="ResolveAssemblyReferences">
+		<ItemGroup>
+			<Reference Remove="@(Reference)" Condition="'%(Reference.Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+		</ItemGroup>
+	</Target>
 
-  <ItemGroup>
-    <Compile Update="Forms\Form_ShortcutSetting.cs" />
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Update="Properties\Settings.Designer.cs">
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Update="Forms\Form_ShortcutSetting.cs" />
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<Compile Update="Properties\Settings.Designer.cs">
+			<DesignTimeSharedInput>True</DesignTimeSharedInput>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Settings.settings</DependentUpon>
+		</Compile>
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Update="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
+	<ItemGroup>
+		<None Update="Properties\Settings.settings">
+			<Generator>SettingsSingleFileGenerator</Generator>
+			<LastGenOutput>Settings.Designer.cs</LastGenOutput>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Resources\Icons\" />
-  </ItemGroup>
+	<ItemGroup>
+		<Folder Include="Resources\Icons\" />
+	</ItemGroup>
 
-  <ItemGroup>
-	<Content Include="Properties\PublishProfiles\Includes\1.사용자 설명서 (설치 및 사용방법).url">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<Link>..\%(Filename)%(Extension)</Link>
-	</Content>
-	<Content Include="Properties\PublishProfiles\Includes\2.이전 설정 불러오는 방법.url">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<Link>..\%(Filename)%(Extension)</Link>
-	</Content>
-	<Content Include="Properties\PublishProfiles\Includes\3.파일이 삭제되는 경우(백신 차단).url">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<Link>..\%(Filename)%(Extension)</Link>
-	</Content>
-	<Content Include="Properties\PublishProfiles\Includes\4.SNS 로그인 방법.url">
-		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		<Link>..\%(Filename)%(Extension)</Link>
-	</Content>
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="Properties\PublishProfiles\Includes\1.사용자 설명서 (설치 및 사용방법).url">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>..\%(Filename)%(Extension)</Link>
+		</Content>
+		<Content Include="Properties\PublishProfiles\Includes\2.이전 설정 불러오는 방법.url">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>..\%(Filename)%(Extension)</Link>
+		</Content>
+		<Content Include="Properties\PublishProfiles\Includes\3.파일이 삭제되는 경우(백신 차단).url">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>..\%(Filename)%(Extension)</Link>
+		</Content>
+		<Content Include="Properties\PublishProfiles\Includes\4.SNS 로그인 방법.url">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<Link>..\%(Filename)%(Extension)</Link>
+		</Content>
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
-                      ReferenceOutputAssembly="false"
-                      Private="false"
-                      GlobalPropertiesToRemove="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun;Version;AssemblyVersion;FileVersion" />
-    <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
+						  ReferenceOutputAssembly="false"
+						  Private="false"
+						  GlobalPropertiesToRemove="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun;Version;AssemblyVersion;FileVersion" />
+		<ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
+	</ItemGroup>
 
-  <!-- Resolve the updater output from MSBuild instead of hard-coding its TFM/output layout. -->
-  <Target Name="GetMiniUpdaterFiles" DependsOnTargets="ResolveProjectReferences">
-    <MSBuild Projects="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
-             Targets="GetTargetPath" Properties="Configuration=$(Configuration);Platform=x64"
-             RemoveProperties="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun;Version;AssemblyVersion;FileVersion">
-      <Output TaskParameter="TargetOutputs" ItemName="_MiniUpdaterTarget" />
-    </MSBuild>
-    <ItemGroup>
-      <_MiniUpdaterFiles Include="@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.exe');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.dll');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.deps.json');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.runtimeconfig.json')" />
-    </ItemGroup>
-  </Target>
-  <Target Name="CopyMiniUpdaterToOutput" AfterTargets="Build" DependsOnTargets="GetMiniUpdaterFiles">
-    <Copy SourceFiles="@(_MiniUpdaterFiles)" DestinationFolder="$(TargetDir)Updator" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="EmbedMiniUpdater" BeforeTargets="AssignTargetPaths" DependsOnTargets="GetMiniUpdaterFiles">
-    <ItemGroup>
-      <EmbeddedResource Include="@(_MiniUpdaterFiles)">
-        <LogicalName>MiniUpdater.%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
-    </ItemGroup>
-  </Target>
-  <Target Name="IncludeMiniUpdaterInPublish" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="GetMiniUpdaterFiles">
-    <ItemGroup>
-      <ResolvedFileToPublish Include="@(_MiniUpdaterFiles)">
-        <RelativePath>Updator/%(Filename)%(Extension)</RelativePath>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      </ResolvedFileToPublish>
-    </ItemGroup>
-  </Target>
+	<!-- Resolve the updater output from MSBuild instead of hard-coding its TFM/output layout. -->
+	<Target Name="GetMiniUpdaterFiles" DependsOnTargets="ResolveProjectReferences">
+		<MSBuild Projects="..\GersangStationMiniUpdator\GersangStationMiniUpdator.csproj"
+				 Targets="GetTargetPath" Properties="Configuration=$(Configuration);Platform=x64"
+				 RemoveProperties="SelfContained;PublishDir;PublishProfile;PublishSingleFile;PublishReadyToRun;Version;AssemblyVersion;FileVersion">
+			<Output TaskParameter="TargetOutputs" ItemName="_MiniUpdaterTarget" />
+		</MSBuild>
+		<ItemGroup>
+			<_MiniUpdaterFiles Include="@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.exe');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.dll');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.deps.json');@(_MiniUpdaterTarget->'%(RootDir)%(Directory)GersangStationMiniUpdator.runtimeconfig.json')" />
+		</ItemGroup>
+	</Target>
+	<Target Name="CopyMiniUpdaterToOutput" AfterTargets="Build" DependsOnTargets="GetMiniUpdaterFiles">
+		<Copy SourceFiles="@(_MiniUpdaterFiles)" DestinationFolder="$(TargetDir)Updator" SkipUnchangedFiles="true" />
+	</Target>
+	<Target Name="EmbedMiniUpdater" BeforeTargets="AssignTargetPaths" DependsOnTargets="GetMiniUpdaterFiles">
+		<ItemGroup>
+			<EmbeddedResource Include="@(_MiniUpdaterFiles)">
+				<LogicalName>MiniUpdater.%(Filename)%(Extension)</LogicalName>
+			</EmbeddedResource>
+		</ItemGroup>
+	</Target>
+	<Target Name="IncludeMiniUpdaterInPublish" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="GetMiniUpdaterFiles">
+		<ItemGroup>
+			<ResolvedFileToPublish Include="@(_MiniUpdaterFiles)">
+				<RelativePath>Updator/%(Filename)%(Extension)</RelativePath>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+				<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+			</ResolvedFileToPublish>
+		</ItemGroup>
+	</Target>
 </Project>
