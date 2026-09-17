@@ -1,30 +1,27 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
 namespace GersangStation.Services;
 
 /// <summary>
-/// 앱을 실행하는 바탕화면 바로가기를 생성합니다.
+/// 관리자 실행 작업을 호출하는 바탕화면 바로가기를 생성합니다.
 /// </summary>
-public sealed class DesktopShortcutService
+public sealed class AdminLaunchDesktopShortcutService
 {
-    private const string LegacyAdminShortcutFileName = "GersangStation Admin.lnk";
-
-    private readonly string _appUserModelId;
+    private readonly string _taskName;
     private readonly string _iconPath;
     private readonly string _shortcutFileName;
 
-    public DesktopShortcutService(string appUserModelId, string iconPath, string shortcutFileName)
+    public AdminLaunchDesktopShortcutService(string taskName, string iconPath, string shortcutFileName)
     {
-        _appUserModelId = appUserModelId;
+        _taskName = taskName;
         _iconPath = iconPath;
         _shortcutFileName = shortcutFileName;
     }
 
     /// <summary>
-    /// 현재 사용자 바탕화면에 앱 실행 바로가기를 만들거나 덮어씁니다.
+    /// 현재 사용자 바탕화면에 관리자 실행 바로가기를 만들거나 덮어씁니다.
     /// </summary>
     public DesktopShortcutCreationResult CreateShortcut()
     {
@@ -34,7 +31,7 @@ public sealed class DesktopShortcutService
             return new DesktopShortcutCreationResult(
                 false,
                 string.Empty,
-                "바탕화면 경로를 찾지 못해 바로가기를 만들 수 없습니다.");
+                "바탕화면 경로를 찾지 못해 관리자 실행 바로가기를 만들 수 없습니다.");
         }
 
         string shortcutPath = Path.Combine(desktopDirectory, _shortcutFileName);
@@ -47,7 +44,7 @@ public sealed class DesktopShortcutService
                 return new DesktopShortcutCreationResult(
                     false,
                     shortcutPath,
-                    "Windows 바로가기 구성 요소를 찾지 못해 바로가기를 만들 수 없습니다.");
+                    "Windows 바로가기 구성 요소를 찾지 못해 관리자 실행 바로가기를 만들 수 없습니다.");
             }
 
             object shell = Activator.CreateInstance(shellType)
@@ -61,10 +58,10 @@ public sealed class DesktopShortcutService
                 ?? throw new InvalidOperationException("Failed to create shortcut object.");
 
             Type shortcutType = shortcut.GetType();
-            SetShortcutProperty(shortcutType, shortcut, "TargetPath", "explorer.exe");
-            SetShortcutProperty(shortcutType, shortcut, "Arguments", $"shell:AppsFolder\\{_appUserModelId}");
+            SetShortcutProperty(shortcutType, shortcut, "TargetPath", Path.Combine(Environment.SystemDirectory, "schtasks.exe"));
+            SetShortcutProperty(shortcutType, shortcut, "Arguments", $"/Run /TN \"{_taskName}\"");
             SetShortcutProperty(shortcutType, shortcut, "WorkingDirectory", Environment.SystemDirectory);
-            SetShortcutProperty(shortcutType, shortcut, "Description", "Launch GersangStation.");
+            SetShortcutProperty(shortcutType, shortcut, "Description", "Launch GersangStation through the elevated startup task.");
 
             if (File.Exists(_iconPath))
                 SetShortcutProperty(shortcutType, shortcut, "IconLocation", _iconPath);
@@ -76,8 +73,6 @@ public sealed class DesktopShortcutService
                 target: shortcut,
                 args: null);
 
-            DeleteShortcutIfExists(LegacyAdminShortcutFileName);
-
             return new DesktopShortcutCreationResult(true, shortcutPath, string.Empty);
         }
         catch (Exception)
@@ -85,12 +80,12 @@ public sealed class DesktopShortcutService
             return new DesktopShortcutCreationResult(
                 false,
                 shortcutPath,
-                "바로가기를 만들지 못했습니다. 다시 시도해도 안 되면 바탕화면 쓰기 권한과 Windows 바로가기 구성을 확인해주세요.");
+                "관리자 실행 바로가기를 만들지 못했습니다. 다시 시도해도 안 되면 바탕화면 쓰기 권한과 Windows 바로가기 구성을 확인해주세요.");
         }
     }
 
     /// <summary>
-    /// 현재 사용자 바탕화면에 앱 바로가기가 있는지 확인합니다.
+    /// 현재 사용자 바탕화면에 관리자 실행 바로가기가 있는지 확인합니다.
     /// </summary>
     public bool ShortcutExists()
     {
@@ -102,18 +97,15 @@ public sealed class DesktopShortcutService
     }
 
     /// <summary>
-    /// 현재 사용자 바탕화면에서 앱 바로가기를 조용히 제거합니다.
+    /// 현재 사용자 바탕화면에서 관리자 실행 바로가기를 조용히 제거합니다.
     /// </summary>
     public void DeleteShortcutIfExists()
-        => DeleteShortcutIfExists(_shortcutFileName);
-
-    private static void DeleteShortcutIfExists(string shortcutFileName)
     {
         string desktopDirectory = GetDesktopDirectory();
         if (string.IsNullOrWhiteSpace(desktopDirectory))
             return;
 
-        string shortcutPath = Path.Combine(desktopDirectory, shortcutFileName);
+        string shortcutPath = Path.Combine(desktopDirectory, _shortcutFileName);
         if (!File.Exists(shortcutPath))
             return;
 
@@ -121,10 +113,25 @@ public sealed class DesktopShortcutService
         {
             File.Delete(shortcutPath);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Debug.WriteLine($"Failed to delete desktop shortcut '{shortcutPath}': {ex}");
         }
+    }
+
+    /// <summary>
+    /// 바탕화면에 바로가기가 이미 있으면 현재 래퍼 대상으로 조용히 갱신합니다.
+    /// </summary>
+    public void RefreshShortcutIfExists()
+    {
+        string desktopDirectory = GetDesktopDirectory();
+        if (string.IsNullOrWhiteSpace(desktopDirectory))
+            return;
+
+        string shortcutPath = Path.Combine(desktopDirectory, _shortcutFileName);
+        if (!File.Exists(shortcutPath))
+            return;
+
+        _ = CreateShortcut();
     }
 
     private static string GetDesktopDirectory()
