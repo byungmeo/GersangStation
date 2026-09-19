@@ -1,0 +1,135 @@
+name: Prepare WinUI Store release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New Store version, e.g. 2.0.10.0 (unused for edit)'
+        required: false
+        type: string
+      mode:
+        description: 'Build, stage a package without submitting, or edit draft metadata'
+        required: true
+        type: choice
+        default: build
+        options:
+          - build
+          - upload
+          - edit
+      changes_file:
+        description: 'Optional repo-relative edit-plan JSON from snapshot; required for edit. No secrets.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: winui-store-release
+  cancel-in-progress: false
+
+jobs:
+  package:
+    if: inputs.mode != 'edit'
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Build solution and inspect Store package
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RELEASE_VERSION)) { throw 'version is required for build/upload.' }
+          $output = "$env:RUNNER_TEMP/WinUIStore"
+          ./scripts/Build-WinUIStorePackage.ps1 -Version $env:RELEASE_VERSION -OutputDirectory $output
+          $packages = @(Get-ChildItem $output -Recurse -File | Where-Object { $_.Extension -in '.msixupload', '.appxupload' })
+          if ($packages.Count -ne 1) { throw 'Expected exactly one Store upload package.' }
+          python scripts/winui_store_package.py --package $packages[0].FullName --version $env:RELEASE_VERSION --output "$output/package-inspection.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Store package inspection failed.' }
+          "Package built from $env:GITHUB_SHA. Download winui-store-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT from this run's Artifacts section." >> $env:GITHUB_STEP_SUMMARY
+      - name: Retain packages, provenance, and build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: winui-store-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/WinUIStore/
+          if-no-files-found: error
+          retention-days: 14
+
+  stage-draft:
+    # An edit deliberately skips package; upload requires its successful result.
+    if: ${{ !cancelled() && (inputs.mode == 'edit' || (inputs.mode == 'upload' && needs.package.result == 'success')) }}
+    needs: package
+    runs-on: windows-latest
+    timeout-minutes: 30
+    environment: microsoft-store
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+      AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+      AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+      STORE_PRODUCT_ID: ${{ vars.STORE_PRODUCT_ID }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_MODE: ${{ inputs.mode }}
+      CHANGES_FILE: ${{ inputs.changes_file }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@v4
+        if: inputs.mode == 'upload'
+        with:
+          name: winui-store-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/store-package
+      - name: Preserve draft and stage changes (no certification submission)
+        run: |
+          $arguments = @('scripts/winui_store_draft.py', $env:RELEASE_MODE, '--output', "$env:RUNNER_TEMP/store-draft")
+          if ($env:RELEASE_MODE -eq 'upload') {
+            $packages = @(Get-ChildItem "$env:RUNNER_TEMP/store-package" -Recurse -File | Where-Object { $_.Extension -in '.msixupload', '.appxupload' })
+            if ($packages.Count -ne 1) { throw 'Expected exactly one Store upload package.' }
+            $arguments += @('--package', $packages[0].FullName, '--version', $env:RELEASE_VERSION)
+          }
+          if ($env:CHANGES_FILE) {
+            if ([IO.Path]::IsPathRooted($env:CHANGES_FILE)) { throw 'changes_file must be repository-relative.' }
+            $changes = [IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE $env:CHANGES_FILE))
+            $root = [IO.Path]::GetFullPath($env:GITHUB_WORKSPACE).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+            if (-not $changes.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { throw 'changes_file must stay inside the repository.' }
+            if (-not (Test-Path -LiteralPath $changes -PathType Leaf)) { throw 'changes_file is missing from this checkout.' }
+            $arguments += @('--changes', $changes)
+          } elseif ($env:RELEASE_MODE -eq 'edit') {
+            throw 'edit requires changes_file from a current snapshot.'
+          }
+          python @arguments
+          if ($LASTEXITCODE -ne 0) { throw 'Draft staging failed. Inspect the result receipt and Partner Center before retrying.' }
+      - name: Report exact completion stage
+        if: always()
+        run: |
+          $receipt = "$env:RUNNER_TEMP/store-draft/result.json"
+          if (Test-Path -LiteralPath $receipt) {
+            $result = Get-Content -Raw -LiteralPath $receipt | ConvertFrom-Json
+            "Draft operation: $($result.stage). Metadata saved: $($result.metadataSaved). Files transferred: $($result.filesTransferred)." >> $env:GITHUB_STEP_SUMMARY
+          }
+          'Store processing and certification were NOT started. API staging is not proof of a validated, portal-ready package. See docs/winui-store-release.md before editing an API-created draft in Partner Center.' >> $env:GITHUB_STEP_SUMMARY
+      # Snapshots can contain private certification notes. Keep only a minimal receipt.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: winui-store-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/store-draft/result.json
+          if-no-files-found: ignore
+          retention-days: 14
