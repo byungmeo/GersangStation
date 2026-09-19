@@ -41,8 +41,8 @@ Run **Prepare WinUI Store release** (`publish-winui-store.yml`).
 | mode | Behavior |
 | --- | --- |
 | `build` | Build Release/x64 with VS MSBuild; inspect actual nested MSIX identities; retain artifacts. Requires `version`. |
-| `upload` | Build, then add the package to the existing API-editable draft (or create one if absent). Duplicate packages fail. Optional `changes_file` applies metadata in the same operation. No commit. |
-| `edit` | Save metadata from `changes_file` to an existing draft, without building or uploading another package. `version` is unused. No commit. |
+| `upload` | Build, then add the package to the existing API-editable draft (or create one if absent). Duplicate packages fail. Optional `changes_file` or `release_content_file` applies metadata in the same operation. No commit. |
+| `edit` | Save metadata from `changes_file` or `release_content_file` to an existing draft, without building or uploading another package. `version` is unused. No commit. |
 
 `draft` and `submit` have been removed to avoid ambiguous or unintended actions.
 The previous `msstore publish` implementation has been removed because it can
@@ -109,6 +109,28 @@ Inspection checks the nested bundle and application manifest, version, publisher
 Store identity, x64 architecture, and SHA-256. It does not install or launch the app.
 
 ## Inspect and edit draft fields
+
+### Credentials only in GitHub
+
+For ordinary release preparation, provide `release_content_file` with a public
+JSON file in the selected checkout (see `store-releases/2.0.9.0.json`). It contains
+`version`, `expectedPublishedVersion`, `locale`, `releaseNotes`, and optionally
+`certificationNotesAppend`. The runner checks the published version against the
+release-note baseline, uses the actual locale key, changes only release notes,
+and appends the new review instructions to existing certification notes. Existing
+private instructions never leave the runner or enter the repository. Repeated
+metadata edits do not append an identical addendum twice.
+
+Use this input with `upload` for a new package. With `edit`, Store must already
+return the target version on a draft package; unprocessed packages without a
+version require a snapshot-based edit plan. This input and `changes_file` are
+mutually exclusive. The runner still compares the current draft again before
+writing and never submits it. A baseline mismatch stops before remote writes.
+
+Locally, the equivalent option is `--release-content <file>`. For broader edits,
+use the full snapshot-based plan below.
+
+### Snapshot-based edits
 
 Set the same three credential environment variables and `STORE_PRODUCT_ID` in the
 process running the script. Do not paste secrets into commands, chat, or committed

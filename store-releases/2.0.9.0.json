@@ -1,0 +1,7 @@
+{
+  "version": "2.0.9.0",
+  "expectedPublishedVersion": "2.0.8.0",
+  "locale": "ko-kr",
+  "releaseNotes": "- 26-09-14 분기패치 이후 마우스 가두기가 작동하지 않던 문제를 수정했습니다.\n- 처음 사용하는 분들을 위한 사용자 설명서 안내와 버튼 표시를 개선했습니다.",
+  "certificationNotesAppend": "GersangStation 2.0.9 - additional review instructions\n\nThis update fixes mouse confinement after the game's September 14, 2026 update.\nThe feature requires a running Gersang game client. Use the application's existing\nadministrator launch option when testing mouse confinement.\n\nSuggested checks:\n1. Enable mouse confinement in the app and bring a Gersang game window to the foreground.\n2. Move the pointer to each edge of the game's client area, including fast movements.\n   Confirm that the pointer stays within the intended game area while confinement is active.\n3. Use Alt to temporarily leave the game area, then return the pointer to the game area.\n   Confirm that ordinary desktop interaction and subsequent confinement work as expected.\n4. Change focus to another application and verify that the desktop pointer remains usable.\n5. On first launch, accept the user-guide prompt and confirm that the guide opens.\n   The main screen's user-guide button should also be easy to find and open the guide.\n\nThese are proposed review steps, not a statement that runtime testing has passed."
+}
