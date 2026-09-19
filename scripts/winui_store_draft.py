@@ -308,6 +308,8 @@ def execute(api, args, result):
     if args.command == "snapshot":
         return
     if draft and draft.get("status") != "PendingCommit":
+        result.update(submissionStatus=draft.get("status"),
+                      submissionStatusDetailsKeys=sorted((draft.get("statusDetails") or {}).keys()))
         raise ValueError("Existing submission is not PendingCommit; leave the active submission untouched.")
     if args.command == "edit" and not draft:
         raise ValueError("No existing draft. Create one by uploading a package first.")
