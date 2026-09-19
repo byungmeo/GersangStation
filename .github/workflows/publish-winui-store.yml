@@ -109,7 +109,8 @@ jobs:
           path: ${{ runner.temp }}/store-package
       - name: Preserve draft and stage changes (no certification submission)
         run: |
-          $arguments = @('scripts/winui_store_draft.py', $env:RELEASE_MODE, '--output', "$env:RUNNER_TEMP/store-draft")
+          $scriptCommand = if ($env:RELEASE_MODE -eq 'submit') { 'commit' } else { $env:RELEASE_MODE }
+          $arguments = @('scripts/winui_store_draft.py', $scriptCommand, '--output', "$env:RUNNER_TEMP/store-draft")
           if ($env:RELEASE_MODE -eq 'upload') {
             $packages = @(Get-ChildItem "$env:RUNNER_TEMP/store-package" -Recurse -File | Where-Object { $_.Extension -in '.msixupload', '.appxupload' })
             if ($packages.Count -ne 1) { throw 'Expected exactly one Store upload package.' }
@@ -140,9 +141,15 @@ jobs:
           $receipt = "$env:RUNNER_TEMP/store-draft/result.json"
           if (Test-Path -LiteralPath $receipt) {
             $result = Get-Content -Raw -LiteralPath $receipt | ConvertFrom-Json
-            "Draft operation: $($result.stage). Metadata saved: $($result.metadataSaved). Files transferred: $($result.filesTransferred)." >> $env:GITHUB_STEP_SUMMARY
+            "Store operation: $($result.stage). Metadata saved: $($result.metadataSaved). Files transferred: $($result.filesTransferred). Submitted: $($result.submitted). Status: $($result.status)." >> $env:GITHUB_STEP_SUMMARY
+            if ($result.submitted -eq $true) {
+              'Store commit accepted; processing/certification status is reported by the submission status above.' >> $env:GITHUB_STEP_SUMMARY
+            } else {
+              'Store processing and certification were NOT started. API staging is not proof of a validated, portal-ready package. See docs/winui-store-release.md before editing an API-created draft in Partner Center.' >> $env:GITHUB_STEP_SUMMARY
+            }
+          } else {
+            'No Store operation receipt was produced.' >> $env:GITHUB_STEP_SUMMARY
           }
-          'Store processing and certification were NOT started. API staging is not proof of a validated, portal-ready package. See docs/winui-store-release.md before editing an API-created draft in Partner Center.' >> $env:GITHUB_STEP_SUMMARY
       # Snapshots can contain private certification notes. Keep only a minimal receipt.
       - uses: actions/upload-artifact@v4
         if: always()
