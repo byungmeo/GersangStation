@@ -16,6 +16,11 @@ on:
           - build
           - upload
           - edit
+          - submit
+      submission_id:
+        description: 'Exact PendingCommit submission ID; required for submit and never inferred'
+        required: false
+        type: string
       changes_file:
         description: 'Optional repo-relative edit-plan JSON from snapshot. No secrets.'
         required: false
@@ -34,7 +39,7 @@ concurrency:
 
 jobs:
   package:
-    if: inputs.mode != 'edit'
+    if: inputs.mode == 'build' || inputs.mode == 'upload'
     runs-on: windows-2025-vs2026
     timeout-minutes: 45
     defaults:
@@ -74,7 +79,7 @@ jobs:
 
   stage-draft:
     # An edit deliberately skips package; upload requires its successful result.
-    if: ${{ !cancelled() && (inputs.mode == 'edit' || (inputs.mode == 'upload' && needs.package.result == 'success')) }}
+    if: ${{ !cancelled() && (inputs.mode == 'edit' || inputs.mode == 'submit' || (inputs.mode == 'upload' && needs.package.result == 'success')) }}
     needs: package
     runs-on: windows-latest
     timeout-minutes: 30
@@ -91,6 +96,7 @@ jobs:
       RELEASE_MODE: ${{ inputs.mode }}
       CHANGES_FILE: ${{ inputs.changes_file }}
       RELEASE_CONTENT_FILE: ${{ inputs.release_content_file }}
+      SUBMISSION_ID: ${{ inputs.submission_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -110,6 +116,10 @@ jobs:
             $arguments += @('--package', $packages[0].FullName, '--version', $env:RELEASE_VERSION)
           }
           if ($env:CHANGES_FILE -and $env:RELEASE_CONTENT_FILE) { throw 'Choose changes_file or release_content_file, not both.' }
+          if ($env:RELEASE_MODE -eq 'submit') {
+            if (-not $env:SUBMISSION_ID) { throw 'submission_id is required for submit.' }
+            $arguments += @('--submission-id', $env:SUBMISSION_ID)
+          }
           $metadataFile = if ($env:CHANGES_FILE) { $env:CHANGES_FILE } else { $env:RELEASE_CONTENT_FILE }
           if ($metadataFile) {
             if ([IO.Path]::IsPathRooted($metadataFile)) { throw 'Metadata file must be repository-relative.' }

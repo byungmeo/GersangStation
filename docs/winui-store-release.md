@@ -45,8 +45,11 @@ Run **Prepare WinUI Store release** (`publish-winui-store.yml`).
 | `build` | Build Release/x64 with VS MSBuild; inspect actual nested MSIX identities; retain artifacts. Requires `version`. |
 | `upload` | Build, then add the package to the existing API-editable draft (or create one if absent). Duplicate packages fail. Optional `changes_file` or `release_content_file` applies metadata in the same operation. No commit. |
 | `edit` | Save metadata from `changes_file` or `release_content_file` to an existing draft, without building or uploading another package. `version` is unused. No commit. |
+| `submit` | Commit one exact `PendingCommit` submission ID after a separate explicit request. No build or metadata edit; records the resulting Store processing status. |
 
-`draft` and `submit` have been removed to avoid ambiguous or unintended actions.
+`draft` has been removed to avoid ambiguous actions. `submit` is deliberately
+separate and requires the exact submission ID plus an explicit request; it never
+infers or selects a submission automatically.
 The previous `msstore publish` implementation has been removed because it can
 replace an existing pending draft with a copy of the last published submission.
 
