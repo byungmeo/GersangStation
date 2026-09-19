@@ -1,5 +1,7 @@
 # WinUI Store release preparation
 
+Applies only to WinUI Store package preparation and draft edits. Ordinary app changes and WinForms releases do not run this workflow.
+
 The default release path builds the MSIX upload package, preserves the current
 Store draft, adds the new package, and saves requested metadata changes.
 **It never submits the app for certification.** The `publish` skill compares the
@@ -91,12 +93,12 @@ or certification submission is attempted.
 
 ## Local build and package inspection
 
-Use an empty output directory and a new four-part version ending in `.0`:
+From the repository root in a Visual Studio developer shell, use an empty output directory and a new four-part version ending in `.0`:
 
 ```powershell
 ./scripts/Build-WinUIStorePackage.ps1 -Version 2.0.10.0 `
   -OutputDirectory C:/Temp/GersangStation-Store-2.0.10 `
-  -MSBuildPath 'C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe'
+  -MSBuildPath (Get-Command MSBuild.exe).Source
 
 python scripts/winui_store_package.py `
   --package C:/Temp/GersangStation-Store-2.0.10/GersangStation_2.0.10.0_x64_bundle.msixupload `
@@ -237,7 +239,7 @@ present in the draft; do not mark an incomplete paginated list as complete.
 
 ## Using the publish skill
 
-The personal skill is installed at `~/.codex/skills/publish/SKILL.md`.
+If available, the optional personal skill lives at `~/.codex/skills/publish/SKILL.md`; it is not version-controlled with this repository. The workflow and scripts above also work directly.
 Example: **`$publish 2.0.10.0 출시 준비해줘`**.
 
 It verifies the last *published WinUI* version, resolves the corresponding source

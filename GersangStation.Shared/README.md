@@ -1,6 +1,6 @@
 # GersangStation.Shared
 
-UI-independent code shared by the Windows 10 1809+ x64 applications. The name omits `.Windows` because Windows is already the repository's only supported desktop platform.
+UI-independent code shared by the Windows 10 1809+ x64 applications. Applies to this library and its host adapters only. It must not depend on either UI project; hosts choose presentation and logging.
 
 ## Mouse confinement
 
@@ -21,3 +21,9 @@ WinUI uses default options. WinForms calls `ConfigureCompatibility` for its opti
 - Diagnostic observers must dispatch asynchronously and must not throw. A synchronous observer failure is written to `Trace` so it cannot escape through native input callbacks.
 
 Both hosts ignore delayed stop diagnostics after monitoring has already restarted. Neither host changes the shared module's failure classification.
+
+## Input safety and validation
+
+Keep hook callbacks nonblocking and pass input through while state is busy. Do not hold the service lock while invoking the next hook or writing cursor position. Revalidate HWND, PID, and service state before correction; release/stop invalidates pending observations. Rearm after outside drags only when dragging ends and the cursor re-enters.
+
+Geometry and cursor reads/writes use a consistent per-monitor-aware DPI context. For engine changes, verify both hosts; for adapter-only changes, verify the affected host. Check the actual loaded binary and client edges at the affected DPI, Alt escape, outside/title-bar dragging, foreground changes, and WinForms hotkeys/first-window mode as applicable. Build success alone does not verify cursor behavior.
