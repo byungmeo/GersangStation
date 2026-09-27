@@ -87,18 +87,20 @@
 		<None Remove="Assets\Icons\Wide310x150Logo.scale-200.png" />
 		<None Remove="Assets\Icons\Wide310x150Logo.scale-400.png" />
 		<None Remove="Controls\Tile.xaml" />
+		<None Remove="Controls\HorizontalScrollContainer.xaml" />
 		<None Remove="Controls\ValidatedTextBox.xaml" />
-		<None Remove="Main\Setting\AccountSettingPage.xaml" />
-		<None Remove="Main\Setting\AdvancedSettingPage.xaml" />
-		<None Remove="Main\Setting\DeveloperToolPage.xaml" />
-		<None Remove="Main\Setting\GameInstallSettingPage.xaml" />
-		<None Remove="Main\Setting\GamePatchSettingPage.xaml" />
-		<None Remove="Main\Setting\InstallPathSettingPage.xaml" />
-		<None Remove="Main\Setting\ProgramInfoPage.xaml" />
-		<None Remove="Main\Setting\SettingPage.xaml" />
-		<None Remove="Main\MainWindow.xaml" />
-		<None Remove="Main\StationPage.xaml" />
-		<None Remove="Main\WebViewPage.xaml" />
+		<None Remove="Pages\Settings\AccountSettingPage.xaml" />
+		<None Remove="Pages\Settings\AdvancedSettingPage.xaml" />
+		<None Remove="Pages\Settings\DeveloperToolPage.xaml" />
+		<None Remove="Pages\Settings\GameInstallSettingPage.xaml" />
+		<None Remove="Pages\Settings\GamePatchSettingPage.xaml" />
+		<None Remove="Pages\Settings\InstallPathSettingPage.xaml" />
+		<None Remove="Pages\Settings\ProgramInfoPage.xaml" />
+		<None Remove="Pages\Settings\SettingPage.xaml" />
+		<None Remove="MainWindow.xaml" />
+		<None Remove="Pages\HomePage.xaml" />
+		<None Remove="Pages\BrowserPage.xaml" />
+		<None Remove="Controls\SidebarView.xaml" />
 		<None Remove="Package.appxmanifest" />
 		<None Remove="Package.dev.appxmanifest" />
 	</ItemGroup>
@@ -112,6 +114,7 @@
 
 	<ItemGroup>
 		<Content Include="Assets\Policies\privacy-policy.txt" />
+		<Content Include="Assets\Fonts\NotoSansKR-VariableFont_wght.ttf" />
 		<Content Include="..\metadata\winui-links-manifest.json">
 			<Link>metadata\winui-links-manifest.json</Link>
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -135,6 +138,7 @@
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
 	<ItemGroup>
+		<PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" />
 	</ItemGroup>
@@ -143,72 +147,75 @@
         <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\BehaviorSettingPage.xaml">
+		<Page Update="Pages\Settings\BehaviorSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\ProgramInfoPage.xaml">
+		<Page Update="Pages\Settings\ProgramInfoPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\GameInstallSettingPage.xaml">
+		<Page Update="Pages\Settings\GameInstallSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\DeveloperToolPage.xaml">
+		<Page Update="Pages\Settings\DeveloperToolPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\AdvancedSettingPage.xaml">
+		<Page Update="Pages\Settings\AdvancedSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\NotificationSettingPage.xaml">
+		<Page Update="Pages\Settings\NotificationSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\ServerInstallPathSettingPage.xaml">
+		<Page Update="Pages\Settings\ServerInstallPathSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\GamePatchSettingPage.xaml">
+		<Page Update="Pages\Settings\GamePatchSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\InstallPathSettingPage.xaml">
+		<Page Update="Pages\Settings\InstallPathSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\AccountSettingPage.xaml">
+		<Page Update="Pages\Settings\AccountSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\Setting\SettingPage.xaml">
+		<Page Update="Pages\Settings\SettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\MainWindow.xaml">
+		<Page Update="MainWindow.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\StationPage.xaml">
+		<Page Update="Pages\HomePage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Main\WebViewPage.xaml">
+		<Page Update="Pages\BrowserPage.xaml">
+			<Generator>MSBuild:Compile</Generator>
+		</Page>
+		<Page Update="Controls\SidebarView.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
@@ -222,6 +229,9 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Page Update="Controls\Tile.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	  <Page Update="Controls\HorizontalScrollContainer.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>
 	</ItemGroup>

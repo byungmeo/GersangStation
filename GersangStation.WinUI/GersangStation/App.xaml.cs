@@ -125,15 +125,12 @@ namespace GersangStation
             appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
             if (appWindow.Presenter is OverlappedPresenter presenter)
             {
-                presenter.PreferredMinimumWidth = 1600;
-                presenter.PreferredMinimumHeight = 900;
+                presenter.PreferredMinimumWidth = 1280;
+                presenter.PreferredMinimumHeight = 720;
                 presenter.IsResizable = true;
                 presenter.IsMaximizable = true;
                 presenter.IsMinimizable = true;
             }
-
-            appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
-            appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         }                           
             
         /// <summary>

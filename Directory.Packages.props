@@ -10,6 +10,7 @@
     <PackageVersion Include="System.IO.Hashing" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageVersion Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.2.251219" />
     <PackageVersion Include="HtmlAgilityPack" Version="1.12.4" />
   </ItemGroup>
 </Project>

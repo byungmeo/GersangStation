@@ -81,53 +81,6 @@
                 BorderThickness="1"
                 CornerRadius="12">
                 <StackPanel Spacing="12">
-                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="오픈소스 라이선스" />
-                    <TextBlock
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="거상스테이션은 다음 오픈소스 구성 요소를 기반으로 동작합니다."
-                        TextWrapping="WrapWholeWords" />
-                    <StackPanel Spacing="8">
-                        <TextBlock Text=".NET Runtime - MIT License" />
-                        <TextBlock Text="WinUI 3 - MIT License" />
-                        <TextBlock Text="Windows App SDK - MIT License" />
-                        <TextBlock Text="7-Zip (7za.exe) - GNU LGPL, BSD 3-Clause, unRAR restriction" />
-                    </StackPanel>
-                    <TextBlock
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="각 라이선스 전문은 해당 프로젝트 저장소에서 확인하실 수 있습니다."
-                        TextWrapping="WrapWholeWords" />
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <HyperlinkButton
-                            Click="LinkButton_Click"
-                            Content=".NET"
-                            Tag="oss.dotnet.runtime.license" />
-                        <HyperlinkButton
-                            Click="LinkButton_Click"
-                            Content="WinUI 3"
-                            Tag="oss.winui3.license" />
-                        <HyperlinkButton
-                            Click="LinkButton_Click"
-                            Content="Windows App SDK"
-                            Tag="oss.windows-app-sdk.license" />
-                        <HyperlinkButton
-                            Click="LinkButton_Click"
-                            Content="7-Zip"
-                            Tag="oss.7zip.home" />
-                    </StackPanel>
-                    <TextBlock
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="이 제품에는 7-Zip의 7za.exe가 포함되어 있습니다."
-                        TextWrapping="WrapWholeWords" />
-                </StackPanel>
-            </Border>
-
-            <Border
-                Padding="20"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
-                <StackPanel Spacing="12">
                     <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="개인정보처리방침" />
                     <TextBlock Text="비밀번호는 Windows 자격 증명 관리자를 통해 로컬에 저장되며, 운영체제의 보안 메커니즘에 의해 보호됩니다." TextWrapping="WrapWholeWords" />
                     <TextBlock Text="계정 정보는 로컬 저장을 기본으로 하며, 개발자 서버 또는 제3자에게 별도로 제공 및 저장하지 않습니다." TextWrapping="WrapWholeWords" />

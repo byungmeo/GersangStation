@@ -11,8 +11,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -31,8 +33,14 @@ public sealed record WebViewPageNavigationParameter(string Url);
 public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposable
 {
     private const string FavoriteFaviconFolderName = "browser-favicons";
+    private const int TargetWebViewInnerWidth = 1152;
     private bool _initialized;
+    private bool _isApplyingViewportMetrics;
+    private bool _isViewportMetricsOverridden;
+    private bool _isWebViewInitialized;
+    private bool _viewportMetricsUpdatePending;
     private MainWindow? _shellWindow;
+    private CoreWebView2? _viewportMetricsCoreWebView;
     private bool _isCurrentPageFavorited;
     private bool _suppressUserSelectionChanged;
     private WebViewManager? _webviewManager;
@@ -60,6 +68,91 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
             OnPropertyChanged(nameof(FavoritesVisibility));
             UpdateFavoriteButtonState();
         };
+    }
+
+    private async void WebView_CoreWebView2Initialized(WebView2 sender, CoreWebView2InitializedEventArgs args)
+    {
+        _isWebViewInitialized = args.Exception is null && sender.CoreWebView2 is not null;
+        if (_isWebViewInitialized && sender.CoreWebView2 is { } coreWebView2)
+        {
+            _viewportMetricsCoreWebView = coreWebView2;
+            coreWebView2.NavigationCompleted += WebView_NavigationCompleted;
+        }
+
+        await ApplyViewportMetricsAsync();
+    }
+
+    private async void WebView_SizeChanged(object sender, SizeChangedEventArgs e)
+        => await ApplyViewportMetricsAsync();
+
+    private async void WebView_NavigationCompleted(object sender, CoreWebView2NavigationCompletedEventArgs e)
+        => await ApplyViewportMetricsAsync();
+
+    /// <summary>
+    /// DevUI와 동일하게 1152 CSS px 뷰포트를 좁은 창에 축소해 표시합니다.
+    /// </summary>
+    private async Task ApplyViewportMetricsAsync()
+    {
+        if (!_isWebViewInitialized || WebView.CoreWebView2 is null)
+            return;
+
+        if (_isApplyingViewportMetrics)
+        {
+            _viewportMetricsUpdatePending = true;
+            return;
+        }
+
+        _isApplyingViewportMetrics = true;
+        try
+        {
+            do
+            {
+                _viewportMetricsUpdatePending = false;
+                double widthInDips = WebView.ActualWidth;
+                double heightInDips = WebView.ActualHeight;
+                if (widthInDips <= 0 || heightInDips <= 0)
+                    return;
+
+                if (widthInDips >= TargetWebViewInnerWidth)
+                {
+                    if (_isViewportMetricsOverridden)
+                    {
+                        await WebView.CoreWebView2.CallDevToolsProtocolMethodAsync(
+                            "Emulation.clearDeviceMetricsOverride",
+                            "{}");
+                        _isViewportMetricsOverridden = false;
+                    }
+
+                    continue;
+                }
+
+                double contentScale = widthInDips / TargetWebViewInnerWidth;
+                int heightInCssPixels = Math.Max(1, (int)Math.Round(heightInDips / contentScale));
+                string parameters = JsonSerializer.Serialize(new
+                {
+                    width = TargetWebViewInnerWidth,
+                    height = heightInCssPixels,
+                    deviceScaleFactor = 0,
+                    mobile = false,
+                    scale = contentScale,
+                    dontSetVisibleSize = true
+                });
+
+                await WebView.CoreWebView2.CallDevToolsProtocolMethodAsync(
+                    "Emulation.setDeviceMetricsOverride",
+                    parameters);
+                _isViewportMetricsOverridden = true;
+            }
+            while (_viewportMetricsUpdatePending);
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"WebView2 viewport scaling failed: {exception}");
+        }
+        finally
+        {
+            _isApplyingViewportMetrics = false;
+        }
     }
 
     private void ApplyAccounts(IEnumerable<Account> accounts)
@@ -122,6 +215,12 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
 
     public void Dispose()
     {
+        if (_viewportMetricsCoreWebView is not null)
+        {
+            _viewportMetricsCoreWebView.NavigationCompleted -= WebView_NavigationCompleted;
+            _viewportMetricsCoreWebView = null;
+        }
+
         if (_webviewManager is not null)
         {
             _webviewManager.SourceChanged -= OnSourceChanged;

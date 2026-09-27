@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page x:Class="GersangStation.Main.Setting.PlaceholderSettingPage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Padding="24,24,24,40">
+        <StackPanel Spacing="12">
+            <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" />
+            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="이 설정은 현재 준비 중입니다." />
+        </StackPanel>
+    </Grid>
+</Page>

@@ -9,9 +9,11 @@
     d:DataContext="{d:DesignInstance Type=local:SettingPage}"
     mc:Ignorable="d">
 
+    <Grid>
     <NavigationView
         x:Name="SettingNavigationView"
         Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+        Visibility="Collapsed"
         IsBackButtonVisible="Collapsed"
         IsPaneToggleButtonVisible="False"
         IsSettingsVisible="False"
@@ -154,8 +156,13 @@
                     </StackPanel>
                 </NavigationViewItem.Content>
             </NavigationViewItem>
+            <NavigationViewItem x:Name="NavigationViewItem_OpenSourceLicense" Tag="OpenSourceLicensePage" />
+            <NavigationViewItem x:Name="NavigationViewItem_General" Tag="GeneralSettingPage" />
+            <NavigationViewItem x:Name="NavigationViewItem_GameExtension" Tag="GameExtensionPlaceholder" />
+            <NavigationViewItem x:Name="NavigationViewItem_Appearance" Tag="AppearancePlaceholder" />
+            <NavigationViewItem x:Name="NavigationViewItem_Browser" Tag="BrowserPlaceholder" />
         </NavigationView.FooterMenuItems>
-
-        <Frame x:Name="ContentFrame" IsNavigationStackEnabled="False" />
     </NavigationView>
+    <Frame x:Name="ContentFrame" IsNavigationStackEnabled="False" />
+    </Grid>
 </Page>

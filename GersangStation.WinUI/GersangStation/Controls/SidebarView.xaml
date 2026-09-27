@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="GersangStation.Controls.SidebarView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    HorizontalAlignment="Stretch">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer
+            x:Name="SidebarScrollViewer"
+            Grid.Row="0"
+            HorizontalScrollBarVisibility="Disabled"
+            HorizontalScrollMode="Disabled">
+            <Grid HorizontalAlignment="Stretch">
+                <Grid x:Name="SidebarSettingPanel" Visibility="Collapsed">
+                    <ListView x:Name="SettingNavListView" SelectionChanged="SettingNavListView_SelectionChanged">
+                        <ListView.Resources>
+                            <Style
+                                x:Key="GroupHeaderListViewItemStyle"
+                                BasedOn="{StaticResource DefaultListViewItemStyle}"
+                                TargetType="ListViewItem">
+                                <Setter Property="IsHitTestVisible" Value="False" />
+                                <Setter Property="IsTabStop" Value="False" />
+                                <Setter Property="FontSize" Value="12" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Setter Property="MinHeight" Value="28" />
+                                <Setter Property="Margin" Value="0,12,0,0" />
+                            </Style>
+                        </ListView.Resources>
+                        <ListView.ItemContainerStyle>
+                            <Style BasedOn="{StaticResource DefaultListViewItemStyle}" TargetType="ListViewItem">
+                                <Setter Property="MinHeight" Value="32" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.Header>
+                            <Button
+                                x:Name="ReturnToControlButton"
+                                MinHeight="36"
+                                Margin="4,0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Click="ReturnToControlButton_Click"
+                                Style="{ThemeResource SubtleButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon
+                                        FontSize="{Binding FontSize, ElementName=ReturnToControlButton}"
+                                        Glyph="&#xF71A;"
+                                        RenderTransformOrigin="0.5,0.5">
+                                        <FontIcon.RenderTransform>
+                                            <ScaleTransform ScaleX="-1" />
+                                        </FontIcon.RenderTransform>
+                                    </FontIcon>
+                                    <TextBlock Text="설정 나가기" />
+                                </StackPanel>
+                            </Button>
+                        </ListView.Header>
+                        <ListView.Items>
+                            <ListViewItem Content="게임 설정" Style="{ThemeResource GroupHeaderListViewItemStyle}" />
+                            <ListViewItem x:Name="AccountListViewItem" Tag="Account">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=AccountListViewItem}" Glyph="&#xE779;" />
+                                    <TextBlock Text="계정" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="GameInstallListViewItem" Tag="GameInstall">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=GameInstallListViewItem}" Glyph="&#xE7FC;" />
+                                    <TextBlock Text="게임 설치" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="InstallPathListViewItem" Tag="InstallPath">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=InstallPathListViewItem}" Glyph="&#xE838;" />
+                                    <TextBlock Text="설치 및 경로 지정" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="GamePatchListViewItem" Tag="GamePatch">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=GamePatchListViewItem}" Glyph="&#xE896;" />
+                                    <TextBlock Text="패치" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="GameExtensionListViewItem" Tag="GameExtension">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=GameExtensionListViewItem}" Glyph="&#xEA86;" />
+                                    <TextBlock Text="부가기능" />
+                                </StackPanel>
+                            </ListViewItem>
+
+                            <ListViewItem Content="프로그램 설정" Style="{ThemeResource GroupHeaderListViewItemStyle}" />
+                            <ListViewItem x:Name="GeneralListViewItem" Tag="General">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=GeneralListViewItem}" Glyph="&#xE713;" />
+                                    <TextBlock Text="일반" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="AlarmListViewItem" Tag="Notification">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=AlarmListViewItem}" Glyph="&#xEA8F;" />
+                                    <TextBlock Text="알림" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="AppearanceListViewItem" Tag="Appearance">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=AppearanceListViewItem}" Glyph="&#xE771;" />
+                                    <TextBlock Text="모양" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="BrowserListViewItem" Tag="Browser">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=BrowserListViewItem}" Glyph="&#xE774;" />
+                                    <TextBlock Text="브라우저" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="DeveloperSettingsListViewItem" Tag="Developer">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=DeveloperSettingsListViewItem}" Glyph="&#xE950;" />
+                                    <TextBlock Text="개발자 도구" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="AdvancedListViewItem" Tag="Advanced">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=AdvancedListViewItem}" Glyph="&#xE713;" />
+                                    <TextBlock Text="고급 설정" />
+                                </StackPanel>
+                            </ListViewItem>
+
+                            <ListViewItem Content="기타" Style="{ThemeResource GroupHeaderListViewItemStyle}" />
+                            <ListViewItem x:Name="OpenSourceLicenseListViewItem" Tag="OpenSourceLicense">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=OpenSourceLicenseListViewItem}" Glyph="&#xF000;" />
+                                    <TextBlock Text="오픈소스 라이선스" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="InformationListViewItem" Tag="ProgramInfo">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=InformationListViewItem}" Glyph="&#xE946;" />
+                                    <TextBlock Text="프로그램 정보" />
+                                </StackPanel>
+                            </ListViewItem>
+                        </ListView.Items>
+                    </ListView>
+                </Grid>
+
+                <Grid x:Name="SidebarControlPanel">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <ListView
+                        x:Name="NavListView"
+                        Grid.Row="0"
+                        Padding="4,0,4,4"
+                        BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,0,1"
+                        SelectedIndex="0"
+                        SelectionChanged="NavListView_SelectionChanged"
+                        SelectionMode="Single">
+                        <ListView.Header>
+                            <TextBlock
+                                Margin="12"
+                                FontSize="18"
+                                FontWeight="Bold"
+                                Text="거상 스테이션 Store Edition" />
+                        </ListView.Header>
+                        <ListView.Items>
+                            <ListViewItem x:Name="HomePageListViewItem" Tag="Home">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=HomePageListViewItem}" Glyph="&#xE80F;" />
+                                    <TextBlock Text="홈" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="BrowserPageListViewItem" Tag="Browser">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=BrowserPageListViewItem}" Glyph="&#xE774;" />
+                                    <TextBlock Text="브라우저" />
+                                </StackPanel>
+                            </ListViewItem>
+                        </ListView.Items>
+                        <ListView.Footer>
+                            <Button
+                                x:Name="SettingPageButton"
+                                MinHeight="36"
+                                Margin="4,0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                Click="SettingPageButton_Click"
+                                Style="{ThemeResource SubtleButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=SettingPageButton}" Glyph="&#xE713;" />
+                                    <TextBlock Text="설정" />
+                                </StackPanel>
+                            </Button>
+                        </ListView.Footer>
+                    </ListView>
+
+                    <StackPanel
+                        Grid.Row="1"
+                        Padding="16,8,8,8"
+                        BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}"
+                        BorderThickness="0,0,0,1"
+                        Orientation="Vertical"
+                        Spacing="8">
+                        <RadioButtons
+                            Header="게임 서버"
+                            MaxColumns="3"
+                            SelectedIndex="{Binding SelectedServerIndex, Mode=TwoWay}"
+                            SelectionChanged="ServerSelectRadioButtons_SelectionChanged">
+                            <RadioButtons.Resources>
+                                <Style BasedOn="{StaticResource DefaultRadioButtonStyle}" TargetType="RadioButton">
+                                    <Setter Property="MinWidth" Value="0" />
+                                    <Setter Property="Margin" Value="0,0,4,0" />
+                                </Style>
+                            </RadioButtons.Resources>
+                            <RadioButton MinWidth="0" Content="본섭" />
+                            <RadioButton MinWidth="0" Content="테섭" />
+                            <RadioButton MinWidth="0" Content="천라" />
+                        </RadioButtons>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Text="{Binding VersionStatusText}"
+                                TextTrimming="CharacterEllipsis" />
+                            <Button
+                                x:Name="ClientSettingPageNavigateButton"
+                                Grid.Column="1"
+                                Click="ClientSettingPageNavigateButton_Click"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                Visibility="{Binding ClientSettingButtonVisibility}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=ClientSettingPageNavigateButton}" Glyph="&#xE713;" />
+                                    <TextBlock Text="설정" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                x:Name="GameVersionCheckButton"
+                                Grid.Column="1"
+                                Click="RefreshVersionButton_Click"
+                                Style="{ThemeResource SubtleButtonStyle}"
+                                Visibility="{Binding RefreshVersionButtonVisibility}">
+                                <FontIcon FontSize="{Binding FontSize, ElementName=GameVersionCheckButton}" Glyph="&#xE895;" />
+                            </Button>
+                            <Button
+                                x:Name="GamePatchButton"
+                                Grid.Column="1"
+                                Click="PatchButton_Click"
+                                Style="{ThemeResource AccentButtonStyle}"
+                                Visibility="{Binding PatchButtonVisibility}">
+                                <FontIcon FontSize="{Binding FontSize, ElementName=GamePatchButton}" Glyph="&#xE896;" />
+                            </Button>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel
+                        Grid.Row="2"
+                        Padding="16,8,8,8"
+                        Orientation="Vertical"
+                        Spacing="16">
+                        <ComboBox
+                            HorizontalAlignment="Stretch"
+                            Header="계정 프리셋"
+                            ItemsSource="{Binding PresetNumbers}"
+                            SelectedIndex="{Binding SelectedPreset, Mode=TwoWay}" />
+                        <StackPanel Orientation="Vertical" Spacing="8">
+                            <StackPanel.Resources>
+                                <Style BasedOn="{StaticResource DefaultComboBoxStyle}" TargetType="ComboBox">
+                                    <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                </Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="ColumnSpacing" Value="4" />
+                                </Style>
+                            </StackPanel.Resources>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox
+                                    x:Name="Client1AccountComboBox"
+                                    DisplayMemberPath="DisplayName"
+                                    Header="메인 클라이언트"
+                                    ItemsSource="{Binding AccountSelectionOptions}"
+                                    SelectedValue="{Binding SelectedAccount1Id, Mode=TwoWay}"
+                                    SelectedValuePath="Id" />
+                                <Button
+                                    x:Name="Client1BrowserButton"
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom">
+                                    <FontIcon Glyph="&#xF8A5;" />
+                                </Button>
+                                <Button
+                                    x:Name="Client1ExecuteButton"
+                                    Grid.Column="2"
+                                    VerticalAlignment="Bottom"
+                                    Click="Account1ExecuteButton_Click"
+                                    Style="{ThemeResource AccentButtonStyle}">
+                                    <FontIcon Glyph="&#xE768;" />
+                                </Button>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox
+                                    x:Name="Client2AccountComboBox"
+                                    DisplayMemberPath="DisplayName"
+                                    Header="2번 클라이언트"
+                                    ItemsSource="{Binding AccountSelectionOptions}"
+                                    SelectedValue="{Binding SelectedAccount2Id, Mode=TwoWay}"
+                                    SelectedValuePath="Id" />
+                                <Button
+                                    x:Name="Client2BrowserButton"
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom">
+                                    <FontIcon Glyph="&#xF8A5;" />
+                                </Button>
+                                <Button
+                                    x:Name="Client2ExecuteButton"
+                                    Grid.Column="2"
+                                    VerticalAlignment="Bottom"
+                                    Click="Account2ExecuteButton_Click"
+                                    Style="{ThemeResource AccentButtonStyle}">
+                                    <FontIcon Glyph="&#xE768;" />
+                                </Button>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox
+                                    x:Name="Client3AccountComboBox"
+                                    DisplayMemberPath="DisplayName"
+                                    Header="3번 클라이언트"
+                                    ItemsSource="{Binding AccountSelectionOptions}"
+                                    SelectedValue="{Binding SelectedAccount3Id, Mode=TwoWay}"
+                                    SelectedValuePath="Id" />
+                                <Button
+                                    x:Name="Client3BrowserButton"
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom">
+                                    <FontIcon Glyph="&#xF8A5;" />
+                                </Button>
+                                <Button
+                                    x:Name="Client3ExecuteButton"
+                                    Grid.Column="2"
+                                    VerticalAlignment="Bottom"
+                                    Click="Account3ExecuteButton_Click"
+                                    Style="{ThemeResource AccentButtonStyle}">
+                                    <FontIcon Glyph="&#xE768;" />
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+
+        <Grid
+            Grid.Row="1"
+            Height="56"
+            Padding="16,8,8,8"
+            BorderBrush="{ThemeResource SurfaceStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0"
+            ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock
+                VerticalAlignment="Center"
+                FontWeight="Bold"
+                Text="앱 버전" />
+            <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Text="{Binding CurrentAppVersionText}" />
+            <Button
+                x:Name="AppUpdateInstallButton"
+                Grid.Column="2"
+                VerticalAlignment="Center"
+                Click="AppUpdateInstallButton_Click"
+                FontSize="14"
+                IsEnabled="{Binding StoreUpdateButtonEnabled}"
+                Style="{ThemeResource AccentButtonStyle}"
+                Visibility="{Binding StoreUpdateButtonVisibility}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="{Binding FontSize, ElementName=AppUpdateInstallButton}" Glyph="&#xE896;" />
+                    <TextBlock Text="업데이트" />
+                </StackPanel>
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>

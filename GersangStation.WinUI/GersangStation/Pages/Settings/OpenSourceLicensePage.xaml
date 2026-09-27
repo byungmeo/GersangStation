@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page x:Class="GersangStation.Main.Setting.OpenSourceLicensePage" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer>
+        <StackPanel Padding="24,24,24,40" Spacing="20">
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="오픈소스 라이선스" />
+            <Border Padding="20" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="12">
+                <StackPanel Spacing="12">
+                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="사용 구성 요소" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="거상스테이션은 다음 오픈소스 구성 요소를 기반으로 동작합니다." TextWrapping="WrapWholeWords" />
+                    <StackPanel Spacing="8">
+                        <TextBlock Text=".NET Runtime - MIT License" />
+                        <TextBlock Text="WinUI 3 - MIT License" />
+                        <TextBlock Text="Windows App SDK - MIT License" />
+                        <TextBlock Text="7-Zip (7za.exe) - GNU LGPL, BSD 3-Clause, unRAR restriction" />
+                    </StackPanel>
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="각 라이선스 전문은 해당 프로젝트 저장소에서 확인하실 수 있습니다." TextWrapping="WrapWholeWords" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <HyperlinkButton Click="LinkButton_Click" Content=".NET" Tag="oss.dotnet.runtime.license" />
+                        <HyperlinkButton Click="LinkButton_Click" Content="WinUI 3" Tag="oss.winui3.license" />
+                        <HyperlinkButton Click="LinkButton_Click" Content="Windows App SDK" Tag="oss.windows-app-sdk.license" />
+                        <HyperlinkButton Click="LinkButton_Click" Content="7-Zip" Tag="oss.7zip.home" />
+                    </StackPanel>
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="이 제품에는 7-Zip의 7za.exe가 포함되어 있습니다." TextWrapping="WrapWholeWords" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

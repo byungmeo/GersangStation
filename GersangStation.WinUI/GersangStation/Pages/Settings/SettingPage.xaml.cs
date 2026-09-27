@@ -16,11 +16,16 @@ public enum SettingSection
     GamePatch,
     GameInstall,
     Notification,
+    General,
+    GameExtension,
+    Appearance,
+    BrowserSettings,
     Behavior,
     Execution,
     Advanced,
     DeveloperTool,
-    ProgramInfo
+    ProgramInfo,
+    OpenSourceLicense
 }
 
 public sealed class GamePatchSettingNavigationParameter
@@ -51,11 +56,16 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         {"GersangStation.Main.Setting.GamePatchSettingPage", typeof(GersangStation.Main.Setting.GamePatchSettingPage)},
         {"GersangStation.Main.Setting.GameInstallSettingPage", typeof(GersangStation.Main.Setting.GameInstallSettingPage)},
         {"GersangStation.Main.Setting.NotificationSettingPage", typeof(GersangStation.Main.Setting.NotificationSettingPage)},
+        {"GersangStation.Main.Setting.GeneralSettingPage", typeof(GersangStation.Main.Setting.GeneralSettingPage)},
+        {"GersangStation.Main.Setting.GameExtensionPlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
+        {"GersangStation.Main.Setting.AppearancePlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
+        {"GersangStation.Main.Setting.BrowserPlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
         {"GersangStation.Main.Setting.BehaviorSettingPage", typeof(GersangStation.Main.Setting.BehaviorSettingPage)},
         {"GersangStation.Main.Setting.ExecutionSettingPage", typeof(GersangStation.Main.Setting.ExecutionSettingPage)},
         {"GersangStation.Main.Setting.AdvancedSettingPage", typeof(GersangStation.Main.Setting.AdvancedSettingPage)},
         {"GersangStation.Main.Setting.DeveloperToolPage", typeof(GersangStation.Main.Setting.DeveloperToolPage)},
         {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
+        {"GersangStation.Main.Setting.OpenSourceLicensePage", typeof(GersangStation.Main.Setting.OpenSourceLicensePage)},
         // {"GersangStation.Main.Setting.BrowserSettingPage", typeof(GersangStation.Main.Setting.BrowserSettingPage)},
         // {"GersangStation.Main.Setting.SponsorPage", typeof(GersangStation.Main.Setting.SponsorPage)},
         // {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
@@ -138,6 +148,10 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             SettingSection.GamePatch => NavigationViewItem_GamePatch,
             SettingSection.GameInstall => NavigationViewItem_GameInstall,
             SettingSection.Notification => NavigationViewItem_Notification,
+            SettingSection.General => NavigationViewItem_General,
+            SettingSection.GameExtension => NavigationViewItem_GameExtension,
+            SettingSection.Appearance => NavigationViewItem_Appearance,
+            SettingSection.BrowserSettings => NavigationViewItem_Browser,
             SettingSection.Behavior => NavigationViewItem_Behavior,
             SettingSection.Execution => NavigationViewItem_Execution,
             SettingSection.Account => NavigationViewItem_Account,
@@ -145,6 +159,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             SettingSection.Advanced => NavigationViewItem_Advanced,
             SettingSection.DeveloperTool => NavigationViewItem_Developer,
             SettingSection.ProgramInfo => NavigationViewItem_ProgramInfo,
+            SettingSection.OpenSourceLicense => NavigationViewItem_OpenSourceLicense,
             _ => throw new ArgumentOutOfRangeException(nameof(section), section, null),
         };
 
@@ -156,7 +171,14 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         SettingNavigationView.SelectedItem = selectedItem;
         _suppressNavSelectionChanged = false;
 
-        ContentFrame.Navigate(pageType, pageParameter);
+        object? resolvedParameter = pageParameter ?? section switch
+        {
+            SettingSection.GameExtension => "부가기능",
+            SettingSection.Appearance => "모양 설정",
+            SettingSection.BrowserSettings => "브라우저 설정",
+            _ => null
+        };
+        ContentFrame.Navigate(pageType, resolvedParameter);
     }
 
     /// <summary>
@@ -190,11 +212,13 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             Type t when t == typeof(GamePatchSettingPage) => NavigationViewItem_GamePatch,
             Type t when t == typeof(GameInstallSettingPage) => NavigationViewItem_GameInstall,
             Type t when t == typeof(NotificationSettingPage) => NavigationViewItem_Notification,
+            Type t when t == typeof(GeneralSettingPage) => NavigationViewItem_General,
             Type t when t == typeof(BehaviorSettingPage) => NavigationViewItem_Behavior,
             Type t when t == typeof(ExecutionSettingPage) => NavigationViewItem_Execution,
             Type t when t == typeof(AdvancedSettingPage) => NavigationViewItem_Advanced,
             Type t when t == typeof(DeveloperToolPage) => NavigationViewItem_Developer,
             Type t when t == typeof(ProgramInfoPage) => NavigationViewItem_ProgramInfo,
+            Type t when t == typeof(OpenSourceLicensePage) => NavigationViewItem_OpenSourceLicense,
             _ => null
         };
 

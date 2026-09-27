@@ -187,9 +187,14 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     public string SelectedAccount1Id { get => GetId(0); set => SetId(0, value); }
     public string SelectedAccount2Id { get => GetId(1); set => SetId(1, value); }
     public string SelectedAccount3Id { get => GetId(2); set => SetId(2, value); }
-    public string CurrentAppVersionText { get; private set; } = "현재 버전: 확인 중";
+    public IReadOnlyList<string> PresetNumbers { get; } = ["프리셋1", "프리셋2", "프리셋3", "프리셋4"];
+    public string CurrentAppVersionText { get; private set; } = CreateCurrentVersionText();
     public Visibility StoreUpdateButtonVisibility { get; private set; } = Visibility.Collapsed;
     public bool StoreUpdateButtonEnabled { get; private set; } = true;
+    public string VersionStatusText { get; private set; } = "게임 버전을 확인하는 중입니다.";
+    public Visibility ClientSettingButtonVisibility { get; private set; } = Visibility.Collapsed;
+    public Visibility RefreshVersionButtonVisibility { get; private set; } = Visibility.Visible;
+    public Visibility PatchButtonVisibility { get; private set; } = Visibility.Collapsed;
 
     /// <summary>
     /// 현재 프리셋에서 지정된 계정 ID를 반환합니다.
@@ -385,22 +390,16 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     /// <summary>
-    /// 1클라 실행 버튼을 처리합니다.
+    /// DevUI 스타일 사이드바에서 기존 실행 검증 경로를 재사용합니다.
     /// </summary>
-    private async void Button_Client1_Execute_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-        => await HandleClientExecuteAsync(0, SelectedAccount1Id);
-
-    /// <summary>
-    /// 2클라 실행 버튼을 처리합니다.
-    /// </summary>
-    private async void Button_Client2_Execute_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-        => await HandleClientExecuteAsync(1, SelectedAccount2Id);
-
-    /// <summary>
-    /// 3클라 실행 버튼을 처리합니다.
-    /// </summary>
-    private async void Button_Client3_Execute_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-        => await HandleClientExecuteAsync(2, SelectedAccount3Id);
+    public Task ExecuteClientAsync(int clientIndex)
+        => HandleClientExecuteAsync(clientIndex, clientIndex switch
+        {
+            0 => SelectedAccount1Id,
+            1 => SelectedAccount2Id,
+            2 => SelectedAccount3Id,
+            _ => throw new ArgumentOutOfRangeException(nameof(clientIndex))
+        });
 
     /// <summary>
     /// 슬롯별 클라이언트 경로와 실행 정책을 검사한 뒤 실제 게임 시작을 요청합니다.
@@ -922,54 +921,82 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         GameServer server = AppDataManager.SelectedServer = (GameServer)SelectedServerIndex;
         string clientInstallPath = GetClientInstallPath(server, clientIndex: 0);
         bool hasValidInstallPath = GameClientHelper.IsValidInstallPath(server, clientInstallPath, out _);
-        ClientVersionReadResult currentVersionResult = hasValidInstallPath
-            ? PatchManager.TryGetCurrentClientVersion(clientInstallPath)
-            : new ClientVersionReadResult(
-                false,
-                null,
-                clientInstallPath?.Trim() ?? string.Empty,
-                ClientVersionReadFailureStage.ResolveVsnPath,
-                null);
-        int currentVersion = currentVersionResult.Success ? currentVersionResult.Version ?? 0 : 0;
+        if (!hasValidInstallPath)
+        {
+            SetVersionStatus(
+                "게임 버전 확인 실패",
+                clientSettingVisible: Visibility.Visible,
+                refreshVisible: Visibility.Collapsed,
+                patchVisible: Visibility.Collapsed);
+            return;
+        }
 
-        int latestVersion = 0;
-        bool latestVersionAvailable = false;
+        ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(clientInstallPath);
+        int currentVersion = currentVersionResult.Success ? currentVersionResult.Version ?? 0 : 0;
+        if (!currentVersionResult.Success || currentVersion <= 0)
+        {
+            SetVersionStatus(
+                "게임 버전 확인 실패",
+                clientSettingVisible: Visibility.Visible,
+                refreshVisible: Visibility.Collapsed,
+                patchVisible: Visibility.Collapsed);
+            return;
+        }
+
+        int latestVersion;
         try
         {
             latestVersion = await PatchManager.GetLatestServerVersionAsync(server);
-            latestVersionAvailable = true;
+            if (latestVersion <= 0)
+                throw new InvalidOperationException("최신 게임 버전이 올바르지 않습니다.");
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[StationPage] UpdateServer latest version check failed. Server: {server}, Error: {ex}");
+            SetVersionStatus(
+                "최신 버전 확인 실패",
+                clientSettingVisible: Visibility.Collapsed,
+                refreshVisible: Visibility.Visible,
+                patchVisible: Visibility.Collapsed);
+            return;
         }
 
-        string currentStr = !hasValidInstallPath
-            ? "확인 필요"
-            : currentVersionResult.Success && currentVersion > 0
-            ? $"v{currentVersion}"
-            : currentVersionResult.Exception is FileNotFoundException
-                ? "확인 필요"
-                : "확인 실패";
-        string latestStr = latestVersionAvailable && latestVersion > 0 ? $"v{latestVersion}" : "확인 실패";
-        TextBlock_Version.Text = $"설치 버전: {currentStr} | 최신 버전: {latestStr}";
-        bool canCompareVersions = currentVersionResult.Success && currentVersion > 0 && latestVersionAvailable && latestVersion > 0;
-        bool needsPatch = canCompareVersions && currentVersion < latestVersion;
-        Button_RefreshVersion.Visibility = needsPatch ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
-        Button_Patch.Visibility = needsPatch ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        if (currentVersion < latestVersion)
+        {
+            SetVersionStatus(
+                "게임 패치가 필요합니다.",
+                clientSettingVisible: Visibility.Collapsed,
+                refreshVisible: Visibility.Collapsed,
+                patchVisible: Visibility.Visible);
+            return;
+        }
+
+        SetVersionStatus(
+            "현재 게임이 최신 버전입니다.",
+            clientSettingVisible: Visibility.Collapsed,
+            refreshVisible: Visibility.Visible,
+            patchVisible: Visibility.Collapsed);
     }
 
-    private async void ComboBox_Server_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void SetVersionStatus(
+        string statusText,
+        Visibility clientSettingVisible,
+        Visibility refreshVisible,
+        Visibility patchVisible)
     {
-        await UpdateServer();
+        VersionStatusText = statusText;
+        ClientSettingButtonVisibility = clientSettingVisible;
+        RefreshVersionButtonVisibility = refreshVisible;
+        PatchButtonVisibility = patchVisible;
+        OnPropertyChanged(nameof(VersionStatusText));
+        OnPropertyChanged(nameof(ClientSettingButtonVisibility));
+        OnPropertyChanged(nameof(RefreshVersionButtonVisibility));
+        OnPropertyChanged(nameof(PatchButtonVisibility));
     }
 
-    private async void Button_RefreshVersion_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-    {
-        await UpdateServer();
-    }
+    public Task RefreshServerAsync() => UpdateServer();
 
-    private void Button_Patch_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    public void NavigateToPatchSetting()
     {
         if (App.CurrentWindow is MainWindow window)
         {
@@ -985,7 +1012,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private static string CreateCurrentVersionText()
     {
         PackageVersion version = Package.Current.Id.Version;
-        return $"현재 버전: v{version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+        return $"v{version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
     }
 
     /// <summary>
@@ -1010,10 +1037,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         OnPropertyChanged(nameof(StoreUpdateButtonEnabled));
     }
 
-    /// <summary>
-    /// 사용자가 Store 업데이트 설치를 시작합니다.
-    /// </summary>
-    private async void Button_UpdateFromStore_Click(object sender, RoutedEventArgs e)
+    public async Task InstallStoreUpdateAsync()
     {
         if (App.CurrentWindow is not MainWindow window)
             return;
@@ -1023,10 +1047,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         SyncStoreUpdateState(window);
     }
 
-    /// <summary>
-    /// 현재 선택된 서버에 대응하는 클라이언트 경로 설정 화면으로 이동합니다.
-    /// </summary>
-    private void Button_ClientSetting_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    public void NavigateToInstallPathSetting()
     {
         if (App.CurrentWindow is not MainWindow window)
             return;
@@ -1244,15 +1265,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         RefreshClientAvailabilityState();
     }
 
-    private void Button_Client1_Cancel_Click(object sender, RoutedEventArgs e)
-        => CancelClientStart(0);
-
-    private void Button_Client2_Cancel_Click(object sender, RoutedEventArgs e)
-        => CancelClientStart(1);
-
-    private void Button_Client3_Cancel_Click(object sender, RoutedEventArgs e)
-        => CancelClientStart(2);
-
     /// <summary>
     /// 2클라 또는 3클라 슬롯이 설정상 사용 대상인지 판별합니다.
     /// </summary>
@@ -1371,8 +1383,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     public IReadOnlyList<StationEventThumbnailItem> EventItems { get; private set; } = [];
     public IReadOnlyList<StationHomepageNoticeItem> HomepageNoticeItems { get; private set; } = [];
     public IReadOnlyList<StationHomepageNoticeItem> GersangStationNoticeItems { get; private set; } = [];
-    private const double ThumbnailAspectWidth = 1920.0;
-    private const double ThumbnailAspectHeight = 610.0;
     public Visibility EventPeriodOverlayVisibility { get; private set; } = Visibility.Collapsed;
     public Visibility HomepageNoticeEmptyVisibility => HomepageNoticeItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility GersangStationNoticeEmptyVisibility => GersangStationNoticeItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -1854,7 +1864,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 이벤트 썸네일 테두리 강조 상태를 적용합니다.
+    /// 이벤트 배너 위 강조 전용 오버레이 테두리 상태를 적용합니다.
     /// </summary>
     private void SetEventUrgencyHighlight(bool highlighted)
     {
@@ -1862,7 +1872,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             return;
 
         _isEventUrgencyHighlighted = highlighted;
-        Border_EventBorder.BorderBrush = highlighted ? new SolidColorBrush(Colors.IndianRed) : (Brush)Application.Current.Resources["ControlStrongFillColorDefaultBrush"];
+        EventUrgencyOverlayBorder.BorderBrush = highlighted
+            ? new SolidColorBrush(Colors.IndianRed)
+            : new SolidColorBrush(Colors.Transparent);
     }
 
     /// <summary>
@@ -1930,15 +1942,5 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         window.NavigateToWebViewPage(url);
     }
 
-    private void Grid_ThumbnailHost_SizeChanged(object sender, Microsoft.UI.Xaml.SizeChangedEventArgs e)
-    {
-        double width = e.NewSize.Width;
-        if (width <= 0)
-        {
-            return;
-        }
-
-        Grid_ThumbnailHost.Height = width * ThumbnailAspectHeight / ThumbnailAspectWidth;
-    }
     #endregion EventFlipView
 }

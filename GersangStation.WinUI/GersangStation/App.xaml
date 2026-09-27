@@ -10,7 +10,12 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <!--  Other merged dictionaries here  -->
             </ResourceDictionary.MergedDictionaries>
-            <!--  Other app resources here  -->
+            <FontFamily x:Key="AppFontFamily">ms-appx:///Assets/Fonts/NotoSansKR-VariableFont_wght.ttf#Noto Sans KR</FontFamily>
+            <FontFamily x:Key="ContentControlThemeFontFamily">ms-appx:///Assets/Fonts/NotoSansKR-VariableFont_wght.ttf#Noto Sans KR</FontFamily>
+            <FontFamily x:Key="TextControlThemeFontFamily">ms-appx:///Assets/Fonts/NotoSansKR-VariableFont_wght.ttf#Noto Sans KR</FontFamily>
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

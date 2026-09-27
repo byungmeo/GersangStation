@@ -1,4 +1,5 @@
 using Core;
+using GersangStation.Controls;
 using GersangStation.Diagnostics;
 using GersangStation.Main.Setting;
 using GersangStation.Services;
@@ -53,8 +54,6 @@ public sealed partial class MainWindow : Window
     private bool _isStartupFlowRunning;
     private bool _skipDefaultInitialNavigation;
     private MainShellSection _activeSection = MainShellSection.Station;
-    private bool _suppressNavSelectionChanged = false;
-    private SelectorBarItem _previousSelectedItem;
     private StoreContext? _storeContext;
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
     private Task? _storeUpdateAvailabilityTask;
@@ -76,8 +75,6 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
         Activated += OnActivated;
         Root.Loaded += OnRootLoaded;
         Closed += OnClosed;
@@ -94,7 +91,6 @@ public sealed partial class MainWindow : Window
             ExitFromTray);
 
         InitializeShellFrames();
-        _previousSelectedItem = MainSelectorBar.SelectedItem;
     }
 
     internal void RegisterWebViewManager(WebViewManager webviewManager)
@@ -111,6 +107,8 @@ public sealed partial class MainWindow : Window
         StationFrame.Navigate(typeof(StationPage), this);
         BrowserFrame.Navigate(typeof(WebViewPage), this);
         SettingFrame.Navigate(typeof(SettingPage));
+        if (StationFrame.Content is StationPage stationPage)
+            Sidebar.SetHomePage(stationPage);
         ShowSection(MainShellSection.Station);
     }
 
@@ -307,7 +305,6 @@ public sealed partial class MainWindow : Window
         }
 
         ShowSection(MainShellSection.Station);
-        SyncShellSelection(SelectorBarItem_Browser, isSelected: false);
     }
 
     /// <summary>
@@ -402,31 +399,15 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async void MainSelectorBar_SelectionChanged(Microsoft.UI.Xaml.Controls.SelectorBar sender, Microsoft.UI.Xaml.Controls.SelectorBarSelectionChangedEventArgs args)
-    {
-        if (_suppressNavSelectionChanged)
-            return;
+    private void Sidebar_HomeRequested(object sender, EventArgs e)
+        => ShowSection(MainShellSection.Station)
+            .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(Sidebar_HomeRequested)}");
 
-        SelectorBarItem selectedItem = sender.SelectedItem;
-        MainShellSection targetSection = GetSectionFromSelectorItem(selectedItem);
-        if (targetSection == _activeSection)
-            return;
+    private void Sidebar_BrowserRequested(object sender, EventArgs e)
+        => NavigateToWebViewPage();
 
-        if (GetActiveRootPage() is IConfirmLeave confirm)
-        {
-            bool canLeave = await confirm.ConfirmLeaveAsync();
-            if (!canLeave)
-            {
-                _suppressNavSelectionChanged = true;
-                sender.SelectedItem = _previousSelectedItem;
-                _suppressNavSelectionChanged = false;
-                return;
-            }
-        }
-
-        await ShowSectionAsync(targetSection);
-        _previousSelectedItem = sender.SelectedItem;
-    }
+    private void Sidebar_SettingRequested(object sender, SidebarSettingRequestedEventArgs e)
+        => NavigateToSettingPage(e.Section);
 
     /// <summary>
     /// 메인 셸에서 기본 설정 페이지를 엽니다.
@@ -446,7 +427,6 @@ public sealed partial class MainWindow : Window
 
         ShowSection(MainShellSection.Setting)
             .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(NavigateToSettingPage)}");
-        SyncShellSelection(SelectorBarItem_Setting, isSelected: true);
     }
 
     /// <summary>
@@ -472,7 +452,6 @@ public sealed partial class MainWindow : Window
     {
         ShowSection(MainShellSection.Browser)
             .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(NavigateToWebViewPage)}");
-        SyncShellSelection(SelectorBarItem_Browser, isSelected: true);
     }
 
     /// <summary>
@@ -560,6 +539,7 @@ public sealed partial class MainWindow : Window
     {
         if (_activeSection == section)
         {
+            UpdateSidebarMode(section);
             await ActivateSectionAsync(section);
             return;
         }
@@ -569,33 +549,20 @@ public sealed partial class MainWindow : Window
         StationFrame.Visibility = section == MainShellSection.Station ? Visibility.Visible : Visibility.Collapsed;
         BrowserFrame.Visibility = section == MainShellSection.Browser ? Visibility.Visible : Visibility.Collapsed;
         SettingFrame.Visibility = section == MainShellSection.Setting ? Visibility.Visible : Visibility.Collapsed;
+        UpdateSidebarMode(section);
         UpdateWebViewMemoryMode();
         await ActivateSectionAsync(section);
     }
 
-    /// <summary>
-    /// 선택된 메인 탭 상태를 실제 섹션과 맞춥니다.
-    /// </summary>
-    private void SyncShellSelection(SelectorBarItem item, bool isSelected)
+    private void UpdateSidebarMode(MainShellSection section)
     {
-        _suppressNavSelectionChanged = true;
-        MainSelectorBar.SelectedItem = isSelected ? item : MainSelectorBar.Items[0];
-        _suppressNavSelectionChanged = false;
-        _previousSelectedItem = MainSelectorBar.SelectedItem;
-    }
-
-    /// <summary>
-    /// SelectorBar 항목을 메인 셸 섹션으로 변환합니다.
-    /// </summary>
-    private static MainShellSection GetSectionFromSelectorItem(SelectorBarItem item)
-    {
-        return item.Text switch
+        if (section == MainShellSection.Setting)
         {
-            "메인" => MainShellSection.Station,
-            "브라우저" => MainShellSection.Browser,
-            "설정" => MainShellSection.Setting,
-            _ => throw new InvalidOperationException($"Unknown main shell selector item: {item.Text}")
-        };
+            Sidebar.ShowSettings();
+            return;
+        }
+
+        Sidebar.ShowControl(browserSelected: section == MainShellSection.Browser);
     }
 
     /// <summary>
@@ -651,7 +618,7 @@ public sealed partial class MainWindow : Window
     private static string CreateCurrentVersionText()
     {
         PackageVersion version = Package.Current.Id.Version;
-        return $"현재 버전: v{version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+        return $"v{version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
     }
 
     /// <summary>
@@ -817,8 +784,8 @@ public sealed partial class MainWindow : Window
     private void ShowStoreUpdateReadyTeachingTip()
     {
         ShowStoreUpdateTeachingTip(
-            "업데이트 준비 완료",
-            "업데이트 파일을 모두 다운로드했습니다. 지금 설치하고 앱을 다시 시작할 수 있습니다.",
+            "앱 업데이트 준비 완료",
+            "지금 바로 업데이트 하시겠습니까?",
             "업데이트",
             StoreUpdateTeachingTipAction.Install);
     }
@@ -836,7 +803,7 @@ public sealed partial class MainWindow : Window
         StoreUpdateTeachingTip.Title = title;
         StoreUpdateTeachingTip.Subtitle = subtitle;
         StoreUpdateTeachingTip.ActionButtonContent = actionButtonContent;
-        StoreUpdateTeachingTip.CloseButtonContent = "닫기";
+        StoreUpdateTeachingTip.CloseButtonContent = "나중에";
         StoreUpdateTeachingTip.IsLightDismissEnabled = false;
         StoreUpdateTeachingTip.IsOpen = true;
     }
