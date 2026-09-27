@@ -69,5 +69,24 @@
                 IsNavigationStackEnabled="False"
                 Visibility="Collapsed" />
         </Grid>
+
+        <Border
+            x:Name="StoreUpdateTeachingTipAnchor"
+            Grid.Row="1"
+            Width="1"
+            Height="1"
+            Margin="20,0,0,20"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            IsHitTestVisible="False" />
+
+        <TeachingTip
+            x:Name="StoreUpdateTeachingTip"
+            Grid.RowSpan="2"
+            ActionButtonClick="StoreUpdateTeachingTip_ActionButtonClick"
+            CloseButtonContent="닫기"
+            IsLightDismissEnabled="True"
+            PlacementMargin="0"
+            PreferredPlacement="BottomLeft"/>
     </Grid>
 </Window>

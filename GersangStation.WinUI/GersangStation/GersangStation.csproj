@@ -23,6 +23,9 @@
 		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
 		<Configurations>Debug;Release;Dev</Configurations>
+		<AppxBundle>Always</AppxBundle>
+		<AppxBundlePlatforms>x64</AppxBundlePlatforms>
+		<AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)' == 'Dev'">
 		<!-- Dev 구성에서도 Visual Studio가 Debug와 동일한 Hot Reload/XAML 진단 정보를 사용할 수 있게 맞춥니다. -->

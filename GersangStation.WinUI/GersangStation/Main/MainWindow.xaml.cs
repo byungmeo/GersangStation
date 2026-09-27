@@ -32,12 +32,10 @@ public sealed partial class MainWindow : Window
         Setting
     }
 
-    private sealed class StoreUpdateDialogProgressView
+    private enum StoreUpdateTeachingTipAction
     {
-        public required TextBlock MessageTextBlock { get; init; }
-        public required ProgressBar ProgressBar { get; init; }
-        public required TextBlock StatusTextBlock { get; init; }
-        public required TextBlock ProgressTextBlock { get; init; }
+        None,
+        Install
     }
 
     public WebViewManager? WebViewManager { get; private set; }
@@ -46,14 +44,12 @@ public sealed partial class MainWindow : Window
     public WindowSwitchService WindowSwitchService { get; }
 
     private readonly SystemTrayService _systemTrayService;
-    private readonly StoreUpdateFallbackManifestService _storeUpdateFallbackManifestService = new();
     private bool _hasHandledInitialNavigation;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
     private bool _isCloseConfirmationPending;
     private bool _isWindowActive = true;
-    private bool _isStoreUpdateDialogOpen;
-    private bool _hasShownStartupStoreUpdateDialog;
+    private bool _hasStartedStartupStoreUpdateCheck;
     private bool _isStartupFlowRunning;
     private bool _skipDefaultInitialNavigation;
     private MainShellSection _activeSection = MainShellSection.Station;
@@ -62,13 +58,18 @@ public sealed partial class MainWindow : Window
     private StoreContext? _storeContext;
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
     private Task? _storeUpdateAvailabilityTask;
-    private StoreUpdateManualFallbackContext? _persistentStoreUpdateFallbackContext;
     private bool _hasSimulatedStoreUpdateAvailable;
+    private bool _isStoreUpdateDownloadInProgress;
+    private bool _isStoreUpdateReady;
+    private bool _isStoreUpdateManualInstallAvailable;
+    private bool _isStoreUpdateInstallInProgress;
+    private StoreUpdateTeachingTipAction _storeUpdateTeachingTipAction;
 
     public string CurrentAppVersionText { get; } = CreateCurrentVersionText();
     public bool HasAvailableStoreUpdate => _availableStoreUpdates.Count > 0 || _hasSimulatedStoreUpdateAvailable;
-    public bool ShouldShowStoreUpdateButton => HasAvailableStoreUpdate || _persistentStoreUpdateFallbackContext is not null;
-    public bool StoreUpdateButtonEnabled => !_isStoreUpdateDialogOpen && ShouldShowStoreUpdateButton;
+    public bool ShouldShowStoreUpdateButton => _isStoreUpdateReady || _isStoreUpdateManualInstallAvailable;
+    public bool StoreUpdateButtonEnabled
+        => (_isStoreUpdateReady || _isStoreUpdateManualInstallAvailable) && !_isStoreUpdateInstallInProgress;
     public event EventHandler? StoreUpdateStateChanged;
 
     public MainWindow()
@@ -199,8 +200,8 @@ public sealed partial class MainWindow : Window
 
             await HandleStartupFirstRunPromptAsync();
             HandleInitialNavigation();
-            EnsureStartupStoreUpdateDialogAsync()
-                .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(EnsureStartupStoreUpdateDialogAsync)}");
+            EnsureStartupStoreUpdateAsync()
+                .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(EnsureStartupStoreUpdateAsync)}");
         }
         finally
         {
@@ -310,32 +311,25 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 현재 Store 업데이트 상태를 보장하고, 시작 시 한 번만 설치 여부를 묻는 대화 상자를 표시합니다.
+    /// 시작 시 Store 업데이트를 확인하고, 가능한 경우 사용자 입력 없이 다운로드를 준비합니다.
     /// </summary>
-    private async Task EnsureStartupStoreUpdateDialogAsync()
+    private async Task EnsureStartupStoreUpdateAsync()
     {
-        if (_hasShownStartupStoreUpdateDialog || Root.XamlRoot is null)
+        if (_hasStartedStartupStoreUpdateCheck || Root.XamlRoot is null)
             return;
 
-        _hasShownStartupStoreUpdateDialog = true;
+        _hasStartedStartupStoreUpdateCheck = true;
 
-        // Loaded 직후 한 프레임 양보해 첫 렌더링과 입력 반응이 스토어 체크에 막히지 않게 합니다.
+        // Loaded 직후 한 프레임 양보해 첫 렌더링과 입력 반응이 Store 확인에 막히지 않게 합니다.
         await Task.Yield();
+        await EnsureStoreUpdateAvailabilityLoadedAsync();
 
-#if DEV
-        await EnsureStoreUpdateAvailabilityLoadedAsync();
-        return;
-#else
-        await EnsureStoreUpdateAvailabilityLoadedAsync();
         if (HasAvailableStoreUpdate)
         {
-            await ShowStoreUpdateDialogAsync();
+            await PrepareStoreUpdateAsync();
             return;
         }
 
-        if (_persistentStoreUpdateFallbackContext is not null)
-            await ShowManualStoreUpdateGuidanceAsync(_persistentStoreUpdateFallbackContext);
-#endif
     }
 
     /// <summary>
@@ -676,7 +670,6 @@ public sealed partial class MainWindow : Window
     {
 #if DEV
         _availableStoreUpdates = [];
-        _persistentStoreUpdateFallbackContext = null;
         _hasSimulatedStoreUpdateAvailable = true;
         NotifyStoreUpdateStateChanged();
         await Task.CompletedTask;
@@ -687,16 +680,11 @@ public sealed partial class MainWindow : Window
             _storeContext ??= CreateStoreContext();
             _availableStoreUpdates = await _storeContext.GetAppAndOptionalStorePackageUpdatesAsync();
             _hasSimulatedStoreUpdateAvailable = false;
-            _persistentStoreUpdateFallbackContext = _availableStoreUpdates.Count == 0
-                ? await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.NoStoreUpdatesReported)
-                : null;
         }
         catch (Exception ex)
         {
             _availableStoreUpdates = [];
             _hasSimulatedStoreUpdateAvailable = false;
-            _persistentStoreUpdateFallbackContext =
-                await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.StoreCheckFailed);
             Debug.WriteLine($"[MainWindow] Store update availability check failed.{Environment.NewLine}{ex}");
         }
         finally
@@ -707,171 +695,163 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 시작 대화 상자나 StationPage 버튼에서 공용 Store 업데이트 설치 대화 상자를 엽니다.
+    /// Store 업데이트를 사용자 입력 없이 백그라운드에서 다운로드하고, 준비 완료 시 TeachingTip으로 알립니다.
     /// </summary>
-    public Task ShowStoreUpdateDialogAsync()
+    private async Task PrepareStoreUpdateAsync()
     {
-        return DispatcherQueue.RunOrEnqueueAsync(ShowStoreUpdateDialogCoreAsync);
-    }
-
-    /// <summary>
-    /// Store 업데이트 설치 대화 상자를 UI 스레드에서 생성하고 표시합니다.
-    /// </summary>
-    private async Task ShowStoreUpdateDialogCoreAsync()
-    {
-        if (_isStoreUpdateDialogOpen || Root.XamlRoot is null)
+        if (!HasAvailableStoreUpdate || _isStoreUpdateDownloadInProgress || _isStoreUpdateReady || _isStoreUpdateInstallInProgress)
             return;
 
-        await EnsureStoreUpdateAvailabilityLoadedAsync();
-        if (!HasAvailableStoreUpdate)
-        {
-            if (_persistentStoreUpdateFallbackContext is not null)
-                await ShowManualStoreUpdateGuidanceAsync(_persistentStoreUpdateFallbackContext);
-
-            return;
-        }
-
-        _isStoreUpdateDialogOpen = true;
+        _isStoreUpdateDownloadInProgress = true;
+        _isStoreUpdateManualInstallAvailable = false;
         NotifyStoreUpdateStateChanged();
-
-        bool shouldExitAfterConfirmation = false;
-        bool isWaitingForCompletionConfirmation = false;
-        bool allowClose = true;
-        StoreUpdateManualFallbackContext? installFailureFallbackContext = null;
-        StoreUpdateDialogProgressView progressView = CreateStoreUpdateDialogProgressView();
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = Root.XamlRoot,
-            Title = "업데이트 설치",
-            Content = CreateStoreUpdateDialogContent(progressView),
-            PrimaryButtonText = "설치",
-            SecondaryButtonText = "수동 설치",
-            CloseButtonText = "나중에",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        dialog.PrimaryButtonClick += async (sender, args) =>
-        {
-            if (isWaitingForCompletionConfirmation)
-            {
-                shouldExitAfterConfirmation = true;
-                return;
-            }
-
-            ContentDialogButtonClickDeferral deferral = args.GetDeferral();
-            args.Cancel = true;
-
-            try
-            {
-                allowClose = false;
-                installFailureFallbackContext = null;
-                ConfigureStoreUpdateDialogForInstall(dialog, progressView);
-
-#if DEV
-                await SimulateStoreUpdateInstallAsync(progressView);
-                _hasSimulatedStoreUpdateAvailable = false;
-                _availableStoreUpdates = [];
-                NotifyStoreUpdateStateChanged();
-
-                isWaitingForCompletionConfirmation = true;
-                allowClose = true;
-                ConfigureStoreUpdateDialogForCompletion(dialog, progressView);
-                return;
-#else
-                StorePackageUpdateResult result = await InstallStoreUpdatesAsync(progress =>
-                {
-                    _ = DispatcherQueue.TryEnqueue(() => UpdateStoreUpdateDialogProgress(progressView, progress));
-                });
-
-                if (string.Equals(result.OverallState.ToString(), "Completed", StringComparison.OrdinalIgnoreCase))
-                {
-                    _availableStoreUpdates = [];
-                    NotifyStoreUpdateStateChanged();
-
-                    isWaitingForCompletionConfirmation = true;
-                    allowClose = true;
-                    ConfigureStoreUpdateDialogForCompletion(dialog, progressView);
-                    return;
-                }
-
-                allowClose = true;
-                installFailureFallbackContext =
-                    string.Equals(result.OverallState.ToString(), "Canceled", StringComparison.OrdinalIgnoreCase)
-                        ? null
-                        : await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.StoreInstallFailed);
-                ConfigureStoreUpdateDialogForRetry(
-                    dialog,
-                    progressView,
-                    BuildStoreUpdateRetryMessage(result.OverallState.ToString(), installFailureFallbackContext));
-#endif
-            }
-            catch (Exception ex)
-            {
-                allowClose = true;
-                Debug.WriteLine($"[MainWindow] Store update install failed.{Environment.NewLine}{ex}");
-                installFailureFallbackContext =
-                    await TryBuildManualUpdateFallbackContextAsync(StoreUpdateManualFallbackReason.StoreInstallFailed);
-                ConfigureStoreUpdateDialogForRetry(
-                    dialog,
-                    progressView,
-                    BuildStoreUpdateInstallFailureMessage(ex, installFailureFallbackContext));
-            }
-            finally
-            {
-                deferral.Complete();
-            }
-        };
-
-        dialog.SecondaryButtonClick += async (sender, args) =>
-        {
-            ContentDialogButtonClickDeferral deferral = args.GetDeferral();
-
-            try
-            {
-                installFailureFallbackContext = null;
-                await OpenManualStoreUpdateHelpAsync();
-            }
-            finally
-            {
-                deferral.Complete();
-            }
-        };
-
-        dialog.Closing += (sender, args) =>
-        {
-            if (!allowClose)
-                args.Cancel = true;
-        };
 
         try
         {
-            ContentDialogResult result = await dialog.ShowManagedAsync();
-            if (shouldExitAfterConfirmation && result == ContentDialogResult.Primary)
-                ForceCloseForInstalledStoreUpdate();
+#if DEV
+            await SimulateStoreUpdateDownloadAsync();
+#else
+            _storeContext ??= CreateStoreContext();
+            if (!_storeContext.CanSilentlyDownloadStorePackageUpdates)
+            {
+                _isStoreUpdateManualInstallAvailable = true;
+                return;
+            }
 
-            if (installFailureFallbackContext is not null)
-                await ShowManualStoreUpdateGuidanceAsync(installFailureFallbackContext);
+            StorePackageUpdateResult result = await _storeContext
+                .TrySilentDownloadStorePackageUpdatesAsync(_availableStoreUpdates)
+                .AsTask();
+
+            if (!IsStoreUpdateCompleted(result))
+            {
+                _isStoreUpdateManualInstallAvailable = true;
+                return;
+            }
+#endif
+
+            _isStoreUpdateManualInstallAvailable = false;
+            _isStoreUpdateReady = true;
+            NotifyStoreUpdateStateChanged();
+            ShowStoreUpdateReadyTeachingTip();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MainWindow] Silent Store update download failed.{Environment.NewLine}{ex}");
+            _isStoreUpdateManualInstallAvailable = true;
         }
         finally
         {
-            _isStoreUpdateDialogOpen = false;
+            _isStoreUpdateDownloadInProgress = false;
             NotifyStoreUpdateStateChanged();
         }
     }
 
     /// <summary>
-    /// Store 업데이트 다운로드와 설치를 요청하고 진행 상황을 콜백으로 전달합니다.
+    /// 준비된 Store 업데이트를 조용히 설치하고, 설치 요청이 완료되면 앱을 종료합니다.
     /// </summary>
-    private async Task<StorePackageUpdateResult> InstallStoreUpdatesAsync(Action<StorePackageUpdateStatus> progressCallback)
-    {
-        ArgumentNullException.ThrowIfNull(progressCallback);
+    internal Task InstallStoreUpdateAsync()
+        => DispatcherQueue.RunOrEnqueueAsync(InstallStoreUpdateCoreAsync);
 
-        _storeContext ??= CreateStoreContext();
-        var progress = new Progress<StorePackageUpdateStatus>(progressCallback);
-        return await _storeContext
-            .RequestDownloadAndInstallStorePackageUpdatesAsync(_availableStoreUpdates)
-            .AsTask(progress);
+    private async Task InstallStoreUpdateCoreAsync()
+    {
+        if ((!_isStoreUpdateReady && !_isStoreUpdateManualInstallAvailable)
+            || _isStoreUpdateInstallInProgress
+            || !HasAvailableStoreUpdate)
+            return;
+
+        _isStoreUpdateInstallInProgress = true;
+        _isStoreUpdateReady = false;
+        _isStoreUpdateManualInstallAvailable = false;
+        StoreUpdateTeachingTip.IsOpen = false;
+        _storeUpdateTeachingTipAction = StoreUpdateTeachingTipAction.None;
+        NotifyStoreUpdateStateChanged();
+
+        try
+        {
+#if DEV
+            await Task.Delay(700);
+#else
+            _storeContext ??= CreateStoreContext();
+            StorePackageUpdateResult result = await _storeContext
+                .RequestDownloadAndInstallStorePackageUpdatesAsync(_availableStoreUpdates)
+                .AsTask();
+
+            if (!IsStoreUpdateCompleted(result))
+            {
+                _isStoreUpdateManualInstallAvailable = true;
+                return;
+            }
+#endif
+
+            _availableStoreUpdates = [];
+            _hasSimulatedStoreUpdateAvailable = false;
+            NotifyStoreUpdateStateChanged();
+            ForceCloseForInstalledStoreUpdate();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[MainWindow] Store update installation request failed.{Environment.NewLine}{ex}");
+            _isStoreUpdateManualInstallAvailable = true;
+        }
+        finally
+        {
+            _isStoreUpdateInstallInProgress = false;
+            NotifyStoreUpdateStateChanged();
+        }
+    }
+
+    private async void StoreUpdateTeachingTip_ActionButtonClick(TeachingTip sender, object args)
+    {
+        StoreUpdateTeachingTipAction action = _storeUpdateTeachingTipAction;
+        _storeUpdateTeachingTipAction = StoreUpdateTeachingTipAction.None;
+        sender.IsOpen = false;
+
+        switch (action)
+        {
+            case StoreUpdateTeachingTipAction.Install:
+                await InstallStoreUpdateAsync();
+                break;
+        }
+    }
+
+    private void ShowStoreUpdateReadyTeachingTip()
+    {
+        ShowStoreUpdateTeachingTip(
+            "업데이트 준비 완료",
+            "업데이트 파일을 모두 다운로드했습니다. 지금 설치하고 앱을 다시 시작할 수 있습니다.",
+            "업데이트",
+            StoreUpdateTeachingTipAction.Install);
+    }
+
+    private void ShowStoreUpdateTeachingTip(
+        string title,
+        string subtitle,
+        string actionButtonContent,
+        StoreUpdateTeachingTipAction action)
+    {
+        if (Root.XamlRoot is null)
+            return;
+
+        _storeUpdateTeachingTipAction = action;
+        StoreUpdateTeachingTip.Title = title;
+        StoreUpdateTeachingTip.Subtitle = subtitle;
+        StoreUpdateTeachingTip.ActionButtonContent = actionButtonContent;
+        StoreUpdateTeachingTip.CloseButtonContent = "닫기";
+        StoreUpdateTeachingTip.IsLightDismissEnabled = false;
+        StoreUpdateTeachingTip.IsOpen = true;
+    }
+
+    private static bool IsStoreUpdateCompleted(StorePackageUpdateResult result)
+        => string.Equals(result.OverallState.ToString(), "Completed", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// DEV 구성에서 Store 업데이트 다운로드를 사용자 입력 없이 시뮬레이션합니다.
+    /// </summary>
+    private static async Task SimulateStoreUpdateDownloadAsync()
+    {
+        await Task.Delay(350);
+        await Task.Delay(350);
+        await Task.Delay(350);
     }
 
     /// <summary>
@@ -881,271 +861,6 @@ public sealed partial class MainWindow : Window
     {
         _allowForceClose = true;
         Application.Current.Exit();
-    }
-
-    /// <summary>
-    /// Store 업데이트 설치 대화 상자용 시각 요소를 생성합니다.
-    /// </summary>
-    private static StackPanel CreateStoreUpdateDialogContent(StoreUpdateDialogProgressView progressView)
-    {
-        var stackPanel = new StackPanel
-        {
-            Spacing = 12
-        };
-
-        stackPanel.Children.Add(progressView.MessageTextBlock);
-        stackPanel.Children.Add(progressView.ProgressBar);
-        stackPanel.Children.Add(progressView.StatusTextBlock);
-        stackPanel.Children.Add(progressView.ProgressTextBlock);
-        return stackPanel;
-    }
-
-    /// <summary>
-    /// Store 업데이트 설치 대화 상자에서 재사용할 진행 표시 요소를 생성합니다.
-    /// </summary>
-    private static StoreUpdateDialogProgressView CreateStoreUpdateDialogProgressView()
-    {
-        return new StoreUpdateDialogProgressView
-        {
-            MessageTextBlock = new TextBlock
-            {
-                Text = "새 업데이트가 있습니다. 지금 설치하시겠습니까?",
-                TextWrapping = TextWrapping.WrapWholeWords
-            },
-            ProgressBar = new ProgressBar
-            {
-                Minimum = 0,
-                Maximum = 100,
-                Height = 8,
-                Visibility = Visibility.Collapsed
-            },
-            StatusTextBlock = new TextBlock
-            {
-                Visibility = Visibility.Collapsed
-            },
-            ProgressTextBlock = new TextBlock
-            {
-                Visibility = Visibility.Collapsed
-            }
-        };
-    }
-
-    /// <summary>
-    /// Dev 구성에서 Store 업데이트 설치 과정을 진행률과 함께 가볍게 시뮬레이션합니다.
-    /// </summary>
-    private static async Task SimulateStoreUpdateInstallAsync(StoreUpdateDialogProgressView progressView)
-    {
-        progressView.ProgressBar.IsIndeterminate = false;
-        progressView.StatusTextBlock.Visibility = Visibility.Visible;
-        progressView.ProgressTextBlock.Visibility = Visibility.Visible;
-
-        (double Percent, string Status)[] steps =
-        [
-            (15, "다운로드 준비 중"),
-            (45, "다운로드 중"),
-            (75, "설치 중"),
-            (100, "설치 완료")
-        ];
-
-        foreach ((double percent, string status) in steps)
-        {
-            progressView.ProgressBar.Value = percent;
-            progressView.StatusTextBlock.Text = $"상태: {status}";
-            progressView.ProgressTextBlock.Text = $"진행률: {percent:0}%";
-            await Task.Delay(350);
-        }
-    }
-
-    /// <summary>
-    /// 설치 시작 직후 대화 상자 상태를 진행 모드로 전환합니다.
-    /// </summary>
-    private static void ConfigureStoreUpdateDialogForInstall(ContentDialog dialog, StoreUpdateDialogProgressView progressView)
-    {
-        dialog.IsPrimaryButtonEnabled = false;
-        dialog.SecondaryButtonText = string.Empty;
-        dialog.CloseButtonText = string.Empty;
-        progressView.MessageTextBlock.Text = "업데이트를 설치하고 있습니다. 스토어 확인 창이 나타나면 설치를 허용해 주세요.";
-        progressView.ProgressBar.Visibility = Visibility.Visible;
-        progressView.ProgressBar.IsIndeterminate = true;
-        progressView.ProgressBar.Value = 0;
-        progressView.StatusTextBlock.Visibility = Visibility.Visible;
-        progressView.StatusTextBlock.Text = "상태: 다운로드 준비 중";
-        progressView.ProgressTextBlock.Visibility = Visibility.Visible;
-        progressView.ProgressTextBlock.Text = "진행률: 확인 중";
-    }
-
-    /// <summary>
-    /// 설치 완료 시 대화 상자 상태를 종료 안내 모드로 전환합니다.
-    /// </summary>
-    private static void ConfigureStoreUpdateDialogForCompletion(ContentDialog dialog, StoreUpdateDialogProgressView progressView)
-    {
-        dialog.PrimaryButtonText = "확인";
-        dialog.IsPrimaryButtonEnabled = true;
-        dialog.SecondaryButtonText = string.Empty;
-        dialog.CloseButtonText = string.Empty;
-        progressView.MessageTextBlock.Text = "업데이트가 완료되었습니다. 앱을 다시 실행해주세요.";
-        progressView.StatusTextBlock.Visibility = Visibility.Visible;
-        progressView.StatusTextBlock.Text = "상태: 설치 완료";
-        progressView.ProgressBar.IsIndeterminate = false;
-        progressView.ProgressBar.Value = 100;
-        progressView.ProgressTextBlock.Text = "진행률: 100%";
-    }
-
-    /// <summary>
-    /// 설치 실패 또는 취소 시 대화 상자 상태를 재시도 모드로 전환합니다.
-    /// </summary>
-    private static void ConfigureStoreUpdateDialogForRetry(
-        ContentDialog dialog,
-        StoreUpdateDialogProgressView progressView,
-        string message)
-    {
-        dialog.PrimaryButtonText = "다시 시도";
-        dialog.IsPrimaryButtonEnabled = true;
-        dialog.SecondaryButtonText = "수동 설치";
-        dialog.CloseButtonText = "닫기";
-        progressView.MessageTextBlock.Text = message;
-        progressView.StatusTextBlock.Visibility = Visibility.Visible;
-        progressView.StatusTextBlock.Text = "상태: 설치 중단";
-        progressView.ProgressBar.IsIndeterminate = false;
-    }
-
-    /// <summary>
-    /// Store 업데이트 설치 실패를 현재 대화 상자 안에서 다시 안내할 사용자 메시지로 변환합니다.
-    /// </summary>
-    private static string BuildStoreUpdateInstallFailureMessage(
-        Exception exception,
-        StoreUpdateManualFallbackContext? fallbackContext)
-    {
-        ArgumentNullException.ThrowIfNull(exception);
-
-        string detail = string.IsNullOrWhiteSpace(exception.Message)
-            ? exception.GetType().Name
-            : exception.Message.Trim();
-
-        string message =
-            "업데이트를 설치하는 중 문제가 발생했습니다. 다시 시도하거나 나중에 설치해 주세요." +
-            Environment.NewLine +
-            Environment.NewLine +
-            $"세부 정보: {detail}";
-
-        return AppendManualUpdateFallbackHint(message, fallbackContext);
-    }
-
-    /// <summary>
-    /// Store 설치 결과 문자열을 재시도 안내 문구로 변환합니다.
-    /// </summary>
-    private static string BuildStoreUpdateRetryMessage(
-        string overallState,
-        StoreUpdateManualFallbackContext? fallbackContext)
-    {
-        string message = string.Equals(overallState, "Canceled", StringComparison.OrdinalIgnoreCase)
-            ? "업데이트 설치가 취소되었습니다. 다시 시도하거나 나중에 설치할 수 있습니다."
-            : $"업데이트 설치를 완료하지 못했습니다. 상태: {overallState}";
-
-        return AppendManualUpdateFallbackHint(message, fallbackContext);
-    }
-
-    /// <summary>
-    /// 수동 업데이트 fallback 예정이 있으면 현재 안내 문구 끝에 후속 동작 힌트를 덧붙입니다.
-    /// </summary>
-    private static string AppendManualUpdateFallbackHint(
-        string message,
-        StoreUpdateManualFallbackContext? fallbackContext)
-    {
-        if (fallbackContext is null)
-            return message;
-
-        return message +
-            Environment.NewLine +
-            Environment.NewLine +
-            "현재 버전 이후 필수 업데이트가 확인되어, 이 대화 상자를 닫은 뒤 수동 업데이트 안내를 표시합니다.";
-    }
-
-    /// <summary>
-    /// Store에서 전달한 진행률을 대화 상자 UI에 반영합니다.
-    /// </summary>
-    private static void UpdateStoreUpdateDialogProgress(StoreUpdateDialogProgressView progressView, StorePackageUpdateStatus progress)
-    {
-        double percent = Math.Clamp(progress.PackageDownloadProgress * 100d, 0d, 100d);
-        progressView.ProgressBar.IsIndeterminate = false;
-        progressView.ProgressBar.Value = percent;
-        progressView.StatusTextBlock.Text = $"상태: {GetStoreUpdateStatusText(progress.PackageUpdateState.ToString(), percent)}";
-        progressView.ProgressTextBlock.Text = $"진행률: {percent:0}%";
-    }
-
-    /// <summary>
-    /// Store 진행 상태를 사용자가 이해하기 쉬운 한국어 문구로 변환합니다.
-    /// </summary>
-    private static string GetStoreUpdateStatusText(string state, double percent)
-    {
-        return state switch
-        {
-            "Pending" when percent <= 0 => "다운로드 준비 중",
-            "Pending" => "다운로드 대기 중",
-            "Downloading" => "다운로드 중",
-            "Deploying" => "설치 중",
-            "Completed" => "설치 완료",
-            "Canceled" => "설치 취소됨",
-            "OtherError" => "설치 오류",
-            "ErrorLowBattery" => "배터리 부족으로 대기 중",
-            "ErrorWiFiRecommended" => "Wi-Fi 권장 대기 중",
-            "ErrorWiFiRequired" => "Wi-Fi 필요",
-            "ErrorWiFiDownload" => "Wi-Fi 다운로드 대기 중",
-            _ => state
-        };
-    }
-
-    /// <summary>
-    /// 원격 버전 매니페스트 기준으로 수동 업데이트 안내가 필요한지 계산합니다.
-    /// </summary>
-    private async Task<StoreUpdateManualFallbackContext?> TryBuildManualUpdateFallbackContextAsync(
-        StoreUpdateManualFallbackReason reason)
-    {
-        try
-        {
-            AppUpdateRequirementEvaluation evaluation =
-                await _storeUpdateFallbackManifestService.EvaluateRequiredManualUpdateAsync();
-
-            return evaluation.HasRequiredUpdate
-                ? new StoreUpdateManualFallbackContext(reason, evaluation.RequiredVersions)
-                : null;
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[MainWindow] Failed to evaluate manual update fallback.{Environment.NewLine}{ex}");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// 사용자에게 수동 업데이트 안내를 표시하고, 요청 시 외부 브라우저로 안내 페이지를 엽니다.
-    /// </summary>
-    private async Task ShowManualStoreUpdateGuidanceAsync(StoreUpdateManualFallbackContext context)
-    {
-        if (Root.XamlRoot is null)
-            return;
-
-        if (!await ManualAppUpdateGuidanceDialog.ShowAsync(Root.XamlRoot, context))
-            return;
-
-        await OpenManualStoreUpdateHelpAsync();
-    }
-
-    /// <summary>
-    /// 수동 업데이트 안내 링크를 외부 브라우저로 열고, 실패 시 앱 내 HTML fallback을 표시합니다.
-    /// </summary>
-    private async Task OpenManualStoreUpdateHelpAsync()
-    {
-        LinkNavigationTarget target = App.LinkManager.ResolveNavigation(AppLinkKeys.HelpUpdateManual);
-        if (target.Uri is Uri uri)
-        {
-            bool launched = await Launcher.LaunchUriAsync(uri);
-            if (launched)
-                return;
-        }
-
-        if (!string.IsNullOrWhiteSpace(target.HtmlContent))
-            NavigateToWebViewPageHtml(target.HtmlContent);
     }
 
     /// <summary>

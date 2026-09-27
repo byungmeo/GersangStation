@@ -47,7 +47,8 @@ try {
     & $MSBuildPath (Join-Path $repository 'GersangStation.slnx') /restore /t:Rebuild /m /nologo `
         /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true `
         /p:UapAppxPackageBuildMode=StoreUpload /p:AppxBundle=Always /p:AppxBundlePlatforms=x64 `
-        /p:AppxPackageSigningEnabled=false /p:AppxAutoIncrementPackageRevision=false `
+        /p:AppxPackageSigningEnabled=false /p:AppxSymbolPackageEnabled=false `
+        /p:AppxAutoIncrementPackageRevision=false `
         "/p:AppxPackageDir=$output/" "/bl:$output/build.binlog"
     if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE." }
 }

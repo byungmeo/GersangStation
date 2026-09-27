@@ -1011,7 +1011,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 사용자가 직접 MainWindow의 Store 업데이트 설치 대화 상자를 엽니다.
+    /// 사용자가 Store 업데이트 설치를 시작합니다.
     /// </summary>
     private async void Button_UpdateFromStore_Click(object sender, RoutedEventArgs e)
     {
@@ -1019,7 +1019,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             return;
 
         SyncStoreUpdateState(window);
-        await window.ShowStoreUpdateDialogAsync();
+        await window.InstallStoreUpdateAsync();
         SyncStoreUpdateState(window);
     }
 
