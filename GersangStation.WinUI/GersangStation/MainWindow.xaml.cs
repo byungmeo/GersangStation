@@ -39,7 +39,8 @@ public sealed partial class MainWindow : Window
         Install
     }
 
-    public WebViewManager? WebViewManager { get; private set; }
+    public WebViewManager WebViewManager { get; }
+    internal BrowserSession BrowserSession { get; }
     public GameStarter GameStarter { get; } = new();
     public ClipMouseService ClipMouseService { get; } = new(AppDataManager.IsMouseConfinementEnabled);
     public WindowSwitchService WindowSwitchService { get; }
@@ -75,6 +76,9 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        BrowserSession = new BrowserSession(BrowserWebView);
+        WebViewManager = new WebViewManager(BrowserSession, this, GameStarter);
+
         Activated += OnActivated;
         Root.Loaded += OnRootLoaded;
         Closed += OnClosed;
@@ -93,19 +97,12 @@ public sealed partial class MainWindow : Window
         InitializeShellFrames();
     }
 
-    internal void RegisterWebViewManager(WebViewManager webviewManager)
-    {
-        WebViewManager = webviewManager;
-        UpdateWebViewMemoryMode();
-    }
-
     /// <summary>
     /// 메인 셸에서 사용하는 루트 페이지들을 한 번만 생성해 유지합니다.
     /// </summary>
     private void InitializeShellFrames()
     {
         StationFrame.Navigate(typeof(StationPage), this);
-        BrowserFrame.Navigate(typeof(WebViewPage), this);
         SettingFrame.Navigate(typeof(SettingPage));
         if (StationFrame.Content is StationPage stationPage)
             Sidebar.SetHomePage(stationPage);
@@ -123,7 +120,16 @@ public sealed partial class MainWindow : Window
         _systemTrayService.Dispose();
         WindowSwitchService.Dispose();
         ClipMouseService.Dispose();
-        GameStarter.Dispose();
+        (BrowserFrame.Content as WebViewPage)?.Dispose();
+        try
+        {
+            WebViewManager.Dispose();
+        }
+        finally
+        {
+            try { BrowserSession.Dispose(); }
+            finally { GameStarter.Dispose(); }
+        }
     }
 
     /// <summary>
@@ -193,6 +199,7 @@ public sealed partial class MainWindow : Window
         _isStartupFlowRunning = true;
         try
         {
+            WebViewManager.InitializeAsync().FireAndForgetHandled("MainWindow.InitializeBrowserSession");
             if (!await HandleStartupAdministratorPromptAsync())
                 return;
 
@@ -537,6 +544,10 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task ShowSectionAsync(MainShellSection section)
     {
+        // 브라우저 명령은 창의 세션을 사용하므로 도구 모음 페이지는 실제 진입 시에만 생성합니다.
+        if (section == MainShellSection.Browser && BrowserFrame.Content is null)
+            BrowserFrame.Navigate(typeof(WebViewPage), this);
+
         if (_activeSection == section)
         {
             UpdateSidebarMode(section);
@@ -547,7 +558,7 @@ public sealed partial class MainWindow : Window
         DeactivateSection(_activeSection);
         _activeSection = section;
         StationFrame.Visibility = section == MainShellSection.Station ? Visibility.Visible : Visibility.Collapsed;
-        BrowserFrame.Visibility = section == MainShellSection.Browser ? Visibility.Visible : Visibility.Collapsed;
+        BrowserSurface.Visibility = section == MainShellSection.Browser ? Visibility.Visible : Visibility.Collapsed;
         SettingFrame.Visibility = section == MainShellSection.Setting ? Visibility.Visible : Visibility.Collapsed;
         UpdateSidebarMode(section);
         UpdateWebViewMemoryMode();

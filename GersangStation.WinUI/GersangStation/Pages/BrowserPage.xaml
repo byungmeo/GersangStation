@@ -12,11 +12,6 @@
     NavigationCacheMode="Required"
     mc:Ignorable="d">
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
         <Grid
             Grid.Row="0"
             Padding="8"
@@ -183,14 +178,5 @@
                 </ScrollViewer>
             </Border>
         </Grid>
-
-        <WebView2
-            x:Name="WebView"
-            Grid.Row="1"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Stretch"
-            CoreWebView2Initialized="WebView_CoreWebView2Initialized"
-            SizeChanged="WebView_SizeChanged"
-            Visibility="Visible" />
     </Grid>
 </Page>

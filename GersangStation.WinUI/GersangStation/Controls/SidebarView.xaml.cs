@@ -22,6 +22,8 @@ public sealed partial class SidebarView : UserControl
     public event EventHandler? BrowserRequested;
     public event EventHandler<SidebarSettingRequestedEventArgs>? SettingRequested;
 
+    public FrameworkElement CurrentAppVersionTarget => CurrentAppVersionTextBlock;
+
     public SidebarView() => InitializeComponent();
 
     public void SetHomePage(StationPage homePage)

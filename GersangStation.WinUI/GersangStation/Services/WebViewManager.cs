@@ -51,6 +51,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private GameServer _cachedGameStartServer = GameServer.Korea_Live;
     private string _cachedGameStartId = string.Empty;
     private int _cachedGameStartClientIndex = -1;
+    private int _launchAttemptVersion;
+    private CancellationTokenSource? _launchSocketCancellation;
 
     private string _cachedInstallPath = "";
     private bool _tryingGameStart = false;
@@ -182,6 +184,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private void CancelPendingGameStart(string reason)
     {
+        _launchAttemptVersion++;
+        _launchSocketCancellation?.Cancel();
         if (_cachedGameStartClientIndex >= 0 && _cachedGameStartClientIndex < 3)
             _gameStarter.CancelStart(_cachedGameStartServer, _cachedGameStartClientIndex, reason);
 
@@ -346,6 +350,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     public void CancelLaunchAttempt(GameServer server, int clientIndex, string reason = "사용자 취소")
     {
+        _launchAttemptVersion++;
+        _launchSocketCancellation?.Cancel();
         try
         {
             _webview?.CoreWebView2?.Stop();
@@ -387,6 +393,21 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     public async Task<bool> TryGameStart(string id, int clientIndex)
     {
+        try
+        {
+            return await TryGameStartCoreAsync(id, clientIndex);
+        }
+        catch
+        {
+            CancelPendingGameStart("브라우저 게임 실행 준비 중단");
+            ResetLoginAttemptState();
+            TryingLogout = false;
+            throw;
+        }
+    }
+
+    private async Task<bool> TryGameStartCoreAsync(string id, int clientIndex)
+    {
         TryingGameStart = false;
 
         if (_webview is null || 3 <= clientIndex || clientIndex < 0)
@@ -411,11 +432,18 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (!_gameStarter.TryBeginStart(selectedServer, clientIndex, installPath, id))
             return false;
 
+        int attemptVersion = _launchAttemptVersion;
+        await InitializeAsync();
+        _lifetime.Token.ThrowIfCancellationRequested();
+        if (attemptVersion != _launchAttemptVersion)
+            return false;
+
         // 게임 실행 시도는 현재 위치와 관계없이 거상 메인 페이지에서 다시 이어갑니다.
-        if (!IsGersangMainPage(_webview.Source))
+        if (!IsGersangMainPage(_webview.Source) || !_session.IsDocumentReady)
         {
             TryingGameStart = true;
-            NavigateToGersangMain("게임 실행");
+            if (!IsGersangMainPage(_webview.Source))
+                NavigateToGersangMain("게임 실행");
             return true;
         }
 
@@ -467,9 +495,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     public async Task TryLogout()
     {
+        await InitializeAsync();
+        _lifetime.Token.ThrowIfCancellationRequested();
         _isDisplayingHtmlDocument = false;
-        _webview.Source = new Uri(Url_Gersang_Logout);
         TryingLogout = true;
+        _session.Navigate(Url_Gersang_Logout);
     }
 
     private static bool IsGersangHost(string host)
@@ -537,7 +567,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _pendingPostLoginEventUri = null;
         _isDisplayingHtmlDocument = false;
-        _webview.Source = pendingUri;
+        _session.Navigate(pendingUri.AbsoluteUri);
         return true;
     }
 
@@ -553,7 +583,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         Debug.WriteLine($"{reason} 시도 전에 거상 메인 페이지로 이동합니다. CurrentSource: {_webview.Source}");
         _isDisplayingHtmlDocument = false;
-        _webview.Source = new Uri(Url_Gersang_Main);
+        _session.Navigate(Url_Gersang_Main);
     }
 
     /// <summary>
@@ -580,8 +610,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private async Task<TryLoginResult> TryLoginCoreAsync(string id, bool continueExistingAttempt)
     {
-        if (_webview is null)
-            return TryLoginResult.NullWebview;
+        await InitializeAsync();
+        _lifetime.Token.ThrowIfCancellationRequested();
 
         bool isContinuingAttempt = continueExistingAttempt && HasPendingLoginAttempt() && IsCurrentLoginAttemptTarget(id);
 
@@ -668,16 +698,21 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
 
         // 로그인 시도는 현재 위치와 관계없이 거상 메인 페이지에서 다시 이어갑니다.
-        if (!IsGersangMainPage(_webview.Source))
+        if (!IsGersangMainPage(_webview.Source) || !_session.IsDocumentReady)
         {
-            NavigateToGersangMain("로그인");
+            if (!IsGersangMainPage(_webview.Source))
+                NavigateToGersangMain("로그인");
             return TryLoginResult.Success;
         }
 
-        await _webview.ExecuteScriptAsync(InputIdScript(id));
-        await _webview.ExecuteScriptAsync(InputPwScript(pw));
-        await _webview.ExecuteScriptAsync(TryLoginScript);
+        ulong navigationId = _session.NavigationId;
+        await _session.ExecuteScriptAsync(InputIdScript(id));
+        _session.EnsureCurrentDocument(navigationId);
+        await _session.ExecuteScriptAsync(InputPwScript(pw));
+        _session.EnsureCurrentDocument(navigationId);
+        // click 직후 새 문서 이벤트가 도착해도 재제출하지 않도록 먼저 기록합니다.
         MarkLoginCredentialsSubmitted();
+        await _session.ExecuteScriptAsync(TryLoginScript);
 
         return TryLoginResult.Success;
     }
@@ -761,26 +796,41 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private async Task StartGameThroughLocalSocketAsync(GameServer selectedServer, int clientIndex, string serverParam, string clientInstallPath)
     {
-        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(10));
+        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, _session.LifetimeToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(10));
+        _launchSocketCancellation = cts;
 
         Task<string?> receiveTask = ReceiveOnceViaWebSocket1818Async(cts.Token);
-
-        await _webview.ExecuteScriptAsync(SocketStartScript(serverParam));
-        Debug.WriteLine("SocketStartScript 실행");
 
         string? payload;
         try
         {
+            await _session.ExecuteScriptAsync(SocketStartScript(serverParam));
+            Debug.WriteLine("SocketStartScript 실행");
             payload = await receiveTask;
+            cts.Token.ThrowIfCancellationRequested();
         }
         catch (OperationCanceledException)
         {
-            Debug.WriteLine("WebSocket 수신 시간 초과");
-            _gameStarter.CancelStart(selectedServer, clientIndex, "WebSocket 수신 시간 초과");
+            _gameStarter.CancelStart(selectedServer, clientIndex, "브라우저 실행 대기 취소 또는 시간 초과");
             return;
         }
+        finally
+        {
+            if (ReferenceEquals(_launchSocketCancellation, cts))
+                _launchSocketCancellation = null;
+            cts.Cancel();
+            // 스크립트가 실패해도 리스너와 수신 Task를 남기지 않습니다.
+            try { await receiveTask; }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                // 본문에서 발생한 원래 예외를 종료 정리 예외로 덮어쓰지 않습니다.
+                Debug.WriteLine($"[WebViewManager] 소켓 수신 종료: {ex}");
+            }
+        }
 
-        Debug.WriteLine($"payload: {payload}");
+        Debug.WriteLine("게임 실행 payload 수신 완료");
 
         GameStartPayload? gameStartPayload = payload is null ? null : ParseGameStartPayload(payload);
         if (gameStartPayload is null)
@@ -831,12 +881,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private async Task UpdateLoginStateByCookieAsync()
     {
-        if (_webview is null)
+        if (!_session.IsReady || _disposed)
             return;
 
-        var core = _webview.CoreWebView2;
-        if (core is null)
-            return;
+        var core = _session.GetReadyCore();
+        ulong navigationId = _session.NavigationId;
 
         bool previousLoggedIn = LoggedIn;
         string previousLoggedInMemberId = LoggedInMemberId;
@@ -851,6 +900,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             domLoginState = await TryDetectLoggedInFromDomAsync();
             isRoughLoggedIn = domLoginState?.LooksAuthenticated == true;
         }
+
+        _session.EnsureCurrentDocument(navigationId);
 
         bool enteredRoughLogin = isRoughLoggedIn && !_wasRoughLoggedIn;
         _wasRoughLoggedIn = isRoughLoggedIn;
@@ -878,6 +929,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (enteredRoughLogin)
             await WaitForRoughLoginNoticeAsync();
+
+        _session.EnsureCurrentDocument(navigationId);
 
         bool isOnGersangMainPage =
             Uri.TryCreate(_currentSource, UriKind.Absolute, out Uri? currentUri)
@@ -951,10 +1004,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private async Task<(string MemberId, string DebugSummary)> TryGetLoggedInMemberIdFromCookiesAsync(CoreWebView2 core)
     {
         List<string> cookieDebugEntries = [];
+        ulong navigationId = _session.NavigationId;
 
         foreach (string lookupUri in BuildCookieLookupUris(_currentSource))
         {
-            IReadOnlyList<CoreWebView2Cookie> cookies = await core.CookieManager.GetCookiesAsync(lookupUri);
+            IReadOnlyList<CoreWebView2Cookie> cookies = await core.CookieManager.GetCookiesAsync(lookupUri)
+                .AsTask().WaitAsync(_session.LifetimeToken);
+            _session.EnsureCurrentDocument(navigationId);
             cookieDebugEntries.Add(
                 $"{lookupUri} => [{string.Join(", ", cookies.Select(cookie => $"{cookie.Name}@{cookie.Domain}{cookie.Path}"))}]");
 
@@ -978,7 +1034,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         try
         {
-            string scriptResult = await _webview.ExecuteScriptAsync(DetectAuthenticatedDomStateScript);
+            string scriptResult = await _session.ExecuteScriptAsync(DetectAuthenticatedDomStateScript);
             if (string.IsNullOrWhiteSpace(scriptResult) || string.Equals(scriptResult, "null", StringComparison.Ordinal))
                 return null;
 
@@ -1029,6 +1085,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     #region WebViewManager Core
     private readonly WebView2 _webview;
+    private readonly BrowserSession _session;
+    private Task? _initialization;
+    private bool _disposed;
+    private CoreWebView2? _subscribedCore;
+    private readonly CancellationTokenSource _lifetime = new();
     private readonly Window _currentWindow;
     private readonly GameStarter _gameStarter;
 
@@ -1106,20 +1167,30 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private void OnPropertyChanged(string name) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-    public WebViewManager(WebView2 webview, Window window, GameStarter gameStarter)
+    internal WebViewManager(BrowserSession session, Window window, GameStarter gameStarter)
     {
         _currentWindow = window;
-        _webview = webview;
+        _session = session;
+        _webview = session.View;
         _gameStarter = gameStarter;
-        _ = InitWebViewAsync();
+        _session.Failed += OnSessionFailed;
     }
 
     public void Dispose()
     {
+        _session.VerifyAccess();
+        if (_disposed)
+            return;
+        _disposed = true;
+        _lifetime.Cancel();
         Debug.WriteLine($"[WebViewManager::Dispose]");
+        _session.Failed -= OnSessionFailed;
+        CancelPendingGameStart("브라우저 종료");
+        ResetLoginAttemptState();
+        TryingLogout = false;
         UnsubscribeWebViewEvents();
         UnsubscribeCoreEvents();
-        _webview.Close();
+        // 컨트롤의 Close는 소유자인 MainWindow의 BrowserSession에서 한 번만 수행합니다.
     }
 
     /// <summary>
@@ -1127,7 +1198,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     internal void SetActiveMemoryMode()
     {
-        SetMemoryUsageTargetLevel(CoreWebView2MemoryUsageTargetLevel.Normal);
+        _session.SetMemoryTarget(CoreWebView2MemoryUsageTargetLevel.Normal);
     }
 
     /// <summary>
@@ -1135,70 +1206,52 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     internal void SetInactiveMemoryMode()
     {
-        SetMemoryUsageTargetLevel(CoreWebView2MemoryUsageTargetLevel.Low);
+        _session.SetMemoryTarget(CoreWebView2MemoryUsageTargetLevel.Low);
     }
 
     /// <summary>
     /// WebView2 환경을 초기화하고 기본 홈페이지로 이동합니다.
     /// </summary>
-    private async Task InitWebViewAsync()
+    internal Task InitializeAsync()
     {
-        if (_webview is null) return;
-
-        try
-        {
-            _initialHomeNavigationCompleted = false;
-            _pendingNavigationUri = null;
-            _pendingHtmlContent = null;
-            _isDisplayingHtmlDocument = false;
-            SubscribeWebViewEvents();
-
-            CoreWebView2EnvironmentOptions environmentOptions = new CoreWebView2EnvironmentOptions();
-            environmentOptions.AdditionalBrowserArguments = "--disable-features=msSmartScreenProtection";
-            string? browserFolder = null; // Use null to get default browser folder
-            string? userDataFolder = null; // Use null to get default user data folder
-            CoreWebView2Environment environment = await CoreWebView2Environment.CreateWithOptionsAsync(
-                browserFolder, userDataFolder, environmentOptions);
-            await _webview.EnsureCoreWebView2Async(environment);
-            // https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2settings?view=webview2-winrt-1.0.3719.77#aredefaultscriptdialogsenabled
-            _webview.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = false;
-            // https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/winrt/microsoft_web_webview2_core/corewebview2settings?view=webview2-winrt-1.0.3719.77#ispasswordautosaveenabled
-            _webview.CoreWebView2.Settings.IsPasswordAutosaveEnabled = false;
-            SubscribeCoreEvents();
-            _isDisplayingHtmlDocument = false;
-            _webview.Source = new Uri(Url_Gersang_Main);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[WebViewManager] WebView 초기화 실패: {ex}");
-        }
+        _session.VerifyAccess();
+        if (_disposed)
+            return Task.FromCanceled(_lifetime.Token);
+        return (_initialization ??= InitializeCoreAsync()).WaitAsync(_session.LifetimeToken);
     }
 
-    /// <summary>
-    /// 현재 WebView의 메모리 사용 목표를 설정합니다.
-    /// </summary>
-    private void SetMemoryUsageTargetLevel(CoreWebView2MemoryUsageTargetLevel targetLevel)
+    private async Task InitializeCoreAsync()
     {
-        var core = _webview?.CoreWebView2;
-        if (core is null || core.MemoryUsageTargetLevel == targetLevel)
-            return;
+        await _session.InitializeAsync();
+        _lifetime.Token.ThrowIfCancellationRequested();
+        SubscribeWebViewEvents();
+        SubscribeCoreEvents();
+        // 페이지 인스턴스와 무관하게 로그인 세션 동기화를 위한 최초 탐색을 한 번만 시작합니다.
+        _session.Navigate(Url_Gersang_Main);
+    }
 
-        try
-        {
-            core.MemoryUsageTargetLevel = targetLevel;
-            Debug.WriteLine($"[WebViewManager] MemoryUsageTargetLevel => {targetLevel}");
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[WebViewManager] MemoryUsageTargetLevel 변경 실패: {ex}");
-        }
+    private void OnSessionFailed(object? sender, EventArgs args)
+    {
+        CancelPendingGameStart("브라우저 프로세스 종료");
+        ResetLoginAttemptState();
+        TryingLogout = false;
+        IsBusy = false;
+        LoggedIn = false;
+        LoggedInMemberId = string.Empty;
+        CanGoBack = CanGoForward = false;
+        _lifetime.Cancel();
+        LoggedInChanged?.Invoke(this, EventArgs.Empty);
+        Exception failure = _session.Failure ?? new InvalidOperationException("브라우저 세션이 종료되었습니다.");
+        // WebView2 콜백 내부에서 모달 UI를 열지 않습니다.
+        _webview.DispatcherQueue.TryEnqueueHandled(
+            () => App.ExceptionHandler.ShowRecoverableAsync(failure, "BrowserSession.ProcessFailed"),
+            "BrowserSession.ProcessFailed.Report");
     }
 
     private void SubscribeWebViewEvents()
     {
         if (_webview is null) return;
 
-        _webview.CoreWebView2Initialized += OnCoreWebView2Initialized;
         _webview.NavigationStarting += OnNavigationStarting;
         _webview.NavigationCompleted += OnNavigationCompleted;
         _webview.WebMessageReceived += OnWebMessageReceived;
@@ -1208,7 +1261,6 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         if (_webview is null) return;
 
-        _webview.CoreWebView2Initialized -= OnCoreWebView2Initialized;
         _webview.NavigationStarting -= OnNavigationStarting;
         _webview.NavigationCompleted -= OnNavigationCompleted;
         _webview.WebMessageReceived -= OnWebMessageReceived;
@@ -1219,6 +1271,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         var core = _webview?.CoreWebView2;
         if (core is null) return;
 
+        _subscribedCore = core;
         core.SourceChanged += OnSourceChanged;
         core.HistoryChanged += OnHistoryChanged;
         core.DOMContentLoaded += OnDOMContentLoaded;
@@ -1228,34 +1281,15 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private void UnsubscribeCoreEvents()
     {
-        var core = _webview?.CoreWebView2;
+        var core = _subscribedCore;
         if (core is null) return;
 
+        _subscribedCore = null;
         core.SourceChanged -= OnSourceChanged;
         core.HistoryChanged -= OnHistoryChanged;
         core.DOMContentLoaded -= OnDOMContentLoaded;
         core.ScriptDialogOpening -= OnScriptDialogOpening;
         core.NotificationReceived -= OnNotificationReceived;
-    }
-
-    private void OnCoreWebView2Initialized(WebView2 sender, CoreWebView2InitializedEventArgs args)
-    {
-#if DEBUGGING
-        Debug.WriteLine($"[WebView::OnCoreWebView2Initialized]");
-        if (args.Exception is null)
-        {
-            Debug.WriteLine("\t- Initialization succeeded.");
-            return;
-        }
-        Debug.WriteLine($"\t- Exception.Message: {args.Exception.Message}");
-        Debug.WriteLine($"\t- Exception.StackTrace: {args.Exception.StackTrace}");
-        Debug.WriteLine($"\t- Exception.Source: {args.Exception.Source}");
-        Debug.WriteLine($"\t- Exception.Data");
-        foreach (var key in args.Exception.Data.Keys)
-        {
-            Debug.WriteLine($"\t\t- [{key}]: {args.Exception.Data[key]}");
-        }
-#endif
     }
 
     private void OnWebMessageReceived(WebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -1315,6 +1349,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private async void ContentDialog_Loaded(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => UpdateOtpCountdownAsync(sender), "WebViewManager.OtpCountdown");
+
+    private async Task UpdateOtpCountdownAsync(object sender)
     {
         if (sender is not ContentDialog dialog)
             return;
@@ -1323,7 +1360,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         {
             dialog.PrimaryButtonText = $"확인({seconds})";
             dialog.IsPrimaryButtonEnabled = false;
-            await Task.Delay(1000);
+            await Task.Delay(1000, _lifetime.Token);
         }
 
         dialog.PrimaryButtonText = "확인";
@@ -1332,6 +1369,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private async Task ShowOtpDialogAsync(bool reEnter = false)
     {
+        ulong navigationId = _session.NavigationId;
+        _session.EnsureCurrentDocument(navigationId);
         var inputTextBox = new TextBox
         {
             Text = "",
@@ -1390,10 +1429,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             
         var result = await dlg.ShowManagedAsync();
         dlg.Loaded -= ContentDialog_Loaded;
+        _session.EnsureCurrentDocument(navigationId);
         if (result == ContentDialogResult.Primary)
         {
-            await _webview.ExecuteScriptAsync(InputOtpScript(inputTextBox.Text));
-            await _webview.ExecuteScriptAsync(SubmitOtpScript);
+            await _session.ExecuteScriptAsync(InputOtpScript(inputTextBox.Text));
+            _session.EnsureCurrentDocument(navigationId);
+            await _session.ExecuteScriptAsync(SubmitOtpScript);
         }
         else if (result == ContentDialogResult.Secondary)
         {
@@ -1415,7 +1456,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 CancelPendingGameStart("OTP 입력 취소");
 
             _isDisplayingHtmlDocument = false;
-            _webview.Source = new Uri(Url_Gersang_Main);
+            _session.Navigate(Url_Gersang_Main);
         }
     }
 
@@ -1452,6 +1493,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private async Task ShowOtpFailureDialogAsync(string message)
     {
+        _lifetime.Token.ThrowIfCancellationRequested();
         var dlg = new ContentDialog
         {
             XamlRoot = _currentWindow.Content.XamlRoot,
@@ -1524,6 +1566,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private async Task ShowLaunchFailureDialogAsync(string message)
     {
+        _lifetime.Token.ThrowIfCancellationRequested();
         var dlg = new ContentDialog
         {
             XamlRoot = _currentWindow.Content.XamlRoot,
@@ -1634,7 +1677,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private async void OnDOMContentLoaded(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs args)
+        => await SafeExecution.RunHandledAsync(() => HandleDocumentLoadedAsync(sender, args), "WebViewManager.DOMContentLoaded");
+
+    private async Task HandleDocumentLoadedAsync(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs args)
     {
+        if (_disposed || !_session.IsCurrentDocument(args.NavigationId))
+            return;
 #if DEBUGGING
         Debug.WriteLine($"[WebView::OnDOMContentLoaded]");
         Debug.WriteLine($"\t- NavigationId: {args.NavigationId}");
@@ -1643,10 +1691,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         Debug.WriteLine($"\t- CoreWebView2.StatusBarText: {sender.StatusBarText}");
 #endif
         await UpdateLoginStateByCookieAsync();
+        _session.EnsureCurrentDocument(args.NavigationId);
         if (TryingLogin && _currentSource.Contains(Url_Gersang_Otp))
         {
             await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => ShowOtpDialogAsync(false));
         }
+
+        _session.EnsureCurrentDocument(args.NavigationId);
 
         if (sender.DocumentTitle.Contains("점검"))
         {
@@ -1673,34 +1724,28 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             }
         }
 
+        _session.EnsureCurrentDocument(args.NavigationId);
+
         if (!_initialHomeNavigationCompleted
             && Uri.TryCreate(sender.Source, UriKind.Absolute, out Uri? domainUri)
             && IsGersangDomain(domainUri))
         {
             _initialHomeNavigationCompleted = true;
 
-            if (_pendingNavigationUri is Uri pendingUri)
-            {
-                _pendingNavigationUri = null;
-                _isDisplayingHtmlDocument = false;
-                _webview.Source = pendingUri;
+            if (DispatchPendingNavigation())
                 return;
-            }
-
-            if (!string.IsNullOrWhiteSpace(_pendingHtmlContent))
-            {
-                string pendingHtmlContent = _pendingHtmlContent;
-                _pendingHtmlContent = null;
-                _webview.CoreWebView2?.NavigateToString(pendingHtmlContent);
-                return;
-            }
         }
 
         IsBusy = false;
     }
 
     private async void OnScriptDialogOpening(CoreWebView2 sender, CoreWebView2ScriptDialogOpeningEventArgs args)
+        => await SafeExecution.RunHandledAsync(() => HandleScriptDialogEventAsync(sender, args), "WebViewManager.ScriptDialogOpening");
+
+    private async Task HandleScriptDialogEventAsync(CoreWebView2 sender, CoreWebView2ScriptDialogOpeningEventArgs args)
     {
+        if (_disposed || !_session.IsReady)
+            return;
 #if DEBUGGING
         Debug.WriteLine($"[WebView::OnScriptDialogOpening]");
         Debug.WriteLine($"\t- Kind: {args.Kind}");
@@ -1778,21 +1823,44 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         Debug.WriteLine($"\t- HttpStatusCode: {args.HttpStatusCode}");
         Debug.WriteLine($"\t- WebErrorStatus: {args.WebErrorStatus}");
 #endif
+        if (_disposed || !_session.IsCurrentDocument(args.NavigationId) || args.IsSuccess)
+            return;
+
+        // DOMContentLoaded가 발생하지 않는 네트워크 오류에도 busy/실행 슬롯을 해제합니다.
+        CancelPendingGameStart($"브라우저 탐색 실패: {args.WebErrorStatus}");
+        ResetLoginAttemptState();
+        TryingLogout = false;
+        IsBusy = false;
+        if (!_initialHomeNavigationCompleted)
+        {
+            // 공식 홈페이지 접속 실패가 도움말/로컬 HTML 표시까지 막지 않게 합니다.
+            _initialHomeNavigationCompleted = true;
+            DispatchPendingNavigation();
+        }
     }
 
     internal void GoBack()
     {
-        _webview?.GoBack();
+        if (!_disposed && _session.IsReady && CanGoBack)
+            _session.GetReadyCore().GoBack();
     }
 
     internal void GoForward()
     {
-        _webview?.GoForward();
+        if (!_disposed && _session.IsReady && CanGoForward)
+            _session.GetReadyCore().GoForward();
     }
 
     internal void Refresh()
     {
-        _webview?.Reload();
+        RefreshAsync().FireAndForgetHandled("WebViewManager.Refresh");
+    }
+
+    private async Task RefreshAsync()
+    {
+        await InitializeAsync();
+        _lifetime.Token.ThrowIfCancellationRequested();
+        _session.Reload();
     }
 
     /// <summary>
@@ -1800,23 +1868,34 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     internal void RefreshAfterWindowActivation()
     {
-        if (_webview is null || TryingLogin || TryingGameStart || TryingLogout || IsBusy || _isDisplayingHtmlDocument)
+        if (TryingLogin || TryingGameStart || TryingLogout || IsBusy || _isDisplayingHtmlDocument)
             return;
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         if (now - _lastWindowActivationRefreshAt < WindowActivationRefreshMinimumInterval)
             return;
 
-        _lastWindowActivationRefreshAt = now;
-        _webview.Reload();
+        if (TryReload())
+            _lastWindowActivationRefreshAt = now;
+    }
+
+    /// <summary>
+    /// CoreWebView2 초기화가 완료된 경우에만 현재 문서를 다시 불러옵니다.
+    /// 창 활성화는 비동기 초기화보다 먼저 발생할 수 있으므로, 준비 전에는 호출을 건너뜁니다.
+    /// </summary>
+    private bool TryReload()
+    {
+        if (_disposed || !_session.IsReady || !_session.IsDocumentReady
+            || _initialization?.IsCompletedSuccessfully != true)
+            return false;
+
+        _session.Reload();
+        return true;
     }
 
     internal void GoHome()
     {
-        if (_webview is not null)
-        {
-            NavigateToUri(new Uri(Url_Gersang_Main));
-        }
+        Navigate(new Uri(Url_Gersang_Main));
     }
 
     /// <summary>
@@ -1826,21 +1905,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         ArgumentNullException.ThrowIfNull(uri);
 
-        if (_webview is null)
+        if (_disposed)
             return;
 
-        if (!_initialHomeNavigationCompleted)
-        {
-            _isDisplayingHtmlDocument = false;
-            _pendingHtmlContent = null;
-            _pendingNavigationUri = uri;
-            return;
-        }
-
-        _isDisplayingHtmlDocument = false;
         _pendingHtmlContent = null;
-        _pendingNavigationUri = null;
-        NavigateToUri(uri);
+        _pendingNavigationUri = uri;
+        DispatchWhenInitializedAsync().FireAndForgetHandled("WebViewManager.Navigate");
     }
 
     /// <summary>
@@ -1850,40 +1920,41 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(htmlContent);
 
-        if (_webview is null)
+        if (_disposed)
             return;
 
-        if (!_initialHomeNavigationCompleted)
-        {
-            _isDisplayingHtmlDocument = true;
-            _pendingNavigationUri = null;
-            _pendingHtmlContent = htmlContent;
-            return;
-        }
-
-        _isDisplayingHtmlDocument = true;
         _pendingNavigationUri = null;
-        _pendingHtmlContent = null;
-        _webview.CoreWebView2?.NavigateToString(htmlContent);
+        _pendingHtmlContent = htmlContent;
+        DispatchWhenInitializedAsync().FireAndForgetHandled("WebViewManager.NavigateToHtmlDocument");
     }
 
-    /// <summary>
-    /// WebView2가 초기화된 경우 CoreWebView2.Navigate를 우선 사용해 fragment 이동도 명시적으로 반영합니다.
-    /// </summary>
-    private void NavigateToUri(Uri uri)
+    private async Task DispatchWhenInitializedAsync()
     {
-        if (_webview is null)
-            return;
+        await InitializeAsync();
+        _lifetime.Token.ThrowIfCancellationRequested();
+        DispatchPendingNavigation();
+    }
 
-        if (_webview.CoreWebView2 is CoreWebView2 core)
+    /// <summary>초기화 중 들어온 화면 이동은 가장 최근 요청 한 개만 실행합니다.</summary>
+    private bool DispatchPendingNavigation()
+    {
+        if (_disposed || !_session.IsReady || !_initialHomeNavigationCompleted)
+            return false;
+        if (_pendingNavigationUri is Uri uri)
         {
+            _pendingNavigationUri = null;
             _isDisplayingHtmlDocument = false;
-            core.Navigate(uri.AbsoluteUri);
-            return;
+            _session.Navigate(uri.AbsoluteUri);
+            return true;
         }
-
-        _isDisplayingHtmlDocument = false;
-        _webview.Source = uri;
+        if (_pendingHtmlContent is string html)
+        {
+            _pendingHtmlContent = null;
+            _isDisplayingHtmlDocument = true;
+            _session.NavigateToHtml(html);
+            return true;
+        }
+        return false;
     }
     #endregion WebViewManager Core
 }

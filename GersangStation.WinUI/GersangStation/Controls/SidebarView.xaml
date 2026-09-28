@@ -359,6 +359,7 @@
                                 <Button
                                     x:Name="Client3ExecuteButton"
                                     Grid.Column="2"
+                                    Height="{Binding Height, ElementName=Client3AccountComboBox}"
                                     VerticalAlignment="Bottom"
                                     Click="Account3ExecuteButton_Click"
                                     Style="{ThemeResource AccentButtonStyle}">
@@ -388,6 +389,7 @@
                 FontWeight="Bold"
                 Text="앱 버전" />
             <TextBlock
+                x:Name="CurrentAppVersionTextBlock"
                 Grid.Column="1"
                 VerticalAlignment="Center"
                 Text="{Binding CurrentAppVersionText}" />
