@@ -14,6 +14,7 @@
         <ScrollViewer
             x:Name="SidebarScrollViewer"
             Grid.Row="0"
+            Padding="0,0,8,0"
             HorizontalScrollBarVisibility="Disabled"
             HorizontalScrollMode="Disabled">
             <Grid HorizontalAlignment="Stretch">
