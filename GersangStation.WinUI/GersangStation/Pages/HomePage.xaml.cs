@@ -113,6 +113,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             _accounts = value;
             OnPropertyChanged(nameof(Accounts));
             AccountSelectionOptions = StationAccountSelectionOption.Create(value);
+            NotifyAccountSelectionAvailabilityChanged();
         }
     }
 
@@ -126,6 +127,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
             _accountSelectionOptions = value;
             OnPropertyChanged(nameof(AccountSelectionOptions));
+            NotifyAccountSelectionAvailabilityChanged();
         }
     }
 
@@ -166,6 +168,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 OnPropertyChanged(nameof(SelectedAccount1Id));
                 OnPropertyChanged(nameof(SelectedAccount2Id));
                 OnPropertyChanged(nameof(SelectedAccount3Id));
+                NotifyAccountSelectionAvailabilityChanged();
                 RefreshClientAvailabilityState();
             }
         }
@@ -187,6 +190,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     public string SelectedAccount1Id { get => GetId(0); set => SetId(0, value); }
     public string SelectedAccount2Id { get => GetId(1); set => SetId(1, value); }
     public string SelectedAccount3Id { get => GetId(2); set => SetId(2, value); }
+    public bool HasSelectedAccount1 => IsAccountAvailable(SelectedAccount1Id);
+    public bool HasSelectedAccount2 => IsAccountAvailable(SelectedAccount2Id);
+    public bool HasSelectedAccount3 => IsAccountAvailable(SelectedAccount3Id);
     public IReadOnlyList<string> PresetNumbers { get; } = ["프리셋1", "프리셋2", "프리셋3", "프리셋4"];
     public string CurrentAppVersionText { get; private set; } = CreateCurrentVersionText();
     public Visibility StoreUpdateButtonVisibility { get; private set; } = Visibility.Collapsed;
@@ -224,12 +230,15 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         {
             case 0:
                 OnPropertyChanged(nameof(SelectedAccount1Id));
+                OnPropertyChanged(nameof(HasSelectedAccount1));
                 break;
             case 1:
                 OnPropertyChanged(nameof(SelectedAccount2Id));
+                OnPropertyChanged(nameof(HasSelectedAccount2));
                 break;
             case 2:
                 OnPropertyChanged(nameof(SelectedAccount3Id));
+                OnPropertyChanged(nameof(HasSelectedAccount3));
                 break;
         }
 
@@ -283,6 +292,18 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedAccount1Id));
         OnPropertyChanged(nameof(SelectedAccount2Id));
         OnPropertyChanged(nameof(SelectedAccount3Id));
+        NotifyAccountSelectionAvailabilityChanged();
+    }
+
+    private bool IsAccountAvailable(string? accountId)
+        => !string.IsNullOrWhiteSpace(accountId)
+            && Accounts.Any(account => string.Equals(account.Id, accountId, StringComparison.OrdinalIgnoreCase));
+
+    private void NotifyAccountSelectionAvailabilityChanged()
+    {
+        OnPropertyChanged(nameof(HasSelectedAccount1));
+        OnPropertyChanged(nameof(HasSelectedAccount2));
+        OnPropertyChanged(nameof(HasSelectedAccount3));
     }
 
     public StationPage()

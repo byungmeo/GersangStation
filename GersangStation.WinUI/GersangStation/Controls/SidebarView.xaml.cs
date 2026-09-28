@@ -1,9 +1,11 @@
 using Core;
+using Core.Models;
 using GersangStation.Main;
 using GersangStation.Main.Setting;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace GersangStation.Controls;
@@ -13,6 +15,11 @@ public sealed class SidebarSettingRequestedEventArgs(SettingSection section) : E
     public SettingSection Section { get; } = section;
 }
 
+public sealed class SidebarBrowserLoginRequestedEventArgs(Account account) : EventArgs
+{
+    public Account Account { get; } = account;
+}
+
 public sealed partial class SidebarView : UserControl
 {
     private StationPage? _homePage;
@@ -20,6 +27,7 @@ public sealed partial class SidebarView : UserControl
 
     public event EventHandler? HomeRequested;
     public event EventHandler? BrowserRequested;
+    public event EventHandler<SidebarBrowserLoginRequestedEventArgs>? BrowserLoginRequested;
     public event EventHandler<SidebarSettingRequestedEventArgs>? SettingRequested;
 
     public FrameworkElement CurrentAppVersionTarget => CurrentAppVersionTextBlock;
@@ -103,6 +111,32 @@ public sealed partial class SidebarView : UserControl
         => await InvokeHomeAsync(page => page.ExecuteClientAsync(1));
     private async void Account3ExecuteButton_Click(object sender, RoutedEventArgs e)
         => await InvokeHomeAsync(page => page.ExecuteClientAsync(2));
+
+    private void Client1BrowserButton_Click(object sender, RoutedEventArgs e)
+        => RequestBrowserLogin(0);
+    private void Client2BrowserButton_Click(object sender, RoutedEventArgs e)
+        => RequestBrowserLogin(1);
+    private void Client3BrowserButton_Click(object sender, RoutedEventArgs e)
+        => RequestBrowserLogin(2);
+
+    private void RequestBrowserLogin(int comboBoxIndex)
+    {
+        string? selectedAccountId = comboBoxIndex switch
+        {
+            0 => _homePage?.SelectedAccount1Id,
+            1 => _homePage?.SelectedAccount2Id,
+            2 => _homePage?.SelectedAccount3Id,
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(selectedAccountId) || _homePage is null)
+            return;
+
+        Account? account = _homePage.Accounts.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, selectedAccountId, StringComparison.OrdinalIgnoreCase));
+        if (account is not null)
+            BrowserLoginRequested?.Invoke(this, new SidebarBrowserLoginRequestedEventArgs(account));
+    }
 
     private async Task InvokeHomeAsync(Func<StationPage, Task> operation)
     {

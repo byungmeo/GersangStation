@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -241,19 +242,34 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         if (_suppressUserSelectionChanged)
             return;
 
-        if (ComboBox_Account.SelectedItem is Account account && _webviewManager is not null)
+        if (ComboBox_Account.SelectedItem is Account account)
+            await LoginAccountAsync(account);
+    }
+
+    internal async Task LoginAccountAsync(Account account)
+    {
+        if (_webviewManager is null)
+            return;
+
+        Account? browserAccount = Accounts.FirstOrDefault(candidate =>
+            LoginIdComparer.EqualsForComparison(candidate.Id, account.Id));
+        if (browserAccount is null)
+            return;
+
+        _suppressUserSelectionChanged = true;
+        SelectedAccount = browserAccount;
+        _suppressUserSelectionChanged = false;
+
+        TryLoginResult result = await _webviewManager.TryLogin(browserAccount.Id);
+        if (result == TryLoginResult.NotFoundPw)
         {
-            TryLoginResult result = await _webviewManager.TryLogin(account.Id);
-            if (result == TryLoginResult.NotFoundPw)
-            {
-                await ShowSimpleDialogAsync(
-                    "비밀번호가 필요합니다",
-                    $"계정 '{account.DisplayNickname}'의 저장된 비밀번호를 찾지 못했습니다.\n계정 설정에서 비밀번호를 다시 입력해 주세요.");
-            }
-            else if (result == TryLoginResult.VaultUnavailable)
-            {
-                await CredentialVaultGuidanceDialog.ShowAsync(XamlRoot);
-            }
+            await ShowSimpleDialogAsync(
+                "비밀번호가 필요합니다",
+                $"계정 '{browserAccount.DisplayNickname}'의 저장된 비밀번호를 찾지 못했습니다.\n계정 설정에서 비밀번호를 다시 입력해 주세요.");
+        }
+        else if (result == TryLoginResult.VaultUnavailable)
+        {
+            await CredentialVaultGuidanceDialog.ShowAsync(XamlRoot);
         }
     }
 

@@ -413,6 +413,14 @@ public sealed partial class MainWindow : Window
     private void Sidebar_BrowserRequested(object sender, EventArgs e)
         => NavigateToWebViewPage();
 
+    private async void Sidebar_BrowserLoginRequested(object sender, SidebarBrowserLoginRequestedEventArgs e)
+        => await SafeExecution.RunHandledAsync(async () =>
+        {
+            await ShowSectionAsync(MainShellSection.Browser);
+            if (BrowserFrame.Content is WebViewPage browserPage)
+                await browserPage.LoginAccountAsync(e.Account);
+        }, $"{nameof(MainWindow)}.{nameof(Sidebar_BrowserLoginRequested)}");
+
     private void Sidebar_SettingRequested(object sender, SidebarSettingRequestedEventArgs e)
         => NavigateToSettingPage(e.Section);
 

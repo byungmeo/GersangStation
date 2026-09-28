@@ -24,6 +24,7 @@
         <controls:SidebarView
             x:Name="Sidebar"
             Grid.Column="0"
+            BrowserLoginRequested="Sidebar_BrowserLoginRequested"
             BrowserRequested="Sidebar_BrowserRequested"
             HomeRequested="Sidebar_HomeRequested"
             SettingRequested="Sidebar_SettingRequested" />

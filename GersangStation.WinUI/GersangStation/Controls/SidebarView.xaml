@@ -297,7 +297,10 @@
                                 <Button
                                     x:Name="Client1BrowserButton"
                                     Grid.Column="1"
-                                    VerticalAlignment="Bottom">
+                                    VerticalAlignment="Bottom"
+                                    Click="Client1BrowserButton_Click"
+                                    IsEnabled="{Binding HasSelectedAccount1}"
+                                    ToolTipService.ToolTip="로그인 후 웹페이지 보기">
                                     <FontIcon Glyph="&#xF8A5;" />
                                 </Button>
                                 <Button
@@ -325,7 +328,10 @@
                                 <Button
                                     x:Name="Client2BrowserButton"
                                     Grid.Column="1"
-                                    VerticalAlignment="Bottom">
+                                    VerticalAlignment="Bottom"
+                                    Click="Client2BrowserButton_Click"
+                                    IsEnabled="{Binding HasSelectedAccount2}"
+                                    ToolTipService.ToolTip="로그인 후 웹페이지 보기">
                                     <FontIcon Glyph="&#xF8A5;" />
                                 </Button>
                                 <Button
@@ -353,7 +359,10 @@
                                 <Button
                                     x:Name="Client3BrowserButton"
                                     Grid.Column="1"
-                                    VerticalAlignment="Bottom">
+                                    VerticalAlignment="Bottom"
+                                    Click="Client3BrowserButton_Click"
+                                    IsEnabled="{Binding HasSelectedAccount3}"
+                                    ToolTipService.ToolTip="로그인 후 웹페이지 보기">
                                     <FontIcon Glyph="&#xF8A5;" />
                                 </Button>
                                 <Button
