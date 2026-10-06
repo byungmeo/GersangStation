@@ -30,6 +30,7 @@ public enum TryLoginResult
     InvalidId,
     NotFoundPw,
     VaultUnavailable,
+    Busy,
     NullWebview
 }
 
@@ -52,6 +53,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private string _cachedGameStartId = string.Empty;
     private int _cachedGameStartClientIndex = -1;
     private int _launchAttemptVersion;
+    private GameLaunchAttempt? _launchAttempt;
     private CancellationTokenSource? _launchSocketCancellation;
 
     private string _cachedInstallPath = "";
@@ -184,10 +186,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private void CancelPendingGameStart(string reason)
     {
+        if (_launchAttempt?.Fail(reason) == true) return;
         _launchAttemptVersion++;
         _launchSocketCancellation?.Cancel();
         if (_cachedGameStartClientIndex >= 0 && _cachedGameStartClientIndex < 3)
-            _gameStarter.CancelStart(_cachedGameStartServer, _cachedGameStartClientIndex, reason);
+            _gameStarter.CancelStart(_cachedGameStartServer, _cachedGameStartClientIndex, reason, _launchAttempt);
 
         _cachedGameStartId = string.Empty;
         _cachedGameStartClientIndex = -1;
@@ -348,13 +351,24 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// 현재 진행 중인 로그인/로그아웃/게임 실행 시도를 모두 취소하고 시작 슬롯을 원래 상태로 되돌립니다.
     /// </summary>
-    public void CancelLaunchAttempt(GameServer server, int clientIndex, string reason = "사용자 취소")
+    public void CancelLaunchAttempt(GameServer server, int clientIndex, string reason = "사용자 취소",
+        GameLaunchAttempt? attempt = null)
     {
+        if (attempt is not null && !ReferenceEquals(_launchAttempt, attempt))
+        {
+            _gameStarter.CancelStart(server, clientIndex, reason, attempt);
+            return;
+        }
+        if (_launchAttempt?.Cancel(reason) == true) return;
         _launchAttemptVersion++;
         _launchSocketCancellation?.Cancel();
         try
         {
             _webview?.CoreWebView2?.Stop();
+            // 새 문서로 이동해 이전 socketStart 타이머/웹소켓도 폐기합니다.
+            if (attempt?.PreserveDocumentOnCancel != true && !_disposed && _session.IsReady
+                && _initialization?.IsCompletedSuccessfully == true)
+                _session.Navigate(Url_Gersang_Main);
         }
         catch (Exception ex)
         {
@@ -365,12 +379,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         int cachedClientIndex = _cachedGameStartClientIndex;
 
         if (clientIndex >= 0 && clientIndex < 3)
-            _gameStarter.CancelStart(server, clientIndex, reason);
+            _gameStarter.CancelStart(server, clientIndex, reason, attempt ?? _launchAttempt);
 
         if (cachedClientIndex >= 0 && cachedClientIndex < 3
             && (cachedServer != server || cachedClientIndex != clientIndex))
         {
-            _gameStarter.CancelStart(cachedServer, cachedClientIndex, reason);
+            _gameStarter.CancelStart(cachedServer, cachedClientIndex, reason, attempt ?? _launchAttempt);
         }
 
         _pendingNavigationUri = null;
@@ -382,6 +396,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         _cachedGameStartId = string.Empty;
         _cachedGameStartClientIndex = -1;
         _cachedInstallPath = string.Empty;
+        _launchAttempt = null;
         ResetRoughLoginRecoveryState();
         IsBusy = false;
 
@@ -391,37 +406,37 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// 계정 로그인과 게임 실행 준비를 묶어 처리합니다.
     /// </summary>
-    public async Task<bool> TryGameStart(string id, int clientIndex)
+    public async Task<bool> TryGameStart(string id, int clientIndex, GameLaunchAttempt? attempt = null)
     {
+        attempt ??= _launchAttempt;
+        if (attempt is null || !attempt.IsPending || attempt.ClientIndex != clientIndex
+            || !LoginIdComparer.EqualsForComparison(attempt.AccountId, id)) return false;
         try
         {
-            return await TryGameStartCoreAsync(id, clientIndex);
+            return await TryGameStartCoreAsync(attempt);
         }
+        catch (OperationCanceledException) when (attempt.Token.IsCancellationRequested) { return false; }
         catch
         {
-            CancelPendingGameStart("브라우저 게임 실행 준비 중단");
-            ResetLoginAttemptState();
-            TryingLogout = false;
+            attempt.Fail("브라우저 게임 실행 준비 중단");
             throw;
         }
     }
 
-    private async Task<bool> TryGameStartCoreAsync(string id, int clientIndex)
+    private async Task<bool> TryGameStartCoreAsync(GameLaunchAttempt attempt)
     {
+        if (_launchAttempt?.IsPending == true && !ReferenceEquals(_launchAttempt, attempt)) return false;
+        if (!ReferenceEquals(_launchAttempt, attempt)) _launchAttemptVersion++;
+        _launchAttempt = attempt;
+        string id = attempt.AccountId;
+        int clientIndex = attempt.ClientIndex;
         TryingGameStart = false;
 
         if (_webview is null || 3 <= clientIndex || clientIndex < 0)
             return false;
 
-        GameServer selectedServer = AppDataManager.SelectedServer;
-        ClientSettings settings = AppDataManager.LoadServerClientSettings(selectedServer);
-        string installPath = clientIndex switch
-        {
-            0 => settings.InstallPath,
-            1 => settings.Client2Path,
-            2 => settings.Client3Path,
-            _ => throw new ArgumentOutOfRangeException(nameof(clientIndex), clientIndex, null),
-        };
+        GameServer selectedServer = attempt.Server;
+        string installPath = attempt.InstallPath;
 
         // 재진입/재시도 중 서버 선택이 바뀌어도, 사용자가 버튼을 누른 순간의 서버/경로를 끝까지 유지합니다.
         _cachedGameStartServer = selectedServer;
@@ -429,11 +444,15 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         _cachedGameStartClientIndex = clientIndex;
         _cachedInstallPath = installPath;
 
-        if (!_gameStarter.TryBeginStart(selectedServer, clientIndex, installPath, id))
+        if (!_gameStarter.TryBeginStart(selectedServer, clientIndex, installPath, id, attempt))
+        {
+            attempt.Fail("실행 슬롯 예약 실패");
             return false;
+        }
 
         int attemptVersion = _launchAttemptVersion;
-        await InitializeAsync();
+        await InitializeAsync().WaitAsync(attempt.Token);
+        EnsureLaunchAttempt(attempt);
         _lifetime.Token.ThrowIfCancellationRequested();
         if (attemptVersion != _launchAttemptVersion)
             return false;
@@ -447,7 +466,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             return true;
         }
 
-        TryLoginResult tryLoginResult = await TryLogin(id);
+        TryLoginResult tryLoginResult = await TryLoginCoreAsync(id, false, attempt);
+        EnsureLaunchAttempt(attempt);
         switch (tryLoginResult)
         {
             case TryLoginResult.Success:
@@ -470,6 +490,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             case TryLoginResult.NullWebview:
                 CancelPendingGameStart("WebView 없음");
                 return false;
+            case TryLoginResult.Busy:
+                return false;
             default:
                 throw new ArgumentOutOfRangeException(nameof(tryLoginResult), tryLoginResult, null);
         }
@@ -482,9 +504,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (!TryingLogin)
         {
             await GameStart(_cachedInstallPath);
-            _cachedInstallPath = string.Empty;
-            _cachedGameStartId = string.Empty;
-            _cachedGameStartClientIndex = -1;
+            if (ReferenceEquals(_launchAttempt, attempt))
+            {
+                _cachedInstallPath = string.Empty;
+                _cachedGameStartId = string.Empty;
+                _cachedGameStartClientIndex = -1;
+            }
         }
 
         return true;
@@ -493,9 +518,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// 현재 로그인 세션을 로그아웃 페이지로 이동시켜 정리합니다.
     /// </summary>
-    public async Task TryLogout()
+    public async Task TryLogout(GameLaunchAttempt? attempt = null)
     {
         await InitializeAsync();
+        EnsureLaunchAttempt(attempt);
         _lifetime.Token.ThrowIfCancellationRequested();
         _isDisplayingHtmlDocument = false;
         TryingLogout = true;
@@ -591,7 +617,16 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     public async Task<TryLoginResult> TryLogin(string id)
     {
-        return await TryLoginCoreAsync(id, continueExistingAttempt: false);
+        if (_launchAttempt?.IsPending == true || TryingLogin || TryingLogout) return TryLoginResult.Busy;
+        // 초기화 대기 중에도 공유 브라우저를 선점해 게임 실행 요청이 끼어들지 않게 합니다.
+        TryingLogin = true;
+        try { return await TryLoginCoreAsync(id, continueExistingAttempt: false); }
+        catch
+        {
+            ResetLoginAttemptState();
+            ClearPendingPostLoginEventPage();
+            throw;
+        }
     }
 
     /// <summary>
@@ -602,15 +637,18 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (!HasPendingLoginAttempt())
             return TryLoginResult.InvalidId;
 
-        return await TryLoginCoreAsync(_loginAttemptTargetId, continueExistingAttempt: true);
+        return await TryLoginCoreAsync(_loginAttemptTargetId, continueExistingAttempt: true,
+            _launchAttempt?.IsPending == true ? _launchAttempt : null);
     }
 
     /// <summary>
     /// 새 로그인 시도를 시작하거나, 로그아웃/메인 페이지 이동 뒤 동일 시도를 이어서 진행합니다.
     /// </summary>
-    private async Task<TryLoginResult> TryLoginCoreAsync(string id, bool continueExistingAttempt)
+    private async Task<TryLoginResult> TryLoginCoreAsync(string id, bool continueExistingAttempt,
+        GameLaunchAttempt? launchAttempt = null)
     {
         await InitializeAsync();
+        EnsureLaunchAttempt(launchAttempt);
         _lifetime.Token.ThrowIfCancellationRequested();
 
         bool isContinuingAttempt = continueExistingAttempt && HasPendingLoginAttempt() && IsCurrentLoginAttemptTarget(id);
@@ -643,7 +681,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 Debug.WriteLine("다른 계정으로 로그인 되어 있으므로 로그아웃 후 로그인을 시도합니다.");
                 CapturePendingPostLoginEventPageIfNeeded();
                 BeginLoginAttempt(id);
-                await TryLogout();
+                await TryLogout(launchAttempt);
                 return TryLoginResult.Success;
             }
 
@@ -662,7 +700,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             _roughLoginRecoveryBypassUsed = false;
             CapturePendingPostLoginEventPageIfNeeded();
             BeginLoginAttempt(id);
-            await TryLogout();
+            await TryLogout(launchAttempt);
             return TryLoginResult.Success;
         }
 
@@ -708,8 +746,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         ulong navigationId = _session.NavigationId;
         await _session.ExecuteScriptAsync(InputIdScript(id));
         _session.EnsureCurrentDocument(navigationId);
+        EnsureLaunchAttempt(launchAttempt);
         await _session.ExecuteScriptAsync(InputPwScript(pw));
         _session.EnsureCurrentDocument(navigationId);
+        EnsureLaunchAttempt(launchAttempt);
         // click 직후 새 문서 이벤트가 도착해도 재제출하지 않도록 먼저 기록합니다.
         MarkLoginCredentialsSubmitted();
         await _session.ExecuteScriptAsync(TryLoginScript);
@@ -794,9 +834,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// socketStart 스크립트를 실행하고 payload를 수신한 뒤 GameStarter로 실행을 위임합니다.
     /// </summary>
-    private async Task StartGameThroughLocalSocketAsync(GameServer selectedServer, int clientIndex, string serverParam, string clientInstallPath)
+    private async Task StartGameThroughLocalSocketAsync(GameLaunchAttempt attempt, string serverParam)
     {
-        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, _session.LifetimeToken);
+        EnsureLaunchAttempt(attempt);
+        GameServer selectedServer = attempt.Server;
+        int clientIndex = attempt.ClientIndex;
+        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(
+            _lifetime.Token, _session.LifetimeToken, attempt.Token);
         cts.CancelAfter(TimeSpan.FromSeconds(10));
         _launchSocketCancellation = cts;
 
@@ -812,7 +856,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
         catch (OperationCanceledException)
         {
-            _gameStarter.CancelStart(selectedServer, clientIndex, "브라우저 실행 대기 취소 또는 시간 초과");
+            attempt.Fail("브라우저 실행 대기 취소 또는 시간 초과");
+            _gameStarter.CancelStart(selectedServer, clientIndex, "브라우저 실행 대기 취소 또는 시간 초과", attempt);
             return;
         }
         finally
@@ -831,20 +876,21 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
 
         Debug.WriteLine("게임 실행 payload 수신 완료");
+        EnsureLaunchAttempt(attempt);
 
         GameStartPayload? gameStartPayload = payload is null ? null : ParseGameStartPayload(payload);
         if (gameStartPayload is null)
         {
-            _gameStarter.CancelStart(selectedServer, clientIndex, "payload 파싱 실패");
+            attempt.Fail("payload 파싱 실패");
             return;
         }
 
         bool started = await _gameStarter.StartAsync(
             selectedServer,
             clientIndex,
-            clientInstallPath,
-            _cachedGameStartId,
-            gameStartPayload);
+            attempt.InstallPath,
+            attempt.AccountId,
+            gameStartPayload, attempt.Token, attempt);
         Debug.WriteLine($"[WebViewManager] GameStarter.StartAsync result:{started}");
     }
 
@@ -855,13 +901,16 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         if (!TryingGameStart)
             return;
+        GameLaunchAttempt? attempt = _launchAttempt;
+        if (attempt is null) return;
+        EnsureLaunchAttempt(attempt);
         TryingGameStart = false;
 
         // 서버 콤보박스가 나중에 바뀌어도, 이미 눌린 실행 요청은 원래 서버 기준으로 끝까지 처리합니다.
-        GameServer selectedServer = _cachedGameStartServer;
+        GameServer selectedServer = attempt.Server;
 
         string param = GameServerHelper.GetGameStartParam(selectedServer);
-        await StartGameThroughLocalSocketAsync(selectedServer, _cachedGameStartClientIndex, param, clientInstallPath);
+        await StartGameThroughLocalSocketAsync(attempt, param);
     }
 
     /// <summary>
@@ -886,6 +935,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         var core = _session.GetReadyCore();
         ulong navigationId = _session.NavigationId;
+        int attemptVersion = _launchAttemptVersion;
 
         bool previousLoggedIn = LoggedIn;
         string previousLoggedInMemberId = LoggedInMemberId;
@@ -902,6 +952,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
 
         _session.EnsureCurrentDocument(navigationId);
+
+        if (attemptVersion != _launchAttemptVersion)
+            throw new OperationCanceledException("로그인 요청이 변경되었습니다.");
 
         bool enteredRoughLogin = isRoughLoggedIn && !_wasRoughLoggedIn;
         _wasRoughLoggedIn = isRoughLoggedIn;
@@ -931,6 +984,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             await WaitForRoughLoginNoticeAsync();
 
         _session.EnsureCurrentDocument(navigationId);
+        if (attemptVersion != _launchAttemptVersion)
+            throw new OperationCanceledException("로그인 요청이 변경되었습니다.");
 
         bool isOnGersangMainPage =
             Uri.TryCreate(_currentSource, UriKind.Absolute, out Uri? currentUri)
@@ -1348,10 +1403,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         CanGoForward = sender.CanGoForward;
     }
 
-    private async void ContentDialog_Loaded(object sender, RoutedEventArgs e)
-        => await SafeExecution.RunHandledAsync(() => UpdateOtpCountdownAsync(sender), "WebViewManager.OtpCountdown");
-
-    private async Task UpdateOtpCountdownAsync(object sender)
+    private async Task UpdateOtpCountdownAsync(object sender, CancellationToken cancellationToken)
     {
         if (sender is not ContentDialog dialog)
             return;
@@ -1360,15 +1412,16 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         {
             dialog.PrimaryButtonText = $"확인({seconds})";
             dialog.IsPrimaryButtonEnabled = false;
-            await Task.Delay(1000, _lifetime.Token);
+            await Task.Delay(1000, cancellationToken);
         }
 
         dialog.PrimaryButtonText = "확인";
         dialog.IsPrimaryButtonEnabled = true;
     }
 
-    private async Task ShowOtpDialogAsync(bool reEnter = false)
+    private async Task ShowOtpDialogAsync(bool reEnter = false, GameLaunchAttempt? attempt = null)
     {
+        EnsureLaunchAttempt(attempt);
         ulong navigationId = _session.NavigationId;
         _session.EnsureCurrentDocument(navigationId);
         var inputTextBox = new TextBox
@@ -1421,23 +1474,35 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             }
         };
 
+        using CancellationTokenSource countdown = CancellationTokenSource.CreateLinkedTokenSource(
+            _lifetime.Token, attempt?.Token ?? CancellationToken.None);
+        RoutedEventHandler countdownLoaded = async (sender, _) => await SafeExecution.RunHandledAsync(
+            () => UpdateOtpCountdownAsync(sender, countdown.Token), "WebViewManager.OtpCountdown");
         if (reEnter)
         {
             // 5초 동안 확인 버튼 잠금
-            dlg.Loaded += ContentDialog_Loaded;
+            dlg.Loaded += countdownLoaded;
         }
             
-        var result = await dlg.ShowManagedAsync();
-        dlg.Loaded -= ContentDialog_Loaded;
+        ContentDialogResult result;
+        try { result = await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token); }
+        finally
+        {
+            dlg.Loaded -= countdownLoaded;
+            countdown.Cancel();
+        }
+        EnsureLaunchAttempt(attempt);
         _session.EnsureCurrentDocument(navigationId);
         if (result == ContentDialogResult.Primary)
         {
             await _session.ExecuteScriptAsync(InputOtpScript(inputTextBox.Text));
             _session.EnsureCurrentDocument(navigationId);
+            EnsureLaunchAttempt(attempt);
             await _session.ExecuteScriptAsync(SubmitOtpScript);
         }
         else if (result == ContentDialogResult.Secondary)
         {
+            if (attempt is not null) attempt.PreserveDocumentOnCancel = true;
             ResetLoginAttemptState();
             ClearPendingPostLoginEventPage();
             TryingLogout = false;
@@ -1491,7 +1556,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// OTP 오류 안내를 먼저 보여준 뒤 재입력 다이얼로그로 이어집니다.
     /// </summary>
-    private async Task ShowOtpFailureDialogAsync(string message)
+    private async Task ShowOtpFailureDialogAsync(string message, GameLaunchAttempt? attempt)
     {
         _lifetime.Token.ThrowIfCancellationRequested();
         var dlg = new ContentDialog
@@ -1503,9 +1568,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        await dlg.ShowManagedAsync();
+        await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
 
-        await ShowOtpDialogAsync(true);
+        EnsureLaunchAttempt(attempt);
+        await ShowOtpDialogAsync(true, attempt);
     }
 
     /// <summary>
@@ -1513,14 +1579,18 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private void QueueOtpFailureRecovery(string message)
     {
+        GameLaunchAttempt? attempt = _launchAttempt?.IsPending == true ? _launchAttempt : null;
         _ = _webview.DispatcherQueue.TryEnqueue(async () =>
         {
             try
             {
-                await ShowOtpFailureDialogAsync(message);
+                EnsureLaunchAttempt(attempt);
+                await ShowOtpFailureDialogAsync(message, attempt);
             }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
+                attempt?.Fail("OTP 재입력 처리 실패");
                 Debug.WriteLine($"[WebViewManager] OTP 실패 복구 처리 중 예외: {ex}");
             }
         });
@@ -1608,8 +1678,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         TryingGameStart = false;
     }
 
-    private async Task HandleScriptDialogAsync(CoreWebView2ScriptDialogOpeningEventArgs args)
+    private async Task HandleScriptDialogAsync(CoreWebView2ScriptDialogOpeningEventArgs args, GameLaunchAttempt? attempt)
     {
+        ulong navigationId = _session.NavigationId;
         switch (args.Kind)
         {
             case CoreWebView2ScriptDialogKind.Alert:
@@ -1623,7 +1694,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Close
                     };
 
-                    await dlg.ShowManagedAsync();
+                    await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
+                    _session.EnsureCurrentDocument(navigationId);
+                    EnsureLaunchAttempt(attempt);
                     args.Accept();
                     break;
                 }
@@ -1640,7 +1713,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Primary
                     };
 
-                    var result = await dlg.ShowManagedAsync();
+                    var result = await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
+                    _session.EnsureCurrentDocument(navigationId);
+                    EnsureLaunchAttempt(attempt);
                     if (result == ContentDialogResult.Primary)
                         args.Accept(); // true
                                        // else: false (Accept 안함)
@@ -1665,7 +1740,9 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Primary
                     };
 
-                    var result = await dlg.ShowManagedAsync();
+                    var result = await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
+                    _session.EnsureCurrentDocument(navigationId);
+                    EnsureLaunchAttempt(attempt);
                     if (result == ContentDialogResult.Primary)
                     {
                         args.ResultText = input.Text; // prompt 결과 문자열
@@ -1677,7 +1754,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private async void OnDOMContentLoaded(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs args)
-        => await SafeExecution.RunHandledAsync(() => HandleDocumentLoadedAsync(sender, args), "WebViewManager.DOMContentLoaded");
+        => await SafeExecution.RunHandledAsync(() => RunLaunchCallbackAsync(
+            () => HandleDocumentLoadedAsync(sender, args)), "WebViewManager.DOMContentLoaded");
 
     private async Task HandleDocumentLoadedAsync(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs args)
     {
@@ -1690,13 +1768,19 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         Debug.WriteLine($"\t- CoreWebView2.DocumentTitle: {sender.DocumentTitle}");
         Debug.WriteLine($"\t- CoreWebView2.StatusBarText: {sender.StatusBarText}");
 #endif
+        int attemptVersion = _launchAttemptVersion;
         await UpdateLoginStateByCookieAsync();
+        if (attemptVersion != _launchAttemptVersion)
+            throw new OperationCanceledException("실행 요청이 변경되었습니다.");
         _session.EnsureCurrentDocument(args.NavigationId);
         if (TryingLogin && _currentSource.Contains(Url_Gersang_Otp))
         {
-            await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => ShowOtpDialogAsync(false));
+            GameLaunchAttempt? attempt = _launchAttempt?.IsPending == true ? _launchAttempt : null;
+            await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => ShowOtpDialogAsync(false, attempt));
         }
 
+        if (attemptVersion != _launchAttemptVersion)
+            throw new OperationCanceledException("실행 요청이 변경되었습니다.");
         _session.EnsureCurrentDocument(args.NavigationId);
 
         if (sender.DocumentTitle.Contains("점검"))
@@ -1726,6 +1810,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _session.EnsureCurrentDocument(args.NavigationId);
 
+        if (attemptVersion != _launchAttemptVersion)
+            throw new OperationCanceledException("실행 요청이 변경되었습니다.");
         if (!_initialHomeNavigationCompleted
             && Uri.TryCreate(sender.Source, UriKind.Absolute, out Uri? domainUri)
             && IsGersangDomain(domainUri))
@@ -1740,7 +1826,21 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private async void OnScriptDialogOpening(CoreWebView2 sender, CoreWebView2ScriptDialogOpeningEventArgs args)
-        => await SafeExecution.RunHandledAsync(() => HandleScriptDialogEventAsync(sender, args), "WebViewManager.ScriptDialogOpening");
+        => await SafeExecution.RunHandledAsync(() => RunLaunchCallbackAsync(
+            () => HandleScriptDialogEventAsync(sender, args)), "WebViewManager.ScriptDialogOpening");
+
+    private async Task RunLaunchCallbackAsync(Func<Task> callback)
+    {
+        GameLaunchAttempt? attempt = _launchAttempt;
+        try { await callback(); }
+        catch (OperationCanceledException) { throw; } // 문서 전환/정상 취소는 기존 콜백 처리대로 무시합니다.
+        catch
+        {
+            // await 뒤 새 실행이 시작됐더라도 실패는 콜백을 시작한 시도에만 귀속합니다.
+            attempt?.Fail("브라우저 실행 콜백 실패");
+            throw;
+        }
+    }
 
     private async Task HandleScriptDialogEventAsync(CoreWebView2 sender, CoreWebView2ScriptDialogOpeningEventArgs args)
     {
@@ -1786,9 +1886,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
 
         var deferral = args.GetDeferral();
+        GameLaunchAttempt? attempt = _launchAttempt?.IsPending == true ? _launchAttempt : null;
         try
         {
-            await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => HandleScriptDialogAsync(args));
+            await _webview!.DispatcherQueue.RunOrEnqueueAsync(() => HandleScriptDialogAsync(args, attempt));
         }
         finally
         {
@@ -1868,7 +1969,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     internal void RefreshAfterWindowActivation()
     {
-        if (TryingLogin || TryingGameStart || TryingLogout || IsBusy || _isDisplayingHtmlDocument)
+        if (_launchAttempt?.IsPending == true || TryingLogin || TryingGameStart || TryingLogout || IsBusy || _isDisplayingHtmlDocument)
             return;
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -1891,6 +1992,14 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _session.Reload();
         return true;
+    }
+
+    private void EnsureLaunchAttempt(GameLaunchAttempt? attempt)
+    {
+        if (attempt is null) return;
+        attempt.Token.ThrowIfCancellationRequested();
+        if (!ReferenceEquals(_launchAttempt, attempt) || !attempt.IsPending)
+            throw new OperationCanceledException("실행 시도가 변경되었습니다.", attempt.Token);
     }
 
     internal void GoHome()

@@ -78,6 +78,7 @@
                         x:Name="ComboBox_Account"
                         Width="196"
                         DisplayMemberPath="Nickname"
+                        IsEnabled="{x:Bind CanSelectAccount, Mode=OneWay}"
                         ItemsSource="{x:Bind Accounts, Mode=OneWay}"
                         PlaceholderText="미로그인 상태"
                         SelectedItem="{x:Bind SelectedAccount, Mode=TwoWay}"

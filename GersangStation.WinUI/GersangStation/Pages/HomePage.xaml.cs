@@ -92,7 +92,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private bool _isViewUnloaded;
     private MainWindow? _shellWindow;
     private GameStarter? _gameStarter;
-    private readonly ClientLaunchAvailability[] _clientLaunchAvailability = new ClientLaunchAvailability[3];
     private IReadOnlyList<StationAccountSelectionOption> _accountSelectionOptions = StationAccountSelectionOption.Create(accounts: null);
     private AppDataManager.AppDataOperationResult _accountsLoadResult = AppDataManager.AppDataOperationResult.Ok(
         nameof(AppDataManager.LoadAccountsAsync),
@@ -353,7 +352,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
         if (_shellWindow is not null)
         {
-            AttachGameStarter(_shellWindow.GameStarter);
+            _gameStarter = _shellWindow.GameStarter;
             _shellWindow.StoreUpdateStateChanged -= MainWindow_StoreUpdateStateChanged;
             _shellWindow.StoreUpdateStateChanged += MainWindow_StoreUpdateStateChanged;
             SyncStoreUpdateState(_shellWindow);
@@ -400,7 +399,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         CancelEventLoad();
         CancelHomepageNoticeLoad();
         CancelGersangStationNoticeLoad();
-        DetachGameStarter();
 
         if (_shellWindow is not null)
             _shellWindow.StoreUpdateStateChanged -= MainWindow_StoreUpdateStateChanged;
@@ -414,76 +412,86 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// DevUI 스타일 사이드바에서 기존 실행 검증 경로를 재사용합니다.
     /// </summary>
     public Task ExecuteClientAsync(int clientIndex)
-        => HandleClientExecuteAsync(clientIndex, clientIndex switch
+    {
+        if (_shellWindow is null) return Task.CompletedTask;
+        string accountId = clientIndex switch
         {
             0 => SelectedAccount1Id,
             1 => SelectedAccount2Id,
             2 => SelectedAccount3Id,
             _ => throw new ArgumentOutOfRangeException(nameof(clientIndex))
-        });
+        };
+        GameServer server = (GameServer)SelectedServerIndex;
+        return _shellWindow.GameLaunchCoordinator.ToggleAsync(server, clientIndex, accountId,
+            GetClientInstallPath(server, clientIndex), HandleClientExecuteAsync);
+    }
 
     /// <summary>
     /// 슬롯별 클라이언트 경로와 실행 정책을 검사한 뒤 실제 게임 시작을 요청합니다.
     /// </summary>
-    private async Task HandleClientExecuteAsync(int clientIndex, string accountId)
+    private async Task<bool> HandleClientExecuteAsync(GameLaunchAttempt attempt)
     {
-        if (App.CurrentWindow is not MainWindow window || window.WebViewManager is null)
-            return;
-
-        GameServer server = (GameServer)SelectedServerIndex;
+        if (_shellWindow is not MainWindow window) return false;
+        GameServer server = attempt.Server;
+        int clientIndex = attempt.ClientIndex;
+        string accountId = attempt.AccountId;
         ClientLaunchAvailability availability = GetClientLaunchAvailability(clientIndex);
         switch (availability.Status)
         {
             case ClientLaunchStatus.InstallPathMissing:
+                attempt.Fail("경로 미설정");
                 await HandleMissingInstallPathAsync(window, server);
-                return;
+                return false;
             case ClientLaunchStatus.InstallPathInvalid:
+                attempt.Fail("잘못된 경로");
                 await HandleInvalidInstallPathAsync(window, server, availability.Detail);
-                return;
+                return false;
             case ClientLaunchStatus.MultiClientSetupRequired:
+                attempt.Fail("다클라 생성 필요");
                 await HandleMultiClientSetupRequiredAsync(server, clientIndex, availability.Detail);
-                return;
+                return false;
+            case ClientLaunchStatus.RetryCooldown:
+                attempt.Fail("재시도 제한");
+                await ShowWarningDialogAsync("잠시 후 다시 시도해 주세요", "인증 실패 후 5초 동안은 다시 실행할 수 없습니다.");
+                return false;
             case ClientLaunchStatus.Starting:
             case ClientLaunchStatus.Running:
-                return;
-            case ClientLaunchStatus.Available:
-            default:
-                break;
+            case ClientLaunchStatus.MultiClientDisabled:
+                return false;
         }
-
-        accountId = accountId?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(accountId))
         {
+            attempt.Fail("계정 미선택");
             await HandleMissingAccountSelectionAsync(window);
-            return;
+            return false;
         }
+        if (!await EnsureAccountReadyForLaunchAsync(window, server, accountId, attempt)) return false;
+        attempt.Token.ThrowIfCancellationRequested();
+        if (await CheckAndHandleRequiredPatchAsync(window, server, attempt.InstallPath, attempt)) return false;
+        attempt.Token.ThrowIfCancellationRequested();
 
-        if (!await EnsureAccountReadyForLaunchAsync(window, server, accountId))
-            return;
-
-        string clientInstallPath = GetClientInstallPath(server, clientIndex);
-
-        bool requiresPatch = await CheckAndHandleRequiredPatchAsync(window, server, clientInstallPath);
-        if (requiresPatch)
-            return;
-
-        if (_gameStarter?.ActiveClientCount >= 3)
+        // 취소된 외부 런처의 늦은 PID를 새 실행 시도로 오인하지 않도록 탐색은 직렬화합니다.
+        if (window.GameStarter.ActiveClients.Any(client => client.State == GameClientState.Starting))
         {
+            attempt.Fail("이전 런처 탐색 중");
+            await ShowWarningDialogAsync("이전 실행 요청을 확인 중입니다",
+                "이미 호출한 런처는 강제 종료하지 않습니다. 이전 런처가 닫히거나 게임 실행이 확인된 뒤 다시 시도해 주세요.");
+            return false;
+        }
+        if (window.GameStarter.ActiveClientCount >= 3)
+        {
+            attempt.Fail("최대 실행 개수");
             await ShowWarningDialogAsync("최대 실행 개수에 도달했어요", "거상은 동시에 최대 3개 클라이언트까지만 실행할 수 있습니다.");
-            return;
+            return false;
         }
-
-        // 동일 계정 중복은 서버가 달라도 금지합니다.
-        if (_gameStarter?.IsAccountActive(accountId) == true)
+        if (window.GameStarter.IsAccountActive(accountId))
         {
+            attempt.Fail("동일 계정 중복");
             await ShowWarningDialogAsync("이미 사용 중인 계정이에요", "동일한 계정으로 다른 클라이언트를 동시에 실행할 수 없습니다.");
-            return;
+            return false;
         }
-
-        Debug.WriteLine("App.CurrentWindow is MainWindow window");
-        Debug.WriteLine("window.WebViewManager is not null");
-        _ = await window.WebViewManager.TryGameStart(accountId, clientIndex);
+        return await window.WebViewManager.TryGameStart(accountId, clientIndex, attempt);
     }
 
     /// <summary>
@@ -607,7 +615,8 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// <summary>
     /// 실행 대상 클라이언트가 구버전이면 패치 안내 후 설정의 패치 화면으로 유도합니다.
     /// </summary>
-    private async Task<bool> CheckAndHandleRequiredPatchAsync(MainWindow window, GameServer server, string clientInstallPath)
+    private async Task<bool> CheckAndHandleRequiredPatchAsync(MainWindow window, GameServer server, string clientInstallPath,
+        GameLaunchAttempt attempt)
     {
         if (string.IsNullOrWhiteSpace(clientInstallPath) || !Directory.Exists(clientInstallPath))
             return false;
@@ -615,6 +624,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(clientInstallPath);
         if (!currentVersionResult.Success)
         {
+            attempt.Fail("클라이언트 버전 확인 실패");
             await ShowClientVersionCheckRequiredDialogAsync(window, server, currentVersionResult);
             return true;
         }
@@ -622,6 +632,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         int currentVersion = currentVersionResult.Version ?? 0;
         if (currentVersion <= 0)
         {
+            attempt.Fail("클라이언트 버전 없음");
             await ShowWarningDialogAsync(
                 "클라이언트 버전 확인 필요",
                 $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트 버전을 확인하지 못했습니다.\n설치 경로가 올바른지 확인해 주세요.");
@@ -631,13 +642,18 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         int latestVersion;
         try
         {
-            latestVersion = await PatchManager.GetLatestServerVersionAsync(server);
+            latestVersion = await PatchManager.GetLatestServerVersionAsync(server).WaitAsync(attempt.Token);
+            attempt.Token.ThrowIfCancellationRequested();
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            bool shouldContinue = await ShowLatestVersionCheckFailedDialogAsync(server);
+            attempt.Token.ThrowIfCancellationRequested();
+            bool shouldContinue = await ShowLatestVersionCheckFailedDialogAsync(server, attempt.Token);
             if (!shouldContinue)
+            {
+                attempt.Fail("최신 버전 확인 후 실행 취소");
                 return true;
+            }
 
             Debug.WriteLine($"[StationPage] Latest version check failed but user chose to continue. Server: {server}, Error: {ex}");
             return false;
@@ -646,6 +662,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (currentVersion >= latestVersion)
             return false;
 
+        attempt.Fail("패치 필요");
         ContentDialog dialog = new()
         {
             XamlRoot = XamlRoot,
@@ -674,11 +691,13 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// <summary>
     /// 게임 실행 전에 선택한 계정의 비밀번호 상태를 확인합니다.
     /// </summary>
-    private async Task<bool> EnsureAccountReadyForLaunchAsync(MainWindow window, GameServer server, string accountId)
+    private async Task<bool> EnsureAccountReadyForLaunchAsync(MainWindow window, GameServer server, string accountId,
+        GameLaunchAttempt attempt)
     {
         PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(accountId);
         if (!passwordResult.Success)
         {
+            attempt.Fail("비밀번호 저장소 접근 실패");
             if (await CredentialVaultGuidanceDialog.TryShowAsync(XamlRoot, passwordResult.Exception))
                 return false;
 
@@ -693,6 +712,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (passwordResult.HasCredential)
             return true;
 
+        attempt.Fail("비밀번호 없음");
         Account? brokenAccount = Accounts.FirstOrDefault(account =>
             string.Equals(account.Id?.Trim(), accountId, StringComparison.OrdinalIgnoreCase));
 
@@ -783,7 +803,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// <summary>
     /// 최신 패치 버전을 확인하지 못했을 때 사용자에게 계속 실행 여부를 묻습니다.
     /// </summary>
-    private async Task<bool> ShowLatestVersionCheckFailedDialogAsync(GameServer server)
+    private async Task<bool> ShowLatestVersionCheckFailedDialogAsync(GameServer server, CancellationToken cancellationToken)
     {
         ContentDialog dialog = new()
         {
@@ -798,7 +818,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Close
         };
 
-        return await dialog.ShowManagedAsync() == ContentDialogResult.Primary;
+        return await dialog.ShowManagedAsync(cancellationToken) == ContentDialogResult.Primary;
     }
 
     /// <summary>
@@ -1093,69 +1113,14 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         };
     }
 
-    public bool Client1ButtonEnabled => IsClientButtonEnabled(0);
-    public bool Client2ButtonEnabled => IsClientButtonEnabled(1);
-    public bool Client3ButtonEnabled => IsClientButtonEnabled(2);
-
-    public string Client1StatusText => GetClientStatusText(0);
-    public string Client2StatusText => GetClientStatusText(1);
-    public string Client3StatusText => GetClientStatusText(2);
-    public Visibility Client1CancelVisibility => GetClientCancelVisibility(0);
-    public Visibility Client2CancelVisibility => GetClientCancelVisibility(1);
-    public Visibility Client3CancelVisibility => GetClientCancelVisibility(2);
-
     /// <summary>
-    /// 버튼 상태 갱신을 위해 GameStarter 변경 이벤트를 구독합니다.
-    /// </summary>
-    private void AttachGameStarter(GameStarter gameStarter)
-    {
-        if (ReferenceEquals(_gameStarter, gameStarter))
-            return;
-
-        DetachGameStarter();
-        _gameStarter = gameStarter;
-        _gameStarter.PropertyChanged += OnGameStarterPropertyChanged;
-        RefreshClientAvailabilityState();
-    }
-
-    /// <summary>
-    /// 페이지 이탈 시 GameStarter 이벤트 구독을 해제합니다.
-    /// </summary>
-    private void DetachGameStarter()
-    {
-        if (_gameStarter is null)
-            return;
-
-        _gameStarter.PropertyChanged -= OnGameStarterPropertyChanged;
-        _gameStarter = null;
-    }
-
-    private void OnGameStarterPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (DispatcherQueue.HasThreadAccess)
-        {
-            RefreshClientAvailabilityState();
-            return;
-        }
-
-        _ = DispatcherQueue.TryEnqueue(RefreshClientAvailabilityState);
-    }
-
-    /// <summary>
-    /// 실행 버튼의 활성화 여부와 상태 문구를 다시 계산하도록 알립니다.
+    /// 현재 서버의 다클라 사용 설정을 전달합니다. 실행 중 여부는 창 수명의 상태 모델이 관리합니다.
     /// </summary>
     private void RefreshClientAvailabilityState()
     {
-        RecomputeClientLaunchAvailability();
-        OnPropertyChanged(nameof(Client1ButtonEnabled));
-        OnPropertyChanged(nameof(Client2ButtonEnabled));
-        OnPropertyChanged(nameof(Client3ButtonEnabled));
-        OnPropertyChanged(nameof(Client1StatusText));
-        OnPropertyChanged(nameof(Client2StatusText));
-        OnPropertyChanged(nameof(Client3StatusText));
-        OnPropertyChanged(nameof(Client1CancelVisibility));
-        OnPropertyChanged(nameof(Client2CancelVisibility));
-        OnPropertyChanged(nameof(Client3CancelVisibility));
+        ClientSettings settings = AppDataManager.LoadServerClientSettings((GameServer)SelectedServerIndex);
+        for (int i = 0; i < 3; i++)
+            _shellWindow?.GameLaunchCoordinator.SetSlotEnabled(i, i == 0 || IsMultiClientSlotEnabled(settings, i));
     }
 
     /// <summary>
@@ -1164,7 +1129,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private ClientLaunchAvailability GetClientLaunchAvailability(int clientIndex)
     {
         GameServer server = (GameServer)SelectedServerIndex;
-        GameClientState runtimeState = _gameStarter?.GetClientState(server, clientIndex, null) ?? GameClientState.Available;
+        GameClientState runtimeState = (_shellWindow?.GameStarter ?? _gameStarter)?.GetClientState(server, clientIndex, null) ?? GameClientState.Available;
         if (runtimeState == GameClientState.RetryCooldown)
             return new ClientLaunchAvailability(ClientLaunchStatus.RetryCooldown);
 
@@ -1227,66 +1192,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 버튼 하단에 표시할 상태 문구를 반환합니다.
-    /// </summary>
-    private string GetClientStatusText(int clientIndex)
-        => _clientLaunchAvailability[clientIndex].Status switch
-        {
-            ClientLaunchStatus.Starting => "켜는 중",
-            ClientLaunchStatus.Running => "실행 중",
-            ClientLaunchStatus.RetryCooldown => "잠시 후 재시도",
-            ClientLaunchStatus.MultiClientDisabled => "다클라 미사용",
-            ClientLaunchStatus.InstallPathMissing => "경로 미설정",
-            ClientLaunchStatus.InstallPathInvalid => "잘못된 경로",
-            ClientLaunchStatus.MultiClientSetupRequired => "다클 생성 필요",
-            _ => "실행 가능"
-        };
-
-    /// <summary>
-    /// 현재 슬롯이 켜지는 중일 때만 취소 버튼을 노출합니다.
-    /// </summary>
-    private Visibility GetClientCancelVisibility(int clientIndex)
-        => _clientLaunchAvailability[clientIndex].Status == ClientLaunchStatus.Starting
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-
-    /// <summary>
-    /// 현재 상태를 기준으로 해당 실행 버튼을 눌러볼 수 있는지 여부를 반환합니다.
-    /// </summary>
-    private bool IsClientButtonEnabled(int clientIndex)
-        => !HasAnyClientStarting()
-            && _clientLaunchAvailability[clientIndex].Status is not ClientLaunchStatus.Starting
-            and not ClientLaunchStatus.RetryCooldown
-            and not ClientLaunchStatus.Running
-            and not ClientLaunchStatus.MultiClientDisabled;
-
-    /// <summary>
-    /// 현재 화면에서 하나라도 클라이언트가 켜지는 중이면 추가 실행을 막아야 하는지 판단합니다.
-    /// </summary>
-    private bool HasAnyClientStarting()
-    {
-        for (int clientIndex = 0; clientIndex < _clientLaunchAvailability.Length; clientIndex++)
-        {
-            if (_clientLaunchAvailability[clientIndex].Status == ClientLaunchStatus.Starting)
-                return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 사용자가 강제로 실행 준비를 취소하면 WebView와 GameStarter 상태를 함께 초기화합니다.
-    /// </summary>
-    private void CancelClientStart(int clientIndex)
-    {
-        if (App.CurrentWindow is not MainWindow window || window.WebViewManager is null)
-            return;
-
-        window.WebViewManager.CancelLaunchAttempt((GameServer)SelectedServerIndex, clientIndex);
-        RefreshClientAvailabilityState();
-    }
-
-    /// <summary>
     /// 2클라 또는 3클라 슬롯이 설정상 사용 대상인지 판별합니다.
     /// </summary>
     private static bool IsMultiClientSlotEnabled(ClientSettings settings, int clientIndex)
@@ -1296,15 +1201,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             2 => settings.UseClient3,
             _ => true
         };
-
-    /// <summary>
-    /// 현재 서버의 세 슬롯 상태를 한 번에 다시 계산합니다.
-    /// </summary>
-    private void RecomputeClientLaunchAvailability()
-    {
-        for (int clientIndex = 0; clientIndex < _clientLaunchAvailability.Length; clientIndex++)
-            _clientLaunchAvailability[clientIndex] = GetClientLaunchAvailability(clientIndex);
-    }
 
     /// <summary>
     /// 선택한 슬롯에서 다클라 생성이 필요할 때 해당 복제 클라이언트 하나만 생성합니다.

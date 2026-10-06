@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="GersangStation.Controls.AccountLaunchControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:GersangStation.Controls"
+    HorizontalAlignment="Stretch">
+
+    <StackPanel>
+        <!--  헤더는 행 밖에 두어 입력 영역의 높이만 버튼과 공유합니다.  -->
+        <TextBlock
+            x:Name="HeaderTextBlock"
+            Margin="{ThemeResource ComboBoxTopHeaderMargin}"
+            FontWeight="{ThemeResource ComboBoxHeaderThemeFontWeight}"
+            Foreground="{ThemeResource ComboBoxHeaderForeground}"
+            LineHeight="20"
+            Text="{x:Bind Header, Mode=OneWay}"
+            TextWrapping="Wrap" />
+        <controls:AccountActionPanel>
+            <ComboBox
+                x:Name="AccountComboBox"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                AutomationProperties.AutomationId="{x:Bind AutomationIdFor(ClientIndex, 'AccountComboBox'), Mode=OneWay}"
+                AutomationProperties.LabeledBy="{Binding ElementName=HeaderTextBlock}"
+                DisplayMemberPath="DisplayName"
+                ItemsSource="{x:Bind ItemsSource, Mode=OneWay}"
+                SelectedValue="{x:Bind SelectedAccountId, Mode=TwoWay}"
+                SelectedValuePath="Id" />
+            <Button
+                x:Name="BrowserButton"
+                MinHeight="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                AutomationProperties.AutomationId="{x:Bind AutomationIdFor(ClientIndex, 'BrowserButton'), Mode=OneWay}"
+                AutomationProperties.Name="로그인 후 웹페이지 보기"
+                Click="BrowserButton_Click"
+                FontSize="18"
+                IsEnabled="{x:Bind CanBrowseAccount(CanBrowse, SelectedAccountId), Mode=OneWay}"
+                ToolTipService.ToolTip="로그인 후 웹페이지 보기">
+                <Viewbox StretchDirection="DownOnly">
+                    <Grid Width="20" Height="20">
+                        <FontIcon FontSize="{Binding FontSize, ElementName=BrowserButton}" Glyph="&#xF8A5;" />
+                    </Grid>
+                </Viewbox>
+            </Button>
+            <Button
+                x:Name="ExecuteButton"
+                MinHeight="0"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                AutomationProperties.AutomationId="{x:Bind AutomationIdFor(ClientIndex, 'ExecuteButton'), Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind LaunchState.ToolTip, Mode=OneWay, FallbackValue='게임 실행'}"
+                Click="ExecuteButton_Click"
+                FontSize="18"
+                IsEnabled="{x:Bind LaunchState.IsEnabled, Mode=OneWay, FallbackValue=False}"
+                Style="{ThemeResource AccentButtonStyle}"
+                ToolTipService.ToolTip="{x:Bind LaunchState.ToolTip, Mode=OneWay, FallbackValue='게임 실행'}">
+                <!--  아이콘/링 교체로 측정 너비나 행 높이가 변하지 않는 공통 슬롯입니다.  -->
+                <Viewbox StretchDirection="DownOnly">
+                    <Grid Width="20" Height="20">
+                        <FontIcon
+                            FontSize="{Binding FontSize, ElementName=ExecuteButton}"
+                            Glyph="{x:Bind LaunchState.Glyph, Mode=OneWay, FallbackValue=&#xE768;}"
+                            Visibility="{x:Bind LaunchState.IconVisibility, Mode=OneWay, FallbackValue=Visible}" />
+                        <ProgressRing
+                            Width="20"
+                            Height="20"
+                            MinWidth="0"
+                            MinHeight="0"
+                            Foreground="{Binding Foreground, ElementName=ExecuteButton}"
+                            IsActive="{x:Bind LaunchState.IsBusy, Mode=OneWay, FallbackValue=False}"
+                            Visibility="{x:Bind LaunchState.ProgressVisibility, Mode=OneWay, FallbackValue=Collapsed}" />
+                    </Grid>
+                </Viewbox>
+            </Button>
+        </controls:AccountActionPanel>
+    </StackPanel>
+</UserControl>

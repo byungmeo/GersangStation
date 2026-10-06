@@ -40,6 +40,7 @@ public sealed partial class MainWindow : Window
     }
 
     public WebViewManager WebViewManager { get; }
+    public GameLaunchCoordinator GameLaunchCoordinator { get; }
     internal BrowserSession BrowserSession { get; }
     public GameStarter GameStarter { get; } = new();
     public ClipMouseService ClipMouseService { get; } = new(AppDataManager.IsMouseConfinementEnabled);
@@ -78,6 +79,8 @@ public sealed partial class MainWindow : Window
 
         BrowserSession = new BrowserSession(BrowserWebView);
         WebViewManager = new WebViewManager(BrowserSession, this, GameStarter);
+        GameLaunchCoordinator = new GameLaunchCoordinator(DispatcherQueue, WebViewManager);
+        Sidebar.SetLaunchCoordinator(GameLaunchCoordinator);
 
         Activated += OnActivated;
         Root.Loaded += OnRootLoaded;
@@ -121,6 +124,7 @@ public sealed partial class MainWindow : Window
         WindowSwitchService.Dispose();
         ClipMouseService.Dispose();
         (BrowserFrame.Content as WebViewPage)?.Dispose();
+        GameLaunchCoordinator.Dispose();
         try
         {
             WebViewManager.Dispose();
@@ -416,6 +420,7 @@ public sealed partial class MainWindow : Window
     private async void Sidebar_BrowserLoginRequested(object sender, SidebarBrowserLoginRequestedEventArgs e)
         => await SafeExecution.RunHandledAsync(async () =>
         {
+            if (!GameLaunchCoordinator.CanLogin) return;
             await ShowSectionAsync(MainShellSection.Browser);
             if (BrowserFrame.Content is WebViewPage browserPage)
                 await browserPage.LoginAccountAsync(e.Account);

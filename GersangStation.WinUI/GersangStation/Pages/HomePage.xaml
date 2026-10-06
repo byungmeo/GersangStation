@@ -141,7 +141,7 @@
                 </Border>
             </Grid>
 
-            <Grid Grid.Row="2">
+            <Grid Grid.Row="2" Padding="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />

@@ -3,6 +3,7 @@
     x:Class="GersangStation.Controls.SidebarView"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:GersangStation.Controls"
     HorizontalAlignment="Stretch">
 
     <Grid>
@@ -274,108 +275,33 @@
                             ItemsSource="{Binding PresetNumbers}"
                             SelectedIndex="{Binding SelectedPreset, Mode=TwoWay}" />
                         <StackPanel Orientation="Vertical" Spacing="8">
-                            <StackPanel.Resources>
-                                <Style BasedOn="{StaticResource DefaultComboBoxStyle}" TargetType="ComboBox">
-                                    <Setter Property="HorizontalAlignment" Value="Stretch" />
-                                </Style>
-                                <Style TargetType="Grid">
-                                    <Setter Property="ColumnSpacing" Value="4" />
-                                </Style>
-                            </StackPanel.Resources>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox
-                                    x:Name="Client1AccountComboBox"
-                                    DisplayMemberPath="DisplayName"
-                                    Header="메인 클라이언트"
-                                    ItemsSource="{Binding AccountSelectionOptions}"
-                                    SelectedValue="{Binding SelectedAccount1Id, Mode=TwoWay}"
-                                    SelectedValuePath="Id" />
-                                <Button
-                                    x:Name="Client1BrowserButton"
-                                    Grid.Column="1"
-                                    VerticalAlignment="Bottom"
-                                    Click="Client1BrowserButton_Click"
-                                    IsEnabled="{Binding HasSelectedAccount1}"
-                                    ToolTipService.ToolTip="로그인 후 웹페이지 보기">
-                                    <FontIcon Glyph="&#xF8A5;" />
-                                </Button>
-                                <Button
-                                    x:Name="Client1ExecuteButton"
-                                    Grid.Column="2"
-                                    VerticalAlignment="Bottom"
-                                    Click="Account1ExecuteButton_Click"
-                                    Style="{ThemeResource AccentButtonStyle}">
-                                    <FontIcon Glyph="&#xE768;" />
-                                </Button>
-                            </Grid>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox
-                                    x:Name="Client2AccountComboBox"
-                                    DisplayMemberPath="DisplayName"
-                                    Header="2번 클라이언트"
-                                    ItemsSource="{Binding AccountSelectionOptions}"
-                                    SelectedValue="{Binding SelectedAccount2Id, Mode=TwoWay}"
-                                    SelectedValuePath="Id" />
-                                <Button
-                                    x:Name="Client2BrowserButton"
-                                    Grid.Column="1"
-                                    VerticalAlignment="Bottom"
-                                    Click="Client2BrowserButton_Click"
-                                    IsEnabled="{Binding HasSelectedAccount2}"
-                                    ToolTipService.ToolTip="로그인 후 웹페이지 보기">
-                                    <FontIcon Glyph="&#xF8A5;" />
-                                </Button>
-                                <Button
-                                    x:Name="Client2ExecuteButton"
-                                    Grid.Column="2"
-                                    VerticalAlignment="Bottom"
-                                    Click="Account2ExecuteButton_Click"
-                                    Style="{ThemeResource AccentButtonStyle}">
-                                    <FontIcon Glyph="&#xE768;" />
-                                </Button>
-                            </Grid>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <ComboBox
-                                    x:Name="Client3AccountComboBox"
-                                    DisplayMemberPath="DisplayName"
-                                    Header="3번 클라이언트"
-                                    ItemsSource="{Binding AccountSelectionOptions}"
-                                    SelectedValue="{Binding SelectedAccount3Id, Mode=TwoWay}"
-                                    SelectedValuePath="Id" />
-                                <Button
-                                    x:Name="Client3BrowserButton"
-                                    Grid.Column="1"
-                                    VerticalAlignment="Bottom"
-                                    Click="Client3BrowserButton_Click"
-                                    IsEnabled="{Binding HasSelectedAccount3}"
-                                    ToolTipService.ToolTip="로그인 후 웹페이지 보기">
-                                    <FontIcon Glyph="&#xF8A5;" />
-                                </Button>
-                                <Button
-                                    x:Name="Client3ExecuteButton"
-                                    Grid.Column="2"
-                                    Height="{Binding Height, ElementName=Client3AccountComboBox}"
-                                    VerticalAlignment="Bottom"
-                                    Click="Account3ExecuteButton_Click"
-                                    Style="{ThemeResource AccentButtonStyle}">
-                                    <FontIcon Glyph="&#xE768;" />
-                                </Button>
-                            </Grid>
+                            <controls:AccountLaunchControl
+                                BrowserRequested="AccountLaunch_BrowserRequested"
+                                CanBrowse="{x:Bind Launches.CanLogin, Mode=OneWay}"
+                                ClientIndex="0"
+                                ExecuteRequested="AccountLaunch_ExecuteRequested"
+                                Header="메인 클라이언트"
+                                ItemsSource="{Binding AccountSelectionOptions}"
+                                LaunchState="{x:Bind Launches.Client1, Mode=OneWay}"
+                                SelectedAccountId="{Binding SelectedAccount1Id, Mode=TwoWay}" />
+                            <controls:AccountLaunchControl
+                                BrowserRequested="AccountLaunch_BrowserRequested"
+                                CanBrowse="{x:Bind Launches.CanLogin, Mode=OneWay}"
+                                ClientIndex="1"
+                                ExecuteRequested="AccountLaunch_ExecuteRequested"
+                                Header="2번 클라이언트"
+                                ItemsSource="{Binding AccountSelectionOptions}"
+                                LaunchState="{x:Bind Launches.Client2, Mode=OneWay}"
+                                SelectedAccountId="{Binding SelectedAccount2Id, Mode=TwoWay}" />
+                            <controls:AccountLaunchControl
+                                BrowserRequested="AccountLaunch_BrowserRequested"
+                                CanBrowse="{x:Bind Launches.CanLogin, Mode=OneWay}"
+                                ClientIndex="2"
+                                ExecuteRequested="AccountLaunch_ExecuteRequested"
+                                Header="3번 클라이언트"
+                                ItemsSource="{Binding AccountSelectionOptions}"
+                                LaunchState="{x:Bind Launches.Client3, Mode=OneWay}"
+                                SelectedAccountId="{Binding SelectedAccount3Id, Mode=TwoWay}" />
                         </StackPanel>
                     </StackPanel>
                 </Grid>

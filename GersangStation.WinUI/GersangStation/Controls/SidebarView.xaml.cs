@@ -2,6 +2,8 @@ using Core;
 using Core.Models;
 using GersangStation.Main;
 using GersangStation.Main.Setting;
+using GersangStation.Diagnostics;
+using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
@@ -31,8 +33,15 @@ public sealed partial class SidebarView : UserControl
     public event EventHandler<SidebarSettingRequestedEventArgs>? SettingRequested;
 
     public FrameworkElement CurrentAppVersionTarget => CurrentAppVersionTextBlock;
+    public GameLaunchCoordinator? Launches { get; private set; }
 
     public SidebarView() => InitializeComponent();
+
+    public void SetLaunchCoordinator(GameLaunchCoordinator coordinator)
+    {
+        Launches = coordinator;
+        Bindings.Update();
+    }
 
     public void SetHomePage(StationPage homePage)
     {
@@ -105,22 +114,21 @@ public sealed partial class SidebarView : UserControl
         => _homePage?.NavigateToInstallPathSetting();
     private async void AppUpdateInstallButton_Click(object sender, RoutedEventArgs e)
         => await InvokeHomeAsync(page => page.InstallStoreUpdateAsync());
-    private async void Account1ExecuteButton_Click(object sender, RoutedEventArgs e)
-        => await InvokeHomeAsync(page => page.ExecuteClientAsync(0));
-    private async void Account2ExecuteButton_Click(object sender, RoutedEventArgs e)
-        => await InvokeHomeAsync(page => page.ExecuteClientAsync(1));
-    private async void Account3ExecuteButton_Click(object sender, RoutedEventArgs e)
-        => await InvokeHomeAsync(page => page.ExecuteClientAsync(2));
+    private async void AccountLaunch_ExecuteRequested(object? sender, EventArgs e)
+    {
+        if (sender is AccountLaunchControl control)
+            await InvokeHomeAsync(page => page.ExecuteClientAsync(control.ClientIndex));
+    }
 
-    private void Client1BrowserButton_Click(object sender, RoutedEventArgs e)
-        => RequestBrowserLogin(0);
-    private void Client2BrowserButton_Click(object sender, RoutedEventArgs e)
-        => RequestBrowserLogin(1);
-    private void Client3BrowserButton_Click(object sender, RoutedEventArgs e)
-        => RequestBrowserLogin(2);
+    private void AccountLaunch_BrowserRequested(object? sender, EventArgs e)
+    {
+        if (sender is AccountLaunchControl control)
+            RequestBrowserLogin(control.ClientIndex);
+    }
 
     private void RequestBrowserLogin(int comboBoxIndex)
     {
+        if (Launches?.CanLogin != true) return;
         string? selectedAccountId = comboBoxIndex switch
         {
             0 => _homePage?.SelectedAccount1Id,
@@ -140,7 +148,8 @@ public sealed partial class SidebarView : UserControl
 
     private async Task InvokeHomeAsync(Func<StationPage, Task> operation)
     {
-        if (_homePage is not null) await operation(_homePage);
+        if (_homePage is not null)
+            await SafeExecution.RunHandledAsync(() => operation(_homePage), "SidebarView.HomeOperation");
     }
 
     private void RequestSetting(SettingSection section)

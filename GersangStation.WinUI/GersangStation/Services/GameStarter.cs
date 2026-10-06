@@ -58,6 +58,8 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     // 세션은 시작한 서버 정보를 유지해야 하므로 서버+클라번호로 저장하되,
     // 실행 버튼 잠금 정책은 clientIndex 기준으로 서버와 무관하게 적용합니다.
     private readonly Dictionary<GameClientSlot, LaunchSession> _sessionsBySlot = [];
+    // 취소 후에도 이미 호출한 외부 런처는 종료시키지 않습니다. 실제 개수/계정 집계만 유지합니다.
+    private readonly List<LaunchSession> _detachedSessions = [];
     private readonly Dictionary<GameClientSlot, DateTimeOffset> _retryCooldownUntilBySlot = [];
     private readonly HashSet<nint> _knownDialogWindows = [];
 
@@ -74,7 +76,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         {
             lock (_syncRoot)
             {
-                return _sessionsBySlot.Values
+                return AllSessionsUnsafe()
                     .OrderBy(session => session.Slot.Server)
                     .ThenBy(session => session.Slot.ClientIndex)
                     .Select(ToSnapshot)
@@ -89,7 +91,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         {
             lock (_syncRoot)
             {
-                return _sessionsBySlot.Count;
+                return _sessionsBySlot.Count + _detachedSessions.Count;
             }
         }
     }
@@ -100,7 +102,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         {
             lock (_syncRoot)
             {
-                return _sessionsBySlot.Values.Count(session => session.State == GameClientState.Running);
+                return AllSessionsUnsafe().Count(session => session.State == GameClientState.Running);
             }
         }
     }
@@ -115,7 +117,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
         lock (_syncRoot)
         {
-            return _sessionsBySlot.Values.Any(session => session.AccountId.Equals(accountId, StringComparison.OrdinalIgnoreCase));
+            return AllSessionsUnsafe().Any(session => session.AccountId.Equals(accountId, StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -144,10 +146,6 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
                 _retryCooldownUntilBySlot.Remove(slot);
             }
 
-            if (_sessionsBySlot.Count >= MaxConcurrentGames)
-                return _sessionsBySlot.Values.Any(session => session.State == GameClientState.Starting)
-                    ? GameClientState.Starting
-                    : GameClientState.Running;
         }
 
         return GameClientState.Available;
@@ -201,7 +199,8 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     /// 실제 실행 전 단계에서 버튼 번호를 선점해 즉시 "켜는 중" 상태로 전환합니다.
     /// 같은 번호의 버튼은 서버가 달라도 동시에 사용할 수 없습니다.
     /// </summary>
-    public bool TryBeginStart(GameServer server, int clientIndex, string clientInstallPath, string? accountId)
+    public bool TryBeginStart(GameServer server, int clientIndex, string clientInstallPath, string? accountId,
+        GameLaunchAttempt? attempt = null)
     {
         if (clientIndex < 0 || clientIndex >= MaxConcurrentGames)
             return false;
@@ -215,17 +214,22 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
         lock (_syncRoot)
         {
+            if (attempt is not null && !attempt.IsPending) return false;
             if (_sessionsBySlot.TryGetValue(slot, out LaunchSession? existingSlotSession))
             {
                 if (existingSlotSession.State == GameClientState.Running)
                     return false;
 
                 if (existingSlotSession.State == GameClientState.Starting &&
+                    ReferenceEquals(existingSlotSession.Attempt, attempt) &&
                     existingSlotSession.AccountId.Equals(normalizedAccountId, StringComparison.OrdinalIgnoreCase) &&
                     string.Equals(existingSlotSession.InstallPath, clientInstallPath, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
+
+                // 새로운 시도는 기존 준비 세션을 덮어쓰지 않습니다.
+                if (existingSlotSession.Attempt is not null || attempt is not null) return false;
 
                 replacedSession = existingSlotSession;
                 _sessionsBySlot.Remove(slot);
@@ -240,7 +244,15 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
             }
 
             // 계정 중복은 서버가 달라도 허용하지 않습니다.
-            LaunchSession? accountSession = _sessionsBySlot.Values.FirstOrDefault(
+            // 취소된 런처의 늦은 Gersang.exe를 새 시도에 연결하지 않도록 탐색은 직렬화합니다.
+            if (_detachedSessions.Any(session => session.State == GameClientState.Starting))
+            {
+                if (replacedSession is not null) _sessionsBySlot[slot] = replacedSession;
+                return false;
+            }
+            if (_retryCooldownUntilBySlot.TryGetValue(slot, out DateTimeOffset until) && until > DateTimeOffset.Now)
+                return false;
+            LaunchSession? accountSession = AllSessionsUnsafe().FirstOrDefault(
                 session => session.AccountId.Equals(normalizedAccountId, StringComparison.OrdinalIgnoreCase));
             if (accountSession is not null)
             {
@@ -249,7 +261,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
                 return false;
             }
 
-            if (_sessionsBySlot.Count >= MaxConcurrentGames)
+            if (_sessionsBySlot.Count + _detachedSessions.Count >= MaxConcurrentGames)
             {
                 if (replacedSession is not null)
                     _sessionsBySlot[slot] = replacedSession;
@@ -260,9 +272,14 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
                 slot,
                 normalizedAccountId,
                 clientInstallPath,
-                CancellationTokenSource.CreateLinkedTokenSource(_disposeCts.Token));
+                CancellationTokenSource.CreateLinkedTokenSource(_disposeCts.Token), attempt);
         }
 
+        if (attempt is not null && !attempt.MarkStarting())
+        {
+            CancelStart(server, clientIndex, "예약 중 실행 시도 종료", attempt);
+            return false;
+        }
         CancelSession(replacedSession);
         NotifySessionsChanged();
         return true;
@@ -271,7 +288,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// 아직 Gersang.exe가 붙지 않은 "켜는 중" 세션을 취소합니다.
     /// </summary>
-    public void CancelStart(GameServer server, int clientIndex, string reason)
+    public void CancelStart(GameServer server, int clientIndex, string reason, GameLaunchAttempt? attempt = null)
     {
         GameClientSlot slot = new(server, clientIndex);
         LaunchSession? removedSession = null;
@@ -279,10 +296,16 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         lock (_syncRoot)
         {
             if (_sessionsBySlot.TryGetValue(slot, out LaunchSession? session) &&
-                session.State == GameClientState.Starting)
+                session.State == GameClientState.Starting &&
+                (attempt is null || ReferenceEquals(session.Attempt, attempt)))
             {
                 removedSession = session;
                 _sessionsBySlot.Remove(slot);
+                if (session.LauncherStarting || session.LauncherProcessId.HasValue)
+                {
+                    session.Detached = true;
+                    _detachedSessions.Add(session);
+                }
             }
         }
 
@@ -291,8 +314,12 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
         Debug.WriteLine(
             $"[GameStarter] 시작 준비 취소. server:{server}, clientIndex:{clientIndex}, account:{removedSession.AccountId}, reason:{reason}");
-        removedSession.Cancellation.Cancel();
-        removedSession.Cancellation.Dispose();
+        removedSession.Attempt?.Fail(reason);
+        if (!removedSession.Detached)
+        {
+            removedSession.Cancellation.Cancel();
+            removedSession.Cancellation.Dispose();
+        }
         NotifySessionsChanged();
     }
 
@@ -305,7 +332,8 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         string clientInstallPath,
         string selectedAccountId,
         GameStartPayload payload,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        GameLaunchAttempt? attempt = null)
     {
         if (clientIndex < 0 || clientIndex >= MaxConcurrentGames)
             return false;
@@ -314,23 +342,23 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(accountId))
             return false;
 
-        if (!TryBeginStart(server, clientIndex, clientInstallPath, accountId))
+        if (attempt is null && !TryBeginStart(server, clientIndex, clientInstallPath, accountId))
             return false;
 
         string launcherPath = Path.Combine(clientInstallPath, LauncherExecutableName);
         if (!File.Exists(launcherPath))
         {
             Debug.WriteLine($"[GameStarter] Run.exe를 찾을 수 없습니다. path:{launcherPath}");
-            CancelStart(server, clientIndex, "Run.exe 파일 없음");
+            CancelStart(server, clientIndex, "Run.exe 파일 없음", attempt);
             return false;
         }
 
         GameClientSlot slot = new(server, clientIndex);
         LaunchSession? launchSession = GetSession(slot, accountId);
-        if (launchSession is null)
+        if (launchSession is null || !ReferenceEquals(launchSession.Attempt, attempt))
             return false;
         using CancellationTokenRegistration cancellationRegistration = cancellationToken.CanBeCanceled
-            ? cancellationToken.Register(() => CancelStart(server, clientIndex, "상위 작업 취소"))
+            ? cancellationToken.Register(() => CancelStart(server, clientIndex, "상위 작업 취소", attempt))
             : default;
 
         HashSet<int> existingGameProcessIds = SnapshotCurrentGameProcessIds();
@@ -343,6 +371,14 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
         try
         {
+            lock (_syncRoot)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!_sessionsBySlot.TryGetValue(slot, out LaunchSession? current)
+                    || !ReferenceEquals(current, launchSession) || (attempt is not null && !attempt.IsPending))
+                    return false;
+                launchSession.LauncherStarting = true;
+            }
             if (!launcherProcess.Start())
             {
                 Debug.WriteLine("[GameStarter] Run.exe 시작에 실패했습니다.");
@@ -359,7 +395,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
                 $"[GameStarter] Run.exe 시작. server:{server}, clientIndex:{clientIndex}, pid:{launcherProcess.Id}, account:{accountId}");
 
             await DiscoverGameProcessForSessionAsync(launchSession, existingGameProcessIds);
-            return true;
+            return launchSession.State == GameClientState.Running && !launchSession.Detached;
         }
         catch (OperationCanceledException)
         {
@@ -386,14 +422,17 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         LaunchSession[] sessions;
         lock (_syncRoot)
         {
-            sessions = _sessionsBySlot.Values.ToArray();
+            sessions = AllSessionsUnsafe().ToArray();
             _sessionsBySlot.Clear();
+            _detachedSessions.Clear();
             _retryCooldownUntilBySlot.Clear();
             _knownDialogWindows.Clear();
         }
 
         foreach (LaunchSession session in sessions)
         {
+            if (session.State == GameClientState.Running) session.Attempt?.MarkExited();
+            else session.Attempt?.Cancel("앱 종료");
             session.Cancellation.Cancel();
             session.Cancellation.Dispose();
         }
@@ -447,7 +486,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
         while (true)
         {
-            session.Cancellation.Token.ThrowIfCancellationRequested();
+            session.Token.ThrowIfCancellationRequested();
 
             discoveredGame |= TryAttachGameProcess(session, existingGameProcessIds);
 
@@ -468,7 +507,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
             if (launcherExitedAt is not null && DateTimeOffset.Now - launcherExitedAt.Value >= DiscoveryGracePeriod)
                 break;
 
-            await Task.Delay(MonitorInterval, session.Cancellation.Token);
+            await Task.Delay(MonitorInterval, session.Token);
         }
 
         if (!discoveredGame)
@@ -522,16 +561,21 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     {
         lock (_syncRoot)
         {
-            if (!_sessionsBySlot.TryGetValue(session.Slot, out LaunchSession? currentSession) ||
-                !ReferenceEquals(currentSession, session) ||
-                currentSession.State != GameClientState.Starting)
+            if (!ContainsSessionUnsafe(session) || session.State != GameClientState.Starting
+                || AllSessionsUnsafe().Any(candidate => candidate.GameProcessId == processId))
             {
                 return false;
             }
 
-            currentSession.State = GameClientState.Running;
-            currentSession.GameProcessId = processId;
-            currentSession.StartedAt = processStartedAt;
+            if (!session.Detached && session.Attempt is not null && !session.Attempt.MarkRunning())
+            {
+                _sessionsBySlot.Remove(session.Slot);
+                session.Detached = true;
+                _detachedSessions.Add(session);
+            }
+            session.State = GameClientState.Running;
+            session.GameProcessId = processId;
+            session.StartedAt = processStartedAt;
         }
 
         NotifySessionsChanged();
@@ -546,7 +590,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         LaunchSession[] sessions;
         lock (_syncRoot)
         {
-            sessions = _sessionsBySlot.Values.ToArray();
+            sessions = AllSessionsUnsafe().ToArray();
         }
 
         foreach (LaunchSession session in sessions)
@@ -592,14 +636,13 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     {
         lock (_syncRoot)
         {
-            if (!_sessionsBySlot.TryGetValue(session.Slot, out LaunchSession? currentSession) ||
-                !ReferenceEquals(currentSession, session))
+            if (!ContainsSessionUnsafe(session))
             {
                 return;
             }
 
-            currentSession.StartedAt = startedAt;
-            currentSession.LauncherProcessId = launcherProcessId;
+            session.StartedAt = startedAt;
+            session.LauncherProcessId = launcherProcessId;
         }
 
         NotifySessionsChanged();
@@ -610,14 +653,12 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         bool changed = false;
         lock (_syncRoot)
         {
-            if (!_sessionsBySlot.TryGetValue(session.Slot, out LaunchSession? currentSession) ||
-                !ReferenceEquals(currentSession, session) ||
-                currentSession.LauncherProcessId is null)
+            if (!ContainsSessionUnsafe(session) || session.LauncherProcessId is null)
             {
                 return;
             }
 
-            currentSession.LauncherProcessId = null;
+            session.LauncherProcessId = null;
             changed = true;
         }
 
@@ -636,11 +677,14 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
                 _sessionsBySlot.Remove(session.Slot);
                 removed = true;
             }
+            removed |= _detachedSessions.Remove(session);
         }
 
         if (!removed)
             return;
 
+        if (session.State == GameClientState.Running) session.Attempt?.MarkExited();
+        else session.Attempt?.Fail(reason);
         Debug.WriteLine(
             $"[GameStarter] 세션 제거. server:{session.Slot.Server}, clientIndex:{session.Slot.ClientIndex}, account:{session.AccountId}, reason:{reason}");
         session.Cancellation.Cancel();
@@ -661,7 +705,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
     {
         lock (_syncRoot)
         {
-            return _sessionsBySlot.Values.Any(session => session.GameProcessId == processId);
+            return AllSessionsUnsafe().Any(session => session.GameProcessId == processId);
         }
     }
 
@@ -680,6 +724,11 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
 
         return null;
     }
+
+    private IEnumerable<LaunchSession> AllSessionsUnsafe() => _sessionsBySlot.Values.Concat(_detachedSessions);
+    private bool ContainsSessionUnsafe(LaunchSession session)
+        => (_sessionsBySlot.TryGetValue(session.Slot, out LaunchSession? current) && ReferenceEquals(current, session))
+            || _detachedSessions.Contains(session);
 
     private LaunchSession? GetSession(GameClientSlot slot, string accountId)
     {
@@ -710,7 +759,7 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         HashSet<int> targetProcessIds;
         lock (_syncRoot)
         {
-            targetProcessIds = _sessionsBySlot.Values
+            targetProcessIds = AllSessionsUnsafe()
                 .SelectMany(session => new[] { session.LauncherProcessId, session.GameProcessId })
                 .Where(processId => processId.HasValue)
                 .Select(processId => processId!.Value)
@@ -867,12 +916,15 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
             GameClientSlot slot,
             string accountId,
             string installPath,
-            CancellationTokenSource cancellation)
+            CancellationTokenSource cancellation,
+            GameLaunchAttempt? attempt)
         {
             Slot = slot;
             AccountId = accountId;
             InstallPath = installPath;
             Cancellation = cancellation;
+            Token = cancellation.Token;
+            Attempt = attempt;
             State = GameClientState.Starting;
             StartedAt = DateTimeOffset.Now;
         }
@@ -881,6 +933,10 @@ public sealed partial class GameStarter : IDisposable, INotifyPropertyChanged
         public string AccountId { get; }
         public string InstallPath { get; }
         public CancellationTokenSource Cancellation { get; }
+        public CancellationToken Token { get; }
+        public GameLaunchAttempt? Attempt { get; }
+        public bool LauncherStarting { get; set; }
+        public bool Detached { get; set; }
         public GameClientState State { get; set; }
         public DateTimeOffset StartedAt { get; set; }
         public int? LauncherProcessId { get; set; }

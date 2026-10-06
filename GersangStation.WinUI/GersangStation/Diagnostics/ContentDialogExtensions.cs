@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml.Controls;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Microsoft.UI.Xaml.Controls;
 
@@ -11,6 +12,6 @@ public static class ContentDialogExtensions
     /// <summary>
     /// 앱 공용 대화상자 coordinator를 거쳐 현재 대화상자를 표시합니다.
     /// </summary>
-    public static Task<ContentDialogResult> ShowManagedAsync(this ContentDialog dialog)
-        => global::GersangStation.App.DialogCoordinator.ShowAsync(dialog);
+    public static Task<ContentDialogResult> ShowManagedAsync(this ContentDialog dialog, CancellationToken cancellationToken = default)
+        => global::GersangStation.App.DialogCoordinator.ShowAsync(dialog, cancellationToken);
 }

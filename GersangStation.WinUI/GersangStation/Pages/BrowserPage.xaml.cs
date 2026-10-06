@@ -42,6 +42,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     private WebViewManager? _webviewManager;
 
     public ObservableCollection<Account> Accounts { get; } = [];
+    public bool CanSelectAccount => _shellWindow?.GameLaunchCoordinator.CanLogin != false;
     public ObservableCollection<BrowserFavorite> Favorites { get; } = [];
 
     public Visibility FavoritesVisibility => Favorites.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
@@ -126,6 +127,8 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
 
     public void Dispose()
     {
+        if (_shellWindow is not null)
+            _shellWindow.GameLaunchCoordinator.PropertyChanged -= OnLaunchStateChanged;
         Bindings.StopTracking();
         if (_webviewManager is not null)
         {
@@ -145,11 +148,17 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
 
         _initialized = true;
         _shellWindow = window;
+        window.GameLaunchCoordinator.PropertyChanged += OnLaunchStateChanged;
         _webviewManager = window.WebViewManager;
         _webviewManager.SourceChanged += OnSourceChanged;
         _webviewManager.LoggedInChanged += OnLoggedInChanged;
         TextBox_Search.Text = _committedUrlText = _webviewManager.CurrentSource;
         Bindings.Update();
+    }
+
+    private void OnLaunchStateChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(GameLaunchCoordinator.CanLogin)) OnPropertyChanged(nameof(CanSelectAccount));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -248,7 +257,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
 
     internal async Task LoginAccountAsync(Account account)
     {
-        if (_webviewManager is null)
+        if (_webviewManager is null || !CanSelectAccount)
             return;
 
         Account? browserAccount = Accounts.FirstOrDefault(candidate =>

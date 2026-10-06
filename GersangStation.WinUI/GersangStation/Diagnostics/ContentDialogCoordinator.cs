@@ -16,11 +16,11 @@ public sealed class ContentDialogCoordinator
     /// <summary>
     /// 지정한 대화상자를 전역 gate를 거쳐 안전하게 표시합니다.
     /// </summary>
-    public async Task<ContentDialogResult> ShowAsync(ContentDialog dialog)
+    public async Task<ContentDialogResult> ShowAsync(ContentDialog dialog, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(dialog);
 
-        await _gate.WaitAsync();
+        await _gate.WaitAsync(cancellationToken);
         try
         {
             Microsoft.UI.Dispatching.DispatcherQueue? dispatcherQueue = App.UiDispatcherQueue ?? App.CurrentWindow?.DispatcherQueue;
@@ -30,8 +30,12 @@ public sealed class ContentDialogCoordinator
             ContentDialogResult result = ContentDialogResult.None;
             await dispatcherQueue.RunOrEnqueueAsync(async () =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 EnsureXamlRoot(dialog);
+                using CancellationTokenRegistration registration = cancellationToken.Register(() =>
+                    dispatcherQueue.TryEnqueue(() => dialog.Hide()));
                 result = await dialog.ShowAsync();
+                cancellationToken.ThrowIfCancellationRequested();
             });
 
             return result;
