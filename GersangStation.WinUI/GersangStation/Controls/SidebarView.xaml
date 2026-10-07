@@ -15,9 +15,10 @@
         <ScrollViewer
             x:Name="SidebarScrollViewer"
             Grid.Row="0"
-            Padding="0,0,8,0"
+            Padding="8,0,8,0"
             HorizontalScrollBarVisibility="Disabled"
-            HorizontalScrollMode="Disabled">
+            HorizontalScrollMode="Disabled"
+            VerticalScrollBarVisibility="Auto">
             <Grid HorizontalAlignment="Stretch">
                 <Grid x:Name="SidebarSettingPanel" Visibility="Collapsed">
                     <ListView x:Name="SettingNavListView" SelectionChanged="SettingNavListView_SelectionChanged">

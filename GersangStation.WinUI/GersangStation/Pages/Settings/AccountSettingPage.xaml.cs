@@ -4,8 +4,12 @@ using GersangStation;
 using GersangStation.Diagnostics;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using SideDrawer.Controls;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -37,8 +41,19 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         private string _groupName = "";
         private bool _isEditingExisting;
         private bool _isChangingPassword = true;
+        private string _initialId = "";
+        private string _initialNickname = "";
+        private string _initialGroupName = "";
+        private bool _initialChangingPassword = true;
 
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        public bool HasChanges =>
+            !string.Equals(Id, _initialId, StringComparison.Ordinal) ||
+            !string.Equals(Nickname, _initialNickname, StringComparison.Ordinal) ||
+            !string.Equals(GroupName, _initialGroupName, StringComparison.Ordinal) ||
+            IsChangingPassword != _initialChangingPassword ||
+            Password.Length > 0;
 
         public string OriginalId
         {
@@ -91,6 +106,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             Password = "";
             Nickname = "";
             GroupName = "";
+            CaptureBaseline();
         }
 
         public void BeginEdit(Account account)
@@ -104,6 +120,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             Password = "";
             Nickname = account.Nickname ?? "";
             GroupName = account.GroupName ?? "";
+            CaptureBaseline();
         }
 
         public void SetChangingPassword(bool value)
@@ -121,7 +138,17 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
             storage = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasChanges)));
             return true;
+        }
+
+        private void CaptureBaseline()
+        {
+            _initialId = Id;
+            _initialNickname = Nickname;
+            _initialGroupName = GroupName;
+            _initialChangingPassword = IsChangingPassword;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasChanges)));
         }
     }
 
@@ -129,6 +156,10 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     private bool _suppressSelectionChanged;
     private bool _isLoadingAccounts;
     private bool _hasBlockingAccountLoadFailure;
+    private bool _isAccountOperationInProgress;
+    private bool _isEditorOpen;
+    private bool _allowEditorClose;
+    private MenuFlyout? _accountContextMenu;
     private List<Account> _loadedAccounts = [];
     private AccountListDisplayMode _accountListDisplayMode = AccountListDisplayMode.Grouped;
 
@@ -146,17 +177,19 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     public bool CanDeleteSelectedAccount => AccountManagementEnabled && Deletable;
     public bool CanSave => !_isLoadingAccounts &&
         !_hasBlockingAccountLoadFailure &&
+        !_isAccountOperationInProgress && _isEditorOpen &&
+        AccountEditorDrawer.State == DrawerState.Open &&
         !string.IsNullOrWhiteSpace(Editor.Id) &&
         (!RequiresPassword || !string.IsNullOrWhiteSpace(Editor.Password));
     public string SaveButtonText => Editor.IsEditingExisting ? "수정 저장" : "추가";
     public string EditorTitle => Editor.IsEditingExisting ? "선택한 계정 수정" : "새 계정 추가";
     public string PasswordBoxHeader => Editor.IsEditingExisting ? "새 패스워드" : "패스워드";
     public string PasswordPlaceholderText => Editor.IsEditingExisting ? "변경할 때만 입력" : "필수 입력";
-    public bool AccountManagementEnabled => !_isLoadingAccounts && !_hasBlockingAccountLoadFailure && !Editor.IsEditingExisting;
+    public bool AccountManagementEnabled => !_isLoadingAccounts && !_hasBlockingAccountLoadFailure && !_isAccountOperationInProgress && !_isEditorOpen;
+    public bool EditorInputsEnabled => !_isAccountOperationInProgress && AccountEditorDrawer.State == DrawerState.Open;
     public Visibility ChangePasswordToggleVisibility => Editor.IsEditingExisting ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PasswordBoxVisibility => !Editor.IsEditingExisting || Editor.IsChangingPassword ? Visibility.Visible : Visibility.Collapsed;
     public Visibility ResetButtonVisibility => Editor.IsEditingExisting ? Visibility.Collapsed : Visibility.Visible;
-    public Visibility CancelEditButtonVisibility => Editor.IsEditingExisting ? Visibility.Visible : Visibility.Collapsed;
     public Visibility GroupedListVisibility => _accountListDisplayMode == AccountListDisplayMode.Grouped ? Visibility.Visible : Visibility.Collapsed;
     public Visibility OrderedListVisibility => _accountListDisplayMode == AccountListDisplayMode.Ordered ? Visibility.Visible : Visibility.Collapsed;
 
@@ -188,14 +221,18 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     {
         InitializeComponent();
         Editor.PropertyChanged += Editor_PropertyChanged;
+        AccountEditorDrawer.RegisterPropertyChangedCallback(Drawer.StateProperty, (_, _) => NotifyEditorStateChanged());
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
 
-        await LoadAccountsAsync();
-        BeginCreateMode(clearSelection: false);
+        await SafeExecution.RunHandledAsync(async () =>
+        {
+            await LoadAccountsAsync();
+            BeginCreateMode(clearSelection: false);
+        }, "AccountSettingPage.OnNavigatedTo");
     }
 
     private void AccountListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -215,7 +252,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     }
 
     private async void OrderedAccountListView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
-        => await SaveReorderedAccountsAsync();
+        => await SafeExecution.RunHandledAsync(SaveReorderedAccountsAsync, "AccountSettingPage.ReorderAccounts");
 
     private void ApplySelectionFrom(IEnumerable<Account> accounts)
     {
@@ -226,7 +263,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     }
 
     private async void Button_Save_Click(object sender, RoutedEventArgs e)
-        => await SaveEditorAsync();
+        => await SafeExecution.RunHandledAsync(SaveEditorAsync, "AccountSettingPage.SaveEditor");
 
     /// <summary>
     /// 아이디, 패스워드, 닉네임, 그룹 이름 입력에서 Enter를 누르면 저장 동작을 실행합니다.
@@ -237,7 +274,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             return;
 
         e.Handled = true;
-        await SaveEditorAsync();
+        await SafeExecution.RunHandledAsync(SaveEditorAsync, "AccountSettingPage.SaveEditorByEnter");
     }
 
     /// <summary>
@@ -245,9 +282,20 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     /// </summary>
     private async Task SaveEditorAsync()
     {
-        if (_isLoadingAccounts || _hasBlockingAccountLoadFailure)
+        if (!CanSave)
             return;
 
+        SetAccountOperationInProgress(true);
+        try { await SaveEditorCoreAsync(); }
+        finally
+        {
+            SetAccountOperationInProgress(false);
+            if (!_isEditorOpen) ScheduleAddButtonFocus();
+        }
+    }
+
+    private async Task SaveEditorCoreAsync()
+    {
         string? validationError = GetValidationErrorMessage();
         if (!string.IsNullOrWhiteSpace(validationError))
         {
@@ -303,29 +351,234 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         }
 
         ApplyAccounts(savedAccounts);
-        BeginCreateMode(clearSelection: true);
+        // 저장 성공 후에만 입력 폐기 확인을 건너뛰고 닫습니다. 실패 시 폼은 그대로 유지됩니다.
+        _allowEditorClose = true;
+        try { await AccountEditorDrawer.CloseAsync(); }
+        finally { _allowEditorClose = false; }
     }
 
-    private void Button_Edit_Click(object sender, RoutedEventArgs e)
+    private async void Button_Add_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => OpenEditorAsync(), "AccountSettingPage.AddAccount");
+
+    private async Task OpenEditorAsync(Account? account = null)
     {
-        if (_selectedAccounts.Count != 1)
+        if (!AccountManagementEnabled || !IsLoaded)
             return;
 
-        Editor.BeginEdit(_selectedAccounts[0]);
-        ScheduleEditorStartFocus(selectAll: true);
+        _accountContextMenu?.Hide();
+        if (account is null)
+            BeginCreateMode(clearSelection: true);
+        else
+            Editor.BeginEdit(account);
+
+        _isEditorOpen = true;
+        NotifyEditorStateChanged();
+        try
+        {
+            // 페이지뿐 아니라 사이드바도 모달 범위에 포함합니다.
+            AccountEditorDrawer.Host = XamlRoot.Content as FrameworkElement ?? AccountPageRoot;
+            await AccountEditorDrawer.OpenAsync();
+        }
+        catch
+        {
+            if (AccountEditorDrawer.State == DrawerState.Closed)
+            {
+                _isEditorOpen = false;
+                BeginCreateMode(clearSelection: false);
+                NotifyEditorStateChanged();
+            }
+            throw;
+        }
+    }
+
+    private void AccountEditorDrawer_Opened(object? sender, EventArgs e)
+        => ScheduleEditorStartFocus(selectAll: Editor.IsEditingExisting);
+
+    private async void AccountEditorDrawer_Closing(object? sender, DrawerClosingEventArgs e)
+    {
+        if (_allowEditorClose)
+            return;
+
+        e.Handled = true;
+        if (_isAccountOperationInProgress)
+            return;
+
+        if (!Editor.HasChanges)
+        {
+            e.Handled = false;
+            return;
+        }
+
+        using var deferral = e.GetDeferral();
+        SetAccountOperationInProgress(true);
+        try
+        {
+            await SafeExecution.RunHandledAsync(async () =>
+            {
+                var dialog = new ContentDialog
+                {
+                    XamlRoot = this.XamlRoot,
+                    Title = "입력한 내용을 버릴까요?",
+                    Content = "저장하지 않은 계정 정보가 있습니다. 닫으면 입력한 내용이 사라집니다.",
+                    PrimaryButtonText = "버리고 닫기",
+                    CloseButtonText = "계속 편집",
+                    DefaultButton = ContentDialogButton.Close
+                };
+
+                e.Handled = await dialog.ShowManagedAsync() != ContentDialogResult.Primary;
+            }, "AccountSettingPage.ConfirmDiscardEditor");
+        }
+        finally { SetAccountOperationInProgress(false); }
+    }
+
+    private void AccountEditorDrawer_Closed(object? sender, DrawerClosedEventArgs e)
+    {
+        _isEditorOpen = false;
+        BeginCreateMode(clearSelection: true);
+        NotifyEditorStateChanged();
+        if (e.Reason != DrawerCloseReason.HostUnloaded && !_isAccountOperationInProgress)
+            ScheduleAddButtonFocus();
+    }
+
+    private void AccountEditorDrawer_InteractionFailed(object? sender, DrawerInteractionFailedEventArgs e)
+        => Task.FromException(e.Exception).FireAndForgetHandled("AccountSettingPage.DrawerInteraction");
+
+    private async void AccountList_ContextRequested(UIElement sender, ContextRequestedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => ShowAccountContextMenu(sender, e), "AccountSettingPage.AccountContextMenu");
+
+    private async void AccountList_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(async () =>
+        {
+            if (sender is not ListView list || !AccountManagementEnabled)
+                return;
+
+            ListViewItem? container = FindAccountItemContainer(list, e.OriginalSource);
+            if (container is null || list.ItemFromContainer(container) is not Account account)
+                return;
+
+            e.Handled = true;
+            await EditContextAccountAsync(account.Id);
+        }, "AccountSettingPage.DoubleTapEditAccount");
+
+    private static ListViewItem? FindAccountItemContainer(ListView list, object? originalSource)
+    {
+        DependencyObject? source = originalSource as DependencyObject;
+        while (source is not null && !ReferenceEquals(source, list))
+        {
+            if (source is ListViewItem item)
+                return item;
+
+            source = VisualTreeHelper.GetParent(source);
+        }
+        return null;
+    }
+
+    private void ShowAccountContextMenu(UIElement sender, ContextRequestedEventArgs e)
+    {
+        if (sender is not ListView list || !AccountManagementEnabled)
+            return;
+
+        bool hasPointerPosition = e.TryGetPosition(list, out var position);
+        ListViewItem? container = FindAccountItemContainer(list, e.OriginalSource);
+
+        Account? target = container is null ? null : list.ItemFromContainer(container) as Account;
+        // 빈 영역 우클릭에는 기존 선택을 사용하지 않습니다. 키보드 메뉴 요청만 선택 항목을 사용합니다.
+        if (!hasPointerPosition && target is null && list.SelectedItem is Account selected)
+        {
+            target = selected;
+            container = list.ContainerFromItem(selected) as ListViewItem;
+        }
+
+        _accountContextMenu?.Hide();
+        var menu = new MenuFlyout();
+        var add = new MenuFlyoutItem { Text = "추가", Icon = new SymbolIcon(Symbol.Add) };
+        AutomationProperties.SetAutomationId(add, "AccountContextAdd");
+        add.Click += Button_Add_Click;
+        menu.Items.Add(add);
+
+        if (target is not null)
+        {
+            string targetId = target.Id;
+            menu.Items.Add(new MenuFlyoutSeparator());
+            var edit = new MenuFlyoutItem { Text = "수정", Icon = new SymbolIcon(Symbol.Edit) };
+            AutomationProperties.SetAutomationId(edit, "AccountContextEdit");
+            edit.Click += async (_, _) => await SafeExecution.RunHandledAsync(
+                () => EditContextAccountAsync(targetId), "AccountSettingPage.ContextEditAccount");
+            menu.Items.Add(edit);
+            var delete = new MenuFlyoutItem { Text = "삭제", Icon = new SymbolIcon(Symbol.Delete) };
+            AutomationProperties.SetAutomationId(delete, "AccountContextDelete");
+            delete.Click += async (_, _) => await SafeExecution.RunHandledAsync(
+                () => DeleteContextAccountAsync(targetId), "AccountSettingPage.ContextDeleteAccount");
+            menu.Items.Add(delete);
+        }
+
+        _accountContextMenu = menu;
+        e.Handled = true;
+        if (hasPointerPosition)
+            menu.ShowAt(list, position);
+        else
+            menu.ShowAt((FrameworkElement?)container ?? list);
+    }
+
+    private async Task EditContextAccountAsync(string targetId)
+    {
+        Account? account = FindContextAccount(targetId);
+        if (account is null)
+            return;
+        ApplySelectionFrom([account]);
+        await OpenEditorAsync(account);
+    }
+
+    private async Task DeleteContextAccountAsync(string targetId)
+    {
+        Account? account = FindContextAccount(targetId);
+        if (account is null)
+            return;
+        ApplySelectionFrom([account]);
+        await DeleteSelectedAccountsAsync();
+    }
+
+    private Account? FindContextAccount(string targetId)
+        => AccountManagementEnabled
+            ? _loadedAccounts.FirstOrDefault(account => string.Equals(account.Id, targetId, StringComparison.OrdinalIgnoreCase))
+            : null;
+
+    private void SetAccountOperationInProgress(bool value)
+    {
+        _isAccountOperationInProgress = value;
+        NotifyEditorStateChanged();
+        NotifySelectionStateChanged();
+    }
+
+    private async void Button_Edit_Click(object sender, RoutedEventArgs e)
+    {
+        if (!CanEditSelectedAccount)
+            return;
+
+        Account selected = _selectedAccounts[0];
+        await SafeExecution.RunHandledAsync(() => OpenEditorAsync(selected), "AccountSettingPage.EditAccount");
     }
 
     private async void Button_Delete_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(DeleteSelectedAccountsAsync, "AccountSettingPage.DeleteAccounts");
+
+    private async Task DeleteSelectedAccountsAsync()
     {
-        if (_isLoadingAccounts || _hasBlockingAccountLoadFailure)
+        if (!CanDeleteSelectedAccount)
             return;
 
-        if (_selectedAccounts.Count == 0)
-            return;
+        // 확인 대기 중 선택이 바뀌어도 삭제 대상은 고정합니다.
+        Account[] targets = _selectedAccounts.ToArray();
+        SetAccountOperationInProgress(true);
+        try { await DeleteAccountsCoreAsync(targets); }
+        finally { SetAccountOperationInProgress(false); }
+    }
 
-        string targetDescription = _selectedAccounts.Count == 1
-            ? $"'{_selectedAccounts[0].DisplayNickname}'"
-            : $"{_selectedAccounts.Count}개 계정";
+    private async Task DeleteAccountsCoreAsync(IReadOnlyList<Account> targets)
+    {
+        string targetDescription = targets.Count == 1
+            ? $"'{targets[0].DisplayNickname}'"
+            : $"{targets.Count}개 계정";
 
         var dialog = new ContentDialog
         {
@@ -341,7 +594,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (result != ContentDialogResult.Primary)
             return;
 
-        HashSet<string> selectedIds = _selectedAccounts
+        HashSet<string> selectedIds = targets
             .Select(account => account.Id.Trim())
             .Where(id => id.Length > 0)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -371,13 +624,14 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private void Button_Reset_Click(object sender, RoutedEventArgs e)
     {
+        if (!EditorInputsEnabled)
+            return;
         BeginCreateMode(clearSelection: true);
+        ScheduleEditorStartFocus();
     }
 
-    private void Button_CancelEdit_Click(object sender, RoutedEventArgs e)
-    {
-        BeginCreateMode(clearSelection: true);
-    }
+    private async void Button_CancelEdit_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(async () => { await AccountEditorDrawer.CloseAsync(); }, "AccountSettingPage.CancelEditor");
 
     private void CheckBox_ChangePassword_Click(object sender, RoutedEventArgs e)
     {
@@ -447,8 +701,6 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
         if (clearSelection)
             ClearSelection();
-
-        ScheduleEditorStartFocus();
     }
 
     private void ClearSelection()
@@ -585,10 +837,10 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         OnPropertyChanged(nameof(PasswordBoxHeader));
         OnPropertyChanged(nameof(PasswordPlaceholderText));
         OnPropertyChanged(nameof(AccountManagementEnabled));
+        OnPropertyChanged(nameof(EditorInputsEnabled));
         OnPropertyChanged(nameof(ChangePasswordToggleVisibility));
         OnPropertyChanged(nameof(PasswordBoxVisibility));
         OnPropertyChanged(nameof(ResetButtonVisibility));
-        OnPropertyChanged(nameof(CancelEditButtonVisibility));
     }
 
     /// <summary>
@@ -596,9 +848,16 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     /// </summary>
     private async Task SaveReorderedAccountsAsync()
     {
-        if (_isLoadingAccounts || _hasBlockingAccountLoadFailure)
+        if (!AccountManagementEnabled)
             return;
 
+        SetAccountOperationInProgress(true);
+        try { await SaveReorderedAccountsCoreAsync(); }
+        finally { SetAccountOperationInProgress(false); }
+    }
+
+    private async Task SaveReorderedAccountsCoreAsync()
+    {
         string[] currentOrder = _loadedAccounts.Select(account => account.Id).ToArray();
         string[] reorderedOrder = OrderedAccounts.Select(account => account.Id).ToArray();
         if (currentOrder.SequenceEqual(reorderedOrder, StringComparer.Ordinal))
@@ -664,13 +923,22 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     /// </summary>
     private void FocusEditorStartControl(bool selectAll)
     {
-        if (TextBox_Id is null)
+        if (TextBox_Id is null || !_isEditorOpen || AccountEditorDrawer.State != DrawerState.Open)
             return;
 
         TextBox_Id.Focus(FocusState.Programmatic);
 
         if (selectAll)
             TextBox_Id.SelectAll();
+    }
+
+    private void ScheduleAddButtonFocus()
+    {
+        _ = DispatcherQueue.TryEnqueueHandled(() =>
+        {
+            if (IsLoaded && AccountManagementEnabled)
+                Button_Add.Focus(FocusState.Programmatic);
+        }, "AccountSettingPage.ScheduleAddButtonFocus");
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -681,9 +949,10 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     /// <summary>
     /// 개인정보처리방침 링크를 앱 내부 브라우저 페이지로 엽니다.
     /// </summary>
-    private void PrivacyPolicyHyperlink_Click(Microsoft.UI.Xaml.Documents.Hyperlink sender, Microsoft.UI.Xaml.Documents.HyperlinkClickEventArgs args)
-    {
-        if (App.CurrentWindow is MainWindow window)
-            window.NavigateToWebViewPageByLinkKey(AppLinkKeys.PolicyPrivacyStore);
-    }
+    private async void PrivacyPolicyHyperlink_Click(Microsoft.UI.Xaml.Documents.Hyperlink sender, Microsoft.UI.Xaml.Documents.HyperlinkClickEventArgs args)
+        => await SafeExecution.RunHandledAsync(async () =>
+        {
+            if (await AccountEditorDrawer.CloseAsync() && App.CurrentWindow is MainWindow window)
+                window.NavigateToWebViewPageByLinkKey(AppLinkKeys.PolicyPrivacyStore);
+        }, "AccountSettingPage.OpenPrivacyPolicy");
 }

@@ -14,8 +14,8 @@
     <Grid x:Name="Root">
         <Grid.ColumnDefinitions>
             <ColumnDefinition
-                Width="296"
-                MinWidth="296"
+                Width="312"
+                MinWidth="312"
                 MaxWidth="512" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />

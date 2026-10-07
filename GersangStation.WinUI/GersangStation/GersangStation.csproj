@@ -140,10 +140,12 @@
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+		<PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinUIAnalyzer" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Core\Core.csproj" />
+		<ProjectReference Include="..\SideDrawer\SideDrawer.csproj" />
         <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
 	</ItemGroup>
 	<ItemGroup>

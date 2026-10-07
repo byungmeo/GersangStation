@@ -16,6 +16,9 @@
     </Project>
   </Folder>
   <Folder Name="/WinUI/">
+    <Project Path="GersangStation.WinUI/SideDrawer/SideDrawer.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="GersangStation.WinUI/Core/Core.csproj">
       <Platform Project="x64" />
     </Project>

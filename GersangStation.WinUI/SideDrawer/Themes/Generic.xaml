@@ -1,0 +1,98 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SideDrawer.Controls">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <AcrylicBrush
+                x:Key="DrawerOverlayBrush"
+                FallbackColor="{ThemeResource SystemChromeMediumColor}"
+                Opacity="0.5"
+                TintColor="{ThemeResource SystemChromeAltHighColor}"
+                TintOpacity="0.5" />
+            <StaticResource x:Key="DrawerBackgroundBrush" ResourceKey="SolidBackgroundFillColorBaseBrush" />
+            <StaticResource x:Key="DrawerBorderBrush" ResourceKey="SurfaceStrokeColorDefaultBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <AcrylicBrush
+                x:Key="DrawerOverlayBrush"
+                FallbackColor="{ThemeResource SystemChromeMediumColor}"
+                Opacity="0.5"
+                TintColor="{ThemeResource SystemChromeAltHighColor}"
+                TintOpacity="0.5" />
+            <StaticResource x:Key="DrawerBackgroundBrush" ResourceKey="SolidBackgroundFillColorBaseBrush" />
+            <StaticResource x:Key="DrawerBorderBrush" ResourceKey="SurfaceStrokeColorDefaultBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="SystemColorWindowBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="SystemColorWindowTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <StaticResource x:Key="DrawerOverlayBrush" ResourceKey="SystemColorWindowBrush" />
+            <StaticResource x:Key="DrawerBackgroundBrush" ResourceKey="SystemColorWindowBrush" />
+            <StaticResource x:Key="DrawerBorderBrush" ResourceKey="SystemColorWindowTextBrush" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+    <Style TargetType="local:Drawer">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="AutomationProperties.AccessibilityView" Value="Raw" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="Background" Value="{ThemeResource DrawerBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource DrawerBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="OverlayBrush" Value="{ThemeResource DrawerOverlayBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:Drawer">
+                    <Border x:Name="PART_Container">
+                        <local:DrawerSurfacePanel
+                            x:Name="PART_Surface"
+                            PanelLength="{TemplateBinding PanelLength}"
+                            Placement="{TemplateBinding Placement}">
+                            <Border
+                                x:Name="PART_Overlay"
+                                Background="{TemplateBinding OverlayBrush}"
+                                IsTabStop="False" />
+                            <Border
+                                x:Name="PART_Panel"
+                                Margin="{TemplateBinding PanelMargin}"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                IsTabStop="True">
+                                <Border.RenderTransform>
+                                    <TranslateTransform />
+                                </Border.RenderTransform>
+                                <ContentControl
+                                    x:Name="PART_ContentRoot"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"
+                                    IsTabStop="False">
+                                    <ContentPresenter
+                                        x:Name="PART_Content"
+                                        HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                        VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                        Content="{TemplateBinding Content}"
+                                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                                        ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
+                                        FontFamily="{TemplateBinding FontFamily}"
+                                        FontSize="{TemplateBinding FontSize}"
+                                        FontStretch="{TemplateBinding FontStretch}"
+                                        FontStyle="{TemplateBinding FontStyle}"
+                                        FontWeight="{TemplateBinding FontWeight}"
+                                        Foreground="{TemplateBinding Foreground}" />
+                                </ContentControl>
+                            </Border>
+                        </local:DrawerSurfacePanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>
