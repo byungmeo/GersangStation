@@ -24,8 +24,7 @@ public enum SettingSection
     Execution,
     Advanced,
     DeveloperTool,
-    ProgramInfo,
-    OpenSourceLicense
+    ProgramInfo
 }
 
 public sealed class GamePatchSettingNavigationParameter
@@ -65,7 +64,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         {"GersangStation.Main.Setting.AdvancedSettingPage", typeof(GersangStation.Main.Setting.AdvancedSettingPage)},
         {"GersangStation.Main.Setting.DeveloperToolPage", typeof(GersangStation.Main.Setting.DeveloperToolPage)},
         {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
-        {"GersangStation.Main.Setting.OpenSourceLicensePage", typeof(GersangStation.Main.Setting.OpenSourceLicensePage)},
         // {"GersangStation.Main.Setting.BrowserSettingPage", typeof(GersangStation.Main.Setting.BrowserSettingPage)},
         // {"GersangStation.Main.Setting.SponsorPage", typeof(GersangStation.Main.Setting.SponsorPage)},
         // {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
@@ -159,7 +157,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             SettingSection.Advanced => NavigationViewItem_Advanced,
             SettingSection.DeveloperTool => NavigationViewItem_Developer,
             SettingSection.ProgramInfo => NavigationViewItem_ProgramInfo,
-            SettingSection.OpenSourceLicense => NavigationViewItem_OpenSourceLicense,
             _ => throw new ArgumentOutOfRangeException(nameof(section), section, null),
         };
 
@@ -218,7 +215,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             Type t when t == typeof(AdvancedSettingPage) => NavigationViewItem_Advanced,
             Type t when t == typeof(DeveloperToolPage) => NavigationViewItem_Developer,
             Type t when t == typeof(ProgramInfoPage) => NavigationViewItem_ProgramInfo,
-            Type t when t == typeof(OpenSourceLicensePage) => NavigationViewItem_OpenSourceLicense,
             _ => null
         };
 

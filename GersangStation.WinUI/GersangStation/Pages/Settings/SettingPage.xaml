@@ -156,7 +156,6 @@
                     </StackPanel>
                 </NavigationViewItem.Content>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="NavigationViewItem_OpenSourceLicense" Tag="OpenSourceLicensePage" />
             <NavigationViewItem x:Name="NavigationViewItem_General" Tag="GeneralSettingPage" />
             <NavigationViewItem x:Name="NavigationViewItem_GameExtension" Tag="GameExtensionPlaceholder" />
             <NavigationViewItem x:Name="NavigationViewItem_Appearance" Tag="AppearancePlaceholder" />

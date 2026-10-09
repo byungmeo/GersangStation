@@ -98,7 +98,6 @@ public sealed partial class SidebarView : UserControl
             "Developer" => SettingSection.DeveloperTool,
             "Advanced" => SettingSection.Advanced,
             "ProgramInfo" => SettingSection.ProgramInfo,
-            "OpenSourceLicense" => SettingSection.OpenSourceLicense,
             _ => null
         };
         if (section is SettingSection selected) RequestSetting(selected);

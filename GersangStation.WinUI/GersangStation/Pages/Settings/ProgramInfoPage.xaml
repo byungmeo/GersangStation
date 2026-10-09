@@ -6,94 +6,105 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:GersangStation.Main.Setting"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     d:DataContext="{d:DesignInstance Type=local:ProgramInfoPage}"
     NavigationCacheMode="Disabled"
     mc:Ignorable="d">
 
-    <ScrollViewer>
-        <StackPanel Padding="24,24,24,40" Spacing="20">
-            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="{x:Bind AppDisplayName, Mode=OneTime}" />
+    <ScrollViewer
+        HorizontalContentAlignment="Stretch"
+        HorizontalScrollBarVisibility="Disabled"
+        HorizontalScrollMode="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <Grid Padding="24" HorizontalAlignment="Stretch">
+            <StackPanel
+                MaxWidth="896"
+                HorizontalAlignment="Stretch"
+                Spacing="16">
+                <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="프로그램 정보" />
 
-            <Border
-                Padding="20"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
-                <StackPanel Spacing="12">
-                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="프로그램 기본 정보" />
-                    <Grid ColumnSpacing="16" RowSpacing="10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="160" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <TextBlock
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            Text="프로그램명" />
-                        <TextBlock
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            Text="{x:Bind AppDisplayName, Mode=OneTime}" />
-
-                        <TextBlock
-                            Grid.Row="1"
-                            Grid.Column="0"
-                            Text="버전" />
-                        <TextBlock
-                            Grid.Row="1"
-                            Grid.Column="1"
-                            Text="{x:Bind AppVersion, Mode=OneTime}" />
-
-                        <TextBlock
-                            Grid.Row="2"
-                            Grid.Column="0"
-                            Text="배포자" />
-                        <TextBlock
-                            Grid.Row="2"
-                            Grid.Column="1"
-                            Text="{x:Bind PublisherDisplayName, Mode=OneTime}" />
-
-                        <TextBlock
-                            Grid.Row="3"
-                            Grid.Column="0"
-                            Text="설명" />
-                        <TextBlock
-                            Grid.Row="3"
-                            Grid.Column="1"
-                            Text="{x:Bind AppDescription, Mode=OneTime}"
-                            TextWrapping="WrapWholeWords" />
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <Border
-                Padding="20"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="12">
-                <StackPanel Spacing="12">
-                    <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="개인정보처리방침" />
-                    <TextBlock Text="비밀번호는 Windows 자격 증명 관리자를 통해 로컬에 저장되며, 운영체제의 보안 메커니즘에 의해 보호됩니다." TextWrapping="WrapWholeWords" />
-                    <TextBlock Text="계정 정보는 로컬 저장을 기본으로 하며, 개발자 서버 또는 제3자에게 별도로 제공 및 저장하지 않습니다." TextWrapping="WrapWholeWords" />
+                <toolkit:SettingsExpander
+                    AutomationProperties.AutomationId="ProgramBasicInfoExpander"
+                    Description="© 2026 Byungmeo. All rights reserved."
+                    Header="{x:Bind AppDisplayName, Mode=OneTime}"
+                    IsExpanded="True">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <BitmapIcon ShowAsMonochrome="False" UriSource="/Assets/Icons/StoreLogo.png" />
+                    </toolkit:SettingsExpander.HeaderIcon>
                     <TextBlock
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Text="자동 로그인을 위해 아이디와 비밀번호가 거상 공식 홈페이지로 전송될 수 있습니다."
-                        TextWrapping="WrapWholeWords" />
-                    <HyperlinkButton
-                        Click="LinkButton_Click"
-                        Content="개인정보처리방침 보기"
-                        Tag="{x:Bind PrivacyPolicyUri, Mode=OneTime}" />
-                </StackPanel>
-            </Border>
-        </StackPanel>
+                        IsTextSelectionEnabled="True"
+                        Text="{x:Bind AppVersion}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard
+                            HorizontalContentAlignment="Stretch"
+                            ContentAlignment="Vertical"
+                            Header="오픈소스 라이선스 고지">
+                            <toolkit:SettingsCard.Resources>
+                                <Style BasedOn="{StaticResource BodyTextBlockStyle}" TargetType="TextBlock">
+                                    <Setter Property="Margin" Value="12,0" />
+                                    <Setter Property="VerticalAlignment" Value="Center" />
+                                    <Setter Property="TextWrapping" Value="WrapWholeWords" />
+                                </Style>
+                            </toolkit:SettingsCard.Resources>
+                            <StackPanel Orientation="Vertical">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <HyperlinkButton Content="Windows App SDK" NavigateUri="https://aka.ms/windowsappsdk" />
+                                    <AppBarSeparator Grid.Column="1" />
+                                    <TextBlock Grid.Column="2" Text="Copyright (c) Microsoft Corporation." />
+                                    <AppBarSeparator Grid.Column="3" />
+                                    <HyperlinkButton Grid.Column="4" Content="MIT License" NavigateUri="https://github.com/microsoft/WindowsAppSDK/blob/main/LICENSE" />
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <HyperlinkButton Content="Windows Community Toolkit" NavigateUri="https://github.com/CommunityToolkit/dotnet" />
+                                    <AppBarSeparator Grid.Column="1" />
+                                    <TextBlock Grid.Column="2" Text="Copyright © .NET Foundation and Contributors" />
+                                    <AppBarSeparator Grid.Column="3" />
+                                    <HyperlinkButton Grid.Column="4" Content="MIT License" NavigateUri="https://github.com/CommunityToolkit/dotnet/blob/main/License.md" />
+                                </Grid>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <HyperlinkButton Content="7-Zip (7za.exe)" NavigateUri="https://www.7-zip.org/" />
+                                    <AppBarSeparator Grid.Column="1" />
+                                    <TextBlock Grid.Column="2" Text="7-Zip Copyright (C) 1999-2025 Igor Pavlov." />
+                                    <AppBarSeparator Grid.Column="3" />
+                                    <HyperlinkButton Grid.Column="4" Content="GNU LGPL" NavigateUri="https://www.7-zip.org/license.txt" />
+                                </Grid>
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            HorizontalContentAlignment="Left"
+                            ContentAlignment="Vertical"
+                            Header="개인정보처리방침">
+                            <HyperlinkButton
+                                AutomationProperties.AutomationId="OpenPrivacyPolicyButton"
+                                Click="LinkButton_Click"
+                                Content="개인정보처리방침 보기"
+                                Tag="{x:Bind PrivacyPolicyUri, Mode=OneTime}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>

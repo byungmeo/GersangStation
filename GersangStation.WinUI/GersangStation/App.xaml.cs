@@ -125,8 +125,8 @@ namespace GersangStation
             appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
             if (appWindow.Presenter is OverlappedPresenter presenter)
             {
-                presenter.PreferredMinimumWidth = 1280;
-                presenter.PreferredMinimumHeight = 720;
+                presenter.PreferredMinimumWidth = 960;
+                presenter.PreferredMinimumHeight = 640;
                 presenter.IsResizable = true;
                 presenter.IsMaximizable = true;
                 presenter.IsMinimizable = true;

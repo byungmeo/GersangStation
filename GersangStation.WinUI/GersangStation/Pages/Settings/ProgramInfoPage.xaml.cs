@@ -18,6 +18,7 @@ public sealed partial class ProgramInfoPage : Page
     public string PublisherDisplayName { get; } = Package.Current.PublisherDisplayName;
     public Uri PrivacyPolicyUri { get; } = new("ms-appx:///Assets/Policies/privacy-policy.txt");
 
+
     public ProgramInfoPage()
     {
         InitializeComponent();

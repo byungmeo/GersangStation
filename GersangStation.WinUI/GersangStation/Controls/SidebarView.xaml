@@ -135,12 +135,6 @@
                             </ListViewItem>
 
                             <ListViewItem Content="기타" Style="{ThemeResource GroupHeaderListViewItemStyle}" />
-                            <ListViewItem x:Name="OpenSourceLicenseListViewItem" Tag="OpenSourceLicense">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon FontSize="{Binding FontSize, ElementName=OpenSourceLicenseListViewItem}" Glyph="&#xF000;" />
-                                    <TextBlock Text="오픈소스 라이선스" />
-                                </StackPanel>
-                            </ListViewItem>
                             <ListViewItem x:Name="InformationListViewItem" Tag="ProgramInfo">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon FontSize="{Binding FontSize, ElementName=InformationListViewItem}" Glyph="&#xE946;" />
