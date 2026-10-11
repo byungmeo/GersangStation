@@ -1,7 +1,10 @@
+using CommunityToolkit.WinUI.Controls;
 using Core;
 using Core.Download;
 using Core.Models;
+using GersangStation.Controls;
 using GersangStation.Diagnostics;
+using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -9,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +20,7 @@ using Microsoft.Windows.Storage.Pickers;
 namespace GersangStation.Main.Setting;
 
 /// <summary>
-/// 서버별 전체 클라이언트 설치를 다운로드하고 압축 해제하는 설정 페이지입니다.
+/// 서버별 게임 설치와 기존 클라이언트 경로/사용 방식 설정을 함께 제공합니다.
 /// </summary>
 public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChanged, IConfirmLeave
 {
@@ -29,13 +31,15 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     }
 
     private GameServer _selectedGameServer = GameServer.Korea_Live;
+    private readonly ContentTransition _panelTransition;
     private bool _suppressServerSelectionChanged;
     private string _progressText = string.Empty;
     private bool _isDownloading;
     private bool _hasInstallProgress;
     private CancellationTokenSource? _installCts;
     private bool _deleteArchiveArtifactsOnCancel;
-    private bool _isInstallPathValid = true;
+    private bool _isPreparingInstall;
+    private bool _isLoadingSettings;
     private InstallProgressPhase _progressPhase = InstallProgressPhase.Downloading;
     private double _downloadProgressMaximum = 100;
     private double _downloadProgressValue;
@@ -45,13 +49,26 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     public GameInstallSettingPage()
     {
         InitializeComponent();
+        _panelTransition = new ContentTransition(InstallContentPresenter, slide: true);
+        Unloaded += (_, _) => CancelPanelTransition();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public GameServer SelectedGameServer => _selectedGameServer;
+
+    private GameInstallPanel CurrentInstallPanel => _selectedGameServer switch
+    {
+        GameServer.Korea_Live => InstallPanel_Live,
+        GameServer.Korea_Test => InstallPanel_Test,
+        GameServer.Korea_RnD => InstallPanel_RnD,
+        _ => throw new ArgumentOutOfRangeException(nameof(SelectedGameServer), _selectedGameServer, null)
+    };
+
+    public static string ServerSelectionGlyph(bool isSelected) => isSelected ? "\uE73A" : "\uE739";
+
     public bool IsNotBusy => !IsBusy;
-    public bool IsBusy => IsDownloading;
-    public bool IsInstallStartEnabled => IsNotBusy && _isInstallPathValid;
+    public bool IsBusy => IsDownloading || _isPreparingInstall || _isLoadingSettings;
     public Visibility InstallProgressVisibility => _hasInstallProgress ? Visibility.Visible : Visibility.Collapsed;
     public Visibility InstallCancelVisibility => IsDownloading ? Visibility.Visible : Visibility.Collapsed;
 
@@ -76,16 +93,14 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         {
             if (SetProperty(ref _isDownloading, value))
             {
-                OnPropertyChanged(nameof(IsBusy));
-                OnPropertyChanged(nameof(IsNotBusy));
-                OnPropertyChanged(nameof(IsInstallStartEnabled));
+                NotifyBusyChanged();
                 OnPropertyChanged(nameof(InstallCancelVisibility));
             }
         }
     }
 
     /// <summary>
-    /// 외부에서 전달된 서버 파라미터를 반영하고 현재 저장된 설치 루트를 불러옵니다.
+    /// 외부에서 전달된 서버 파라미터를 반영하고 저장된 클라이언트 설정을 불러옵니다.
     /// </summary>
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
@@ -95,10 +110,12 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         {
             GameServerSettingNavigationParameter parameter => parameter.Server,
             GameServer server => server,
+            int index when Enum.IsDefined(typeof(GameServer), index) => (GameServer)index,
             _ => GameServer.Korea_Live
         };
 
-        ApplySelectedServer(initialServer);
+        ApplySelectedServerAsync(initialServer)
+            .FireAndForgetHandled($"{nameof(GameInstallSettingPage)}.{nameof(OnNavigatedTo)}");
     }
 
     protected override async void OnNavigatingFrom(NavigatingCancelEventArgs e)
@@ -108,34 +125,66 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         e.Cancel = !await ConfirmLeaveAsync();
     }
 
-    /// <summary>
-    /// 선택한 서버에 맞게 입력값과 설치 대상 경로를 동기화합니다.
-    /// </summary>
-    private void ApplySelectedServer(GameServer server)
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
-        _selectedGameServer = server;
-        SelectorBarItem selectedItem = GetSelectorBarItem(server);
-
-        _suppressServerSelectionChanged = true;
-        SelectorBar_Server.SelectedItem = selectedItem;
-        UpdateSelectorBarVisualState(SelectorBar_Server, selectedItem);
-        _suppressServerSelectionChanged = false;
-
-        LoadInstallBasePath(server);
-        UpdateComputedInstallPath();
+        CancelPanelTransition();
+        base.OnNavigatedFrom(e);
     }
 
-    private void SelectorBar_Server_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    internal void CancelPanelTransition()
     {
-        if (sender.SelectedItem is not SelectorBarItem selectedItem)
-            return;
+        _panelTransition.Cancel();
+        SynchronizeServerSelection();
+    }
 
-        UpdateSelectorBarVisualState(sender, selectedItem);
+    /// <summary>
+    /// 선택한 서버에 맞게 경로 및 클라이언트 사용 방식 폼을 불러옵니다.
+    /// </summary>
+    private async Task ApplySelectedServerAsync(GameServer server)
+    {
+        SetProperty(ref _selectedGameServer, server, nameof(SelectedGameServer));
+        SynchronizeServerSelection();
+
+        _isLoadingSettings = true;
+        NotifyBusyChanged();
+        try { await CurrentInstallPanel.LoadSettingsAsync(server, this); }
+        finally
+        {
+            _isLoadingSettings = false;
+            NotifyBusyChanged();
+        }
+    }
+
+    private void NotifyBusyChanged()
+    {
+        OnPropertyChanged(nameof(IsBusy));
+        OnPropertyChanged(nameof(IsNotBusy));
+    }
+
+    private void SynchronizeServerSelection()
+    {
+        SegmentedItem selectedItem = GetSegmentedItem(_selectedGameServer);
+
+        _suppressServerSelectionChanged = true;
+        try
+        {
+            Segmented_Server.SelectedItem = selectedItem;
+        }
+        finally
+        {
+            _suppressServerSelectionChanged = false;
+        }
+    }
+
+    private void Segmented_Server_SelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (sender is not Segmented segmented || segmented.SelectedItem is not SegmentedItem selectedItem)
+            return;
 
         if (_suppressServerSelectionChanged)
             return;
 
-        GameServer server = sender.Items.IndexOf(selectedItem) switch
+        GameServer server = segmented.Items.IndexOf(selectedItem) switch
         {
             0 => GameServer.Korea_Live,
             1 => GameServer.Korea_Test,
@@ -143,35 +192,21 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             _ => throw new ArgumentOutOfRangeException(nameof(sender), sender, null)
         };
 
-        if (_selectedGameServer == server)
-            return;
-
-        ApplySelectedServer(server);
+        ChangeServerAsync(server)
+            .FireAndForgetHandled($"{nameof(GameInstallSettingPage)}.{nameof(Segmented_Server_SelectionChanged)}");
     }
 
-    /// <summary>
-    /// 게임 설치 페이지의 상위 설치 경로 입력값을 기본 경로로 초기화합니다.
-    /// </summary>
-    private void LoadInstallBasePath(GameServer server)
+    private async Task ChangeServerAsync(GameServer server)
     {
-        TextBox_InstallPath.Text = @"C:\";
-    }
-
-    /// <summary>
-    /// 현재 입력된 루트 경로와 서버 조합으로 최종 설치 경로 텍스트와 유효성 표시를 갱신합니다.
-    /// </summary>
-    private void UpdateComputedInstallPath()
-    {
-        string finalInstallPath = BuildFinalInstallPath(TextBox_InstallPath.Text, _selectedGameServer);
-        TextBlock_InstallPath.Text = $"최종 설치 경로: {finalInstallPath}";
-
-        _isInstallPathValid = !string.IsNullOrWhiteSpace(finalInstallPath) && IsInstallTargetPathAvailable(finalInstallPath);
-        TextBox_InstallPath.IsValid = _isInstallPathValid;
-        TextBox_InstallPath.ErrorText = _isInstallPathValid
-            ? string.Empty
-            : "이미 존재하는 경로입니다.";
-
-        OnPropertyChanged(nameof(IsInstallStartEnabled));
+        bool changed = await _panelTransition.RunAsync(async () =>
+        {
+            if (_selectedGameServer != server)
+                await ApplySelectedServerAsync(server);
+            return true;
+        }, async () => !IsBusy && (CurrentInstallPanel.SettingsEditor is not { } editor
+            || await editor.ConfirmLeaveAsync()), () => _selectedGameServer != server);
+        if (!changed)
+            SynchronizeServerSelection();
     }
 
     /// <summary>
@@ -211,78 +246,36 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     /// </summary>
     private static string BuildFinalInstallPath(string? baseRoot, GameServer server)
     {
-        string trimmed = (baseRoot ?? string.Empty)
-            .Trim()
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-        return string.IsNullOrWhiteSpace(trimmed)
+        return string.IsNullOrWhiteSpace(baseRoot)
             ? string.Empty
-            : Path.Combine(trimmed, "AKInteractive", GameServerHelper.GetClientFolderName(server));
+            : Path.Combine(Path.GetFullPath(baseRoot.Trim()), "AKInteractive", GameServerHelper.GetClientFolderName(server));
     }
 
     /// <summary>
-    /// 저장된 최종 설치 경로에서 사용자가 입력해야 할 상위 루트 경로만 추출합니다.
+    /// 서버 값에 대응하는 SegmentedItem을 반환합니다.
     /// </summary>
-    private static string? TryGetBaseInstallRoot(string? installPath, GameServer server)
-    {
-        if (string.IsNullOrWhiteSpace(installPath))
-            return null;
-
-        string normalizedPath = Path.GetFullPath(installPath.Trim())
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-        string expectedSuffix = Path.Combine("AKInteractive", GameServerHelper.GetClientFolderName(server));
-        if (!normalizedPath.EndsWith(expectedSuffix, StringComparison.OrdinalIgnoreCase))
-            return normalizedPath;
-
-        return normalizedPath[..^expectedSuffix.Length]
-            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-    }
-
-    /// <summary>
-    /// 서버 값에 대응하는 SelectorBarItem을 반환합니다.
-    /// </summary>
-    private SelectorBarItem GetSelectorBarItem(GameServer server)
+    private SegmentedItem GetSegmentedItem(GameServer server)
         => server switch
         {
-            GameServer.Korea_Live => SelectorBarItem_Live,
-            GameServer.Korea_Test => SelectorBarItem_Test,
-            GameServer.Korea_RnD => SelectorBarItem_RnD,
+            GameServer.Korea_Live => SegmentedItem_Live,
+            GameServer.Korea_Test => SegmentedItem_Test,
+            GameServer.Korea_RnD => SegmentedItem_RnD,
             _ => throw new ArgumentOutOfRangeException(nameof(server), server, null),
         };
 
     /// <summary>
-    /// 현재 선택된 서버 항목만 강조되도록 SelectorBar 시각 상태를 갱신합니다.
+    /// 기존 게임 경로 지정용 폴더 선택기를 엽니다. 다운로드는 수행하지 않습니다.
     /// </summary>
-    private static void UpdateSelectorBarVisualState(SelectorBar selectorBar, SelectorBarItem selectedItem)
+    internal async Task PickExistingInstallPathAsync(ValidatedTextBox pathInput)
     {
-        foreach (SelectorBarItem item in selectorBar.Items.OfType<SelectorBarItem>())
-        {
-            item.FontWeight = Microsoft.UI.Text.FontWeights.Normal;
-            item.FontSize = 14;
-        }
-
-        selectedItem.FontWeight = Microsoft.UI.Text.FontWeights.SemiBold;
-        selectedItem.FontSize = 20;
-    }
-
-    private void TextBox_InstallPath_TextChanged(object sender, TextChangedEventArgs e)
-    {
-        UpdateComputedInstallPath();
-    }
-
-    /// <summary>
-    /// 설치 상위 폴더를 고를 수 있도록 시스템 폴더 선택기를 엽니다.
-    /// </summary>
-    private async void Button_InstallPath_PickFolder_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button button || IsBusy)
+        if (IsBusy)
             return;
-
-        button.IsEnabled = false;
+        CancelPanelTransition();
+        _isPreparingInstall = true;
+        NotifyBusyChanged();
         try
         {
-            FolderPicker picker = new(button.XamlRoot.ContentIslandEnvironment.AppWindowId)
+            FolderPicker picker = new(XamlRoot.ContentIslandEnvironment.AppWindowId)
             {
                 CommitButtonText = "선택",
                 SuggestedStartLocation = PickerLocationId.ComputerFolder,
@@ -291,36 +284,54 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
 
             var folder = await picker.PickSingleFolderAsync();
             if (folder is not null)
-                TextBox_InstallPath.Text = folder.Path;
+                pathInput.Text = folder.Path;
         }
         finally
         {
-            button.IsEnabled = !IsBusy;
+            _isPreparingInstall = false;
+            NotifyBusyChanged();
         }
     }
 
     /// <summary>
-    /// 다운로드와 압축 해제를 시작하고 성공 시 서버별 설치 경로를 저장합니다.
+    /// 별도의 상위 폴더를 선택받아 즉시 설치하고, 성공한 최종 게임 경로만 설정 폼에 반영합니다.
     /// </summary>
-    private async void Button_Install_Click(object sender, RoutedEventArgs e)
+    internal async Task InstallSelectedServerAsync()
     {
-        if (IsBusy || !_isInstallPathValid)
+        if (IsBusy || CurrentInstallPanel.SettingsEditor is not { SettingsLoaded: true } editor)
             return;
-
-        string finalInstallPath = BuildFinalInstallPath(TextBox_InstallPath.Text, _selectedGameServer);
-        if (string.IsNullOrWhiteSpace(finalInstallPath))
+        CancelPanelTransition();
+        _isPreparingInstall = true;
+        NotifyBusyChanged();
+        try
         {
-            await ShowDialogAsync("설치 경로 필요", "게임을 설치할 상위 경로를 먼저 선택해 주세요.");
-            return;
+            FolderPicker picker = new(XamlRoot.ContentIslandEnvironment.AppWindowId)
+            {
+                CommitButtonText = "선택 후 설치",
+                SuggestedStartLocation = PickerLocationId.ComputerFolder,
+                ViewMode = PickerViewMode.List
+            };
+            var folder = await picker.PickSingleFolderAsync();
+            if (folder is null)
+                return;
+            string finalInstallPath = BuildFinalInstallPath(folder.Path, _selectedGameServer);
+            if (!IsInstallTargetPathAvailable(finalInstallPath))
+            {
+                await ShowDialogAsync("설치 경로 확인",
+                    $"최종 설치 경로에 이미 게임 또는 다른 파일이 존재합니다. 다른 상위 폴더를 선택해 주세요.\n{finalInstallPath}");
+                return;
+            }
+            await RunInstallAsync(finalInstallPath, editor);
         }
-
-        if (!IsInstallTargetPathAvailable(finalInstallPath))
+        finally
         {
-            UpdateComputedInstallPath();
-            await ShowDialogAsync("설치 경로 확인", "최종 설치 경로에 이미 폴더가 존재합니다. 다른 경로를 선택해 주세요.");
-            return;
+            _isPreparingInstall = false;
+            NotifyBusyChanged();
         }
+    }
 
+    private async Task RunInstallAsync(string finalInstallPath, ServerInstallPathSettingPage editor)
+    {
         DirectoryWriteProbeResult writeProbeResult = PathWriteProbe.TryProbeDirectoryWriteAccess(finalInstallPath);
         if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, writeProbeResult))
             return;
@@ -378,33 +389,14 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
                 installProgress,
                 _installCts.Token);
 
-            (ClientSettings settings, AppDataManager.AppDataOperationResult loadResult) =
-                await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
-
-            if (!loadResult.Success)
-            {
-                await AppDataOperationDialog.ShowFailureAsync(
-                    XamlRoot,
-                    "설정 불러오기 실패",
-                    "설치 완료 후 서버 설정을 갱신하기 전에 현재 설정을 불러오지 못했습니다.",
-                    loadResult);
-            }
-
-            settings.InstallPath = finalInstallPath;
-            AppDataManager.AppDataOperationResult saveResult =
-                await AppDataManager.SaveServerClientSettingsAsync(_selectedGameServer, settings);
-
-            if (!saveResult.Success)
-            {
-                await AppDataOperationDialog.ShowFailureAsync(
-                    XamlRoot,
-                    "설정 저장 실패",
-                    "게임 설치는 완료되었지만 설치 경로 설정을 저장하지 못했습니다.",
-                    saveResult);
-            }
+            // 다운로드/압축 해제는 끝났습니다. 경로 저장 중에는 준비 상태로
+            // 이동을 막되, 완료된 설치를 취소하는 버튼은 더 이상 표시하지 않습니다.
+            IsDownloading = false;
+            bool pathSaved = await editor.SaveInstalledPathAsync(finalInstallPath);
 
             SetExtractProgress(_extractProgressMaximum, _extractProgressMaximum);
-            ProgressText = "게임 설치가 완료되었습니다.";
+            ProgressText = pathSaved ? "게임 설치가 완료되었습니다."
+                : "게임 설치는 완료되었지만 설치 경로를 저장하지 못했습니다. 설정 저장을 다시 시도해 주세요.";
         }
         catch (OperationCanceledException)
         {
@@ -453,6 +445,8 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         if (!IsDownloading || _installCts is null)
             return;
 
+        CancellationTokenSource cancellation = _installCts;
+
         ContentDialog dialog = new()
         {
             XamlRoot = XamlRoot,
@@ -465,11 +459,12 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         };
 
         ContentDialogResult result = await dialog.ShowManagedAsync();
-        if (result == ContentDialogResult.None)
+        if (result == ContentDialogResult.None || !IsDownloading
+            || !ReferenceEquals(_installCts, cancellation))
             return;
 
         _deleteArchiveArtifactsOnCancel = result == ContentDialogResult.Secondary;
-        _installCts.Cancel();
+        cancellation.Cancel();
     }
 
     /// <summary>
@@ -479,6 +474,8 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     {
         if (!IsBusy)
         {
+            if (CurrentInstallPanel.SettingsEditor is { } editor)
+                return await editor.ConfirmLeaveAsync(reason);
             if (reason == LeaveReason.AppExit && XamlRoot is not null)
                 return await ExitConfirmationDialog.ShowAsync(XamlRoot);
 

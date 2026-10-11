@@ -77,12 +77,6 @@
                                     <TextBlock Text="게임 설치" />
                                 </StackPanel>
                             </ListViewItem>
-                            <ListViewItem x:Name="InstallPathListViewItem" Tag="InstallPath">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon FontSize="{Binding FontSize, ElementName=InstallPathListViewItem}" Glyph="&#xE838;" />
-                                    <TextBlock Text="설치 및 경로 지정" />
-                                </StackPanel>
-                            </ListViewItem>
                             <ListViewItem x:Name="GamePatchListViewItem" Tag="GamePatch">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon FontSize="{Binding FontSize, ElementName=GamePatchListViewItem}" Glyph="&#xE896;" />

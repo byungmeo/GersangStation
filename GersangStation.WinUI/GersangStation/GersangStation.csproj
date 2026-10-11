@@ -94,7 +94,6 @@
 		<None Remove="Pages\Settings\DeveloperToolPage.xaml" />
 		<None Remove="Pages\Settings\GameInstallSettingPage.xaml" />
 		<None Remove="Pages\Settings\GamePatchSettingPage.xaml" />
-		<None Remove="Pages\Settings\InstallPathSettingPage.xaml" />
 		<None Remove="Pages\Settings\ProgramInfoPage.xaml" />
 		<None Remove="Pages\Settings\SettingPage.xaml" />
 		<None Remove="MainWindow.xaml" />
@@ -139,6 +138,9 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.Sizers" />
+		<PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" />
+		<PackageReference Include="CommunityToolkit.WinUI.Controls.Primitives" />
+		<PackageReference Include="CommunityToolkit.WinUI.Animations" />
 		<PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinUIAnalyzer" PrivateAssets="all" />
@@ -186,11 +188,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Page Update="Pages\Settings\GamePatchSettingPage.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-	</ItemGroup>
-	<ItemGroup>
-		<Page Update="Pages\Settings\InstallPathSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>

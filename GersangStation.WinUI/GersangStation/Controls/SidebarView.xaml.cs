@@ -58,13 +58,30 @@ public sealed partial class SidebarView : UserControl
         _suppressSelection = false;
     }
 
-    public void ShowSettings() 
+    public void ShowSettings(SettingSection? section = null)
     {
         SidebarControlPanel.Visibility = Visibility.Collapsed;
         SidebarSettingPanel.Visibility = Visibility.Visible;
         DeveloperSettingsListViewItem.Visibility = AppDataManager.IsDeveloperToolEnabled
             ? Visibility.Visible
             : Visibility.Collapsed;
+        if (section is SettingSection selected)
+        {
+            string tag = selected switch
+            {
+                SettingSection.BrowserSettings => "Browser",
+                SettingSection.DeveloperTool => "Developer",
+                SettingSection.InstallPath => "GameInstall",
+                _ => selected.ToString()
+            };
+            _suppressSelection = true;
+            try
+            {
+                SettingNavListView.SelectedItem = SettingNavListView.Items.OfType<ListViewItem>()
+                    .FirstOrDefault(item => item.Tag as string == tag);
+            }
+            finally { _suppressSelection = false; }
+        }
     }
 
     private void NavListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -83,6 +100,7 @@ public sealed partial class SidebarView : UserControl
 
     private void SettingNavListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_suppressSelection) return;
         if (SettingNavListView.SelectedItem is not ListViewItem { Tag: string tag }) return;
         SettingSection? section = tag switch
         {

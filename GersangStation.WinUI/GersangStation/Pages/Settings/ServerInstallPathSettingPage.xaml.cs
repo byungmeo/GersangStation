@@ -16,10 +16,31 @@ using System.Threading.Tasks;
 
 namespace GersangStation.Main.Setting
 {
+    public sealed class GameClientSettingsNavigationParameter
+    {
+        public GameServer Server { get; init; }
+        public GameInstallSettingPage? InstallPage { get; init; }
+    }
+
     public sealed partial class ServerInstallPathSettingPage : Page, INotifyPropertyChanged, IConfirmLeave
     {
         private GameServer currentGameServer = GameServer.Korea_Live;
         private string? _multiClientConflictExplorerPath;
+        private GameInstallSettingPage? _installPage;
+        private bool _settingsLoaded;
+        private SettingsSnapshot _savedSettings;
+        internal Task Initialization { get; private set; } = Task.CompletedTask;
+        internal bool SettingsLoaded => _settingsLoaded;
+        public bool IsEditorEnabled => _settingsLoaded && _installPage?.IsBusy != true;
+        public bool IsSaveEnabled => IsEditorEnabled && IsDirty;
+
+        private readonly record struct SettingsSnapshot(string InstallPath, bool UseMultiClient,
+            bool UseSymbol, bool UseClient2, bool UseClient3, bool OverwriteConfig)
+        {
+            public static SettingsSnapshot From(ClientSettings settings) => new(settings.InstallPath,
+                settings.UseMultiClient, settings.UseSymbol, settings.UseClient2, settings.UseClient3,
+                settings.OverwriteMultiClientConfig);
+        }
 
         private bool _isDirty = false;
         public bool IsDirty
@@ -31,6 +52,7 @@ namespace GersangStation.Main.Setting
                 {
                     _isDirty = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(IsSaveEnabled));
                 }
             }
         }
@@ -75,7 +97,6 @@ namespace GersangStation.Main.Setting
                 OnPropertyChanged(nameof(TextBox_Path3_IsEnabled));
                 OnPropertyChanged(nameof(ClientUsageModeIndex));
                 OnPropertyChanged(nameof(MultiClientSettingsVisibility));
-                OnPropertyChanged(nameof(InstallGuideVisibility));
             }
         }
 
@@ -106,31 +127,66 @@ namespace GersangStation.Main.Setting
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        public Visibility InstallGuideVisibility => string.IsNullOrWhiteSpace(ClientSettings.InstallPath)
-            ? Visibility.Visible
-            : Visibility.Collapsed;
-
         public ServerInstallPathSettingPage()
         {
             InitializeComponent();
 
             if (ClientSettings is INotifyPropertyChanged npc)
                 npc.PropertyChanged += ClientSettings_PropertyChanged;
+            Unloaded += (_, _) =>
+            {
+                ClientSettings.PropertyChanged -= ClientSettings_PropertyChanged;
+                if (_installPage is not null)
+                    _installPage.PropertyChanged -= InstallPage_PropertyChanged;
+            };
         }
 
-        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-
-            currentGameServer = e.Parameter switch
+            if (e.Parameter is GameClientSettingsNavigationParameter parameter)
             {
-                GameServer server => server,
-                int index => (GameServer)index,
-                _ => GameServer.Korea_Live
-            };
+                currentGameServer = parameter.Server;
+                _installPage = parameter.InstallPage;
+                if (_installPage is not null)
+                    _installPage.PropertyChanged += InstallPage_PropertyChanged;
+            }
+            else
+                currentGameServer = e.Parameter is GameServer server ? server : GameServer.Korea_Live;
+
+            Initialization = SafeExecution.RunHandledAsync(InitializeSettingsAsync,
+                $"{nameof(ServerInstallPathSettingPage)}.{nameof(OnNavigatedTo)}");
+        }
+
+        private async Task InitializeSettingsAsync()
+        {
+            // Frame navigation can precede attachment to the visual tree. Wait for a
+            // valid XamlRoot before loading settings that may need an error dialog.
+            if (!IsLoaded)
+            {
+                TaskCompletionSource loaded = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                void OnLoaded(object sender, RoutedEventArgs args) => loaded.TrySetResult();
+                Loaded += OnLoaded;
+                try { await loaded.Task; }
+                finally { Loaded -= OnLoaded; }
+            }
+
             await LoadClientSettingsAsync();
             CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
             TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
+            TextBox_Path1.Text = ClientSettings.InstallPath;
+            ValidateInstallPath();
+            _savedSettings = SettingsSnapshot.From(ClientSettings);
+            IsDirty = false;
+            OnPropertyChanged(nameof(IsEditorEnabled));
+            OnPropertyChanged(nameof(IsSaveEnabled));
+        }
+
+        private void InstallPage_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(GameInstallSettingPage.IsBusy)) return;
+            OnPropertyChanged(nameof(IsEditorEnabled));
+            OnPropertyChanged(nameof(IsSaveEnabled));
         }
 
         /// <summary>
@@ -154,7 +210,7 @@ namespace GersangStation.Main.Setting
                 CloseButtonText = "취소",
                 DefaultButton = ContentDialogButton.Primary
             };
-        ContentDialogResult result = await saveDialog.ShowManagedAsync();
+            ContentDialogResult result = await saveDialog.ShowManagedAsync();
             if (result == ContentDialogResult.Primary)
             {
                 if (await SaveClientSettingsAsync())
@@ -201,12 +257,11 @@ namespace GersangStation.Main.Setting
 
         private void ClientSettings_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            IsDirty = true;
+            IsDirty = SettingsSnapshot.From(ClientSettings) != _savedSettings;
 
             if (e.PropertyName == nameof(ClientSettings.InstallPath))
             {
                 CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
-                OnPropertyChanged(nameof(InstallGuideVisibility));
             }
 
             if (e.PropertyName == nameof(ClientSettings.UseMultiClient) ||
@@ -240,6 +295,7 @@ namespace GersangStation.Main.Setting
                 await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
 
             ClientSettings = settings;
+            _settingsLoaded = result.Success;
             if (!result.Success)
             {
                 await AppDataOperationDialog.ShowFailureAsync(
@@ -256,7 +312,10 @@ namespace GersangStation.Main.Setting
                 await AppDataManager.SaveServerClientSettingsAsync(currentGameServer, ClientSettings);
 
             if (result.Success)
+            {
+                _savedSettings = SettingsSnapshot.From(ClientSettings);
                 return true;
+            }
 
             await AppDataOperationDialog.ShowFailureAsync(
                 XamlRoot,
@@ -264,6 +323,33 @@ namespace GersangStation.Main.Setting
                 "서버별 설치 경로 설정을 저장하지 못했습니다.",
                 result);
             return false;
+        }
+
+        /// <summary>설치 경로만 자동 저장하고, 아직 저장하지 않은 다클라 옵션은 폼에 그대로 보존합니다.</summary>
+        internal async Task<bool> SaveInstalledPathAsync(string installPath)
+        {
+            TextBox_Path1.Text = installPath;
+            ClientSettings.InstallPath = installPath;
+            ValidateInstallPath();
+            var (settings, loadResult) = await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
+            if (!loadResult.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "설정 불러오기 실패",
+                    "게임 설치는 완료되었지만 기존 설정을 안전하게 불러오지 못해 설치 경로를 저장하지 않았습니다.", loadResult);
+                return false;
+            }
+
+            settings.InstallPath = installPath;
+            var saveResult = await AppDataManager.SaveServerClientSettingsAsync(currentGameServer, settings);
+            if (!saveResult.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "설정 저장 실패",
+                    "게임 설치는 완료되었지만 설치 경로를 저장하지 못했습니다. 저장 버튼으로 다시 시도해 주세요.", saveResult);
+                return false;
+            }
+            _savedSettings = SettingsSnapshot.From(settings);
+            IsDirty = SettingsSnapshot.From(ClientSettings) != _savedSettings;
+            return true;
         }
 
         private async void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
@@ -528,19 +614,16 @@ namespace GersangStation.Main.Setting
                 window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpInstallSymbolicLink);
         }
 
-        private void HyperlinkButton_InstallGame_Click(object sender, RoutedEventArgs e)
-        {
-            if (App.CurrentWindow is not MainWindow window)
-                return;
-
-            window.NavigateToSettingPage(
-                SettingSection.GameInstall,
-                new GameServerSettingNavigationParameter { Server = currentGameServer });
-        }
+        private void Button_InstallNew_Click(object sender, RoutedEventArgs e)
+            => _installPage?.InstallSelectedServerAsync().FireAndForgetHandled(
+                $"{nameof(ServerInstallPathSettingPage)}.{nameof(Button_InstallNew_Click)}");
 
         private void TextBox_InstallPath_TextChanged(object sender, TextChangedEventArgs e)
+            => ValidateInstallPath();
+
+        private void ValidateInstallPath()
         {
-            var textBox = (ValidatedTextBox)sender;
+            var textBox = TextBox_Path1;
             GameClientHelper.InstallPathValidationResult validationResult =
                 GameClientHelper.TryValidateInstallPath(currentGameServer, textBox.Text);
 
@@ -618,14 +701,11 @@ namespace GersangStation.Main.Setting
 
         private async void Button_Path_PickFolder_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         {
-            if (sender is Button button)
+            if (_installPage is not null)
+                await SafeExecution.RunHandledAsync(() => _installPage.PickExistingInstallPathAsync(TextBox_Path1),
+                    $"{nameof(ServerInstallPathSettingPage)}.{nameof(Button_Path_PickFolder_Click)}");
+            else if (sender is Button button)
             {
-                // disable the button to avoid double-clicking
-                button.IsEnabled = false;
-
-                // Clear previous returned folder name
-                // PickedFolderTextBlock.Text = "";
-
                 var picker = new FolderPicker(button.XamlRoot.ContentIslandEnvironment.AppWindowId)
                 {
                     CommitButtonText = "폴더 선택",
@@ -633,15 +713,12 @@ namespace GersangStation.Main.Setting
                     ViewMode = PickerViewMode.List
                 };
 
-                // Show the picker dialog window
                 var folder = await picker.PickSingleFolderAsync();
                 if (folder is not null)
                 {
                     TextBox_Path1.Text = folder.Path;
                 }
 
-                // re-enable the button
-                button.IsEnabled = true;
             }
         }
     }

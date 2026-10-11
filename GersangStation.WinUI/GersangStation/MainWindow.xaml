@@ -46,19 +46,21 @@
             <Grid.Shadow>
                 <ThemeShadow />
             </Grid.Shadow>
-            <Frame x:Name="StationFrame" IsNavigationStackEnabled="False" />
-            <Grid x:Name="BrowserSurface" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Frame x:Name="BrowserFrame" IsNavigationStackEnabled="False" />
-                <WebView2 x:Name="BrowserWebView" Grid.Row="1" />
+            <Grid x:Name="ShellContent">
+                <Frame x:Name="StationFrame" IsNavigationStackEnabled="False" />
+                <Grid x:Name="BrowserSurface" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Frame x:Name="BrowserFrame" IsNavigationStackEnabled="False" />
+                    <WebView2 x:Name="BrowserWebView" Grid.Row="1" />
+                </Grid>
+                <Frame
+                    x:Name="SettingFrame"
+                    IsNavigationStackEnabled="False"
+                    Visibility="Collapsed" />
             </Grid>
-            <Frame
-                x:Name="SettingFrame"
-                IsNavigationStackEnabled="False"
-                Visibility="Collapsed" />
         </Grid>
 
         <TeachingTip

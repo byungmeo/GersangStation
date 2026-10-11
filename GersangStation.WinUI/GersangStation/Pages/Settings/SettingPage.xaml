@@ -32,11 +32,6 @@
                 Icon="Play">
                 <NavigationViewItem.MenuItems>
                     <NavigationViewItem
-                        x:Name="NavigationViewItem_InstallPath"
-                        Content="경로 설정"
-                        Icon="Folder"
-                        Tag="InstallPathSettingPage" />
-                    <NavigationViewItem
                         x:Name="NavigationViewItem_GamePatch"
                         Content="패치"
                         Icon="Download"

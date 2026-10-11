@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="GersangStation.Controls.GameInstallPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Padding="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Frame x:Name="ClientSettingsFrame" IsNavigationStackEnabled="False" />
+        <Grid
+            Grid.Row="1"
+            Margin="0,12,0,0"
+            HorizontalAlignment="Stretch"
+            Visibility="{x:Bind State.InstallProgressVisibility, Mode=OneWay}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Spacing="8">
+                <ProgressBar
+                    Height="8"
+                    Maximum="{x:Bind State.ProgressMaximum, Mode=OneWay}"
+                    Value="{x:Bind State.ProgressValue, Mode=OneWay}" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Text="{x:Bind State.ProgressText, Mode=OneWay}"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+            <Button
+                Grid.Column="1"
+                Click="Cancel_Click"
+                IsEnabled="{x:Bind State.IsDownloading, Mode=OneWay}"
+                Style="{ThemeResource AlternateCloseButtonStyle}"
+                Visibility="{x:Bind State.InstallCancelVisibility, Mode=OneWay}">
+                <FontIcon Glyph="&#xE711;" />
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>

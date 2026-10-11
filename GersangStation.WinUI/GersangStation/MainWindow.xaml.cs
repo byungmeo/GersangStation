@@ -7,6 +7,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media.Animation;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -47,6 +48,7 @@ public sealed partial class MainWindow : Window
     public WindowSwitchService WindowSwitchService { get; }
 
     private readonly SystemTrayService _systemTrayService;
+    private readonly ContentTransition _contentTransition;
     private bool _hasHandledInitialNavigation;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
@@ -76,6 +78,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _contentTransition = new ContentTransition(ShellContent);
 
         BrowserSession = new BrowserSession(BrowserWebView);
         WebViewManager = new WebViewManager(BrowserSession, this, GameStarter);
@@ -105,8 +108,8 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void InitializeShellFrames()
     {
-        StationFrame.Navigate(typeof(StationPage), this);
-        SettingFrame.Navigate(typeof(SettingPage));
+        StationFrame.Navigate(typeof(StationPage), this, new SuppressNavigationTransitionInfo());
+        SettingFrame.Navigate(typeof(SettingPage), this, new SuppressNavigationTransitionInfo());
         if (StationFrame.Content is StationPage stationPage)
             Sidebar.SetHomePage(stationPage);
         ShowSection(MainShellSection.Station);
@@ -114,6 +117,8 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        _contentTransition.Cancel();
+        (SettingFrame.Content as SettingPage)?.PrepareForContentNavigation();
         Activated -= OnActivated;
         Root.Loaded -= OnRootLoaded;
         AppWindow.Closing -= OnAppWindowClosing;
@@ -421,7 +426,8 @@ public sealed partial class MainWindow : Window
         => await SafeExecution.RunHandledAsync(async () =>
         {
             if (!GameLaunchCoordinator.CanLogin) return;
-            await ShowSectionAsync(MainShellSection.Browser);
+            if (!await ShowSectionAsync(MainShellSection.Browser))
+                return;
             if (BrowserFrame.Content is WebViewPage browserPage)
                 await browserPage.LoginAccountAsync(e.Account);
         }, $"{nameof(MainWindow)}.{nameof(Sidebar_BrowserLoginRequested)}");
@@ -442,12 +448,16 @@ public sealed partial class MainWindow : Window
     /// </summary>
     public void NavigateToSettingPage(SettingSection section, object? pageParameter = null)
     {
-        if (SettingFrame.Content is SettingPage settingPage)
-            settingPage.NavigateToSection(section, pageParameter);
-
-        ShowSection(MainShellSection.Setting)
+        if (section == SettingSection.InstallPath)
+            section = SettingSection.GameInstall;
+        ShowSectionAsync(MainShellSection.Setting, () =>
+            SettingFrame.Content is SettingPage settingPage
+                && settingPage.NavigateToSection(section, pageParameter))
             .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(NavigateToSettingPage)}");
     }
+
+    internal Task<bool> NavigateSettingContentAsync(Func<bool> navigate)
+        => ShowSectionAsync(MainShellSection.Setting, navigate);
 
     /// <summary>
     /// 트레이에 숨겨진 창을 다시 표시하거나 일반 최소화 상태를 복원합니다.
@@ -555,34 +565,56 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// 지정한 메인 섹션을 활성화하고, 해당 섹션의 표시 수명주기 훅을 실행합니다.
     /// </summary>
-    private async Task ShowSectionAsync(MainShellSection section)
+    private async Task<bool> ShowSectionAsync(MainShellSection section, Func<bool>? navigate = null)
     {
-        // 브라우저 명령은 창의 세션을 사용하므로 도구 모음 페이지는 실제 진입 시에만 생성합니다.
-        if (section == MainShellSection.Browser && BrowserFrame.Content is null)
-            BrowserFrame.Navigate(typeof(WebViewPage), this);
-
-        if (_activeSection == section)
+        bool ChangesContent() => _activeSection != section || navigate is not null;
+        bool switched = await _contentTransition.RunAsync(() =>
         {
+            // WebView2는 이동하거나 재생성하지 않고 도구 모음 페이지만 필요할 때 생성합니다.
+            if (section == MainShellSection.Browser && BrowserFrame.Content is null)
+                BrowserFrame.Navigate(typeof(WebViewPage), this, new SuppressNavigationTransitionInfo());
+            if (navigate is not null && !navigate())
+                return Task.FromResult(false);
+
+            if (_activeSection != section)
+            {
+                DeactivateSection(_activeSection);
+                _activeSection = section;
+                StationFrame.Visibility = section == MainShellSection.Station ? Visibility.Visible : Visibility.Collapsed;
+                BrowserSurface.Visibility = section == MainShellSection.Browser ? Visibility.Visible : Visibility.Collapsed;
+                SettingFrame.Visibility = section == MainShellSection.Setting ? Visibility.Visible : Visibility.Collapsed;
+            }
             UpdateSidebarMode(section);
-            await ActivateSectionAsync(section);
-            return;
+            UpdateWebViewMemoryMode();
+            return Task.FromResult(true);
+        }, async () =>
+        {
+            if (!ChangesContent())
+                return true;
+            if (GetActiveRootPage() is IConfirmLeave confirm && !await confirm.ConfirmLeaveAsync())
+                return false;
+            (SettingFrame.Content as SettingPage)?.PrepareForContentNavigation();
+            return true;
+        }, ChangesContent);
+
+        if (!switched)
+        {
+            UpdateSidebarMode(_activeSection);
+            return false;
         }
 
-        DeactivateSection(_activeSection);
-        _activeSection = section;
-        StationFrame.Visibility = section == MainShellSection.Station ? Visibility.Visible : Visibility.Collapsed;
-        BrowserSurface.Visibility = section == MainShellSection.Browser ? Visibility.Visible : Visibility.Collapsed;
-        SettingFrame.Visibility = section == MainShellSection.Setting ? Visibility.Visible : Visibility.Collapsed;
-        UpdateSidebarMode(section);
-        UpdateWebViewMemoryMode();
+        // 네트워크 갱신은 페이드 완료 후 실행하여 빈 화면으로 기다리거나 다음 이동을 막지 않습니다.
+        if (_activeSection != section)
+            return false;
         await ActivateSectionAsync(section);
+        return _activeSection == section;
     }
 
     private void UpdateSidebarMode(MainShellSection section)
     {
         if (section == MainShellSection.Setting)
         {
-            Sidebar.ShowSettings();
+            Sidebar.ShowSettings((SettingFrame.Content as SettingPage)?.SelectedSection);
             return;
         }
 

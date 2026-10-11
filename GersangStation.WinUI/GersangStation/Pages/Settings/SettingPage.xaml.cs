@@ -1,7 +1,9 @@
 using Core;
 using Core.Models;
+using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
@@ -47,11 +49,13 @@ public sealed partial class SettingPage : Page, IConfirmLeave
 {
     private object _previousSelectedItem;
     private bool _suppressNavSelectionChanged = false;
+    private MainWindow? _shellWindow;
+    internal SettingSection SelectedSection { get; private set; } = SettingSection.Account;
 
     public static Dictionary<string, Type> PageDictionary { get; } = new Dictionary<string, Type>
     {
         {"GersangStation.Main.Setting.AccountSettingPage", typeof(GersangStation.Main.Setting.AccountSettingPage)},
-        {"GersangStation.Main.Setting.InstallPathSettingPage", typeof(GersangStation.Main.Setting.InstallPathSettingPage)},
+        {"GersangStation.Main.Setting.InstallPathSettingPage", typeof(GersangStation.Main.Setting.GameInstallSettingPage)},
         {"GersangStation.Main.Setting.GamePatchSettingPage", typeof(GersangStation.Main.Setting.GamePatchSettingPage)},
         {"GersangStation.Main.Setting.GameInstallSettingPage", typeof(GersangStation.Main.Setting.GameInstallSettingPage)},
         {"GersangStation.Main.Setting.NotificationSettingPage", typeof(GersangStation.Main.Setting.NotificationSettingPage)},
@@ -84,6 +88,8 @@ public sealed partial class SettingPage : Page, IConfirmLeave
     {
         base.OnNavigatedTo(e);
 
+        _shellWindow = e.Parameter as MainWindow ?? App.CurrentWindow as MainWindow;
+
         RefreshDeveloperToolVisibility();
 
         if (e.Parameter is SettingPageNavigationParameter parameter)
@@ -109,38 +115,35 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         return true;
     }
 
-    private async void SettingNavigationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void SettingNavigationView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if(_suppressNavSelectionChanged)
+        if (_suppressNavSelectionChanged || args.SelectedItem is not NavigationViewItem selectedItem)
+            return;
+        Type? pageType = ResolvePageType(selectedItem);
+        if (pageType is null || _shellWindow is null)
             return;
 
-        if (ContentFrame.Content is IConfirmLeave confirm)
+        SafeExecution.RunHandledAsync(async () =>
         {
-            bool canLeave = await confirm.ConfirmLeaveAsync();
-            if (!canLeave)
+            bool navigated = await _shellWindow.NavigateSettingContentAsync(() =>
+                ContentFrame.Navigate(pageType, null, new SuppressNavigationTransitionInfo()));
+            if (!navigated && ReferenceEquals(sender.SelectedItem, selectedItem))
             {
                 _suppressNavSelectionChanged = true;
-                sender.SelectedItem = _previousSelectedItem;
-                _suppressNavSelectionChanged = false;
-                return;
+                try { sender.SelectedItem = _previousSelectedItem; }
+                finally { _suppressNavSelectionChanged = false; }
             }
-        }
-
-        var selectedItem = (NavigationViewItem)args.SelectedItem;
-
-        if (selectedItem != null)
-        {
-            Type? pageType = ResolvePageType(selectedItem);
-            if (pageType is not null)
-                ContentFrame.Navigate(pageType);
-        }
+        }, $"{nameof(SettingPage)}.{nameof(SettingNavigationView_SelectionChanged)}")
+            .FireAndForgetHandled($"{nameof(SettingPage)}.{nameof(SettingNavigationView_SelectionChanged)}");
     }
 
     /// <summary>
     /// 지정한 설정 섹션에 해당하는 NavigationView 항목과 페이지를 동기화합니다.
     /// </summary>
-    public void NavigateToSection(SettingSection section, object? pageParameter = null)
+    internal bool NavigateToSection(SettingSection section, object? pageParameter = null)
     {
+        if (section == SettingSection.InstallPath)
+            section = SettingSection.GameInstall;
         NavigationViewItem selectedItem = section switch
         {
             SettingSection.GamePatch => NavigationViewItem_GamePatch,
@@ -153,7 +156,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             SettingSection.Behavior => NavigationViewItem_Behavior,
             SettingSection.Execution => NavigationViewItem_Execution,
             SettingSection.Account => NavigationViewItem_Account,
-            SettingSection.InstallPath => NavigationViewItem_InstallPath,
             SettingSection.Advanced => NavigationViewItem_Advanced,
             SettingSection.DeveloperTool => NavigationViewItem_Developer,
             SettingSection.ProgramInfo => NavigationViewItem_ProgramInfo,
@@ -162,11 +164,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
 
         Type? pageType = ResolvePageType(selectedItem);
         if (pageType is null)
-            return;
-
-        _suppressNavSelectionChanged = true;
-        SettingNavigationView.SelectedItem = selectedItem;
-        _suppressNavSelectionChanged = false;
+            return false;
 
         object? resolvedParameter = pageParameter ?? section switch
         {
@@ -175,7 +173,16 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             SettingSection.BrowserSettings => "브라우저 설정",
             _ => null
         };
-        ContentFrame.Navigate(pageType, resolvedParameter);
+        bool navigated = ContentFrame.Navigate(pageType, resolvedParameter, new SuppressNavigationTransitionInfo());
+        if (navigated)
+            SelectedSection = section;
+        return navigated;
+    }
+
+    internal void PrepareForContentNavigation()
+    {
+        if (ContentFrame.Content is GameInstallSettingPage installPage)
+            installPage.CancelPanelTransition();
     }
 
     /// <summary>
@@ -205,7 +212,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         NavigationViewItem? selectedItem = pageType switch
         {
             Type t when t == typeof(AccountSettingPage) => NavigationViewItem_Account,
-            Type t when t == typeof(InstallPathSettingPage) => NavigationViewItem_InstallPath,
             Type t when t == typeof(GamePatchSettingPage) => NavigationViewItem_GamePatch,
             Type t when t == typeof(GameInstallSettingPage) => NavigationViewItem_GameInstall,
             Type t when t == typeof(NotificationSettingPage) => NavigationViewItem_Notification,
@@ -221,8 +227,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         if (selectedItem is null)
             return;
 
-        bool isClientSection = selectedItem == NavigationViewItem_InstallPath
-            || selectedItem == NavigationViewItem_GamePatch
+        bool isClientSection = selectedItem == NavigationViewItem_GamePatch
             || selectedItem == NavigationViewItem_GameInstall;
 
         if (isClientSection)
