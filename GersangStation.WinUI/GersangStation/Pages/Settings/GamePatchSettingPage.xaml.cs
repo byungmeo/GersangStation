@@ -364,24 +364,8 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         if (_suppressClientSettingsPersistence)
             return;
 
-        (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
-            await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
-
-        if (!loadResult.Success)
-        {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "설정 불러오기 실패",
-                "다클라 덮어쓰기 옵션을 저장하기 전에 현재 서버 설정을 불러오지 못했습니다.",
-                loadResult);
-        }
-
-        if (clientSetting.OverwriteMultiClientConfig == ShouldOverwriteMultiClientConfig)
-            return;
-
-        clientSetting.OverwriteMultiClientConfig = ShouldOverwriteMultiClientConfig;
         AppDataManager.AppDataOperationResult saveResult =
-            await AppDataManager.SaveServerClientSettingsAsync(_selectedGameServer, clientSetting);
+            await AppDataManager.SaveServerOverwriteMultiClientConfigAsync(_selectedGameServer, ShouldOverwriteMultiClientConfig);
 
         if (!saveResult.Success)
         {
@@ -617,7 +601,11 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     /// <summary>
     /// 선택한 버전 기준으로 메인 클라이언트 패치를 실행하고 옵션에 따라 다클라 재구성까지 이어갑니다.
     /// </summary>
-    private async void Button_PatchStart_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    private void Button_PatchStart_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        => SafeExecution.RunHandledAsync(StartPatchAsync, $"{nameof(GamePatchSettingPage)}.{nameof(Button_PatchStart_Click)}")
+            .FireAndForgetHandled($"{nameof(GamePatchSettingPage)}.{nameof(Button_PatchStart_Click)}");
+
+    private async Task StartPatchAsync()
     {
         if (!IsPatchStartEnabled)
             return;
@@ -625,59 +613,51 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         if (SelectedVersionItem is null)
             return;
 
-        PatchManager patchManager = new();
-        (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
-            await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
-
-        if (!loadResult.Success)
-        {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "설정 불러오기 실패",
-                "패치를 시작하기 전에 서버 설정을 모두 불러오지 못했습니다.",
-                loadResult);
-        }
-
-        if (_latestServerVersion is not int latestClientVersion)
-        {
-            await ShowSimpleDialogAsync(
-                "패치 불가",
-                "최신 버전을 확인할 수 없어 지금은 패치를 진행할 수 없습니다.");
-            return;
-        }
-
-        string tempRoot = PatchManager.GetPatchTempRoot(
-            clientSetting.InstallPath,
-            SelectedVersionItem.Version,
-            latestClientVersion);
-
-        TempPath = $"임시 파일 경로: {tempRoot}";
-
-        DirectoryWriteProbeResult installWriteProbeResult = PathWriteProbe.TryProbeDirectoryWriteAccess(clientSetting.InstallPath);
-        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, installWriteProbeResult))
-            return;
-
-        DirectoryWriteProbeResult tempWriteProbeResult = PathWriteProbe.TryProbeDirectoryWriteAccess(tempRoot);
-        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, tempWriteProbeResult))
-            return;
-
-        PatchArchiveReuseMode archiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible;
-        if (Directory.Exists(tempRoot))
-        {
-            archiveReuseMode = await AskArchiveReuseModeAsync(tempRoot);
-        }
-
-        _patchCts = new CancellationTokenSource();
-
+        IsDownloading = true;
         try
         {
-            IsDownloading = true;
+            (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
+                await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
+
+            if (!loadResult.Success)
+            {
+                await AppDataOperationDialog.ShowFailureAsync(
+                    XamlRoot,
+                    "설정 불러오기 실패",
+                    "패치를 시작하기 전에 서버 설정을 모두 불러오지 못했습니다.",
+                    loadResult);
+                return;
+            }
+
+            if (_latestServerVersion is not int latestClientVersion)
+            {
+                await ShowSimpleDialogAsync(
+                    "패치 불가",
+                    "최신 버전을 확인할 수 없어 지금은 패치를 진행할 수 없습니다.");
+                return;
+            }
+
+            string tempRoot = PatchManager.GetPatchTempRoot(
+                clientSetting.InstallPath,
+                SelectedVersionItem.Version,
+                latestClientVersion);
+
+            TempPath = $"임시 파일 경로: {tempRoot}";
+
+            PatchArchiveReuseMode archiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible;
+            if (Directory.Exists(tempRoot))
+            {
+                archiveReuseMode = await AskArchiveReuseModeAsync(tempRoot);
+            }
+
+            _patchCts = new CancellationTokenSource();
+
             ShowPatchProgress();
             ResetPatchProgressForeground();
 
             ProgressMaximum = 1;
             ProgressValue = 0;
-            ProgressText = "패치를 준비하는 중...";
+            ProgressText = "관리자 권한 승인 후 패치를 시작합니다...";
 
             Progress<PatchProgress> patchProgress = new(p =>
             {
@@ -708,10 +688,10 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 ArchiveReuseMode: archiveReuseMode,
                 ApplyMultiClientPatch: ShouldPatchMultiClient);
 
-            await patchManager.RunAsync(
+            await GameMaintenanceService.PatchAsync(
                 _selectedGameServer,
                 SelectedVersionItem.Version,
-                clientSetting.InstallPath,
+                clientSetting,
                 option,
                 patchProgress,
                 _patchCts.Token);

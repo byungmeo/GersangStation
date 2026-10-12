@@ -148,6 +148,8 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Core\Core.csproj" />
+		<ProjectReference Include="..\GameMaintenance.Contracts\GameMaintenance.Contracts.csproj" />
+		<ProjectReference Include="..\GameMaintenance.Worker\GameMaintenance.Worker.csproj" ReferenceOutputAssembly="false" Private="false" />
 		<ProjectReference Include="..\SideDrawer\SideDrawer.csproj" />
         <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
 	</ItemGroup>
@@ -246,6 +248,25 @@
 	</PropertyGroup>
 
 	<!-- Publish Properties -->
+	<!-- Package the self-contained worker in its own directory, without replacing app runtime/deps files. -->
+	<Target Name="IncludeGameMaintenanceWorker" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveProjectReferences">
+		<MSBuild Projects="..\GameMaintenance.Worker\GameMaintenance.Worker.csproj" Targets="GetTargetPath"
+			Properties="Configuration=$(Configuration);Platform=x64;RuntimeIdentifier=win-x64">
+			<Output TaskParameter="TargetOutputs" ItemName="_MaintenanceWorkerTarget" />
+		</MSBuild>
+		<PropertyGroup>
+			<_MaintenanceWorkerDirectory>@(_MaintenanceWorkerTarget->'%(RootDir)%(Directory)')</_MaintenanceWorkerDirectory>
+		</PropertyGroup>
+		<ItemGroup>
+			<_MaintenanceWorkerFile Include="$(_MaintenanceWorkerDirectory)**\*" />
+			<Content Include="@(_MaintenanceWorkerFile)">
+				<Link>Maintenance\%(_MaintenanceWorkerFile.RecursiveDir)%(_MaintenanceWorkerFile.Filename)%(_MaintenanceWorkerFile.Extension)</Link>
+				<TargetPath>Maintenance\%(_MaintenanceWorkerFile.RecursiveDir)%(_MaintenanceWorkerFile.Filename)%(_MaintenanceWorkerFile.Extension)</TargetPath>
+				<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</Content>
+		</ItemGroup>
+	</Target>
 	<PropertyGroup>
 		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Dev'">False</PublishReadyToRun>
 		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug' And '$(Configuration)' != 'Dev'">True</PublishReadyToRun>

@@ -68,7 +68,22 @@ public sealed record StationAccountSelectionOption(string Id, string DisplayName
 }
 
 /// <summary>
-/// An empty page that can be used on its own or navigated to within a Frame.
+/// 사이드바 실행 경로의 다클라 생성 결과를 페이지 표시 상태와 무관하게 전달합니다.
+/// </summary>
+public sealed class MultiClientCreationCompletedEventArgs(
+    GameServer server, int clientIndex, bool success, string message,
+    Exception? exception = null, bool canceled = false) : EventArgs
+{
+    public GameServer Server { get; } = server;
+    public int ClientIndex { get; } = clientIndex;
+    public bool Success { get; } = success;
+    public string Message { get; } = message;
+    public Exception? Exception { get; } = exception;
+    public bool Canceled { get; } = canceled;
+}
+
+/// <summary>
+/// 홈 컨텐츠와 사이드바의 서버/계정 선택 및 실행 검증을 제공합니다.
 /// </summary>
 public sealed partial class StationPage : Page, INotifyPropertyChanged
 {
@@ -78,7 +93,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         Starting,
         Running,
         RetryCooldown,
-        MultiClientDisabled,
         InstallPathMissing,
         InstallPathInvalid,
         MultiClientSetupRequired
@@ -405,6 +419,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler<MultiClientCreationCompletedEventArgs>? MultiClientCreationCompleted;
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
@@ -456,7 +471,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 return false;
             case ClientLaunchStatus.Starting:
             case ClientLaunchStatus.Running:
-            case ClientLaunchStatus.MultiClientDisabled:
                 return false;
         }
 
@@ -592,21 +606,20 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (await dialog.ShowManagedAsync() != ContentDialogResult.Primary)
             return;
 
-        MultiClientCreationAttemptResult createResult = await TryCreateMissingMultiClientAsync(server, clientIndex);
-        if (!createResult.Success &&
-            await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(
-                XamlRoot,
-                createResult.Exception,
-                "다클라 생성"))
+        MultiClientCreationAttemptResult createResult;
+        try { createResult = await TryCreateMissingMultiClientAsync(server, clientIndex); }
+        catch (OperationCanceledException)
         {
+            MultiClientCreationCompleted?.Invoke(this,
+                new(server, clientIndex, false, $"{clientLabel} 생성을 취소했습니다.", canceled: true));
             RefreshClientAvailabilityState();
-            await UpdateServer();
             return;
         }
+        catch (Exception ex) { createResult = new(false, ex.Message, ex); }
 
-        await ShowWarningDialogAsync(
-            createResult.Success ? "다클라 생성 완료" : "다클라 생성 실패",
-            createResult.Success ? $"{clientLabel} 생성을 완료했습니다." : createResult.Reason);
+        MultiClientCreationCompleted?.Invoke(this, new(server, clientIndex, createResult.Success,
+            createResult.Success ? $"{clientLabel} 생성을 완료했습니다." : createResult.Reason,
+            createResult.Exception));
 
         RefreshClientAvailabilityState();
         await UpdateServer();
@@ -1114,13 +1127,12 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 현재 서버의 다클라 사용 설정을 전달합니다. 실행 중 여부는 창 수명의 상태 모델이 관리합니다.
+    /// 모든 슬롯을 사용 가능하게 유지합니다. 실제 경로 검증과 실행 중 여부는 별도로 판단합니다.
     /// </summary>
     private void RefreshClientAvailabilityState()
     {
-        ClientSettings settings = AppDataManager.LoadServerClientSettings((GameServer)SelectedServerIndex);
         for (int i = 0; i < 3; i++)
-            _shellWindow?.GameLaunchCoordinator.SetSlotEnabled(i, i == 0 || IsMultiClientSlotEnabled(settings, i));
+            _shellWindow?.GameLaunchCoordinator.SetSlotEnabled(i, true);
     }
 
     /// <summary>
@@ -1140,9 +1152,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             return new ClientLaunchAvailability(ClientLaunchStatus.Running);
 
         ClientSettings settings = AppDataManager.LoadServerClientSettings(server);
-
-        if (clientIndex > 0 && !IsMultiClientSlotEnabled(settings, clientIndex))
-            return new ClientLaunchAvailability(ClientLaunchStatus.MultiClientDisabled);
 
         string mainInstallPath = settings.InstallPath?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(mainInstallPath))
@@ -1192,17 +1201,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 2클라 또는 3클라 슬롯이 설정상 사용 대상인지 판별합니다.
-    /// </summary>
-    private static bool IsMultiClientSlotEnabled(ClientSettings settings, int clientIndex)
-        => settings.UseMultiClient && clientIndex switch
-        {
-            1 => settings.UseClient2,
-            2 => settings.UseClient3,
-            _ => true
-        };
-
-    /// <summary>
     /// 선택한 슬롯에서 다클라 생성이 필요할 때 해당 복제 클라이언트 하나만 생성합니다.
     /// </summary>
     private async Task<MultiClientCreationAttemptResult> TryCreateMissingMultiClientAsync(GameServer server, int clientIndex)
@@ -1210,7 +1208,10 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (clientIndex == 0)
             return new(false, "1클라는 메인 클라이언트이므로 별도 생성이 필요하지 않습니다.");
 
-        ClientSettings settings = AppDataManager.LoadServerClientSettings(server);
+        (ClientSettings settings, AppDataManager.AppDataOperationResult loadResult) =
+            await AppDataManager.LoadServerClientSettingsAsync(server);
+        if (!loadResult.Success)
+            return new(false, "서버 설정을 불러오지 못해 다클라를 생성할 수 없습니다.", loadResult.Exception);
         string installPath = settings.InstallPath?.Trim() ?? string.Empty;
         if (!GameClientHelper.IsValidInstallPath(server, installPath, out string reason))
             return new(false, $"메인 클라이언트 경로가 유효하지 않아 다클라를 만들 수 없습니다. {reason}");
@@ -1226,36 +1227,26 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
                 : GameClientHelper.MultiClientLayoutPolicy.Legacy;
 
-        string clientLabel = clientIndex == 1 ? "2클라" : "3클라";
-        if (!IsMultiClientSlotEnabled(settings, clientIndex))
-            return new(false, $"{clientLabel} 사용이 현재 서버 설정에서 비활성화되어 있습니다.");
-
-        string targetPath = clientIndex switch
+        CreateSymbolMultiClientResult createResult;
+        try
         {
-            1 => settings.Client2Path,
-            2 => settings.Client3Path,
-            _ => string.Empty
-        };
-
-        DirectoryWriteProbeResult targetProbeResult =
-            PathWriteProbe.TryProbeDirectoryWriteAccess(targetPath);
-        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, targetProbeResult))
-            return new(false, $"{clientLabel} 경로 권한 확인 단계에서 작업을 중단했습니다.", targetProbeResult.Exception);
-
-        CreateSymbolMultiClientResult createResult = GameClientHelper.TryCreateSymbolMultiClient(
-            new CreateSymbolMultiClientArgs
-            {
-                InstallPath = installPath,
-                DestPath2 = clientIndex == 1 ? settings.Client2Path : string.Empty,
-                DestPath3 = clientIndex == 2 ? settings.Client3Path : string.Empty,
-                OverwriteConfig = settings.OverwriteMultiClientConfig,
-                LayoutPolicy = layoutPolicy
-            });
+            await GameMaintenanceService.CreateMultiClientAsync(server, settings,
+                new CreateSymbolMultiClientArgs
+                {
+                    InstallPath = installPath,
+                    DestPath2 = clientIndex == 1 ? settings.Client2Path : string.Empty,
+                    DestPath3 = clientIndex == 2 ? settings.Client3Path : string.Empty,
+                    OverwriteConfig = settings.OverwriteMultiClientConfig,
+                    LayoutPolicy = layoutPolicy
+                });
+            createResult = new(true, string.Empty, null, null, null);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex) { createResult = new(false, ex.Message, null, null, ex); }
 
         if (!createResult.Success)
             return new(false, createResult.Reason, createResult.Exception);
 
-        AppDataManager.SaveServerClientSettings(server, settings);
         return new(true, string.Empty);
     }
 
@@ -1339,7 +1330,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
     public Visibility EventUrgencyTextVisibility
         => IsCurrentEventDeadlineSoon() ? Visibility.Visible : Visibility.Collapsed;
-    
+
     /// <summary>
     /// 이벤트 목록을 주기적으로 다시 읽어오되, 최근 결과가 있으면 재사용합니다.
     /// </summary>

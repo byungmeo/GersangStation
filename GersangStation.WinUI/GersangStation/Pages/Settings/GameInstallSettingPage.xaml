@@ -20,70 +20,71 @@
         </ResourceDictionary>
     </Page.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <toolkit:Segmented
-            x:Name="Segmented_Server"
-            Grid.Row="0"
-            AutomationProperties.Name="설치할 게임 서버"
-            IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
-            SelectionChanged="Segmented_Server_SelectionChanged"
-            SelectionMode="Single"
-            Style="{StaticResource DefaultSegmentedStyle}">
-            <toolkit:SegmentedItem x:Name="SegmentedItem_Live" Content="본섭">
-                <toolkit:SegmentedItem.Icon>
-                    <FontIcon FontSize="{x:Bind SegmentedItem_Live.FontSize, Mode=OneWay}" Glyph="{x:Bind local:GameInstallSettingPage.ServerSelectionGlyph(SegmentedItem_Live.IsSelected), Mode=OneWay}" />
-                </toolkit:SegmentedItem.Icon>
-            </toolkit:SegmentedItem>
-            <toolkit:SegmentedItem x:Name="SegmentedItem_Test" Content="테섭">
-                <toolkit:SegmentedItem.Icon>
-                    <FontIcon FontSize="{x:Bind SegmentedItem_Test.FontSize, Mode=OneWay}" Glyph="{x:Bind local:GameInstallSettingPage.ServerSelectionGlyph(SegmentedItem_Test.IsSelected), Mode=OneWay}" />
-                </toolkit:SegmentedItem.Icon>
-            </toolkit:SegmentedItem>
-            <toolkit:SegmentedItem x:Name="SegmentedItem_RnD" Content="천라섭">
-                <toolkit:SegmentedItem.Icon>
-                    <FontIcon FontSize="{x:Bind SegmentedItem_RnD.FontSize, Mode=OneWay}" Glyph="{x:Bind local:GameInstallSettingPage.ServerSelectionGlyph(SegmentedItem_RnD.IsSelected), Mode=OneWay}" />
-                </toolkit:SegmentedItem.Icon>
-            </toolkit:SegmentedItem>
-        </toolkit:Segmented>
+    <Grid Padding="24" HorizontalAlignment="Stretch">
+        <Grid
+            MaxWidth="896"
+            HorizontalAlignment="Stretch"
+            RowSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="게임 설치 및 경로 지정" />
 
-        <Border
-            Grid.Row="0"
-            Height="1"
-            Margin="0,10,0,0"
-            VerticalAlignment="Bottom"
-            Background="{ThemeResource ControlStrokeColorDefaultBrush}" />
+            <toolkit:Segmented
+                x:Name="Segmented_Server"
+                Grid.Row="1"
+                AutomationProperties.Name="설치할 게임 서버"
+                IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}"
+                SelectionChanged="Segmented_Server_SelectionChanged"
+                SelectionMode="Single"
+                Style="{StaticResource DefaultSegmentedStyle}">
+                <toolkit:SegmentedItem x:Name="SegmentedItem_Live" Content="본섭">
+                    <toolkit:SegmentedItem.Icon>
+                        <FontIcon FontSize="{x:Bind SegmentedItem_Live.FontSize, Mode=OneWay}" Glyph="{x:Bind local:GameInstallSettingPage.ServerSelectionGlyph(SegmentedItem_Live.IsSelected), Mode=OneWay}" />
+                    </toolkit:SegmentedItem.Icon>
+                </toolkit:SegmentedItem>
+                <toolkit:SegmentedItem x:Name="SegmentedItem_Test" Content="테섭">
+                    <toolkit:SegmentedItem.Icon>
+                        <FontIcon FontSize="{x:Bind SegmentedItem_Test.FontSize, Mode=OneWay}" Glyph="{x:Bind local:GameInstallSettingPage.ServerSelectionGlyph(SegmentedItem_Test.IsSelected), Mode=OneWay}" />
+                    </toolkit:SegmentedItem.Icon>
+                </toolkit:SegmentedItem>
+                <toolkit:SegmentedItem x:Name="SegmentedItem_RnD" Content="천라섭">
+                    <toolkit:SegmentedItem.Icon>
+                        <FontIcon FontSize="{x:Bind SegmentedItem_RnD.FontSize, Mode=OneWay}" Glyph="{x:Bind local:GameInstallSettingPage.ServerSelectionGlyph(SegmentedItem_RnD.IsSelected), Mode=OneWay}" />
+                    </toolkit:SegmentedItem.Icon>
+                </toolkit:SegmentedItem>
+            </toolkit:Segmented>
 
-        <toolkit:SwitchPresenter
-            x:Name="InstallContentPresenter"
-            Grid.Row="1"
-            HorizontalContentAlignment="Stretch"
-            VerticalContentAlignment="Stretch"
-            Value="{x:Bind SelectedGameServer, Mode=OneWay}">
-            <toolkit:Case Value="{x:Bind models:GameServer.Korea_Live, Mode=OneTime}">
-                <controls:GameInstallPanel
-                    x:Name="InstallPanel_Live"
-                    AutomationProperties.Name="본섭 설치"
-                    CancelRequested="Button_InstallStop_Click"
-                    State="{x:Bind}" />
-            </toolkit:Case>
-            <toolkit:Case Value="{x:Bind models:GameServer.Korea_Test, Mode=OneTime}">
-                <controls:GameInstallPanel
-                    x:Name="InstallPanel_Test"
-                    AutomationProperties.Name="테섭 설치"
-                    CancelRequested="Button_InstallStop_Click"
-                    State="{x:Bind}" />
-            </toolkit:Case>
-            <toolkit:Case Value="{x:Bind models:GameServer.Korea_RnD, Mode=OneTime}">
-                <controls:GameInstallPanel
-                    x:Name="InstallPanel_RnD"
-                    AutomationProperties.Name="천라섭 설치"
-                    CancelRequested="Button_InstallStop_Click"
-                    State="{x:Bind}" />
-            </toolkit:Case>
-        </toolkit:SwitchPresenter>
+            <toolkit:SwitchPresenter
+                x:Name="InstallContentPresenter"
+                Grid.Row="2"
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Stretch"
+                Value="{x:Bind SelectedGameServer, Mode=OneWay}">
+                <toolkit:Case Value="{x:Bind models:GameServer.Korea_Live, Mode=OneTime}">
+                    <controls:GameInstallPanel
+                        x:Name="InstallPanel_Live"
+                        AutomationProperties.Name="본섭 설치"
+                        CancelRequested="Button_InstallStop_Click"
+                        State="{x:Bind}" />
+                </toolkit:Case>
+                <toolkit:Case Value="{x:Bind models:GameServer.Korea_Test, Mode=OneTime}">
+                    <controls:GameInstallPanel
+                        x:Name="InstallPanel_Test"
+                        AutomationProperties.Name="테섭 설치"
+                        CancelRequested="Button_InstallStop_Click"
+                        State="{x:Bind}" />
+                </toolkit:Case>
+                <toolkit:Case Value="{x:Bind models:GameServer.Korea_RnD, Mode=OneTime}">
+                    <controls:GameInstallPanel
+                        x:Name="InstallPanel_RnD"
+                        AutomationProperties.Name="천라섭 설치"
+                        CancelRequested="Button_InstallStop_Click"
+                        State="{x:Bind}" />
+                </toolkit:Case>
+            </toolkit:SwitchPresenter>
+        </Grid>
     </Grid>
 </Page>

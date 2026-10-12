@@ -16,6 +16,12 @@
     </Project>
   </Folder>
   <Folder Name="/WinUI/">
+    <Project Path="GersangStation.WinUI/GameMaintenance.Contracts/GameMaintenance.Contracts.csproj">
+      <Platform Project="x64" />
+    </Project>
+    <Project Path="GersangStation.WinUI/GameMaintenance.Worker/GameMaintenance.Worker.csproj">
+      <Platform Project="x64" />
+    </Project>
     <Project Path="GersangStation.WinUI/SideDrawer/SideDrawer.csproj">
       <Platform Project="x64" />
     </Project>

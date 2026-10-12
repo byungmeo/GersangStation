@@ -16,7 +16,6 @@ using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.Data.Xml.Dom;
 using Windows.Services.Store;
-using Windows.System;
 using Windows.UI.Notifications;
 using WinRT.Interop;
 
@@ -195,6 +194,8 @@ public sealed partial class MainWindow : Window
 
         if (_activeSection == MainShellSection.Station && StationFrame.Content is StationPage stationPage)
             await stationPage.RefreshEventsAfterWindowActivationAsync();
+        if (_activeSection == MainShellSection.Setting && SettingFrame.Content is SettingPage settingPage)
+            settingPage.RefreshInstallStatus();
     }
 
     /// <summary>
@@ -209,9 +210,6 @@ public sealed partial class MainWindow : Window
         try
         {
             WebViewManager.InitializeAsync().FireAndForgetHandled("MainWindow.InitializeBrowserSession");
-            if (!await HandleStartupAdministratorPromptAsync())
-                return;
-
             await HandleStartupFirstRunPromptAsync();
             HandleInitialNavigation();
             EnsureStartupStoreUpdateAsync()
@@ -235,41 +233,6 @@ public sealed partial class MainWindow : Window
 
         AppDataManager.IsSetupCompleted = true;
         await ShowInitialSettingPromptAsync();
-    }
-
-    /// <summary>
-    /// 관리자 권한 안내를 시작 플로우 안에서 한 번만 표시합니다.
-    /// </summary>
-    private async Task<bool> HandleStartupAdministratorPromptAsync()
-    {
-        if (App.IsRunningAsAdministrator || !AppDataManager.IsStartupAdminPromptEnabled || Root.XamlRoot is null)
-            return true;
-
-        ContentDialog dialog = new()
-        {
-            XamlRoot = Content.XamlRoot,
-            Title = "관리자 권한으로 실행하지 않음",
-            Content = "현재 앱이 관리자 권한으로 실행되지 않았습니다.\n관리자 권한이 없으면 일부 기능이 동작하지 않을 수 있습니다.\n그래도 계속 하시겠습니까?",
-            PrimaryButtonText = "방법 확인 후 종료",
-            SecondaryButtonText = "다음부터 안내 무시",
-            CloseButtonText = "무시하고 진행",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        ContentDialogResult result = await dialog.ShowManagedAsync();
-        if (result == ContentDialogResult.Secondary)
-        {
-            _skipDefaultInitialNavigation = true;
-            NavigateToSettingPage(SettingSection.Notification);
-            return true;
-        }
-
-        if (result != ContentDialogResult.Primary)
-            return true;
-
-        await Launcher.LaunchUriAsync(App.LinkManager.ResolveNavigation("help.permission.multi-client").Uri);
-        Application.Current.Exit();
-        return false;
     }
 
     /// <summary>
@@ -626,6 +589,8 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private Task ActivateSectionAsync(MainShellSection section)
     {
+        if (section == MainShellSection.Setting && SettingFrame.Content is SettingPage settingPage)
+            settingPage.RefreshInstallStatus();
         return section switch
         {
             MainShellSection.Station when StationFrame.Content is StationPage stationPage

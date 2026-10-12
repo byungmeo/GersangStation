@@ -1,0 +1,532 @@
+using Core;
+using static Core.GameClientHelper;
+
+namespace GameMaintenance.Worker;
+
+internal sealed class MultiClientService(CancellationToken ct)
+{
+    private readonly CancellationToken _ct = ct;
+    private static readonly HashSet<string> TopLevelDirectoriesToSkip = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Online",
+        "XIGNCODE",
+        "PatchTemp",
+        "TempFiles",
+        "GersangDown",
+        "ScreenShots"
+    };
+
+    /// <summary>
+    /// 특정 폴더를 목적 경로에 복사합니다.
+    /// </summary>
+    private void HardCopyDirectory(string sourceDirPath, string destDirPath, bool copySubDirs)
+        => HardCopyDirectory(sourceDirPath, destDirPath, copySubDirs, overwriteExistingFiles: true);
+
+    /// <summary>
+    /// 특정 폴더를 목적 경로에 복사하되 파일 덮어쓰기 정책을 선택적으로 적용합니다.
+    /// </summary>
+    private void HardCopyDirectory(string sourceDirPath, string destDirPath, bool copySubDirs, bool overwriteExistingFiles)
+    {
+        DirectoryInfo dir = new(sourceDirPath);
+
+        if (!dir.Exists)
+        {
+            throw new DirectoryNotFoundException(
+                "Source directory does not exist or could not be found: "
+                + sourceDirPath);
+        }
+
+        DirectoryInfo[] dirs = dir.GetDirectories();
+        EnsureRealDirectory(destDirPath);
+
+        FileInfo[] files = dir.GetFiles();
+        foreach (FileInfo file in files)
+        {
+            _ct.ThrowIfCancellationRequested();
+            string tempPath = Path.Combine(destDirPath, file.Name);
+            if (!overwriteExistingFiles && File.Exists(tempPath))
+                continue;
+
+            CopyFileWithSymbolAwareOverwrite(file.FullName, tempPath, overwriteExistingFiles);
+        }
+
+        if (!copySubDirs)
+            return;
+
+        foreach (DirectoryInfo subdir in dirs)
+        {
+            _ct.ThrowIfCancellationRequested();
+            string tempPath = Path.Combine(destDirPath, subdir.Name);
+            HardCopyDirectory(subdir.FullName, tempPath, copySubDirs, overwriteExistingFiles);
+        }
+    }
+
+    /// <summary>
+    /// 실 디렉터리가 필요할 때 기존 심볼릭 링크를 제거하고 실제 디렉터리를 보장합니다.
+    /// </summary>
+    private void EnsureRealDirectory(string dirPath)
+    {
+        if (Directory.Exists(dirPath))
+        {
+            SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(dirPath);
+            if (!symbolDirectoryResult.ProbeSuccess)
+            {
+                throw new IOException(
+                    $"Failed to inspect whether '{dirPath}' is a symbolic directory.",
+                    symbolDirectoryResult.Exception);
+            }
+
+            if (symbolDirectoryResult.IsSymbolDirectory)
+                Directory.Delete(dirPath);
+        }
+        else if (File.Exists(dirPath))
+            File.Delete(dirPath);
+
+        Directory.CreateDirectory(dirPath);
+    }
+
+    /// <summary>
+    /// 기존 대상이 심볼릭 링크면 정리한 뒤 디렉터리 심볼릭 링크를 다시 만듭니다.
+    /// </summary>
+    private void RecreateSymbolicDirectory(string sourceDirPath, string destDirPath)
+    {
+        if (Directory.Exists(destDirPath))
+        {
+            SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(destDirPath);
+            if (!symbolDirectoryResult.ProbeSuccess)
+            {
+                throw new IOException(
+                    $"Failed to inspect whether '{destDirPath}' is a symbolic directory.",
+                    symbolDirectoryResult.Exception);
+            }
+
+            if (!symbolDirectoryResult.IsSymbolDirectory)
+                throw new MultiClientSymbolicDirectoryConflictException(sourceDirPath, destDirPath);
+
+            Directory.Delete(destDirPath);
+        }
+        else if (File.Exists(destDirPath))
+        {
+            File.Delete(destDirPath);
+        }
+
+        Directory.CreateSymbolicLink(destDirPath, sourceDirPath);
+    }
+
+    /// <summary>
+    /// 목적지 파일이 심볼릭 링크인 경우 먼저 제거한 뒤 복사합니다.
+    /// </summary>
+    private void CopyFileWithSymbolAwareOverwrite(string sourceFilePath, string destFilePath, bool overwrite)
+    {
+        if (!overwrite && File.Exists(destFilePath))
+            return;
+
+        if (overwrite && File.Exists(destFilePath))
+        {
+            SymbolFileProbeResult symbolFileResult = TryIsSymbolFile(destFilePath);
+            if (!symbolFileResult.Success)
+            {
+                throw new IOException(
+                    $"Failed to inspect whether '{destFilePath}' is a symbolic file.",
+                    symbolFileResult.Exception);
+            }
+
+            if (symbolFileResult.IsSymbolFile)
+                File.Delete(destFilePath);
+        }
+
+        _ct.ThrowIfCancellationRequested();
+        File.Copy(sourceFilePath, destFilePath, overwrite);
+    }
+
+    /// <summary>
+    /// 34100 이후 레이아웃에서 Assets\Config만 설정파일 덮어쓰기 정책을 적용해 재구성합니다.
+    /// </summary>
+    private void CopyAssetsDirectoryWithConfigPolicy(string sourceAssetsPath, string destAssetsPath, bool overwriteConfig)
+    {
+        EnsureRealDirectory(destAssetsPath);
+
+        foreach (string sourceFilePath in Directory.GetFiles(sourceAssetsPath))
+        {
+            _ct.ThrowIfCancellationRequested();
+            string fileName = Path.GetFileName(sourceFilePath);
+            string destFilePath = Path.Combine(destAssetsPath, fileName);
+            CopyFileWithSymbolAwareOverwrite(sourceFilePath, destFilePath, overwrite: true);
+        }
+
+        foreach (string sourceDirPath in Directory.GetDirectories(sourceAssetsPath))
+        {
+            _ct.ThrowIfCancellationRequested();
+            string dirName = new DirectoryInfo(sourceDirPath).Name;
+            string destDirPath = Path.Combine(destAssetsPath, dirName);
+
+            if (dirName.Equals("Config", StringComparison.OrdinalIgnoreCase))
+            {
+                HardCopyDirectory(sourceDirPath, destDirPath, copySubDirs: true, overwriteExistingFiles: overwriteConfig);
+                continue;
+            }
+
+            RecreateSymbolicDirectory(sourceDirPath, destDirPath);
+        }
+    }
+
+    /*
+     * Symbol 방식 다클라 생성 정책
+     * 1. 목적지 경로가 비어있지 않고 Online\Map이 Symbol이 아니라면 실패(삭제 안내)
+     * 2. 최상위 폴더 내 파일들은 모두 HardCopy(.tmp, .bmp, .dmp 확장자 파일은 아예 무시)
+     * 3. XIGONCODE 폴더는 안의 내용물 포함 모두 HardCopy
+     * 4. Legacy 정책: Online 직접 파일은 설정파일만 overwriteConfig를 따르고, 하위 폴더는 Symbol
+     * 5. 34100+ 정책: Online 직접 파일은 모두 HardCopy 덮어쓰기, Assets\Config 전체는 overwriteConfig 정책으로 HardCopy
+    */
+
+    private CreateSymbolMultiClientResult TryCreateSymbolClient(
+        string orgInstallPath,
+        string destPath,
+        bool overwriteConfig,
+        MultiClientLayoutPolicy layoutPolicy,
+        int clientNumber,
+        string clientPrefix)
+    {
+        orgInstallPath = (orgInstallPath ?? string.Empty).Trim();
+        InstallPathValidationResult mainPathValidation = TryValidateInstallPath(orgInstallPath);
+        if (!mainPathValidation.Success)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}유효하지 않은 메인 클라 경로: {mainPathValidation.Reason}",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateMainInstallPath,
+                mainPathValidation.Exception,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        destPath = (destPath ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(destPath))
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}유효하지 않은 목적지 경로",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateDestinationPath,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        try
+        {
+            destPath = Path.GetFullPath(destPath);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}목적지 경로 형식이 올바르지 않습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateDestinationPath,
+                ex,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        SymbolSupportResult symbolSupportResult = TryCanUseSymbol(destPath);
+        if (!symbolSupportResult.Success)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}목적지 드라이브의 심볼릭 링크 지원 여부를 확인하지 못했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateDestinationPath,
+                symbolSupportResult.Exception,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        if (!symbolSupportResult.CanUseSymbol)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}Symbol을 지원하지 않는 드라이브입니다. Format={symbolSupportResult.ResolvedFormat}",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateDestinationPath,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        string destOnlineMapPath = Path.Combine(destPath, "Online", "Map");
+        if (Directory.Exists(destOnlineMapPath))
+        {
+            SymbolDirectoryProbeResult destMapProbeResult = TryIsSymbolDirectory(destOnlineMapPath);
+            if (!destMapProbeResult.ProbeSuccess)
+            {
+                return CreateFailureResult(
+                    $"{clientPrefix}기존 다클라 경로의 심볼릭 링크 상태를 확인하지 못했습니다.",
+                    clientNumber,
+                    MultiClientCreationFailureStage.ValidateDestinationPath,
+                    destMapProbeResult.Exception,
+                    sourcePath: orgInstallPath,
+                    destinationPath: destPath);
+            }
+
+            if (!destMapProbeResult.IsSymbolDirectory)
+            {
+                string sourceOnlineMapPath = Path.Combine(orgInstallPath, "Online", "Map");
+                return CreateFailureResult(
+                    $"{clientPrefix}기존 다클라 경로에 심볼릭 링크로 생성해야 하는 폴더가 일반 폴더로 존재합니다.",
+                    clientNumber,
+                    MultiClientCreationFailureStage.ValidateDestinationPath,
+                    new MultiClientSymbolicDirectoryConflictException(sourceOnlineMapPath, destOnlineMapPath),
+                    sourcePath: orgInstallPath,
+                    destinationPath: destPath);
+            }
+        }
+
+        string orgOnlinePath = orgInstallPath + @"\Online";
+        if (!Directory.Exists(orgOnlinePath))
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}메인 클라 경로에 Online 폴더가 없음",
+                clientNumber,
+                MultiClientCreationFailureStage.ValidateMainInstallPath,
+                sourcePath: orgInstallPath,
+                destinationPath: destPath);
+        }
+
+        try
+        {
+            Directory.CreateDirectory(destPath);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}다클라 대상 폴더를 준비하지 못했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.PrepareDestinationRoot,
+                ex,
+                orgInstallPath,
+                destPath);
+        }
+
+        string destOnlinePath = destPath + @"\Online";
+
+        try
+        {
+            Directory.CreateDirectory(destOnlinePath);
+
+            foreach (string orgFilePath in Directory.GetFiles(orgOnlinePath))
+            {
+                string fileName = orgFilePath.Substring(orgFilePath.LastIndexOf('\\'));
+                string destFilePath = destOnlinePath + fileName;
+                bool overwrite = layoutPolicy == MultiClientLayoutPolicy.V34100OrLater;
+                if (layoutPolicy == MultiClientLayoutPolicy.Legacy)
+                {
+                    bool isConfig = fileName is @"\CombineInfo.txt.txt" or @"\PetSetting.dat" or @"\AKinteractive.cfg";
+                    overwrite = !isConfig || overwriteConfig;
+                }
+
+                if (!overwrite && File.Exists(destFilePath))
+                    continue;
+
+                CopyFileWithSymbolAwareOverwrite(orgFilePath, destFilePath, overwrite);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}Online 폴더 파일 복사 중 오류가 발생했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.CopyOnlineFiles,
+                ex,
+                orgInstallPath,
+                destPath);
+        }
+
+        try
+        {
+            foreach (string eachDirPath in Directory.GetDirectories(orgOnlinePath))
+            {
+                string? dirName = new DirectoryInfo(eachDirPath).Name;
+                string destDirPath = $"{destOnlinePath}\\{dirName}";
+                RecreateSymbolicDirectory(eachDirPath, destDirPath);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}Online 하위 폴더 심볼릭 링크 생성 중 오류가 발생했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.LinkOnlineDirectories,
+                ex,
+                orgInstallPath,
+                destPath);
+        }
+
+        try
+        {
+            HardCopyDirectory(orgInstallPath + @"\XIGNCODE", destPath + @"\XIGNCODE", true);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}XIGNCODE 폴더 복사 중 오류가 발생했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.CopyXigncode,
+                ex,
+                orgInstallPath,
+                destPath);
+        }
+
+        try
+        {
+            foreach (string eachDirPath in Directory.GetDirectories(orgInstallPath))
+            {
+                string dirName = new DirectoryInfo(eachDirPath).Name;
+                string destDirPath = $"{destPath}\\{dirName}";
+
+                if (TopLevelDirectoriesToSkip.Contains(dirName))
+                {
+                    // 심볼릭으로 생성하면 안 되는 폴더인데 심볼릭으로 존재하는 경우
+                    SymbolDirectoryProbeResult result = TryIsSymbolDirectory(destDirPath);
+                    if (result.ProbeSuccess && result.IsSymbolDirectory)
+                    {
+                        Directory.Delete(destDirPath, true);
+                    }
+                    continue;
+                }
+
+                if (layoutPolicy == MultiClientLayoutPolicy.V34100OrLater
+                    && dirName == "Assets")
+                {
+                    CopyAssetsDirectoryWithConfigPolicy(eachDirPath, destDirPath, overwriteConfig);
+                    continue;
+                }
+
+                RecreateSymbolicDirectory(eachDirPath, destDirPath);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}최상위 폴더 구조 복제 중 오류가 발생했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.CopyTopLevelDirectories,
+                ex,
+                orgInstallPath,
+                destPath);
+        }
+
+        try
+        {
+            foreach (string orgFilePath in Directory.GetFiles(orgInstallPath))
+            {
+                string fileName = orgFilePath.Substring(orgFilePath.LastIndexOf('\\'));
+                string extension = Path.GetExtension(orgFilePath);
+                if (extension == ".tmp" || extension == ".bmp" || extension == ".dmp")
+                    continue;
+
+                string destFilePath = destPath + fileName;
+                bool overwrite = layoutPolicy == MultiClientLayoutPolicy.V34100OrLater;
+                if (layoutPolicy == MultiClientLayoutPolicy.Legacy)
+                {
+                    bool isConfig = fileName is @"\config.ln";
+                    overwrite = !isConfig || overwriteConfig;
+                }
+
+                if (!overwrite && File.Exists(destFilePath))
+                    continue;
+
+                CopyFileWithSymbolAwareOverwrite(orgFilePath, destFilePath, overwrite);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return CreateFailureResult(
+                $"{clientPrefix}최상위 파일 복사 중 오류가 발생했습니다.",
+                clientNumber,
+                MultiClientCreationFailureStage.CopyTopLevelFiles,
+                ex,
+                orgInstallPath,
+                destPath);
+        }
+
+        return CreateSuccessResult();
+    }
+
+    /// <summary>
+    /// 다클라 생성 결과를 상세 문맥과 함께 반환합니다.
+    /// </summary>
+    public CreateSymbolMultiClientResult TryCreateSymbolMultiClient(CreateSymbolMultiClientArgs args)
+    {
+        _ct.ThrowIfCancellationRequested();
+        ArgumentNullException.ThrowIfNull(args);
+
+        InstallPathValidationResult mainPathValidation = TryValidateInstallPath(args.InstallPath);
+        if (!mainPathValidation.Success)
+        {
+            return CreateFailureResult(
+                $"올바르지 않은 메인 클라 경로: {mainPathValidation.Reason}",
+                clientNumber: null,
+                MultiClientCreationFailureStage.ValidateMainInstallPath,
+                mainPathValidation.Exception,
+                sourcePath: args.InstallPath);
+        }
+
+        if (!string.IsNullOrEmpty(args.DestPath2))
+        {
+            CreateSymbolMultiClientResult result = TryCreateSymbolClient(
+                args.InstallPath,
+                args.DestPath2,
+                args.OverwriteConfig,
+                args.LayoutPolicy,
+                clientNumber: 2,
+                clientPrefix: "2클라 생성 실패: ");
+            if (!result.Success)
+                return result;
+        }
+
+        if (!string.IsNullOrEmpty(args.DestPath3))
+        {
+            CreateSymbolMultiClientResult result = TryCreateSymbolClient(
+                args.InstallPath,
+                args.DestPath3,
+                args.OverwriteConfig,
+                args.LayoutPolicy,
+                clientNumber: 3,
+                clientPrefix: "3클라 생성 실패: ");
+            if (!result.Success)
+                return result;
+        }
+
+        return CreateSuccessResult();
+    }
+
+    /// <summary>
+    /// 다클라를 생성하고, 실패 시 기존 호출부 호환을 위해 bool과 reason으로 결과를 돌려줍니다.
+    /// </summary>
+    public bool CreateSymbolMultiClient(CreateSymbolMultiClientArgs args, out string reason)
+    {
+        CreateSymbolMultiClientResult result = TryCreateSymbolMultiClient(args);
+        reason = result.Reason;
+        return result.Success;
+    }
+
+    private CreateSymbolMultiClientResult CreateSuccessResult()
+        => new(true, string.Empty, null, null, null);
+
+    private CreateSymbolMultiClientResult CreateFailureResult(
+        string reason,
+        int? clientNumber,
+        MultiClientCreationFailureStage stage,
+        Exception? exception = null,
+        string sourcePath = "",
+        string destinationPath = "")
+    {
+        Exception? wrappedException = exception is null
+            ? null
+            : new MultiClientCreationException(
+                reason,
+                clientNumber ?? 0,
+                sourcePath,
+                destinationPath,
+                stage,
+                exception);
+
+        return new CreateSymbolMultiClientResult(false, reason, clientNumber, stage, wrappedException);
+    }
+}
+

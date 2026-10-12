@@ -10,7 +10,7 @@ Applies to WinUI launch, client install/patch/clone, and game-window behavior. R
 ## Install, patch, and cloning
 
 - Require a fully qualified install path containing `Run.exe`, `Online/Map`, and `Online/vsn.dat` so the local version can be determined.
-- Probe target write access before install/patch/clone operations; the app owns permission guidance. Write permission and symbolic-link support are separate checks.
+- Probe target write access before full-client installation; the app owns permission guidance. Patch/clone writes run only in the on-demand elevated GameMaintenance worker, without a write-permission probe. Keep install-path validation and filesystem/symbolic-link support checks.
 - Select clone layout from the local version; station-managed folders use `_CreatedByStation`.
 - For `34100+`, copy direct `Online` files, link its subdirectories, and copy `Assets/Config` using the config-overwrite choice.
 - Skip top-level `PatchTemp`, `GersangDown`, and `ScreenShots`; preserve real clone screenshots and remove old screenshot links.

@@ -8,6 +8,9 @@ namespace Core;
 
 public static class AppDataManager
 {
+    // All servers share one settings file. Serialize its entire read-modify-write cycle.
+    private static readonly SemaphoreSlim ClientSettingsGate = new(1, 1);
+
     public enum WindowMinimizeBehavior
     {
         HideToSystemTray = 0,
@@ -77,7 +80,6 @@ public static class AppDataManager
     private const string LatestVersion_SettingKey = "PrevVersion";
     private const string UseSymbol_SettingKey = "useSymbol";
     private const string DeveloperToolEnabled_SettingKey = "DeveloperToolEnabled";
-    private const string StartupAdminPromptEnabled_SettingKey = "StartupAdminPromptEnabled";
     private const string StartupRunAsAdministratorEnabled_SettingKey = "StartupRunAsAdministratorEnabled";
     private const string MouseConfinementEnabled_SettingKey = "MouseConfinementEnabled";
     private const string WindowSwitchingEnabled_SettingKey = "WindowSwitchingEnabled";
@@ -118,11 +120,6 @@ public static class AppDataManager
             if (previous != value)
                 DeveloperToolEnabledChanged?.Invoke(null, value);
         }
-    }
-    public static bool IsStartupAdminPromptEnabled
-    {
-        get => LoadLocalSetting(StartupAdminPromptEnabled_SettingKey, defaultValue: true);
-        set => SaveLocalSetting(StartupAdminPromptEnabled_SettingKey, value);
     }
     public static bool IsStartupRunAsAdministratorEnabled
     {
@@ -449,10 +446,15 @@ public static class AppDataManager
 
     public static async Task<(ClientSettings Settings, AppDataOperationResult Result)> LoadServerClientSettingsAsync(GameServer server)
     {
-        var (all, result) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
-        if (!all.Servers.TryGetValue(server, out var s))
-            return (new ClientSettings(), result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
-        return (s, result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
+        await ClientSettingsGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var (all, result) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
+            if (!all.Servers.TryGetValue(server, out var s))
+                return (new ClientSettings(), result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
+            return (s, result.Success ? Ok(nameof(LoadServerClientSettingsAsync), ClientSettingsFileName) : result);
+        }
+        finally { ClientSettingsGate.Release(); }
     }
 
     /// <summary>
@@ -491,12 +493,38 @@ public static class AppDataManager
 
     public static async Task<AppDataOperationResult> SaveServerClientSettingsAsync(GameServer server, ClientSettings settings)
     {
-        var (all, loadResult) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
-        if (!loadResult.Success)
-            return loadResult;
+        string installPath = settings.InstallPath;
+        bool overwrite = settings.OverwriteMultiClientConfig;
+        return await UpdateServerClientSettingsAsync(server, current =>
+        {
+            current.InstallPath = installPath;
+            current.OverwriteMultiClientConfig = overwrite;
+        }).ConfigureAwait(false);
+    }
 
-        all.Servers[server] = settings;
-        return await SaveAllServerClientSettingsAsync(all).ConfigureAwait(false);
+    /// <summary>다른 설정을 유지하고 지정한 서버의 설치 경로만 저장합니다.</summary>
+    public static Task<AppDataOperationResult> SaveServerInstallPathAsync(GameServer server, string installPath)
+        => UpdateServerClientSettingsAsync(server, settings => settings.InstallPath = installPath);
+
+    /// <summary>설치 경로를 유지하고 다클라 설정 파일 덮어쓰기 여부만 저장합니다.</summary>
+    public static Task<AppDataOperationResult> SaveServerOverwriteMultiClientConfigAsync(GameServer server, bool overwrite)
+        => UpdateServerClientSettingsAsync(server, settings => settings.OverwriteMultiClientConfig = overwrite);
+
+    private static async Task<AppDataOperationResult> UpdateServerClientSettingsAsync(GameServer server, Action<ClientSettings> update)
+    {
+        await ClientSettingsGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var (all, loadResult) = await LoadAllServerClientSettingsAsync().ConfigureAwait(false);
+            if (!loadResult.Success)
+                return loadResult;
+
+            if (!all.Servers.TryGetValue(server, out var settings))
+                all.Servers[server] = settings = new ClientSettings();
+            update(settings);
+            return await SaveAllServerClientSettingsAsync(all).ConfigureAwait(false);
+        }
+        finally { ClientSettingsGate.Release(); }
     }
 
     // -------------------------

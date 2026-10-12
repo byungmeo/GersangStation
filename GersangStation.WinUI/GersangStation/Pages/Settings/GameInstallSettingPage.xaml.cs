@@ -20,7 +20,7 @@ using Microsoft.Windows.Storage.Pickers;
 namespace GersangStation.Main.Setting;
 
 /// <summary>
-/// 서버별 게임 설치와 기존 클라이언트 경로/사용 방식 설정을 함께 제공합니다.
+/// 서버별 게임 설치, 설치 경로 자동 저장, 다클라 생성 상태를 함께 제공합니다.
 /// </summary>
 public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChanged, IConfirmLeave
 {
@@ -137,8 +137,11 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         SynchronizeServerSelection();
     }
 
+    internal void RefreshMultiClientStatus()
+        => CurrentInstallPanel.SettingsEditor?.RefreshMultiClientStatus();
+
     /// <summary>
-    /// 선택한 서버에 맞게 경로 및 클라이언트 사용 방식 폼을 불러옵니다.
+    /// 선택한 서버에 맞게 설치 경로와 다클라 상태를 불러옵니다.
     /// </summary>
     private async Task ApplySelectedServerAsync(GameServer server)
     {

@@ -74,7 +74,7 @@
                             <ListViewItem x:Name="GameInstallListViewItem" Tag="GameInstall">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon FontSize="{Binding FontSize, ElementName=GameInstallListViewItem}" Glyph="&#xE7FC;" />
-                                    <TextBlock Text="게임 설치" />
+                                    <TextBlock Text="게임 설치 및 경로 지정" />
                                 </StackPanel>
                             </ListViewItem>
                             <ListViewItem x:Name="GamePatchListViewItem" Tag="GamePatch">
@@ -333,5 +333,12 @@
                 </StackPanel>
             </Button>
         </Grid>
+        <TeachingTip
+            x:Name="MultiClientResultTeachingTip"
+            ActionButtonClick="MultiClientResultTeachingTip_ActionButtonClick"
+            CloseButtonContent="네, 확인했습니다."
+            IsLightDismissEnabled="True"
+            PlacementMargin="20"
+            PreferredPlacement="Auto" />
     </Grid>
 </UserControl>

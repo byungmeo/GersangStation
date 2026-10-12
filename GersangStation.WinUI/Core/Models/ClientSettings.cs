@@ -22,38 +22,6 @@ public sealed class ClientSettings : INotifyPropertyChanged
         set => SetProperty(ref _installPath, value);
     }
 
-    [JsonIgnore] private bool _useMultiClient = false;
-    [JsonPropertyName("UseMultiClient")]
-    public bool UseMultiClient
-    {
-        get => _useMultiClient;
-        set => SetProperty(ref _useMultiClient, value);
-    }
-
-    [JsonIgnore] private bool _useSymbol = true;
-    [JsonPropertyName("UseSymbol")]
-    public bool UseSymbol
-    {
-        get => _useSymbol;
-        set => SetProperty(ref _useSymbol, value);
-    }
-
-    [JsonIgnore] private bool _useClient2 = true;
-    [JsonPropertyName("UseClient2")]
-    public bool UseClient2
-    {
-        get => _useClient2;
-        set => SetProperty(ref _useClient2, value);
-    }
-
-    [JsonIgnore] private bool _useClient3 = true;
-    [JsonPropertyName("UseClient3")]
-    public bool UseClient3
-    {
-        get => _useClient3;
-        set => SetProperty(ref _useClient3, value);
-    }
-
     [JsonIgnore] private bool _overwriteMultiClientConfig = false;
     [JsonPropertyName("OverwriteMultiClientConfig")]
     public bool OverwriteMultiClientConfig

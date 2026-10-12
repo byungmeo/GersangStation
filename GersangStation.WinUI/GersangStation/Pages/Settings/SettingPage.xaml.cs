@@ -185,6 +185,12 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             installPage.CancelPanelTransition();
     }
 
+    internal void RefreshInstallStatus()
+    {
+        if (ContentFrame.Content is GameInstallSettingPage installPage)
+            installPage.RefreshMultiClientStatus();
+    }
+
     /// <summary>
     /// NavigationViewItem의 Tag 값을 실제 설정 페이지 타입으로 변환합니다.
     /// </summary>

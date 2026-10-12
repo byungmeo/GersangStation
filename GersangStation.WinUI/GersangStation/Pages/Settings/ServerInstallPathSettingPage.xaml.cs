@@ -28,52 +28,28 @@ namespace GersangStation.Main.Setting
         private string? _multiClientConflictExplorerPath;
         private GameInstallSettingPage? _installPage;
         private bool _settingsLoaded;
-        private SettingsSnapshot _savedSettings;
+        private bool _isCreatingMultiClient;
+        private string _savedInstallPath = string.Empty;
+        private bool _isInitializing = true;
+        private Task _saveTask = Task.CompletedTask;
+        private bool _isSaving;
+        private AppDataManager.AppDataOperationResult? _saveFailure;
+        private string _saveStatusText = string.Empty;
+        private bool _client2Created;
+        private bool _client3Created;
+
         internal Task Initialization { get; private set; } = Task.CompletedTask;
         internal bool SettingsLoaded => _settingsLoaded;
-        public bool IsEditorEnabled => _settingsLoaded && _installPage?.IsBusy != true;
-        public bool IsSaveEnabled => IsEditorEnabled && IsDirty;
-
-        private readonly record struct SettingsSnapshot(string InstallPath, bool UseMultiClient,
-            bool UseSymbol, bool UseClient2, bool UseClient3, bool OverwriteConfig)
-        {
-            public static SettingsSnapshot From(ClientSettings settings) => new(settings.InstallPath,
-                settings.UseMultiClient, settings.UseSymbol, settings.UseClient2, settings.UseClient3,
-                settings.OverwriteMultiClientConfig);
-        }
-
-        private bool _isDirty = false;
-        public bool IsDirty
-        {
-            get => _isDirty;
-            private set
-            {
-                if (_isDirty != value)
-                {
-                    _isDirty = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(IsSaveEnabled));
-                }
-            }
-        }
-
-        public bool ShowSymbolInfoBar => CanUseSymbol;
-        public bool ShowSymbolErrorBar => !CanUseSymbol;
-        private bool _canUseSymbol = false;
-        public bool CanUseSymbol
-        {
-            get => _canUseSymbol;
-            private set
-            {
-                if (_canUseSymbol != value)
-                {
-                    _canUseSymbol = value;
-                    OnPropertyChanged();
-                    OnPropertyChanged(nameof(ShowSymbolInfoBar));
-                    OnPropertyChanged(nameof(ShowSymbolErrorBar));
-                }
-            }
-        }
+        public bool IsEditorEnabled => !_isCreatingMultiClient && _settingsLoaded && _installPage?.IsBusy != true;
+        private bool HasPendingSave => _settingsLoaded && ClientSettings.InstallPath != _savedInstallPath;
+        public string SaveStatusText => _saveStatusText;
+        public Visibility SaveStatusVisibility => string.IsNullOrEmpty(SaveStatusText) ? Visibility.Collapsed : Visibility.Visible;
+        public string Client2StatusText => _client2Created ? "2클라 생성됨" : "2클라 미생성";
+        public string Client3StatusText => _client3Created ? "3클라 생성됨" : "3클라 미생성";
+        public string Client2StatusGlyph => _client2Created ? "\uE73E" : "\uE711";
+        public string Client3StatusGlyph => _client3Created ? "\uE73E" : "\uE711";
+        public string Client2PathText => ClientSettings.Client2Path;
+        public string Client3PathText => ClientSettings.Client3Path;
 
         private ClientSettings _clientSettings = new();
         public ClientSettings ClientSettings
@@ -83,56 +59,30 @@ namespace GersangStation.Main.Setting
             {
                 if (ReferenceEquals(_clientSettings, value))
                     return;
-
-                if (_clientSettings is INotifyPropertyChanged oldNpc)
-                    oldNpc.PropertyChanged -= ClientSettings_PropertyChanged;
-
+                _clientSettings.PropertyChanged -= ClientSettings_PropertyChanged;
                 _clientSettings = value;
-
-                if (_clientSettings is INotifyPropertyChanged newNpc)
-                    newNpc.PropertyChanged += ClientSettings_PropertyChanged;
-
-                OnPropertyChanged(nameof(ClientSettings));
-                OnPropertyChanged(nameof(TextBox_Path2_IsEnabled));
-                OnPropertyChanged(nameof(TextBox_Path3_IsEnabled));
-                OnPropertyChanged(nameof(ClientUsageModeIndex));
-                OnPropertyChanged(nameof(MultiClientSettingsVisibility));
-            }
-        }
-
-        public bool TextBox_Path2_IsEnabled => ClientSettings.UseMultiClient && ClientSettings.UseClient2;
-        public bool TextBox_Path3_IsEnabled => ClientSettings.UseMultiClient && ClientSettings.UseClient3;
-        /// <summary>
-        /// 다클라 사용 여부를 RadioButtons 인덱스로 표현합니다.
-        /// </summary>
-        public int ClientUsageModeIndex
-        {
-            get => ClientSettings.UseMultiClient ? 1 : 0;
-            set
-            {
-                bool useMultiClient = value == 1;
-                if (ClientSettings.UseMultiClient == useMultiClient)
-                    return;
-
-                ClientSettings.UseMultiClient = useMultiClient;
+                _clientSettings.PropertyChanged += ClientSettings_PropertyChanged;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(MultiClientSettingsVisibility));
+                RefreshMultiClientStatus();
             }
         }
-
-        /// <summary>
-        /// 다클라 상세 설정 영역의 표시 여부를 반환합니다.
-        /// </summary>
-        public Visibility MultiClientSettingsVisibility => ClientSettings.UseMultiClient
-            ? Visibility.Visible
-            : Visibility.Collapsed;
 
         public ServerInstallPathSettingPage()
         {
             InitializeComponent();
-
-            if (ClientSettings is INotifyPropertyChanged npc)
-                npc.PropertyChanged += ClientSettings_PropertyChanged;
+            ClientSettings.PropertyChanged += ClientSettings_PropertyChanged;
+            Loaded += (_, _) =>
+            {
+                // Server panels may leave and re-enter the visual tree during a transition.
+                ClientSettings.PropertyChanged -= ClientSettings_PropertyChanged;
+                ClientSettings.PropertyChanged += ClientSettings_PropertyChanged;
+                if (_installPage is not null)
+                {
+                    _installPage.PropertyChanged -= InstallPage_PropertyChanged;
+                    _installPage.PropertyChanged += InstallPage_PropertyChanged;
+                }
+                RefreshMultiClientStatus();
+            };
             Unloaded += (_, _) =>
             {
                 ClientSettings.PropertyChanged -= ClientSettings_PropertyChanged;
@@ -149,7 +99,10 @@ namespace GersangStation.Main.Setting
                 currentGameServer = parameter.Server;
                 _installPage = parameter.InstallPage;
                 if (_installPage is not null)
+                {
+                    _installPage.PropertyChanged -= InstallPage_PropertyChanged;
                     _installPage.PropertyChanged += InstallPage_PropertyChanged;
+                }
             }
             else
                 currentGameServer = e.Parameter is GameServer server ? server : GameServer.Korea_Live;
@@ -160,8 +113,6 @@ namespace GersangStation.Main.Setting
 
         private async Task InitializeSettingsAsync()
         {
-            // Frame navigation can precede attachment to the visual tree. Wait for a
-            // valid XamlRoot before loading settings that may need an error dialog.
             if (!IsLoaded)
             {
                 TaskCompletionSource loaded = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -171,253 +122,240 @@ namespace GersangStation.Main.Setting
                 finally { Loaded -= OnLoaded; }
             }
 
-            await LoadClientSettingsAsync();
-            CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
+            var (settings, result) = await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
+            ClientSettings = settings;
+            _savedInstallPath = settings.InstallPath;
             TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
-            TextBox_Path1.Text = ClientSettings.InstallPath;
+            TextBox_Path1.Text = settings.InstallPath;
             ValidateInstallPath();
-            _savedSettings = SettingsSnapshot.From(ClientSettings);
-            IsDirty = false;
-            OnPropertyChanged(nameof(IsEditorEnabled));
-            OnPropertyChanged(nameof(IsSaveEnabled));
+            _settingsLoaded = result.Success;
+            _isInitializing = false;
+            NotifyEditorState();
+            if (!result.Success)
+                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "설정 불러오기 실패",
+                    "서버별 설치 경로 설정을 불러오지 못했습니다. 기존 설정 보호를 위해 편집을 중단합니다.", result);
         }
+
+        private void NotifyEditorState() => OnPropertyChanged(nameof(IsEditorEnabled));
 
         private void InstallPage_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(GameInstallSettingPage.IsBusy)) return;
-            OnPropertyChanged(nameof(IsEditorEnabled));
-            OnPropertyChanged(nameof(IsSaveEnabled));
+            if (e.PropertyName == nameof(GameInstallSettingPage.IsBusy))
+                NotifyEditorState();
         }
 
-        /// <summary>
-        /// 변경된 설치 경로 설정을 저장할지 사용자에게 묻습니다.
-        /// </summary>
-        private async Task<bool> ShowSaveDialog(LeaveReason reason)
-        {
-            bool CanLeaveThisPage = true;
-
-            ContentDialog saveDialog = new()
-            {
-                XamlRoot = XamlRoot,
-                Title = reason == LeaveReason.AppExit ? "프로그램 종료" : "저장",
-                Content = reason == LeaveReason.AppExit
-                    ? "프로그램을 종료하기 전에 변경 내용을 저장하시겠습니까?"
-                    : "변경 내용을 저장하시겠습니까?",
-                IsPrimaryButtonEnabled = true,
-                PrimaryButtonText = "저장",
-                IsSecondaryButtonEnabled = true,
-                SecondaryButtonText = "저장 안 함",
-                CloseButtonText = "취소",
-                DefaultButton = ContentDialogButton.Primary
-            };
-            ContentDialogResult result = await saveDialog.ShowManagedAsync();
-            if (result == ContentDialogResult.Primary)
-            {
-                if (await SaveClientSettingsAsync())
-                    IsDirty = false;
-                else
-                    CanLeaveThisPage = false;
-            }
-            else if (result == ContentDialogResult.Secondary)
-            {
-                IsDirty = false;
-            }
-            else
-            {
-                CanLeaveThisPage = false;
-            }
-
-            return CanLeaveThisPage;
-        }
-
-        protected override async void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
         {
             base.OnNavigatingFrom(e);
-
-            e.Cancel = !await ConfirmLeaveAsync();
+            // The owning page awaits ConfirmLeaveAsync before navigation. Never await in this
+            // synchronous cancellation callback: a late e.Cancel cannot stop Frame navigation.
+            e.Cancel = _isCreatingMultiClient || HasPendingSave;
         }
 
-        /// <summary>
-        /// 설정 이탈 또는 프로그램 종료 전에 저장 여부를 확인합니다.
-        /// </summary>
         public async Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation)
         {
-            if (IsDirty)
-                return await ShowSaveDialog(reason);
+            if (_isCreatingMultiClient)
+            {
+                ContentDialog busy = new() { XamlRoot = XamlRoot, Title = "작업 진행 중", Content = "다클라 생성이 끝난 뒤 이동하거나 종료해 주세요.", CloseButtonText = "확인" };
+                await busy.ShowManagedAsync();
+                return false;
+            }
+            if (!await FlushAutoSaveAsync())
+                return false;
 
             if (reason == LeaveReason.AppExit && XamlRoot is not null)
                 return await ExitConfirmationDialog.ShowAsync(XamlRoot);
-
             return true;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
-           => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
         private void ClientSettings_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            IsDirty = SettingsSnapshot.From(ClientSettings) != _savedSettings;
-
-            if (e.PropertyName == nameof(ClientSettings.InstallPath))
-            {
-                CanUseSymbol = GameClientHelper.CanUseSymbol(ClientSettings.InstallPath, out _);
-            }
-
-            if (e.PropertyName == nameof(ClientSettings.UseMultiClient) ||
-                e.PropertyName == nameof(ClientSettings.UseClient2))
-            {
-                OnPropertyChanged(nameof(TextBox_Path2_IsEnabled));
-            }
-
-            if (e.PropertyName == nameof(ClientSettings.UseMultiClient) ||
-                e.PropertyName == nameof(ClientSettings.UseClient3))
-            {
-                OnPropertyChanged(nameof(TextBox_Path3_IsEnabled));
-            }
-
-            if (e.PropertyName == nameof(ClientSettings.UseMultiClient))
-            {
-                OnPropertyChanged(nameof(ClientUsageModeIndex));
-                OnPropertyChanged(nameof(MultiClientSettingsVisibility));
-            }
+            if (e.PropertyName != nameof(ClientSettings.InstallPath))
+                return;
+            RefreshMultiClientStatus();
+            if (!_isInitializing && _settingsLoaded)
+                QueueAutoSave();
         }
 
-        private async void Button_Save_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        private void SetSaveStatus(string text)
         {
-            if (await SaveClientSettingsAsync())
-                IsDirty = false;
+            _saveStatusText = text;
+            OnPropertyChanged(nameof(SaveStatusText));
+            OnPropertyChanged(nameof(SaveStatusVisibility));
         }
 
-        private async Task LoadClientSettingsAsync()
+        private void QueueAutoSave()
         {
-            (ClientSettings settings, AppDataManager.AppDataOperationResult result) =
-                await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
-
-            ClientSettings = settings;
-            _settingsLoaded = result.Success;
-            if (!result.Success)
+            if (_isSaving)
+                return;
+            if (!HasPendingSave)
             {
-                await AppDataOperationDialog.ShowFailureAsync(
-                    XamlRoot,
-                    "설정 불러오기 실패",
-                    "서버별 설치 경로 설정을 모두 불러오지 못했습니다.",
-                    result);
+                _saveFailure = null;
+                SetSaveStatus(string.Empty);
+                return;
             }
+            _isSaving = true;
+            _saveTask = SafeExecution.RunHandledAsync(SavePendingPathAsync,
+                $"{nameof(ServerInstallPathSettingPage)}.AutoSave");
         }
 
-        private async Task<bool> SaveClientSettingsAsync()
+        private async Task SavePendingPathAsync()
         {
-            AppDataManager.AppDataOperationResult result =
-                await AppDataManager.SaveServerClientSettingsAsync(currentGameServer, ClientSettings);
-
-            if (result.Success)
+            // Publish _saveTask before yielding to any new TextChanged event.
+            await Task.Yield();
+            try
             {
-                _savedSettings = SettingsSnapshot.From(ClientSettings);
+                SetSaveStatus("자동 저장 중...");
+                while (HasPendingSave)
+                {
+                    string path = ClientSettings.InstallPath;
+                    var result = await AppDataManager.SaveServerInstallPathAsync(currentGameServer, path);
+                    if (!result.Success)
+                    {
+                        _saveFailure = result;
+                        // An edit received while awaiting this write must not be lost.
+                        if (path != ClientSettings.InstallPath)
+                            continue;
+                        SetSaveStatus("자동 저장 실패. 경로 변경 또는 페이지 이동 시 다시 시도합니다.");
+                        return;
+                    }
+                    _saveFailure = null;
+                    _savedInstallPath = path;
+                }
+                SetSaveStatus(string.Empty);
+            }
+            finally { _isSaving = false; }
+        }
+
+        private async Task<bool> FlushAutoSaveAsync()
+        {
+            // Await a running write, then retry once if the last write failed.
+            await _saveTask;
+            if (!HasPendingSave)
                 return true;
-            }
-
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "설정 저장 실패",
-                "서버별 설치 경로 설정을 저장하지 못했습니다.",
-                result);
+            QueueAutoSave();
+            await _saveTask;
+            if (!HasPendingSave)
+                return true;
+            if (_saveFailure is { } failure)
+                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "자동 저장 실패",
+                    "설치 경로를 저장하지 못했습니다. 입력한 경로는 그대로 유지됩니다. 문제를 해결한 뒤 다시 시도해 주세요.", failure);
             return false;
         }
 
-        /// <summary>설치 경로만 자동 저장하고, 아직 저장하지 않은 다클라 옵션은 폼에 그대로 보존합니다.</summary>
+        /// <summary>새 설치와 기존 경로 편집이 같은 자동 저장 흐름을 사용합니다.</summary>
         internal async Task<bool> SaveInstalledPathAsync(string installPath)
         {
             TextBox_Path1.Text = installPath;
             ClientSettings.InstallPath = installPath;
             ValidateInstallPath();
-            var (settings, loadResult) = await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
-            if (!loadResult.Success)
-            {
-                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "설정 불러오기 실패",
-                    "게임 설치는 완료되었지만 기존 설정을 안전하게 불러오지 못해 설치 경로를 저장하지 않았습니다.", loadResult);
-                return false;
-            }
-
-            settings.InstallPath = installPath;
-            var saveResult = await AppDataManager.SaveServerClientSettingsAsync(currentGameServer, settings);
-            if (!saveResult.Success)
-            {
-                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "설정 저장 실패",
-                    "게임 설치는 완료되었지만 설치 경로를 저장하지 못했습니다. 저장 버튼으로 다시 시도해 주세요.", saveResult);
-                return false;
-            }
-            _savedSettings = SettingsSnapshot.From(settings);
-            IsDirty = SettingsSnapshot.From(ClientSettings) != _savedSettings;
-            return true;
+            return await FlushAutoSaveAsync();
         }
 
-        private async void Button_CreateMultiClient_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+        internal void RefreshMultiClientStatus()
         {
-            if (!ClientSettings.UseSymbol)
+            _client2Created = GameClientHelper.TryValidateCloneInstallPath(currentGameServer, ClientSettings.Client2Path).Success;
+            _client3Created = GameClientHelper.TryValidateCloneInstallPath(currentGameServer, ClientSettings.Client3Path).Success;
+            OnPropertyChanged(nameof(Client2StatusText));
+            OnPropertyChanged(nameof(Client3StatusText));
+            OnPropertyChanged(nameof(Client2StatusGlyph));
+            OnPropertyChanged(nameof(Client3StatusGlyph));
+            OnPropertyChanged(nameof(Client2PathText));
+            OnPropertyChanged(nameof(Client3PathText));
+        }
+
+        private void Button_CreateMultiClient_Click(object sender, RoutedEventArgs e)
+            => SafeExecution.RunHandledAsync(CreateMultiClientAsync, $"{nameof(ServerInstallPathSettingPage)}.{nameof(Button_CreateMultiClient_Click)}")
+                .FireAndForgetHandled($"{nameof(ServerInstallPathSettingPage)}.{nameof(Button_CreateMultiClient_Click)}");
+
+        private async Task CreateMultiClientAsync()
+        {
+            if (!IsEditorEnabled)
                 return;
 
-            GameClientHelper.InstallPathValidationResult installPathValidation =
-                GameClientHelper.TryValidateInstallPath(currentGameServer, TextBox_Path1.Text);
-
-            if (!installPathValidation.Success)
+            _isCreatingMultiClient = true;
+            NotifyEditorState();
+            try
             {
-                ResetGeneralTeachingTipAction();
-                TeachingTip_General.Title = "다클라 생성 실패";
-                TeachingTip_General.Subtitle = BuildInstallPathValidationMessage(currentGameServer, TextBox_Path1.Text, installPathValidation);
-                TeachingTip_General.IsOpen = true;
-                return;
-            }
-
-            ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(TextBox_Path1.Text);
-            if (!currentVersionResult.Success || currentVersionResult.Version is null or <= 0)
-            {
-                ResetGeneralTeachingTipAction();
-                TeachingTip_General.Title = "다클라 생성 실패";
-                TeachingTip_General.Subtitle = "현재 클라이언트 버전을 확인할 수 없습니다. 설치 경로를 다시 확인해주세요.";
-                TeachingTip_General.IsOpen = true;
-                return;
-            }
-
-            int currentClientVersion = currentVersionResult.Version.Value;
-            GameClientHelper.MultiClientLayoutPolicy layoutPolicy =
-                currentClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
-                    ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
-                    : GameClientHelper.MultiClientLayoutPolicy.Legacy;
-
-            if (!await EnsureMultiClientWritePermissionAsync())
-                return;
-
-            CreateSymbolMultiClientResult createResult = GameClientHelper.TryCreateSymbolMultiClient(new CreateSymbolMultiClientArgs
-            {
-                InstallPath = TextBox_Path1.Text,
-                DestPath2 = ClientSettings.UseClient2 ? ClientSettings.Client2Path : string.Empty,
-                DestPath3 = ClientSettings.UseClient3 ? ClientSettings.Client3Path : string.Empty,
-                OverwriteConfig = ClientSettings.OverwriteMultiClientConfig,
-                LayoutPolicy = layoutPolicy
-            });
-
-            if (createResult.Success)
-            {
-                ResetGeneralTeachingTipAction();
-                TeachingTip_General.Title = "다클라 생성 성공";
-                TeachingTip_General.Subtitle = "";
-            }
-            else if (TryShowMultiClientSymbolicDirectoryConflictTeachingTip(createResult.Exception))
-            {
-                return;
-            }
-            else
-            {
-                Exception exception = createResult.Exception ?? new IOException(createResult.Reason);
-                if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, exception, "다클라 생성"))
+                if (!await FlushAutoSaveAsync())
                     return;
 
-                await App.ExceptionHandler.ShowRecoverableAsync(exception, $"ServerInstallPathSettingPage.Button_CreateMultiClient_Click");
-                return;
-            }
+                GameClientHelper.InstallPathValidationResult installPathValidation =
+                    GameClientHelper.TryValidateInstallPath(currentGameServer, TextBox_Path1.Text);
 
-            TeachingTip_General.IsOpen = true;
+                if (!installPathValidation.Success)
+                {
+                    ResetGeneralTeachingTipAction();
+                    TeachingTip_General.Title = "다클라 생성 실패";
+                    TeachingTip_General.Subtitle = BuildInstallPathValidationMessage(currentGameServer, TextBox_Path1.Text, installPathValidation);
+                    TeachingTip_General.IsOpen = true;
+                    return;
+                }
+
+                ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(TextBox_Path1.Text);
+                if (!currentVersionResult.Success || currentVersionResult.Version is null or <= 0)
+                {
+                    ResetGeneralTeachingTipAction();
+                    TeachingTip_General.Title = "다클라 생성 실패";
+                    TeachingTip_General.Subtitle = "현재 클라이언트 버전을 확인할 수 없습니다. 설치 경로를 다시 확인해주세요.";
+                    TeachingTip_General.IsOpen = true;
+                    return;
+                }
+
+                int currentClientVersion = currentVersionResult.Version.Value;
+                GameClientHelper.MultiClientLayoutPolicy layoutPolicy =
+                    currentClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
+                        ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
+                        : GameClientHelper.MultiClientLayoutPolicy.Legacy;
+
+                CreateSymbolMultiClientResult createResult;
+                try
+                {
+                    await GameMaintenanceService.CreateMultiClientAsync(currentGameServer, ClientSettings, new CreateSymbolMultiClientArgs
+                    {
+                        InstallPath = TextBox_Path1.Text,
+                        DestPath2 = ClientSettings.Client2Path,
+                        DestPath3 = ClientSettings.Client3Path,
+                        OverwriteConfig = ClientSettings.OverwriteMultiClientConfig,
+                        LayoutPolicy = layoutPolicy
+                    });
+                    createResult = new(true, string.Empty, null, null, null);
+                }
+                catch (OperationCanceledException) { return; }
+                catch (Exception ex) { createResult = new(false, ex.Message, null, null, ex); }
+
+                if (createResult.Success)
+                {
+                    ResetGeneralTeachingTipAction();
+                    TeachingTip_General.Title = "다클라 생성 성공";
+                    TeachingTip_General.Subtitle = "";
+                }
+                else if (TryShowMultiClientSymbolicDirectoryConflictTeachingTip(createResult.Exception))
+                {
+                    return;
+                }
+                else
+                {
+                    Exception exception = createResult.Exception ?? new IOException(createResult.Reason);
+                    if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, exception, "다클라 생성"))
+                        return;
+
+                    await App.ExceptionHandler.ShowRecoverableAsync(exception, $"ServerInstallPathSettingPage.Button_CreateMultiClient_Click");
+                    return;
+                }
+
+                TeachingTip_General.IsOpen = true;
+            }
+            finally
+            {
+                _isCreatingMultiClient = false;
+                RefreshMultiClientStatus();
+                NotifyEditorState();
+            }
         }
 
         /// <summary>
@@ -584,36 +522,6 @@ namespace GersangStation.Main.Setting
             return null;
         }
 
-        /// <summary>
-        /// 활성화된 다클라 대상 경로에 대해 현재 사용자 쓰기 가능 여부를 실제 파일 생성으로 사전 점검합니다.
-        /// </summary>
-        private async Task<bool> EnsureMultiClientWritePermissionAsync()
-        {
-            if (ClientSettings.UseClient2)
-            {
-                DirectoryWriteProbeResult client2ProbeResult =
-                    PathWriteProbe.TryProbeDirectoryWriteAccess(ClientSettings.Client2Path);
-                if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client2ProbeResult))
-                    return false;
-            }
-
-            if (ClientSettings.UseClient3)
-            {
-                DirectoryWriteProbeResult client3ProbeResult =
-                    PathWriteProbe.TryProbeDirectoryWriteAccess(ClientSettings.Client3Path);
-                if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, client3ProbeResult))
-                    return false;
-            }
-
-            return true;
-        }
-
-        private async void Button_SymbolErrorAction_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-        {
-            if (App.CurrentWindow is MainWindow window)
-                window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpInstallSymbolicLink);
-        }
-
         private void Button_InstallNew_Click(object sender, RoutedEventArgs e)
             => _installPage?.InstallSelectedServerAsync().FireAndForgetHandled(
                 $"{nameof(ServerInstallPathSettingPage)}.{nameof(Button_InstallNew_Click)}");
@@ -632,16 +540,7 @@ namespace GersangStation.Main.Setting
                 ? string.Empty
                 : BuildInstallPathValidationMessage(currentGameServer, textBox.Text, validationResult);
             OnPropertyChanged(nameof(textBox.IsValid));
-            if (validationResult.Success)
-            {
-                CheckBox_UseClient2.Content = $"2클라 사용 {textBox.Text}2{ClientSettings.StationManagedMultiClientSuffix}";
-                CheckBox_UseClient3.Content = $"3클라 사용 {textBox.Text}3{ClientSettings.StationManagedMultiClientSuffix}";
-            } 
-            else
-            {
-                CheckBox_UseClient2.Content = $"2클라 사용";
-                CheckBox_UseClient3.Content = $"3클라 사용";
-            }
+            RefreshMultiClientStatus();
         }
 
         /// <summary>

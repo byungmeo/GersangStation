@@ -6,7 +6,10 @@ using GersangStation.Diagnostics;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,6 +29,7 @@ public sealed partial class SidebarView : UserControl
 {
     private StationPage? _homePage;
     private bool _suppressSelection;
+    private Action? _multiClientResultAction;
 
     public event EventHandler? HomeRequested;
     public event EventHandler? BrowserRequested;
@@ -45,8 +49,75 @@ public sealed partial class SidebarView : UserControl
 
     public void SetHomePage(StationPage homePage)
     {
+        if (_homePage is not null)
+            _homePage.MultiClientCreationCompleted -= HomePage_MultiClientCreationCompleted;
         _homePage = homePage;
+        _homePage.MultiClientCreationCompleted += HomePage_MultiClientCreationCompleted;
         DataContext = homePage;
+    }
+
+    private void HomePage_MultiClientCreationCompleted(object? sender, MultiClientCreationCompletedEventArgs e)
+    {
+        // The result belongs to the always-loaded sidebar, not the possibly hidden home page.
+        _multiClientResultAction = null;
+        MultiClientResultTeachingTip.ActionButtonContent = null;
+        MultiClientResultTeachingTip.IconSource = e.Success || e.Canceled ? null : new FontIconSource
+        {
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            Glyph = "\uEA39"
+        };
+        MultiClientResultTeachingTip.Title = e.Canceled ? "다클라 생성 취소"
+            : e.Success ? "다클라 생성 완료" : "다클라 생성 실패";
+        MultiClientResultTeachingTip.Subtitle = $"{GameServerHelper.GetServerDisplayName(e.Server)}\n{e.Message}";
+
+        if (!e.Success && !e.Canceled)
+        {
+            GameClientHelper.MultiClientSymbolicDirectoryConflictException? conflict = null;
+            for (Exception? current = e.Exception; current is not null; current = current.InnerException)
+            {
+                if (current is GameClientHelper.MultiClientSymbolicDirectoryConflictException matched)
+                {
+                    conflict = matched;
+                    break;
+                }
+            }
+
+            if (conflict is not null)
+            {
+                string? parentPath = Path.GetDirectoryName(conflict.DestinationPath);
+                MultiClientResultTeachingTip.Subtitle =
+                    $"{conflict.DestinationPath}\n위 폴더를 삭제하신 후 다시 다클라를 생성해주세요.";
+                if (!string.IsNullOrWhiteSpace(parentPath))
+                {
+                    MultiClientResultTeachingTip.ActionButtonContent = "상위 폴더 열기";
+                    _multiClientResultAction = () =>
+                    {
+                        var start = new ProcessStartInfo("explorer.exe") { UseShellExecute = true };
+                        start.ArgumentList.Add(parentPath);
+                        Process.Start(start);
+                    };
+                }
+            }
+            else if (PathPermissionDialog.IsPermissionFailure(e.Exception))
+            {
+                MultiClientResultTeachingTip.ActionButtonContent = "해결 방법 확인하기";
+                _multiClientResultAction = () =>
+                {
+                    if (App.CurrentWindow is MainWindow window)
+                        window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpPermissionMultiClient);
+                };
+            }
+        }
+
+        MultiClientResultTeachingTip.IsOpen = true;
+    }
+
+    private async void MultiClientResultTeachingTip_ActionButtonClick(TeachingTip sender, object args)
+    {
+        Action? action = _multiClientResultAction;
+        sender.IsOpen = false;
+        if (action is not null)
+            await SafeExecution.RunHandledAsync(action, "SidebarView.MultiClientResultAction");
     }
 
     public void ShowControl(bool browserSelected = false)
