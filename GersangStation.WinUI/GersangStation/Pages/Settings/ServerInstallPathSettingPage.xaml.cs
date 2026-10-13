@@ -50,6 +50,8 @@ namespace GersangStation.Main.Setting
         public string Client3StatusGlyph => _client3Created ? "\uE73E" : "\uE711";
         public string Client2PathText => ClientSettings.Client2Path;
         public string Client3PathText => ClientSettings.Client3Path;
+        public FrameworkElement ResultTeachingTipAnchor
+            => _installPage?.ResultTeachingTipAnchor ?? PathSettingsTeachingTipAnchor;
 
         private ClientSettings _clientSettings = new();
         public ClientSettings ClientSettings
@@ -85,6 +87,7 @@ namespace GersangStation.Main.Setting
             };
             Unloaded += (_, _) =>
             {
+                TeachingTip_General.IsOpen = false;
                 ClientSettings.PropertyChanged -= ClientSettings_PropertyChanged;
                 if (_installPage is not null)
                     _installPage.PropertyChanged -= InstallPage_PropertyChanged;
@@ -106,6 +109,8 @@ namespace GersangStation.Main.Setting
             }
             else
                 currentGameServer = e.Parameter is GameServer server ? server : GameServer.Korea_Live;
+
+            OnPropertyChanged(nameof(ResultTeachingTipAnchor));
 
             Initialization = SafeExecution.RunHandledAsync(InitializeSettingsAsync,
                 $"{nameof(ServerInstallPathSettingPage)}.{nameof(OnNavigatedTo)}");
@@ -163,8 +168,10 @@ namespace GersangStation.Main.Setting
             if (!await FlushAutoSaveAsync())
                 return false;
 
-            if (reason == LeaveReason.AppExit && XamlRoot is not null)
-                return await ExitConfirmationDialog.ShowAsync(XamlRoot);
+            if (reason == LeaveReason.AppExit && XamlRoot is not null
+                && !await ExitConfirmationDialog.ShowAsync(XamlRoot))
+                return false;
+            TeachingTip_General.IsOpen = false;
             return true;
         }
 
@@ -320,7 +327,6 @@ namespace GersangStation.Main.Setting
                         InstallPath = TextBox_Path1.Text,
                         DestPath2 = ClientSettings.Client2Path,
                         DestPath3 = ClientSettings.Client3Path,
-                        OverwriteConfig = ClientSettings.OverwriteMultiClientConfig,
                         LayoutPolicy = layoutPolicy
                     });
                     createResult = new(true, string.Empty, null, null, null);

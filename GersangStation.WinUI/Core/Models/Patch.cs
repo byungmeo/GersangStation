@@ -8,5 +8,6 @@ public sealed class PatchReadmeInfoItem(DateTime date, int version, List<string>
     public DateTime Date { get; } = date;
     public int Version { get; } = version;
     public List<string> Details { get; } = details;
-    public string Display => $"v{Version}   {Date:yyyy-MM-dd}";
+    // A locally read version may have no corresponding readme date.
+    public string Display => Date == default ? $"v{Version}" : $"v{Version}   {Date:yyyy-MM-dd}";
 }

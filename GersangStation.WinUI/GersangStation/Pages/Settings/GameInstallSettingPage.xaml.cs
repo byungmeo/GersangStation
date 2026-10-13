@@ -57,6 +57,9 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
 
     public GameServer SelectedGameServer => _selectedGameServer;
 
+    // Nested server editors share the owning page's viewport, not their scrollable content.
+    internal FrameworkElement ResultTeachingTipAnchor => InstallTeachingTipAnchor;
+
     private GameInstallPanel CurrentInstallPanel => _selectedGameServer switch
     {
         GameServer.Korea_Live => InstallPanel_Live,

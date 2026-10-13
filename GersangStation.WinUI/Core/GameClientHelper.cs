@@ -440,6 +440,5 @@ public sealed class CreateSymbolMultiClientArgs
     public string InstallPath { get; set; } = string.Empty;
     public string DestPath2 { get; set; } = string.Empty;
     public string DestPath3 { get; set; } = string.Empty;
-    public bool OverwriteConfig { get; set; }
     public GameClientHelper.MultiClientLayoutPolicy LayoutPolicy { get; set; } = GameClientHelper.MultiClientLayoutPolicy.Legacy;
 }

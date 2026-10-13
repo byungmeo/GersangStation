@@ -27,6 +27,11 @@ internal sealed class PatchService
             $"currentVersion: {currentClientVersion}\n\t" +
             $"clientPath: {originClientPath}");
 
+        // Use the same validity check as the installation page, before patch writes
+        // can alter the shared source directories. Missing/invalid clones are not created.
+        CreateSymbolMultiClientArgs multiClientPatchArgs = BuildExistingMultiClientPatchArgs(
+            targetServer, originClientPath, clientSettings);
+
         int latestClientVersion;
         try
         {
@@ -40,6 +45,10 @@ internal sealed class PatchService
                 PatchFailureStage.ResolveLatestVersion,
                 ex);
         }
+
+        multiClientPatchArgs.LayoutPolicy = latestClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
+            ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
+            : GameClientHelper.MultiClientLayoutPolicy.Legacy;
 
         string tempRoot = GetPatchTempRoot(originClientPath, currentClientVersion, latestClientVersion);
 
@@ -221,7 +230,7 @@ internal sealed class PatchService
 
             try
             {
-                ApplyMultiClientPatchIfNeeded(targetServer, originClientPath, latestClientVersion, options, clientSettings, ct);
+                ApplyMultiClientPatchIfNeeded(multiClientPatchArgs, ct);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -420,22 +429,21 @@ internal sealed class PatchService
         return items;
     }
 
-    private static void ApplyMultiClientPatchIfNeeded(GameServer targetServer, string originClientPath, int latestClientVersion, PatchRunOptions options, ClientSettings clientSettings, CancellationToken ct)
+    internal static CreateSymbolMultiClientArgs BuildExistingMultiClientPatchArgs(
+        GameServer targetServer, string originClientPath, ClientSettings clientSettings)
     {
-        if (!options.ApplyMultiClientPatch)
-            return;
-
-        CreateSymbolMultiClientArgs args = new()
+        return new CreateSymbolMultiClientArgs
         {
             InstallPath = originClientPath,
-            DestPath2 = Directory.Exists(clientSettings.Client2Path) ? clientSettings.Client2Path : string.Empty,
-            DestPath3 = Directory.Exists(clientSettings.Client3Path) ? clientSettings.Client3Path : string.Empty,
-            OverwriteConfig = clientSettings.OverwriteMultiClientConfig,
-            LayoutPolicy = latestClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
-                ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
-                : GameClientHelper.MultiClientLayoutPolicy.Legacy
+            DestPath2 = GameClientHelper.TryValidateCloneInstallPath(targetServer, clientSettings.Client2Path).Success
+                ? clientSettings.Client2Path : string.Empty,
+            DestPath3 = GameClientHelper.TryValidateCloneInstallPath(targetServer, clientSettings.Client3Path).Success
+                ? clientSettings.Client3Path : string.Empty
         };
+    }
 
+    private static void ApplyMultiClientPatchIfNeeded(CreateSymbolMultiClientArgs args, CancellationToken ct)
+    {
         if (string.IsNullOrWhiteSpace(args.DestPath2) && string.IsNullOrWhiteSpace(args.DestPath3))
             return;
 

@@ -6,6 +6,10 @@ namespace GameMaintenance.Worker;
 internal sealed class MultiClientService(CancellationToken ct)
 {
     private readonly CancellationToken _ct = ct;
+    private static readonly HashSet<string> OnlineConfigFileNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CombineInfo.txt.txt", "PetSetting.dat", "AKinteractive.cfg"
+    };
     private static readonly HashSet<string> TopLevelDirectoriesToSkip = new(StringComparer.OrdinalIgnoreCase)
     {
         "Online",
@@ -140,9 +144,9 @@ internal sealed class MultiClientService(CancellationToken ct)
     }
 
     /// <summary>
-    /// 34100 이후 레이아웃에서 Assets\Config만 설정파일 덮어쓰기 정책을 적용해 재구성합니다.
+    /// Assets\Config의 기존 파일은 보존하고, 나머지 Assets 파일은 갱신합니다.
     /// </summary>
-    private void CopyAssetsDirectoryWithConfigPolicy(string sourceAssetsPath, string destAssetsPath, bool overwriteConfig)
+    private void CopyAssetsDirectoryPreservingConfig(string sourceAssetsPath, string destAssetsPath)
     {
         EnsureRealDirectory(destAssetsPath);
 
@@ -162,7 +166,7 @@ internal sealed class MultiClientService(CancellationToken ct)
 
             if (dirName.Equals("Config", StringComparison.OrdinalIgnoreCase))
             {
-                HardCopyDirectory(sourceDirPath, destDirPath, copySubDirs: true, overwriteExistingFiles: overwriteConfig);
+                HardCopyDirectory(sourceDirPath, destDirPath, copySubDirs: true, overwriteExistingFiles: false);
                 continue;
             }
 
@@ -175,14 +179,13 @@ internal sealed class MultiClientService(CancellationToken ct)
      * 1. 목적지 경로가 비어있지 않고 Online\Map이 Symbol이 아니라면 실패(삭제 안내)
      * 2. 최상위 폴더 내 파일들은 모두 HardCopy(.tmp, .bmp, .dmp 확장자 파일은 아예 무시)
      * 3. XIGONCODE 폴더는 안의 내용물 포함 모두 HardCopy
-     * 4. Legacy 정책: Online 직접 파일은 설정파일만 overwriteConfig를 따르고, 하위 폴더는 Symbol
-     * 5. 34100+ 정책: Online 직접 파일은 모두 HardCopy 덮어쓰기, Assets\Config 전체는 overwriteConfig 정책으로 HardCopy
+     * 4. Online 직접 파일은 설정파일을 제외하고 덮어쓰며, 하위 폴더는 Symbol
+     * 5. Assets\Config와 config.ln은 기존 파일을 보존하고, 없는 설정파일만 복사
     */
 
     private CreateSymbolMultiClientResult TryCreateSymbolClient(
         string orgInstallPath,
         string destPath,
-        bool overwriteConfig,
         MultiClientLayoutPolicy layoutPolicy,
         int clientNumber,
         string clientPrefix)
@@ -312,12 +315,7 @@ internal sealed class MultiClientService(CancellationToken ct)
             {
                 string fileName = orgFilePath.Substring(orgFilePath.LastIndexOf('\\'));
                 string destFilePath = destOnlinePath + fileName;
-                bool overwrite = layoutPolicy == MultiClientLayoutPolicy.V34100OrLater;
-                if (layoutPolicy == MultiClientLayoutPolicy.Legacy)
-                {
-                    bool isConfig = fileName is @"\CombineInfo.txt.txt" or @"\PetSetting.dat" or @"\AKinteractive.cfg";
-                    overwrite = !isConfig || overwriteConfig;
-                }
+                bool overwrite = !OnlineConfigFileNames.Contains(Path.GetFileName(orgFilePath));
 
                 if (!overwrite && File.Exists(destFilePath))
                     continue;
@@ -389,10 +387,9 @@ internal sealed class MultiClientService(CancellationToken ct)
                     continue;
                 }
 
-                if (layoutPolicy == MultiClientLayoutPolicy.V34100OrLater
-                    && dirName == "Assets")
+                if (dirName.Equals("Assets", StringComparison.OrdinalIgnoreCase))
                 {
-                    CopyAssetsDirectoryWithConfigPolicy(eachDirPath, destDirPath, overwriteConfig);
+                    CopyAssetsDirectoryPreservingConfig(eachDirPath, destDirPath);
                     continue;
                 }
 
@@ -420,12 +417,7 @@ internal sealed class MultiClientService(CancellationToken ct)
                     continue;
 
                 string destFilePath = destPath + fileName;
-                bool overwrite = layoutPolicy == MultiClientLayoutPolicy.V34100OrLater;
-                if (layoutPolicy == MultiClientLayoutPolicy.Legacy)
-                {
-                    bool isConfig = fileName is @"\config.ln";
-                    overwrite = !isConfig || overwriteConfig;
-                }
+                bool overwrite = !Path.GetFileName(orgFilePath).Equals("config.ln", StringComparison.OrdinalIgnoreCase);
 
                 if (!overwrite && File.Exists(destFilePath))
                     continue;
@@ -471,7 +463,6 @@ internal sealed class MultiClientService(CancellationToken ct)
             CreateSymbolMultiClientResult result = TryCreateSymbolClient(
                 args.InstallPath,
                 args.DestPath2,
-                args.OverwriteConfig,
                 args.LayoutPolicy,
                 clientNumber: 2,
                 clientPrefix: "2클라 생성 실패: ");
@@ -484,7 +475,6 @@ internal sealed class MultiClientService(CancellationToken ct)
             CreateSymbolMultiClientResult result = TryCreateSymbolClient(
                 args.InstallPath,
                 args.DestPath3,
-                args.OverwriteConfig,
                 args.LayoutPolicy,
                 clientNumber: 3,
                 clientPrefix: "3클라 생성 실패: ");

@@ -12,120 +12,134 @@
     NavigationCacheMode="Disabled"
     mc:Ignorable="d">
 
-    <ScrollView>
-        <Grid RowSpacing="12">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+    <Grid>
+        <ScrollView>
+            <Grid RowSpacing="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <toolkit:SettingsCard
-                Grid.Row="0"
-                HorizontalContentAlignment="Stretch"
-                ContentAlignment="Vertical"
-                Description="거상이 설치되어있는 경로를 지정해주세요. 아직 거상을 설치하지 않았다면 설치 버튼을 통해 설치하실 수 있습니다."
-                Header="게임 설치 경로 지정"
-                IsEnabled="{x:Bind IsEditorEnabled, Mode=OneWay}">
-                <StackPanel Spacing="8">
-                    <controls:ValidatedTextBox
-                        x:Name="TextBox_Path1"
-                        AutomationProperties.Name="게임 설치 경로"
-                        PlaceholderText="예시) C:\AKInteractive\Gersang"
-                        Text="{x:Bind ClientSettings.InstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                        TextChanged="TextBox_InstallPath_TextChanged">
-                        <controls:ValidatedTextBox.InputRowRightContent>
-                            <StackPanel
-                                Margin="8,0,0,0"
-                                Orientation="Horizontal"
-                                Spacing="8">
-                                <Button
-                                    x:Name="Button_Path1_PickFolder"
-                                    Click="Button_Path_PickFolder_Click"
-                                    Content="..."
-                                    Style="{StaticResource AccentButtonStyle}"
-                                    ToolTipService.ToolTip="기존 게임 설치 경로 선택" />
-                                <Button
-                                    x:Name="Button_InstallNew"
-                                    Click="Button_InstallNew_Click"
-                                    Content="설치"
-                                    Style="{ThemeResource AccentButtonStyle}"
-                                    ToolTipService.ToolTip="설치할 상위 폴더 선택 후 게임 설치" />
-                            </StackPanel>
-                        </controls:ValidatedTextBox.InputRowRightContent>
-                    </controls:ValidatedTextBox>
-                    <TextBlock
-                        Text="{x:Bind SaveStatusText, Mode=OneWay}"
-                        TextWrapping="Wrap"
-                        Visibility="{x:Bind SaveStatusVisibility, Mode=OneWay}" />
-                </StackPanel>
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard
-                Grid.Row="1"
-                HorizontalContentAlignment="Stretch"
-                ContentAlignment="Vertical"
-                Description="거상은 한 컴퓨터에서 최대 3클라이언트까지 실행할 수 있습니다."
-                Header="다클라 생성"
-                IsEnabled="{x:Bind IsEditorEnabled, Mode=OneWay}">
-                <StackPanel Spacing="12">
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon
-                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                            FontSize="{x:Bind Client2StatusTextBlock.FontSize, Mode=OneWay}"
-                            Glyph="{x:Bind Client2StatusGlyph, Mode=OneWay}" />
+                <toolkit:SettingsCard
+                    Grid.Row="0"
+                    HorizontalContentAlignment="Stretch"
+                    ContentAlignment="Vertical"
+                    Description="거상이 설치되어있는 경로를 지정해주세요. 아직 거상을 설치하지 않았다면 설치 버튼을 통해 설치하실 수 있습니다."
+                    Header="게임 설치 경로 지정"
+                    IsEnabled="{x:Bind IsEditorEnabled, Mode=OneWay}">
+                    <StackPanel Spacing="8">
+                        <controls:ValidatedTextBox
+                            x:Name="TextBox_Path1"
+                            AutomationProperties.Name="게임 설치 경로"
+                            PlaceholderText="예시) C:\AKInteractive\Gersang"
+                            Text="{x:Bind ClientSettings.InstallPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            TextChanged="TextBox_InstallPath_TextChanged">
+                            <controls:ValidatedTextBox.InputRowRightContent>
+                                <StackPanel
+                                    Margin="8,0,0,0"
+                                    Orientation="Horizontal"
+                                    Spacing="8">
+                                    <Button
+                                        x:Name="Button_Path1_PickFolder"
+                                        Click="Button_Path_PickFolder_Click"
+                                        Content="..."
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        ToolTipService.ToolTip="기존 게임 설치 경로 선택" />
+                                    <Button
+                                        x:Name="Button_InstallNew"
+                                        Click="Button_InstallNew_Click"
+                                        Content="설치"
+                                        Style="{ThemeResource AccentButtonStyle}"
+                                        ToolTipService.ToolTip="설치할 상위 폴더 선택 후 게임 설치" />
+                                </StackPanel>
+                            </controls:ValidatedTextBox.InputRowRightContent>
+                        </controls:ValidatedTextBox>
                         <TextBlock
-                            x:Name="Client2StatusTextBlock"
-                            Grid.Column="1"
-                            IsTextSelectionEnabled="True"
-                            TextWrapping="Wrap">
-                            <Run Text="{x:Bind Client2StatusText, Mode=OneWay}" />
-                            <Run Text=" (" />
-                            <Run Text="{x:Bind Client2PathText, Mode=OneWay}" />
-                            <Run Text=")" />
-                        </TextBlock>
-                    </Grid>
-                    <Grid ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon
-                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                            FontSize="{x:Bind Client3StatusTextBlock.FontSize, Mode=OneWay}"
-                            Glyph="{x:Bind Client3StatusGlyph, Mode=OneWay}" />
-                        <TextBlock
-                            x:Name="Client3StatusTextBlock"
-                            Grid.Column="1"
-                            IsTextSelectionEnabled="True"
-                            TextWrapping="Wrap">
-                            <Run Text="{x:Bind Client3StatusText, Mode=OneWay}" />
-                            <Run Text=" (" />
-                            <Run Text="{x:Bind Client3PathText, Mode=OneWay}" />
-                            <Run Text=")" />
-                        </TextBlock>
-                    </Grid>
-                    <Button
-                        x:Name="Button_CreateMultiClient"
-                        Click="Button_CreateMultiClient_Click"
-                        Content="다클라 생성"
-                        IsEnabled="{x:Bind TextBox_Path1.IsValid, Mode=OneWay}"
-                        Style="{ThemeResource AccentButtonStyle}" />
-                </StackPanel>
-            </toolkit:SettingsCard>
+                            Text="{x:Bind SaveStatusText, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Visibility="{x:Bind SaveStatusVisibility, Mode=OneWay}" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
 
-            <TeachingTip
-                x:Name="TeachingTip_General"
-                Title="Title"
-                ActionButtonClick="TeachingTip_General_ActionButtonClick"
-                CloseButtonContent="네, 확인했습니다."
-                IsLightDismissEnabled="True"
-                PlacementMargin="20"
-                PreferredPlacement="Auto"
-                Subtitle="Subtitle" />
-        </Grid>
-    </ScrollView>
+                <toolkit:SettingsCard
+                    Grid.Row="1"
+                    HorizontalContentAlignment="Stretch"
+                    ContentAlignment="Vertical"
+                    Description="거상은 한 컴퓨터에서 최대 3클라이언트까지 실행할 수 있습니다."
+                    Header="다클라 생성"
+                    IsEnabled="{x:Bind IsEditorEnabled, Mode=OneWay}">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontSize="{x:Bind Client2StatusTextBlock.FontSize, Mode=OneWay}"
+                                Glyph="{x:Bind Client2StatusGlyph, Mode=OneWay}" />
+                            <TextBlock
+                                x:Name="Client2StatusTextBlock"
+                                Grid.Column="1"
+                                IsTextSelectionEnabled="True"
+                                TextWrapping="Wrap">
+                                <Run Text="{x:Bind Client2StatusText, Mode=OneWay}" />
+                                <Run Text=" (" />
+                                <Run Text="{x:Bind Client2PathText, Mode=OneWay}" />
+                                <Run Text=")" />
+                            </TextBlock>
+                        </Grid>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                FontSize="{x:Bind Client3StatusTextBlock.FontSize, Mode=OneWay}"
+                                Glyph="{x:Bind Client3StatusGlyph, Mode=OneWay}" />
+                            <TextBlock
+                                x:Name="Client3StatusTextBlock"
+                                Grid.Column="1"
+                                IsTextSelectionEnabled="True"
+                                TextWrapping="Wrap">
+                                <Run Text="{x:Bind Client3StatusText, Mode=OneWay}" />
+                                <Run Text=" (" />
+                                <Run Text="{x:Bind Client3PathText, Mode=OneWay}" />
+                                <Run Text=")" />
+                            </TextBlock>
+                        </Grid>
+                        <Button
+                            x:Name="Button_CreateMultiClient"
+                            Click="Button_CreateMultiClient_Click"
+                            Content="다클라 생성"
+                            IsEnabled="{x:Bind TextBox_Path1.IsValid, Mode=OneWay}"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
+
+            </Grid>
+        </ScrollView>
+        <Border
+            x:Name="PathSettingsTeachingTipAnchor"
+            Width="1"
+            Height="1"
+            Margin="0,0,0,20"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            AutomationProperties.AccessibilityView="Raw"
+            IsHitTestVisible="False" />
+
+        <TeachingTip
+            x:Name="TeachingTip_General"
+            Title="Title"
+            ActionButtonClick="TeachingTip_General_ActionButtonClick"
+            CloseButtonContent="네, 확인했습니다."
+            IsLightDismissEnabled="True"
+            PlacementMargin="0"
+            PreferredPlacement="Top"
+            TailVisibility="Collapsed"
+            Target="{x:Bind ResultTeachingTipAnchor, Mode=OneWay}"
+            Subtitle="Subtitle" />
+    </Grid>
 </Page>

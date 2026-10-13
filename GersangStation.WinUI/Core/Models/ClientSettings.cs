@@ -22,14 +22,6 @@ public sealed class ClientSettings : INotifyPropertyChanged
         set => SetProperty(ref _installPath, value);
     }
 
-    [JsonIgnore] private bool _overwriteMultiClientConfig = false;
-    [JsonPropertyName("OverwriteMultiClientConfig")]
-    public bool OverwriteMultiClientConfig
-    {
-        get => _overwriteMultiClientConfig;
-        set => SetProperty(ref _overwriteMultiClientConfig, value);
-    }
-
     [JsonIgnore] public string TempPathRoot => $"{InstallPath}\\PatchTemp";
     [JsonIgnore] public string Client2Path => BuildStationManagedMultiClientPath(2);
     [JsonIgnore] public string Client3Path => BuildStationManagedMultiClientPath(3);

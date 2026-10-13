@@ -80,8 +80,7 @@ public enum PatchArchiveReuseMode
 
 public sealed record PatchRunOptions(
     bool DeleteTempFilesAfterPatch = false,
-    PatchArchiveReuseMode ArchiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible,
-    bool ApplyMultiClientPatch = false);
+    PatchArchiveReuseMode ArchiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible);
 
 public enum LatestVersionResolutionFailureStage
 {

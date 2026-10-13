@@ -1,3 +1,4 @@
+using CommunityToolkit.WinUI.Controls;
 using Core;
 using Core.Models;
 using GersangStation.Diagnostics;
@@ -8,6 +9,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using SideDrawer.Controls;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -28,15 +30,12 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 {
     #region Properties
     private const int ManualUpgradeBoundaryVersion = 34100;
-    private const string VersionWarningLinkPlaceholderText = "참고 링크";
     private const int InitialPatchReadmeRenderCount = 12;
     private const int PatchReadmeRenderBatchCount = 8;
     private const double PatchReadmeRenderThreshold = 240d;
 
     private GameServer _selectedGameServer = GameServer.Korea_Live;
     private string _displayLatestVersion = string.Empty;
-    private bool _shouldPatchMultiClient = true;
-    private bool _shouldOverwriteMultiClientConfig = false;
     private bool _shouldDeleteTemp = true;
     private string _tempPath = string.Empty;
     private double _progressMaximum = 100;
@@ -52,29 +51,24 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private int? _currentClientVersion;
     private int? _latestServerVersion;
     private string _currentInstallPath = string.Empty;
-    private string _currentVersionStatusMessage = string.Empty;
-    private string _latestVersionStatusMessage = string.Empty;
     private bool _suppressServerSelectionChanged;
-    private bool _suppressClientSettingsPersistence;
     private List<PatchReadmeInfoItem> _allPatchReadmeItems = [];
     private int _nextPatchReadmeRenderIndex;
     private bool _isRenderingPatchReadmeBatch;
+    private bool _isPatchReadmeScrollResetPending;
+    private bool _hasRequestedPatchReadmeScrollReset;
     private string? _patchResultExplorerPath;
 
     public ObservableCollection<PatchReadmeInfoItem> Versions { get; } = [];
 
     public bool IsNotBusy => !IsBusy;
-    public bool IsOverwriteMultiClientConfigEnabled => IsNotBusy && ShouldPatchMultiClient;
+    public bool CanOpenPatchReadme => !IsLoadingPatchInfo && _allPatchReadmeItems.Count > 0;
+    public string PatchReadmeTitle => $"{GameServerHelper.GetServerDisplayName(_selectedGameServer)} 패치 내역";
+    public static string ServerSelectionGlyph(bool isSelected) => isSelected ? "\uE73A" : "\uE739";
     public bool IsPatchStartEnabled => IsNotBusy && CanStartPatch;
-    public string VersionWarningMessage => GetVersionWarningMessage();
-    public Visibility VersionWarningVisibility
-        => IsLoadingPatchInfo || string.IsNullOrWhiteSpace(VersionWarningMessage)
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-    public string VersionWarningLinkText => RequiresManualUpgradeLink()
-        ? VersionWarningLinkPlaceholderText
-        : string.Empty;
-    public Visibility VersionWarningLinkVisibility => !IsLoadingPatchInfo && RequiresManualUpgradeLink()
+    public string PatchStatusHeader => GetPatchStatus().Header;
+    public string PatchStatusDescription => GetPatchStatus().Description;
+    public Visibility PatchStatusLinkVisibility => !IsLoadingPatchInfo && RequiresManualUpgradeLink()
         ? Visibility.Visible
         : Visibility.Collapsed;
     public Visibility DownloadingVisibility => IsDownloading ? Visibility.Visible : Visibility.Collapsed;
@@ -88,28 +82,6 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     {
         get => _displayLatestVersion;
         set => SetProperty(ref _displayLatestVersion, value);
-    }
-    public bool ShouldPatchMultiClient
-    {
-        get => _shouldPatchMultiClient;
-        set
-        {
-            if (!SetProperty(ref _shouldPatchMultiClient, value))
-                return;
-
-            OnPropertyChanged(nameof(IsOverwriteMultiClientConfigEnabled));
-        }
-    }
-    public bool ShouldOverwriteMultiClientConfig
-    {
-        get => _shouldOverwriteMultiClientConfig;
-        set
-        {
-            if (!SetProperty(ref _shouldOverwriteMultiClientConfig, value))
-                return;
-
-            PersistOverwriteMultiClientConfigSetting();
-        }
     }
     public bool ShouldDeleteTemp
     {
@@ -150,12 +122,13 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             {
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(IsNotBusy));
-                OnPropertyChanged(nameof(IsOverwriteMultiClientConfigEnabled));
                 OnPropertyChanged(nameof(IsPatchStartEnabled));
+                OnPropertyChanged(nameof(PatchStatusHeader));
+                OnPropertyChanged(nameof(PatchStatusDescription));
                 OnPropertyChanged(nameof(LoadingOverlayVisibility));
+                OnPropertyChanged(nameof(CanOpenPatchReadme));
                 OnPropertyChanged(nameof(NotBusyVisibility));
-                OnPropertyChanged(nameof(VersionWarningVisibility));
-                OnPropertyChanged(nameof(VersionWarningLinkVisibility));
+                OnPropertyChanged(nameof(PatchStatusLinkVisibility));
             }
         }
     }
@@ -168,7 +141,6 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             {
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(IsNotBusy));
-                OnPropertyChanged(nameof(IsOverwriteMultiClientConfigEnabled));
                 OnPropertyChanged(nameof(IsPatchStartEnabled));
                 OnPropertyChanged(nameof(DownloadingVisibility));
                 OnPropertyChanged(nameof(NotBusyVisibility));
@@ -190,6 +162,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     public GamePatchSettingPage()
     {
         InitializeComponent();
+        Unloaded += (_, _) => TeachingTip_PatchResult.IsOpen = false;
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -241,16 +214,15 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                     loadResult);
             }
 
-            LoadPatchOptions(clientSetting);
             _currentInstallPath = clientSetting.InstallPath;
             ApplyCurrentVersionState(clientSetting.InstallPath);
             _latestServerVersion = null;
-            _latestVersionStatusMessage = string.Empty;
             DisplayLatestVersion = string.Empty;
 
             SelectedVersionItem = null;
             Versions.Clear();
             ResetPatchReadmeRendering();
+            RebuildVersionChoices();
             NotifyPatchStateChanged();
 
             List<PatchReadmeInfoItem> items;
@@ -266,7 +238,6 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             {
                 Debug.WriteLine($"[GamePatchSettingPage] Failed to load patch info. Server: {_selectedGameServer}, Error: {ex}");
                 _latestServerVersion = null;
-                _latestVersionStatusMessage = "최신 버전을 확인할 수 없습니다. 지금은 패치를 진행할 수 없습니다.";
                 DisplayLatestVersion = "최신 버전 확인 불가";
                 NotifyPatchStateChanged();
                 return;
@@ -278,25 +249,16 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             if (latestPatchInfo is null)
             {
                 _latestServerVersion = null;
-                _latestVersionStatusMessage = "최신 버전을 확인할 수 없습니다. 지금은 패치를 진행할 수 없습니다.";
                 DisplayLatestVersion = "최신 버전 확인 불가";
                 NotifyPatchStateChanged();
                 return;
             }
 
             _latestServerVersion = latestPatchInfo.Version;
-            _latestVersionStatusMessage = string.Empty;
             DisplayLatestVersion = latestPatchInfo.Display;
 
-            foreach (PatchReadmeInfoItem item in items)
-            {
-                if ((_currentClientVersion ?? -1) >= item.Version)
-                    Versions.Add(item);
-            }
-
             _allPatchReadmeItems = items;
-            RenderNextPatchReadmeBatch(InitialPatchReadmeRenderCount);
-            SelectedVersionItem = Versions.FirstOrDefault();
+            RebuildVersionChoices();
             NotifyPatchStateChanged();
         }
         catch (OperationCanceledException) when (currentLoadCts.IsCancellationRequested)
@@ -321,24 +283,61 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         }
     }
 
-    /// <summary>
-    /// 현재 선택된 서버의 다클라 설정 덮어쓰기 옵션을 페이지 상태로 반영합니다.
-    /// </summary>
-    private void LoadPatchOptions(ClientSettings clientSetting)
+    private (string Header, string Description) GetPatchStatus()
     {
-        _suppressClientSettingsPersistence = true;
-        try
+        if (IsLoadingPatchInfo)
+            return ("버전 확인 중", "현재 게임 버전과 최신 버전을 확인하고 있습니다.");
+        if (_currentClientVersion is not int currentVersion)
+            return ("현재 버전 확인 불가", "현재 게임 버전을 확인할 수 없습니다. 설치 경로를 다시 확인해주세요.");
+        if (_latestServerVersion is not int latestVersion)
+            return ("최신 버전 확인 불가", "최신 버전을 확인할 수 없습니다. 새로고침으로 다시 확인해주세요.");
+        if (RequiresManualUpgradeLink())
+            return ("재설치 필요", "v34100 이전 버전 클라이언트입니다. 삭제 후 재설치 하세요.");
+
+        // TODO: [#140] v34100은 패치 이력 누락과 관계없이 패치를 허용하는 기존 예외를 유지합니다.
+        if (currentVersion < latestVersion
+            && currentVersion != 34100
+            && !_allPatchReadmeItems.Any(item => item.Version == currentVersion))
+            return ("재설치 필요", "클라이언트가 너무 오래되었습니다. 삭제 후 재설치 하세요.");
+
+        return currentVersion < latestVersion
+            ? ("업데이트 필요", "최신 버전으로 업데이트가 필요합니다.")
+            : ("최신 버전", "현재 설치된 게임은 최신 버전입니다.");
+    }
+
+    private void RebuildVersionChoices()
+    {
+        SelectedVersionItem = null;
+        Versions.Clear();
+        if (_currentClientVersion is not int currentVersion)
+            return;
+
+        foreach (PatchReadmeInfoItem item in _allPatchReadmeItems)
         {
-            ShouldOverwriteMultiClientConfig = clientSetting.OverwriteMultiClientConfig;
+            if (item.Version <= currentVersion)
+                Versions.Add(item);
         }
-        finally
-        {
-            _suppressClientSettingsPersistence = false;
-        }
+
+        // Keep the actual disk version selectable even if the readme omits it.
+        // Patch eligibility is checked against the readme, not this display fallback.
+        if (!Versions.Any(item => item.Version == currentVersion))
+            Versions.Insert(0, new PatchReadmeInfoItem(default, currentVersion, []));
+        SelectedVersionItem = Versions.First(item => item.Version == currentVersion);
+    }
+
+    private void RefreshInstalledVersionAfterPatch(string installPath)
+    {
+        _currentInstallPath = installPath;
+        ApplyCurrentVersionState(installPath);
+        RebuildVersionChoices();
+        ResetPatchReadmeDocument();
+        if (PatchReadmeDrawer.IsOpen)
+            RenderNextPatchReadmeBatch(InitialPatchReadmeRenderCount);
+        NotifyPatchStateChanged();
     }
 
     /// <summary>
-    /// 현재 설치 경로에서 클라이언트 버전을 읽고, 읽기 실패 시 경로 재설정 유도 메시지를 준비합니다.
+    /// 현재 설치 경로에서 클라이언트 버전을 읽고 상태를 갱신합니다.
     /// </summary>
     private void ApplyCurrentVersionState(string installPath)
     {
@@ -346,35 +345,12 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         if (!currentVersionResult.Success || currentVersionResult.Version is null or <= 0)
         {
             _currentClientVersion = null;
-            _currentVersionStatusMessage = "현재 버전을 확인할 수 없습니다. 설치 경로를 다시 설정해주세요.";
             Debug.WriteLine(
                 $"[GamePatchSettingPage] Failed to read current version. Server: {_selectedGameServer}, InstallPath: '{installPath}', Result: {currentVersionResult}");
             return;
         }
 
         _currentClientVersion = currentVersionResult.Version.Value;
-        _currentVersionStatusMessage = string.Empty;
-    }
-
-    /// <summary>
-    /// 다클라 설정 파일 덮어쓰기 옵션을 현재 서버 설정에 즉시 반영합니다.
-    /// </summary>
-    private async void PersistOverwriteMultiClientConfigSetting()
-    {
-        if (_suppressClientSettingsPersistence)
-            return;
-
-        AppDataManager.AppDataOperationResult saveResult =
-            await AppDataManager.SaveServerOverwriteMultiClientConfigAsync(_selectedGameServer, ShouldOverwriteMultiClientConfig);
-
-        if (!saveResult.Success)
-        {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "설정 저장 실패",
-                "다클라 덮어쓰기 옵션을 저장하지 못했습니다.",
-                saveResult);
-        }
     }
 
     /// <summary>
@@ -394,9 +370,72 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private void ResetPatchReadmeRendering()
     {
         _allPatchReadmeItems = [];
+        ResetPatchReadmeDocument();
+    }
+
+    private void ResetPatchReadmeDocument()
+    {
+        // The ScrollViewer survives drawer closure and server changes. Reset the
+        // view with the document, once its popup content has a valid layout.
+        _isPatchReadmeScrollResetPending = true;
+        _hasRequestedPatchReadmeScrollReset = false;
         _nextPatchReadmeRenderIndex = 0;
         _isRenderingPatchReadmeBatch = false;
         RichTextBlock_PatchReadme.Blocks.Clear();
+        if (ScrollViewer_PatchReadme.IsLoaded)
+            SchedulePatchReadmeScrollReset();
+    }
+
+    private void ScrollViewer_PatchReadme_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isPatchReadmeScrollResetPending)
+            return;
+        SchedulePatchReadmeScrollReset();
+        TryResetPatchReadmeScrollPosition();
+    }
+
+    private void ScrollViewer_PatchReadme_Unloaded(object sender, RoutedEventArgs e)
+    {
+        _hasRequestedPatchReadmeScrollReset = false;
+        ScrollViewer_PatchReadme.LayoutUpdated -= ScrollViewer_PatchReadme_ResetLayoutUpdated;
+    }
+
+    private void SchedulePatchReadmeScrollReset()
+    {
+        if (!_isPatchReadmeScrollResetPending)
+            return;
+        ScrollViewer_PatchReadme.LayoutUpdated -= ScrollViewer_PatchReadme_ResetLayoutUpdated;
+        ScrollViewer_PatchReadme.LayoutUpdated += ScrollViewer_PatchReadme_ResetLayoutUpdated;
+    }
+
+    private void ScrollViewer_PatchReadme_ResetLayoutUpdated(object? sender, object e)
+        => TryResetPatchReadmeScrollPosition();
+
+    private void TryResetPatchReadmeScrollPosition()
+    {
+        if (!_isPatchReadmeScrollResetPending || _hasRequestedPatchReadmeScrollReset
+            || !ScrollViewer_PatchReadme.IsLoaded
+            || ScrollViewer_PatchReadme.ActualWidth <= 0 || ScrollViewer_PatchReadme.ActualHeight <= 0)
+            return;
+
+        _hasRequestedPatchReadmeScrollReset = true;
+        bool accepted = ScrollViewer_PatchReadme.ChangeView(0, 0, null, disableAnimation: true);
+        if (!accepted)
+            _hasRequestedPatchReadmeScrollReset = false;
+        if (accepted)
+            ScrollViewer_PatchReadme.LayoutUpdated -= ScrollViewer_PatchReadme_ResetLayoutUpdated;
+
+        // An accepted request can finish on the next ViewChanged event. Keep
+        // lazy loading paused until the view actually reaches the new origin.
+        if (ScrollViewer_PatchReadme.HorizontalOffset == 0 && ScrollViewer_PatchReadme.VerticalOffset == 0)
+            CompletePatchReadmeScrollReset();
+    }
+
+    private void CompletePatchReadmeScrollReset()
+    {
+        _isPatchReadmeScrollResetPending = false;
+        _hasRequestedPatchReadmeScrollReset = false;
+        ScrollViewer_PatchReadme.LayoutUpdated -= ScrollViewer_PatchReadme_ResetLayoutUpdated;
     }
 
     /// <summary>
@@ -478,10 +517,21 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     /// </summary>
     private void ScrollViewer_PatchReadme_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
-        if (_isRenderingPatchReadmeBatch || _nextPatchReadmeRenderIndex >= _allPatchReadmeItems.Count)
+        if (sender is not ScrollViewer scrollViewer)
             return;
 
-        if (sender is not ScrollViewer scrollViewer)
+        if (_isPatchReadmeScrollResetPending)
+        {
+            if (_hasRequestedPatchReadmeScrollReset && scrollViewer.IsLoaded
+                && scrollViewer.HorizontalOffset == 0 && scrollViewer.VerticalOffset == 0)
+                CompletePatchReadmeScrollReset();
+            return;
+        }
+
+        if (!PatchReadmeDrawer.IsOpen)
+            return;
+
+        if (_isRenderingPatchReadmeBatch || _nextPatchReadmeRenderIndex >= _allPatchReadmeItems.Count)
             return;
 
         double remainingDistance = scrollViewer.ScrollableHeight - scrollViewer.VerticalOffset;
@@ -519,46 +569,21 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private bool CanStartPatch
         => _currentClientVersion is int currentVersion
             && _latestServerVersion is int
-            && Versions.Any(item => item.Version == currentVersion || currentVersion == 34100)
+            && _allPatchReadmeItems.Any(item => item.Version == currentVersion || currentVersion == 34100)
             && !RequiresManualUpgradeLink()
             && SelectedVersionItem is not null;
 
     /// <summary>
-    /// 패치 가능 여부와 현재 버전 경고 표시 상태를 함께 갱신합니다.
+    /// 패치 가능 여부와 최상위 상태 안내를 함께 갱신합니다.
     /// </summary>
     private void NotifyPatchStateChanged()
     {
+        OnPropertyChanged(nameof(CanOpenPatchReadme));
+        OnPropertyChanged(nameof(PatchReadmeTitle));
         OnPropertyChanged(nameof(IsPatchStartEnabled));
-        OnPropertyChanged(nameof(VersionWarningMessage));
-        OnPropertyChanged(nameof(VersionWarningVisibility));
-        OnPropertyChanged(nameof(VersionWarningLinkText));
-        OnPropertyChanged(nameof(VersionWarningLinkVisibility));
-    }
-
-    /// <summary>
-    /// 현재 버전 상태에 맞는 안내 문구를 반환합니다.
-    /// </summary>
-    private string GetVersionWarningMessage()
-    {
-        if (!string.IsNullOrWhiteSpace(_currentVersionStatusMessage))
-            return _currentVersionStatusMessage;
-
-        if (!string.IsNullOrWhiteSpace(_latestVersionStatusMessage))
-            return _latestVersionStatusMessage;
-
-        if (RequiresManualUpgradeLink())
-            return "v34100 이전 버전 클라이언트입니다. 삭제 후 재설치 하세요.";
-
-        if (_currentClientVersion is not int currentVersion)
-            return "현재 버전을 확인할 수 없습니다. 설치 경로를 다시 설정해주세요.";
-
-        // TODO: [#140] 임시조치
-        if (_currentClientVersion == 34100)
-            return string.Empty;
-
-        return Versions.Any(item => item.Version == currentVersion)
-            ? string.Empty
-            : "클라이언트가 너무 오래되었습니다. 삭제 후 재설치 하세요.";
+        OnPropertyChanged(nameof(PatchStatusHeader));
+        OnPropertyChanged(nameof(PatchStatusDescription));
+        OnPropertyChanged(nameof(PatchStatusLinkVisibility));
     }
 
     /// <summary>
@@ -599,7 +624,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     }
 
     /// <summary>
-    /// 선택한 버전 기준으로 메인 클라이언트 패치를 실행하고 옵션에 따라 다클라 재구성까지 이어갑니다.
+    /// 선택한 버전 기준으로 메인 클라이언트를 패치하고, 생성된 다클라를 설정 파일 보존 정책으로 갱신합니다.
     /// </summary>
     private void Button_PatchStart_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
         => SafeExecution.RunHandledAsync(StartPatchAsync, $"{nameof(GamePatchSettingPage)}.{nameof(Button_PatchStart_Click)}")
@@ -685,8 +710,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
             PatchRunOptions option = new(
                 DeleteTempFilesAfterPatch: ShouldDeleteTemp,
-                ArchiveReuseMode: archiveReuseMode,
-                ApplyMultiClientPatch: ShouldPatchMultiClient);
+                ArchiveReuseMode: archiveReuseMode);
 
             await GameMaintenanceService.PatchAsync(
                 _selectedGameServer,
@@ -696,6 +720,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 patchProgress,
                 _patchCts.Token);
 
+            RefreshInstalledVersionAfterPatch(clientSetting.InstallPath);
             ProgressValue = ProgressMaximum;
             ProgressText = "패치가 완료되었습니다.";
             ShowPatchResultTeachingTip("패치 성공", ProgressText);
@@ -958,9 +983,16 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             return false;
         }
 
-        if (reason == LeaveReason.AppExit && XamlRoot is not null)
-            return await ExitConfirmationDialog.ShowAsync(XamlRoot);
+        // Shell section changes can hide the page without unloading it. Close its
+        // root-hosted popup before allowing navigation, so it cannot outlive this page.
+        if (PatchReadmeDrawer.State != DrawerState.Closed && !await PatchReadmeDrawer.CloseAsync())
+            return false;
 
+        if (reason == LeaveReason.AppExit && XamlRoot is not null
+            && !await ExitConfirmationDialog.ShowAsync(XamlRoot))
+            return false;
+
+        TeachingTip_PatchResult.IsOpen = false;
         return true;
     }
 
@@ -994,68 +1026,72 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         await dialog.ShowManagedAsync();
     }
 
-    #region SelectorBar
-    private async void SelectorBar_Server_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
-    {
-        SelectorBarItem? selectedItem = sender.SelectedItem;
-        UpdateSelectorBarVisualState(sender, selectedItem);
+    #region Segmented server selection
+    private void Segmented_Server_SelectionChanged(object sender, SelectionChangedEventArgs args)
+        => SafeExecution.RunHandledAsync(async () =>
+        {
+            if (_suppressServerSelectionChanged
+                || sender is not Segmented { SelectedItem: SegmentedItem selectedItem }
+                || selectedItem.Tag is not GameServer server
+                || _selectedGameServer == server)
+                return;
 
-        if (_suppressServerSelectionChanged)
-            return;
+            if (IsBusy || PatchReadmeDrawer.State != DrawerState.Closed)
+            {
+                ApplySelectedServer(_selectedGameServer);
+                return;
+            }
+            ApplySelectedServer(server);
+            await LoadPatchInfoAsync();
+        }, $"{nameof(GamePatchSettingPage)}.{nameof(Segmented_Server_SelectionChanged)}")
+            .FireAndForgetHandled($"{nameof(GamePatchSettingPage)}.{nameof(Segmented_Server_SelectionChanged)}");
 
-        if (selectedItem.Tag is not GameServer selectedGameServer)
-            return;
-
-        if (_selectedGameServer == selectedGameServer)
-            return;
-
-        _selectedGameServer = selectedGameServer;
-        await LoadPatchInfoAsync();
-    }
-
-    /// <summary>
-    /// 외부에서 지정한 서버를 SelectorBar 선택 상태와 내부 서버 상태에 함께 반영합니다.
-    /// </summary>
     private void ApplySelectedServer(GameServer server)
     {
         _selectedGameServer = server;
-
         _suppressServerSelectionChanged = true;
-        SelectorBar_Server.SelectedItem = GetSelectorBarItem(server);
-        UpdateSelectorBarVisualState(SelectorBar_Server, SelectorBar_Server.SelectedItem);
-        _suppressServerSelectionChanged = false;
+        try { Segmented_Server.SelectedItem = GetSegmentedItem(server); }
+        finally { _suppressServerSelectionChanged = false; }
+        OnPropertyChanged(nameof(PatchReadmeTitle));
     }
 
-    /// <summary>
-    /// 서버 열거형에 대응하는 SelectorBarItem 인스턴스를 반환합니다.
-    /// </summary>
-    private SelectorBarItem GetSelectorBarItem(GameServer server)
+    private SegmentedItem GetSegmentedItem(GameServer server)
         => server switch
         {
-            GameServer.Korea_Live => SelectorBarItem_Live,
-            GameServer.Korea_Test => SelectorBarItem_Test,
-            GameServer.Korea_RnD => SelectorBarItem_RnD,
+            GameServer.Korea_Live => SegmentedItem_Live,
+            GameServer.Korea_Test => SegmentedItem_Test,
+            GameServer.Korea_RnD => SegmentedItem_RnD,
             _ => throw new ArgumentOutOfRangeException(nameof(server), server, null),
         };
+    #endregion Segmented server selection
 
-    /// <summary>
-    /// SelectorBar의 모든 항목 스타일을 초기화하고 선택 항목만 강조합니다.
-    /// </summary>
-    private static void UpdateSelectorBarVisualState(SelectorBar selectorBar, SelectorBarItem? selectedItem)
+    private void Button_ViewPatchReadme_Click(object sender, RoutedEventArgs e)
+        => SafeExecution.RunHandledAsync(OpenPatchReadmeAsync,
+            $"{nameof(GamePatchSettingPage)}.{nameof(Button_ViewPatchReadme_Click)}")
+            .FireAndForgetHandled($"{nameof(GamePatchSettingPage)}.{nameof(Button_ViewPatchReadme_Click)}");
+
+    private async Task OpenPatchReadmeAsync()
     {
-        foreach (SelectorBarItem item in selectorBar.Items.OfType<SelectorBarItem>())
-        {
-            item.FontWeight = FontWeights.Normal;
-            item.FontSize = 14;
-        }
-
-        if (selectedItem is null)
+        if (!CanOpenPatchReadme || !IsLoaded || PatchReadmeDrawer.State != DrawerState.Closed)
             return;
 
-        selectedItem.FontWeight = FontWeights.SemiBold;
-        selectedItem.FontSize = 20;
+        // Build the initial document before opening, so the first animated frame
+        // already has content. Reopening preserves the existing document and position.
+        if (_nextPatchReadmeRenderIndex == 0)
+            RenderNextPatchReadmeBatch(InitialPatchReadmeRenderCount);
+
+        PatchReadmeDrawer.Host = XamlRoot.Content as FrameworkElement ?? PatchPageRoot;
+        await PatchReadmeDrawer.OpenAsync();
     }
-    #endregion SelectorBar
+
+    private void Button_ClosePatchReadme_Click(object sender, RoutedEventArgs e)
+        => SafeExecution.RunHandledAsync(async () => { await PatchReadmeDrawer.CloseAsync(); },
+            $"{nameof(GamePatchSettingPage)}.{nameof(Button_ClosePatchReadme_Click)}")
+            .FireAndForgetHandled($"{nameof(GamePatchSettingPage)}.{nameof(Button_ClosePatchReadme_Click)}");
+
+    private void PatchReadmeDrawer_InteractionFailed(object? sender, DrawerInteractionFailedEventArgs e)
+        => Task.FromException(e.Exception)
+            .FireAndForgetHandled($"{nameof(GamePatchSettingPage)}.{nameof(PatchReadmeDrawer_InteractionFailed)}");
 
     private void HyperlinkButton_DeprecatedVersionInfo_Click(object sender, RoutedEventArgs e)
     {

@@ -491,26 +491,11 @@ public static class AppDataManager
     public static void SaveServerClientSettings(GameServer server, ClientSettings settings)
         => TrySaveServerClientSettings(server, settings);
 
-    public static async Task<AppDataOperationResult> SaveServerClientSettingsAsync(GameServer server, ClientSettings settings)
-    {
-        string installPath = settings.InstallPath;
-        bool overwrite = settings.OverwriteMultiClientConfig;
-        return await UpdateServerClientSettingsAsync(server, current =>
-        {
-            current.InstallPath = installPath;
-            current.OverwriteMultiClientConfig = overwrite;
-        }).ConfigureAwait(false);
-    }
+    public static Task<AppDataOperationResult> SaveServerClientSettingsAsync(GameServer server, ClientSettings settings)
+        => SaveServerInstallPathAsync(server, settings.InstallPath);
 
     /// <summary>다른 설정을 유지하고 지정한 서버의 설치 경로만 저장합니다.</summary>
-    public static Task<AppDataOperationResult> SaveServerInstallPathAsync(GameServer server, string installPath)
-        => UpdateServerClientSettingsAsync(server, settings => settings.InstallPath = installPath);
-
-    /// <summary>설치 경로를 유지하고 다클라 설정 파일 덮어쓰기 여부만 저장합니다.</summary>
-    public static Task<AppDataOperationResult> SaveServerOverwriteMultiClientConfigAsync(GameServer server, bool overwrite)
-        => UpdateServerClientSettingsAsync(server, settings => settings.OverwriteMultiClientConfig = overwrite);
-
-    private static async Task<AppDataOperationResult> UpdateServerClientSettingsAsync(GameServer server, Action<ClientSettings> update)
+    public static async Task<AppDataOperationResult> SaveServerInstallPathAsync(GameServer server, string installPath)
     {
         await ClientSettingsGate.WaitAsync().ConfigureAwait(false);
         try
@@ -521,7 +506,7 @@ public static class AppDataManager
 
             if (!all.Servers.TryGetValue(server, out var settings))
                 all.Servers[server] = settings = new ClientSettings();
-            update(settings);
+            settings.InstallPath = installPath;
             return await SaveAllServerClientSettingsAsync(all).ConfigureAwait(false);
         }
         finally { ClientSettingsGate.Release(); }

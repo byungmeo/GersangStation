@@ -1236,7 +1236,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                     InstallPath = installPath,
                     DestPath2 = clientIndex == 1 ? settings.Client2Path : string.Empty,
                     DestPath3 = clientIndex == 2 ? settings.Client3Path : string.Empty,
-                    OverwriteConfig = settings.OverwriteMultiClientConfig,
                     LayoutPolicy = layoutPolicy
                 });
             createResult = new(true, string.Empty, null, null, null);
