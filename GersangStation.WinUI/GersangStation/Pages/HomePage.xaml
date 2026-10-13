@@ -163,8 +163,12 @@
                             Margin="0"
                             Padding="0"
                             VerticalAlignment="Center"
+                            AutomationProperties.Name="게임 공지사항 전체 보기"
+                            Click="HomepageNotice_Click"
                             CornerRadius="18"
-                            Style="{ThemeResource SubtleButtonStyle}">
+                            Style="{ThemeResource SubtleButtonStyle}"
+                            Tag="https://www.gersang.co.kr/news/notice.gs?GSbid=1001"
+                            ToolTipService.ToolTip="게임 공지사항 전체 보기">
                             <FontIcon FontSize="18" Glyph="&#xECC8;" />
                         </Button>
                     </StackPanel>
