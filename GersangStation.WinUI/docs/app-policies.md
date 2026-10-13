@@ -14,8 +14,8 @@ Applies only to the matching feature in `GersangStation.WinUI/GersangStation/`. 
 ## Navigation and startup
 
 - App web links normally open in the internal WebView unless OS browser handoff is required.
-- Admin startup and desktop shortcuts share one elevated task through `AdminStartupRegistrationService`; startup controls its logon trigger. Keep the launch script in PowerShell `-EncodedCommand`, not an AppData/package support file.
-- When changing this launch flow, verify the actual process/window; scheduled-task success does not prove app launch or standard-user support.
+- Automatic startup uses the package's `GersangStationStartup` task through `Windows.ApplicationModel.StartupTask`. Read Windows state without changing it when loading settings; respect user-disabled and policy-controlled states. Do not create elevated scheduled tasks, PowerShell launchers, or administrator shortcuts. Existing legacy scheduled tasks are cleaned up manually, not migrated or deleted by the app.
+- Validate actual logon activation separately from compilation. Main-app startup remains `asInvoker`; elevation for the on-demand game maintenance worker and advanced-feature permission checks are separate policies.
 
 ## Packaged links and policy assets
 

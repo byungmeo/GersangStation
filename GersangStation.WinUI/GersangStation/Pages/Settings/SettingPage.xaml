@@ -75,38 +75,6 @@
                     </StackPanel>
                 </NavigationViewItem.Content>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="NavigationViewItem_Behavior" Tag="BehaviorSettingPage">
-                <NavigationViewItem.Content>
-                    <StackPanel Orientation="Horizontal">
-                        <Viewbox
-                            Width="17"
-                            Height="17"
-                            Stretch="UniformToFill">
-                            <FontIcon Glyph="&#xE912;" />
-                        </Viewbox>
-                        <TextBlock
-                            Margin="15,0,0,0"
-                            VerticalAlignment="Center"
-                            Text="동작" />
-                    </StackPanel>
-                </NavigationViewItem.Content>
-            </NavigationViewItem>
-            <NavigationViewItem x:Name="NavigationViewItem_Execution" Tag="ExecutionSettingPage">
-                <NavigationViewItem.Content>
-                    <StackPanel Orientation="Horizontal">
-                        <Viewbox
-                            Width="17"
-                            Height="17"
-                            Stretch="UniformToFill">
-                            <FontIcon Glyph="&#xE7E8;" />
-                        </Viewbox>
-                        <TextBlock
-                            Margin="15,0,0,0"
-                            VerticalAlignment="Center"
-                            Text="실행" />
-                    </StackPanel>
-                </NavigationViewItem.Content>
-            </NavigationViewItem>
         </NavigationView.MenuItems>
         <NavigationView.FooterMenuItems>
             <NavigationViewItem

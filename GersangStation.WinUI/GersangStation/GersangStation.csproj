@@ -154,11 +154,6 @@
         <ProjectReference Include="..\..\GersangStation.Shared\GersangStation.Shared.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Pages\Settings\BehaviorSettingPage.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-	</ItemGroup>
-	<ItemGroup>
 		<Page Update="Pages\Settings\ProgramInfoPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
