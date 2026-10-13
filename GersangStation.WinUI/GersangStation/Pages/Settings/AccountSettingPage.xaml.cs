@@ -224,6 +224,30 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         AccountEditorDrawer.RegisterPropertyChangedCallback(Drawer.StateProperty, (_, _) => NotifyEditorStateChanged());
     }
 
+    /// <summary>
+    /// 최초 표시 시 이미 측정된 카드 영역의 높이를 반영합니다.
+    /// </summary>
+    private void AccountCardViewport_Loaded(object sender, RoutedEventArgs e)
+        => UpdateAccountCardContentHeight(AccountCardViewport.ActualHeight);
+
+    /// <summary>
+    /// ActualHeight는 변경 알림을 제공하지 않으므로 독립된 부모 영역의 SizeChanged에서 높이를 반영합니다.
+    /// </summary>
+    private void AccountCardViewport_SizeChanged(object sender, SizeChangedEventArgs e)
+        => UpdateAccountCardContentHeight(e.NewSize.Height);
+
+    private void UpdateAccountCardContentHeight(double viewportHeight)
+    {
+        if (AccountCardContent is null || AccountSettingsCard is null)
+            return;
+
+        Thickness padding = AccountSettingsCard.Padding;
+        Thickness borderThickness = AccountSettingsCard.BorderThickness;
+        double height = Math.Max(0, viewportHeight - padding.Top - padding.Bottom - borderThickness.Top - borderThickness.Bottom);
+        if (AccountCardContent.Height != height)
+            AccountCardContent.Height = height;
+    }
+
     protected override async void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);

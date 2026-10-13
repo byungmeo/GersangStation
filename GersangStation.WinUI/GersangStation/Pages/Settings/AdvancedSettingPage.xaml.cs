@@ -1,7 +1,10 @@
 using Core;
+using GersangStation.Diagnostics;
 using GersangStation.Services;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml;
+using System;
+using Windows.System;
 
 namespace GersangStation.Main.Setting;
 
@@ -26,6 +29,7 @@ public sealed partial class AdvancedSettingPage : Page
         _isInitializing = false;
     }
 
+    /// <summary>
     /// 초기 바인딩이 끝난 뒤 사용자가 토글을 바꾸면 마우스 가두기 활성화 상태를 저장합니다.
     /// </summary>
     private void ToggleSwitch_MouseConfinement_Toggled(object sender, RoutedEventArgs e)
@@ -61,7 +65,7 @@ public sealed partial class AdvancedSettingPage : Page
     }
 
     /// <summary>
-    /// 관리자 권한 여부와 토글 상태에 따라 단축키 패널 및 경고 표시를 갱신합니다.
+    /// 관리자 권한 경고를 갱신하고 토글 상태에 맞춰 종속 항목을 펼치거나 접습니다.
     /// </summary>
     private void UpdateClipMouseUiState()
     {
@@ -69,11 +73,11 @@ public sealed partial class AdvancedSettingPage : Page
         bool isClipMouseOn = ToggleSwitch_MouseConfinement.IsOn;
 
         Panel_ClipMouseAdminWarning.Visibility = isAdmin ? Visibility.Collapsed : Visibility.Visible;
-        Border_ClipMouseHotkeyPanel.Visibility = isClipMouseOn ? Visibility.Visible : Visibility.Collapsed;
+        SettingsExpander_MouseConfinement.IsExpanded = isClipMouseOn;
     }
 
     /// <summary>
-    /// 관리자 권한 여부와 토글 상태에 따라 창 전환 안내 패널 및 경고 표시를 갱신합니다.
+    /// 관리자 권한 경고를 갱신하고 토글 상태에 맞춰 창 전환 종속 항목을 펼치거나 접습니다.
     /// </summary>
     private void UpdateWindowSwitchUiState()
     {
@@ -81,15 +85,21 @@ public sealed partial class AdvancedSettingPage : Page
         bool isWindowSwitchOn = ToggleSwitch_WindowSwitching.IsOn;
 
         Panel_WindowSwitchAdminWarning.Visibility = isAdmin ? Visibility.Collapsed : Visibility.Visible;
-        Border_WindowSwitchHotkeyPanel.Visibility = isWindowSwitchOn ? Visibility.Visible : Visibility.Collapsed;
+        SettingsExpander_WindowSwitching.IsExpanded = isWindowSwitchOn;
     }
 
     /// <summary>
-    /// 관리자 권한 도움말 링크를 앱 내부 브라우저 페이지에서 엽니다.
+    /// 관리자 권한 도움말 링크를 기본 외부 브라우저에서 엽니다.
     /// </summary>
-    private void HyperlinkButton_ClipMouseAdminHelp_Click(object sender, RoutedEventArgs e)
+    private async void HyperlinkButton_ClipMouseAdminHelp_Click(object sender, RoutedEventArgs e)
     {
-        if (App.CurrentWindow is MainWindow window)
-            window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpAdminClipMouse);
+        await SafeExecution.RunHandledAsync(async () =>
+        {
+            if (!App.LinkManager.TryGetUrl(AppLinkKeys.HelpAdminClipMouse, out string url))
+                throw new InvalidOperationException("관리자 권한 도움말 주소를 불러올 수 없습니다.");
+
+            if (!await Launcher.LaunchUriAsync(new Uri(url)))
+                throw new InvalidOperationException("기본 외부 브라우저에서 관리자 권한 도움말을 열지 못했습니다.");
+        }, "AdvancedSettingPage.OpenAdminHelpInExternalBrowser");
     }
 }

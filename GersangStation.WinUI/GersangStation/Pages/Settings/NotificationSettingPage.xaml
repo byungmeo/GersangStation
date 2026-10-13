@@ -6,39 +6,36 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:GersangStation.Main.Setting"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    NavigationCacheMode="Disabled"
     mc:Ignorable="d">
-
-    <Grid>
-        <ScrollViewer>
-            <StackPanel Padding="24,24,24,40" Spacing="20">
+    <ScrollViewer
+        HorizontalContentAlignment="Stretch"
+        HorizontalScrollBarVisibility="Disabled"
+        HorizontalScrollMode="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <Grid Padding="24" HorizontalAlignment="Stretch">
+            <StackPanel
+                MaxWidth="896"
+                HorizontalAlignment="Stretch"
+                Spacing="16">
                 <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="알림 설정" />
-
-                <Border
-                    Padding="20"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                    BorderThickness="1"
-                    CornerRadius="12">
-                    <StackPanel Spacing="12">
-                        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="종료 임박 이벤트 하이라이트" />
-                        <TextBlock
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            Text="이벤트 종료까지 몇 일 남았을 때 강조하여 표시할까요? (기본값: 3일)"
-                            TextWrapping="WrapWholeWords" />
-                        <NumberBox
-                            x:Name="NumberBox_EventUrgencyThresholdDays"
-                            Width="180"
-                            HorizontalAlignment="Left"
-                            Header="기준일"
-                            IsTabStop="False"
-                            Loaded="NumberBox_EventUrgencyThresholdDays_Loaded"
-                            Minimum="0"
-                            SmallChange="1"
-                            SpinButtonPlacementMode="Inline"
-                            Value="{x:Bind EventUrgencyThresholdDays, Mode=TwoWay}" />
-                    </StackPanel>
-                </Border>
+                <toolkit:SettingsCard
+                    Description="이벤트 종료까지 몇 일 남았을 때 강조하여 표시할까요? (기본값: 3일)"
+                    Header="종료 임박 이벤트 하이라이트">
+                    <NumberBox
+                        x:Name="NumberBox_EventUrgencyThresholdDays"
+                        Width="180"
+                        AutomationProperties.Name="이벤트 종료 임박 기준일"
+                        Header="기준일"
+                        IsTabStop="False"
+                        Loaded="NumberBox_EventUrgencyThresholdDays_Loaded"
+                        Minimum="0"
+                        SmallChange="1"
+                        SpinButtonPlacementMode="Inline"
+                        Value="{x:Bind EventUrgencyThresholdDays, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
             </StackPanel>
-        </ScrollViewer>
-    </Grid>
+        </Grid>
+    </ScrollViewer>
 </Page>
