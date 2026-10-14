@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.AppearanceSettingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    NavigationCacheMode="Disabled">
+    <ScrollViewer
+        HorizontalContentAlignment="Stretch"
+        HorizontalScrollBarVisibility="Disabled"
+        HorizontalScrollMode="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <Grid Padding="24" HorizontalAlignment="Stretch">
+            <StackPanel MaxWidth="896" HorizontalAlignment="Stretch" Spacing="16">
+                <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="모양 설정" />
+                <toolkit:SettingsCard Header="앱 테마" Description="앱에 사용할 밝은 테마 또는 어두운 테마를 선택하세요.">
+                    <ComboBox x:Name="ThemeComboBox" MinWidth="180"
+                              AutomationProperties.Name="앱 테마"
+                              SelectionChanged="ThemeComboBox_SelectionChanged">
+                        <ComboBoxItem Content="시스템 (기본값)" />
+                        <ComboBoxItem Content="라이트" />
+                        <ComboBoxItem Content="다크" />
+                    </ComboBox>
+                </toolkit:SettingsCard>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

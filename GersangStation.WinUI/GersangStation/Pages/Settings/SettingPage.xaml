@@ -100,7 +100,7 @@
             </NavigationViewItem>
             <NavigationViewItem x:Name="NavigationViewItem_General" Tag="GeneralSettingPage" />
             <NavigationViewItem x:Name="NavigationViewItem_GameExtension" Tag="GameExtensionSettingPage" />
-            <NavigationViewItem x:Name="NavigationViewItem_Appearance" Tag="AppearancePlaceholder" />
+            <NavigationViewItem x:Name="NavigationViewItem_Appearance" Tag="AppearanceSettingPage" />
             <NavigationViewItem x:Name="NavigationViewItem_Browser" Tag="BrowserSettingPage" />
         </NavigationView.FooterMenuItems>
     </NavigationView>

@@ -1,4 +1,5 @@
 using Core;
+using Core.Models;
 using GersangStation.Controls;
 using GersangStation.Diagnostics;
 using GersangStation.Main.Setting;
@@ -77,6 +78,8 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Root.ActualThemeChanged += OnRootActualThemeChanged;
+        ApplyAppTheme(AppDataManager.AppThemePreference);
         _contentTransition = new ContentTransition(ShellContent);
 
         BrowserSession = new BrowserSession(BrowserWebView);
@@ -116,6 +119,7 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        Root.ActualThemeChanged -= OnRootActualThemeChanged;
         _contentTransition.Cancel();
         (SettingFrame.Content as SettingPage)?.PrepareForContentNavigation();
         Activated -= OnActivated;
@@ -139,6 +143,25 @@ public sealed partial class MainWindow : Window
             finally { GameStarter.Dispose(); }
         }
     }
+
+    internal void ApplyAppTheme(AppThemePreference preference)
+    {
+        Root.RequestedTheme = preference switch
+        {
+            AppThemePreference.Light => ElementTheme.Light,
+            AppThemePreference.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
+        UpdateTitleBarTheme();
+    }
+
+    private void OnRootActualThemeChanged(FrameworkElement sender, object args)
+        => SafeExecution.RunHandledAsync(UpdateTitleBarTheme, "MainWindow.ActualThemeChanged")
+            .FireAndForgetHandled("MainWindow.ActualThemeChanged");
+
+    private void UpdateTitleBarTheme()
+        => AppWindow.TitleBar.PreferredTheme = Root.ActualTheme == ElementTheme.Dark
+            ? TitleBarTheme.Dark : TitleBarTheme.Light;
 
     /// <summary>
     /// 저장된 마우스 가두기 설정이 바뀌면 즉시 감시 상태에 반영합니다.

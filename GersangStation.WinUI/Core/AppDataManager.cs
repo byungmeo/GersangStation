@@ -93,6 +93,18 @@ public static partial class AppDataManager
     private const string BrowserFavoritesFileName = "browser-favorites.json";
 
     #region LocalSettings Properties
+    public static AppThemePreference AppThemePreference
+    {
+        get
+        {
+            int stored = LoadLocalSetting("AppThemePreference", (int)Models.AppThemePreference.System);
+            return Enum.IsDefined(typeof(AppThemePreference), stored)
+                ? (AppThemePreference)stored : Models.AppThemePreference.System;
+        }
+        set => SaveLocalSetting("AppThemePreference",
+            (int)(Enum.IsDefined(value) ? value : Models.AppThemePreference.System));
+    }
+
     public static BrowserSearchProvider BrowserSearchProvider
     {
         get
