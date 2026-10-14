@@ -261,7 +261,7 @@
                     HorizontalAlignment="Center"
                     FontSize="28"
                     FontWeight="SemiBold"
-                    Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"
                     Text="패치 버전 정보를 불러오는 중..." />
             </StackPanel>
         </Grid>
