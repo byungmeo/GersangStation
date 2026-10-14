@@ -3,10 +3,8 @@ using Core.Models;
 using GersangStation.Diagnostics;
 using GersangStation.Main.Setting;
 using GersangStation.Services;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
@@ -327,7 +325,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         Unloaded += OnUnloaded;
         _eventFlipTimer.Interval = EventFlipInterval;
         _eventFlipTimer.Tick += EventFlipTimer_Tick;
-        _eventUrgencyTimer.Tick += EventUrgencyTimer_Tick;
         _isInitializing = false;
     }
 
@@ -337,6 +334,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         _isViewUnloaded = false;
+        EventBanner.IsActive = _isShellActive;
     }
 
     /// <summary>
@@ -347,7 +345,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         _isViewUnloaded = true;
         _eventPeriodOverlayVersion++;
         StopEventFlipTimer();
-        StopEventUrgencyTimer(resetHighlight: true);
+        EventBanner.IsActive = false;
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -362,6 +360,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     internal async Task OnShellActivatedAsync(MainWindow? window)
     {
         _isShellActive = true;
+        EventBanner.IsActive = true;
         _shellWindow = window ?? _shellWindow ?? App.CurrentWindow as MainWindow;
 
         if (_shellWindow is not null)
@@ -409,7 +408,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         _isShellActive = false;
         _eventPeriodOverlayVersion++;
         StopEventFlipTimer();
-        StopEventUrgencyTimer(resetHighlight: true);
+        EventBanner.IsActive = false;
         CancelEventLoad();
         CancelHomepageNoticeLoad();
         CancelGersangStationNoticeLoad();
@@ -1273,19 +1272,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private static readonly TimeSpan EventRefreshInterval = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan EventFlipInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan EventPeriodOverlayShowDelay = TimeSpan.FromMilliseconds(320);
-    // Two quick flashes followed by a longer rest keeps the alert noticeable
-    // without crossing the 3 flashes/sec accessibility threshold.
-    private static readonly (bool Highlighted, TimeSpan Duration)[] EventUrgencyBlinkPhases =
-    [
-        (true, TimeSpan.FromMilliseconds(240)),
-        (false, TimeSpan.FromMilliseconds(160)),
-        (true, TimeSpan.FromMilliseconds(240)),
-        (false, TimeSpan.FromMilliseconds(2360))
-    ];
     private int _eventPeriodOverlayVersion;
-    private readonly DispatcherTimer _eventUrgencyTimer = new();
-    private bool _isEventUrgencyHighlighted;
-    private int _eventUrgencyPhaseIndex;
     private int _selectedEventIndex = -1;
     public IReadOnlyList<StationEventThumbnailItem> EventItems { get; private set; } = [];
     public IReadOnlyList<StationHomepageNoticeItem> HomepageNoticeItems { get; private set; } = [];
@@ -1327,8 +1314,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         }
     }
 
-    public Visibility EventUrgencyTextVisibility
-        => IsCurrentEventDeadlineSoon() ? Visibility.Visible : Visibility.Collapsed;
+    public int CurrentEventRemainingDays => GetCurrentEventItem()?.RemainingDays ?? -1;
 
     /// <summary>
     /// 이벤트 목록을 주기적으로 다시 읽어오되, 최근 결과가 있으면 재사용합니다.
@@ -1365,10 +1351,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             OnPropertyChanged(nameof(EventItems));
             OnPropertyChanged(nameof(EventHeaderText));
             OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
-            OnPropertyChanged(nameof(EventUrgencyTextVisibility));
+            OnPropertyChanged(nameof(CurrentEventRemainingDays));
             EventPeriodOverlayVisibility = EventItems.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
-            UpdateEventUrgencyTimerState();
             UpdateEventFlipTimerState();
         }
         catch (OperationCanceledException)
@@ -1384,8 +1369,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             OnPropertyChanged(nameof(EventHeaderText));
             OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
             OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
-            OnPropertyChanged(nameof(EventUrgencyTextVisibility));
-            UpdateEventUrgencyTimerState();
+            OnPropertyChanged(nameof(CurrentEventRemainingDays));
             UpdateEventFlipTimerState();
             Debug.WriteLine($"[StationPage] 이벤트 목록 로드 실패: {ex}");
         }
@@ -1577,7 +1561,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         EventPeriodOverlayVisibility = Visibility.Collapsed;
         OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
-        OnPropertyChanged(nameof(EventUrgencyTextVisibility));
+        OnPropertyChanged(nameof(CurrentEventRemainingDays));
     }
 
     /// <summary>
@@ -1596,8 +1580,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             EventPeriodOverlayVisibility = Visibility.Visible;
             OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
             OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
-            OnPropertyChanged(nameof(EventUrgencyTextVisibility));
-            UpdateEventUrgencyTimerState();
+            OnPropertyChanged(nameof(CurrentEventRemainingDays));
         }
     }
 
@@ -1631,7 +1614,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         HideEventPeriodOverlay();
         OnPropertyChanged(nameof(EventHeaderText));
         OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
-        OnPropertyChanged(nameof(EventUrgencyTextVisibility));
+        OnPropertyChanged(nameof(CurrentEventRemainingDays));
         ResetEventFlipTimer();
         ShowEventPeriodOverlayWhenReady();
     }
@@ -1711,91 +1694,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
         if (FlipView_Event.SelectedIndex != index)
             FlipView_Event.SelectedIndex = index;
-    }
-
-    /// <summary>
-    /// 현재 선택된 이벤트가 사용자 설정 기준으로 마감 임박 상태인지 판별합니다.
-    /// </summary>
-    private bool IsCurrentEventDeadlineSoon()
-    {
-        StationEventThumbnailItem? currentItem = GetCurrentEventItem();
-        int? remainingDays = currentItem?.RemainingDays;
-        return remainingDays is >= 0 && remainingDays <= AppDataManager.EventUrgencyThresholdDays;
-    }
-
-    private void EventUrgencyTimer_Tick(object? sender, object e)
-    {
-        if (!IsCurrentEventDeadlineSoon())
-        {
-            StopEventUrgencyTimer(resetHighlight: true);
-            return;
-        }
-
-        _eventUrgencyPhaseIndex = (_eventUrgencyPhaseIndex + 1) % EventUrgencyBlinkPhases.Length;
-        ApplyEventUrgencyPhase(_eventUrgencyPhaseIndex);
-    }
-
-    /// <summary>
-    /// 현재 선택된 이벤트의 마감 임박 여부에 따라 썸네일 테두리 강조 타이머를 조정합니다.
-    /// </summary>
-    private void UpdateEventUrgencyTimerState()
-    {
-        if (IsCurrentEventDeadlineSoon())
-        {
-            StartEventUrgencyTimer();
-            return;
-        }
-
-        StopEventUrgencyTimer(resetHighlight: true);
-    }
-
-    /// <summary>
-    /// 이벤트 마감 임박 강조 패턴을 처음부터 다시 시작합니다.
-    /// </summary>
-    private void StartEventUrgencyTimer()
-    {
-        _eventUrgencyTimer.Stop();
-        _eventUrgencyPhaseIndex = 0;
-        ApplyEventUrgencyPhase(_eventUrgencyPhaseIndex);
-        _eventUrgencyTimer.Start();
-    }
-
-    /// <summary>
-    /// 현재 강조 단계의 색상과 다음 틱 간격을 반영합니다.
-    /// </summary>
-    private void ApplyEventUrgencyPhase(int phaseIndex)
-    {
-        (bool highlighted, TimeSpan duration) = EventUrgencyBlinkPhases[phaseIndex];
-        _eventUrgencyTimer.Interval = duration;
-        SetEventUrgencyHighlight(highlighted);
-    }
-
-    /// <summary>
-    /// 이벤트 배너 위 강조 전용 오버레이 테두리 상태를 적용합니다.
-    /// </summary>
-    private void SetEventUrgencyHighlight(bool highlighted)
-    {
-        if (_isEventUrgencyHighlighted == highlighted)
-            return;
-
-        _isEventUrgencyHighlighted = highlighted;
-        EventUrgencyOverlayBorder.BorderBrush = highlighted
-            ? new SolidColorBrush(Colors.IndianRed)
-            : new SolidColorBrush(Colors.Transparent);
-    }
-
-    /// <summary>
-    /// 이벤트 마감 임박 강조 타이머를 중지하고 기본 테두리 상태로 되돌립니다.
-    /// </summary>
-    private void StopEventUrgencyTimer(bool resetHighlight)
-    {
-        if (_eventUrgencyTimer.IsEnabled)
-            _eventUrgencyTimer.Stop();
-
-        if (!resetHighlight)
-            return;
-
-        SetEventUrgencyHighlight(false);
     }
 
     /// <summary>

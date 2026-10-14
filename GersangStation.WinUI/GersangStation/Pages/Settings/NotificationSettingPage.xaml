@@ -7,6 +7,7 @@
     xmlns:local="using:GersangStation.Main.Setting"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:controls="using:GersangStation.Controls"
     NavigationCacheMode="Disabled"
     mc:Ignorable="d">
     <ScrollViewer
@@ -20,21 +21,91 @@
                 HorizontalAlignment="Stretch"
                 Spacing="16">
                 <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="알림 설정" />
-                <toolkit:SettingsCard
-                    Description="이벤트 종료까지 몇 일 남았을 때 강조하여 표시할까요? (기본값: 3일)"
-                    Header="종료 임박 이벤트 하이라이트">
-                    <NumberBox
-                        x:Name="NumberBox_EventUrgencyThresholdDays"
-                        Width="180"
-                        AutomationProperties.Name="이벤트 종료 임박 기준일"
-                        Header="기준일"
-                        IsTabStop="False"
-                        Loaded="NumberBox_EventUrgencyThresholdDays_Loaded"
-                        Minimum="0"
-                        SmallChange="1"
-                        SpinButtonPlacementMode="Inline"
-                        Value="{x:Bind EventUrgencyThresholdDays, Mode=TwoWay}" />
-                </toolkit:SettingsCard>
+                <toolkit:SettingsExpander Header="종료 임박 이벤트 강조 활성화" Description="종료가 가까운 이벤트를 강조하여 표시합니다."
+                                          IsExpanded="True">
+                    <ToggleSwitch AutomationProperties.Name="종료 임박 이벤트 강조 활성화"
+                                  IsOn="{x:Bind EventUrgencyEnabled, Mode=TwoWay}" OnContent="켬" OffContent="끔" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="이벤트 종료까지 몇 일 남았을 때 강조하여 표시할까요? (기본값: 3일)" Header="강조 조건"
+                                              IsEnabled="{x:Bind EventUrgencyEnabled, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <NumberBox
+                                    x:Name="NumberBox_EventUrgencyThresholdDays"
+                                    Width="156"
+                                    AutomationProperties.Name="이벤트 종료 임박 기준일"
+                                    IsTabStop="False"
+                                    Loaded="NumberBox_NoClear_Loaded"
+                                    Minimum="0"
+                                    Maximum="2147483647"
+                                    SmallChange="1"
+                                    SpinButtonPlacementMode="Inline"
+                                    Value="{x:Bind EventUrgencyThresholdDays, Mode=TwoWay}" />
+                                <TextBlock VerticalAlignment="Center" Text="일" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="강조 색상" Description="이벤트 배너의 강조 테두리 색상을 선택하세요."
+                                              IsEnabled="{x:Bind EventUrgencyEnabled, Mode=OneWay}">
+                            <Button AutomationProperties.Name="강조 색상 선택">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Border Width="20" Height="20" CornerRadius="4" Background="{x:Bind HighlightColorBrush, Mode=OneWay}"
+                                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1" />
+                                    <TextBlock Text="{x:Bind HighlightColorHex, Mode=OneWay}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <Flyout>
+                                        <ColorPicker AutomationProperties.Name="강조 색상"
+                                                     Loaded="HighlightColorPicker_Loaded" ColorChanged="HighlightColorPicker_ColorChanged"
+                                                     IsAlphaEnabled="False" IsAlphaSliderVisible="False" IsAlphaTextInputVisible="False"
+                                                     IsMoreButtonVisible="False" IsHexInputVisible="True" />
+                                    </Flyout>
+                                </Button.Flyout>
+                            </Button>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="테두리 두께" Description="이벤트 배너의 강조 테두리 두께를 조절합니다."
+                                              IsEnabled="{x:Bind EventUrgencyEnabled, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <NumberBox Width="156" AutomationProperties.Name="강조 테두리 두께" Minimum="1" Maximum="24"
+                                           SmallChange="1" SpinButtonPlacementMode="Inline" Loaded="NumberBox_NoClear_Loaded"
+                                           Value="{x:Bind EventUrgencyBorderThickness, Mode=TwoWay}" />
+                                <TextBlock VerticalAlignment="Center" Text="px" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="강조 반복 주기" Description="강조 표시가 반복되는 간격을 선택하세요."
+                                              IsEnabled="{x:Bind EventUrgencyEnabled, Mode=OneWay}">
+                            <ComboBox MinWidth="156" AutomationProperties.Name="강조 반복 주기" SelectedIndex="{x:Bind RepeatSpeedIndex, Mode=TwoWay}">
+                                <ComboBoxItem Content="느리게" ToolTipService.ToolTip="4.8초마다 반복" />
+                                <ComboBoxItem Content="기본" ToolTipService.ToolTip="2.4초마다 반복" />
+                                <ComboBoxItem Content="빠르게" ToolTipService.ToolTip="1.6초마다 반복" />
+                            </ComboBox>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="안내 문구" Description="종료 임박 이벤트의 안내 문구를 표시합니다."
+                                              IsEnabled="{x:Bind EventUrgencyEnabled, Mode=OneWay}">
+                            <ToggleSwitch AutomationProperties.Name="안내 문구 표시" OnContent="표시" OffContent="숨기기"
+                                          IsOn="{x:Bind EventUrgencyMessageEnabled, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <TextBlock Text="미리보기" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0,8,0,0" />
+                <controls:EventBanner HeaderText="진행 중 이벤트 1/1" PeriodText="{x:Bind PreviewPeriodText, Mode=OneWay}"
+                                      RemainingDays="{x:Bind PreviewRemainingDays, Mode=OneWay}">
+                    <controls:EventBanner.BannerContent>
+                        <Viewbox HorizontalAlignment="Stretch" VerticalAlignment="Top" Stretch="Uniform" StretchDirection="Both">
+                            <Grid Width="1920" Height="610" BorderBrush="{ThemeResource CardStrokeColorDefault}" BorderThickness="1">
+                                <Grid.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="{ThemeResource SystemAccentColorDark3}" Offset="0" />
+                                        <GradientStop Color="{ThemeResource SystemAccentColorLight1}" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Grid.Background>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="16">
+                                    <TextBlock Text="거상 이벤트" FontSize="96" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center" />
+                                    <TextBlock Text="이벤트 배너 미리보기" FontSize="48" Foreground="White" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Grid>
+                        </Viewbox>
+                    </controls:EventBanner.BannerContent>
+                </controls:EventBanner>
             </StackPanel>
         </Grid>
     </ScrollViewer>

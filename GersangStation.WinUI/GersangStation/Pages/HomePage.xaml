@@ -73,73 +73,42 @@
                 </controls:HorizontalScrollContainer.Source>
             </controls:HorizontalScrollContainer>
 
-            <Grid Grid.Row="1" CornerRadius="24">
-                <Viewbox
-                    HorizontalAlignment="Stretch"
-                    VerticalAlignment="Top"
-                    Stretch="Uniform"
-                    StretchDirection="Both">
-                    <FlipView
-                        x:Name="FlipView_Event"
-                        Width="1920"
-                        Height="610"
-                        BorderBrush="{ThemeResource CardStrokeColorDefault}"
-                        BorderThickness="1"
-                        ItemsSource="{x:Bind EventItems, Mode=OneWay}"
-                        SelectionChanged="FlipView_Event_SelectionChanged">
-                        <FlipView.ItemTemplate>
-                            <DataTemplate x:DataType="local:StationEventThumbnailItem">
-                                <HyperlinkButton
-                                    Padding="0"
-                                    BorderThickness="0"
-                                    Click="EventThumbnail_Click"
-                                    Tag="{x:Bind DetailUrl}">
-                                    <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" />
-                                </HyperlinkButton>
-                            </DataTemplate>
-                        </FlipView.ItemTemplate>
-                    </FlipView>
-                </Viewbox>
-                <Border
-                    x:Name="EventUrgencyOverlayBorder"
-                    BorderBrush="Transparent"
-                    BorderThickness="6"
-                    CornerRadius="24"
-                    IsHitTestVisible="False" />
-                <Border
-                    Margin="12,12,0,0"
-                    Padding="10,6"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Top"
-                    Background="#99000000"
-                    CornerRadius="8">
-                    <TextBlock
-                        Foreground="White"
-                        Text="{x:Bind EventHeaderText, Mode=OneWay}"
-                        TextWrapping="NoWrap" />
-                </Border>
-                <Border
-                    x:Name="Border_EventPeriodOverlay"
-                    Margin="0,12,12,0"
-                    Padding="10,6"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Background="#99000000"
-                    CornerRadius="8"
-                    Visibility="{x:Bind EventPeriodOverlayVisibility, Mode=OneWay}">
-                    <StackPanel Spacing="2">
-                        <TextBlock
-                            Foreground="White"
-                            Text="{x:Bind CurrentEventPeriodOverlayText, Mode=OneWay}"
-                            TextWrapping="NoWrap" />
-                        <TextBlock
-                            FontWeight="SemiLight"
-                            Foreground="Lime"
-                            Text="종료 임박! 보상을 수령하세요."
-                            Visibility="{x:Bind EventUrgencyTextVisibility, Mode=OneWay}" />
-                    </StackPanel>
-                </Border>
-            </Grid>
+            <controls:EventBanner
+                x:Name="EventBanner"
+                Grid.Row="1"
+                HeaderText="{x:Bind EventHeaderText, Mode=OneWay}"
+                PeriodText="{x:Bind CurrentEventPeriodOverlayText, Mode=OneWay}"
+                PeriodVisibility="{x:Bind EventPeriodOverlayVisibility, Mode=OneWay}"
+                RemainingDays="{x:Bind CurrentEventRemainingDays, Mode=OneWay}">
+                <controls:EventBanner.BannerContent>
+                    <Viewbox
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        Stretch="Uniform"
+                        StretchDirection="Both">
+                        <FlipView
+                            x:Name="FlipView_Event"
+                            Width="1920"
+                            Height="610"
+                            BorderBrush="{ThemeResource CardStrokeColorDefault}"
+                            BorderThickness="1"
+                            ItemsSource="{x:Bind EventItems, Mode=OneWay}"
+                            SelectionChanged="FlipView_Event_SelectionChanged">
+                            <FlipView.ItemTemplate>
+                                <DataTemplate x:DataType="local:StationEventThumbnailItem">
+                                    <HyperlinkButton
+                                        Padding="0"
+                                        BorderThickness="0"
+                                        Click="EventThumbnail_Click"
+                                        Tag="{x:Bind DetailUrl}">
+                                        <Image Source="{x:Bind ThumbnailUrl}" Stretch="UniformToFill" />
+                                    </HyperlinkButton>
+                                </DataTemplate>
+                            </FlipView.ItemTemplate>
+                        </FlipView>
+                    </Viewbox>
+                </controls:EventBanner.BannerContent>
+            </controls:EventBanner>
 
             <Grid Grid.Row="2" Padding="8">
                 <Grid.ColumnDefinitions>

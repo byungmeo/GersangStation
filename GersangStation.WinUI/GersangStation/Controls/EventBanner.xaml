@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="GersangStation.Controls.EventBanner"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsTabStop="False">
+    <Grid CornerRadius="24">
+        <ContentPresenter Content="{x:Bind BannerContent, Mode=OneWay}" HorizontalContentAlignment="Stretch" />
+        <Border x:Name="HighlightBorder" BorderBrush="Transparent" CornerRadius="24" IsHitTestVisible="False" />
+        <!-- Only the banner art is scaled. Labels and the highlight stay in window DIPs. -->
+        <Grid VerticalAlignment="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Margin="12,12,0,0" Padding="10,6" HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Background="#99000000" CornerRadius="8">
+                <TextBlock Foreground="White" Text="{x:Bind HeaderText, Mode=OneWay}" TextWrapping="NoWrap" />
+            </Border>
+            <Border Grid.Column="1" Margin="12,12,12,0" Padding="10,6" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Background="#99000000" CornerRadius="8" Visibility="{x:Bind PeriodVisibility, Mode=OneWay}">
+                <StackPanel Spacing="2">
+                    <TextBlock Foreground="White" Text="{x:Bind PeriodText, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="MessageTextBlock" FontWeight="SemiLight" Foreground="Lime"
+                               TextWrapping="WrapWholeWords" MaxLines="3" TextTrimming="CharacterEllipsis" Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -6,7 +6,7 @@ using Windows.Storage;
 
 namespace Core;
 
-public static class AppDataManager
+public static partial class AppDataManager
 {
     // All servers share one settings file. Serialize its entire read-modify-write cycle.
     private static readonly SemaphoreSlim ClientSettingsGate = new(1, 1);
@@ -216,11 +216,6 @@ public static class AppDataManager
     {
         get => (GameServer)LoadLocalSetting(SelectedServer_SettingKey, defaultValue: (int)GameServer.Korea_Live);
         set => SaveLocalSetting(SelectedServer_SettingKey, (int)value);
-    }
-    public static int EventUrgencyThresholdDays
-    {
-        get => Math.Max(0, LoadLocalSetting(EventUrgencyThresholdDays_SettingKey, defaultValue: 3));
-        set => SaveLocalSetting(EventUrgencyThresholdDays_SettingKey, Math.Max(0, value));
     }
     #endregion
 
