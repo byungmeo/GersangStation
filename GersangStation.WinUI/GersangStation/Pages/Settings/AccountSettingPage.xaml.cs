@@ -153,6 +153,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     }
 
     private readonly List<Account> _selectedAccounts = [];
+    private readonly Dictionary<Button, long> _reorderButtons = [];
     private bool _suppressSelectionChanged;
     private bool _isLoadingAccounts;
     private bool _hasBlockingAccountLoadFailure;
@@ -161,7 +162,8 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     private bool _allowEditorClose;
     private MenuFlyout? _accountContextMenu;
     private List<Account> _loadedAccounts = [];
-    private AccountListDisplayMode _accountListDisplayMode = AccountListDisplayMode.Grouped;
+    private AccountListDisplayMode _accountListDisplayMode = AppDataManager.AccountListGroupedView
+        ? AccountListDisplayMode.Grouped : AccountListDisplayMode.Ordered;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public ObservableCollection<Account> OrderedAccounts { get; } = [];
@@ -203,6 +205,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         get => _accountListDisplayMode == AccountListDisplayMode.Ordered ? 1 : 0;
         set
         {
+            if (value is < 0 or > 1) return;
             AccountListDisplayMode nextMode = value == 1
                 ? AccountListDisplayMode.Ordered
                 : AccountListDisplayMode.Grouped;
@@ -210,10 +213,21 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             if (_accountListDisplayMode == nextMode)
                 return;
 
-            _accountListDisplayMode = nextMode;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(GroupedListVisibility));
-            OnPropertyChanged(nameof(OrderedListVisibility));
+            SafeExecution.RunHandledAsync(() =>
+            {
+                try
+                {
+                    AppDataManager.AccountListGroupedView = nextMode == AccountListDisplayMode.Grouped;
+                    _accountListDisplayMode = nextMode;
+                    RefreshReorderButtons();
+                }
+                finally
+                {
+                    OnPropertyChanged(nameof(AccountListDisplayModeIndex));
+                    OnPropertyChanged(nameof(GroupedListVisibility));
+                    OnPropertyChanged(nameof(OrderedListVisibility));
+                }
+            }, "AccountSettingPage.DisplayMode").FireAndForgetHandled("AccountSettingPage.DisplayMode");
         }
     }
 
@@ -277,6 +291,133 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private async void OrderedAccountListView_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
         => await SafeExecution.RunHandledAsync(SaveReorderedAccountsAsync, "AccountSettingPage.ReorderAccounts");
+
+    public static string GetAccountDisplayText(string? id, string? nickname)
+    {
+        string accountId = id?.Trim() ?? string.Empty;
+        string displayName = nickname?.Trim() ?? string.Empty;
+        return displayName.Length == 0 || string.Equals(displayName, accountId, StringComparison.OrdinalIgnoreCase)
+            ? accountId : $"{displayName} ({accountId})";
+    }
+
+    private async void AccountItem_Edit_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(async () =>
+        {
+            if (sender is Button { Tag: Account account }) await EditContextAccountAsync(account.Id);
+        }, "AccountSettingPage.ItemEdit");
+
+    private async void AccountItem_Delete_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(async () =>
+        {
+            if (sender is Button { Tag: Account account }) await DeleteContextAccountAsync(account.Id);
+        }, "AccountSettingPage.ItemDelete");
+
+    private async void AccountItem_MoveUp_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => MoveAccountAsync(sender, -1), "AccountSettingPage.ItemMoveUp");
+
+    private async void AccountItem_MoveDown_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => MoveAccountAsync(sender, 1), "AccountSettingPage.ItemMoveDown");
+
+    private void AccountItemButton_DoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+        => e.Handled = true;
+
+    private void ReorderButton_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button) return;
+        if (!_reorderButtons.ContainsKey(button))
+            _reorderButtons.Add(button, button.RegisterPropertyChangedCallback(FrameworkElement.TagProperty,
+                (element, _) => UpdateReorderButton((Button)element)));
+        UpdateReorderButton(button);
+    }
+
+    private void ReorderButton_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button button && _reorderButtons.Remove(button, out long token))
+            button.UnregisterPropertyChangedCallback(FrameworkElement.TagProperty, token);
+    }
+
+    private void RefreshReorderButtons()
+    {
+        foreach (Button button in _reorderButtons.Keys.ToArray()) UpdateReorderButton(button);
+    }
+
+    private void UpdateReorderButton(Button button)
+    {
+        int destination = -1;
+        if (int.TryParse(button.CommandParameter?.ToString(), out int offset) && offset is -1 or 1)
+        {
+            if (button.Tag is Account account)
+                destination = GetAccountMoveDestination(account, offset);
+            else if (button.Tag is AccountGroupInfoList group && AccountsCVS.Source is IList<AccountGroupInfoList> groups)
+            {
+                int index = groups.ToList().FindIndex(item => item.Key == group.Key);
+                destination = GetMoveDestination(index, groups.Count, offset);
+            }
+        }
+        button.Visibility = destination >= 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static int GetMoveDestination(int index, int count, int offset)
+    {
+        int destination = index + offset;
+        return offset is -1 or 1 && index >= 0 && index < count && destination >= 0 && destination < count
+            ? destination : -1;
+    }
+
+    private int GetAccountMoveDestination(Account account, int offset)
+    {
+        int index = OrderedAccounts.IndexOf(account);
+        if (index < 0 || offset is not (-1 or 1)) return -1;
+        if (_accountListDisplayMode != AccountListDisplayMode.Grouped)
+            return GetMoveDestination(index, OrderedAccounts.Count, offset);
+        for (int peer = index + offset; peer >= 0 && peer < OrderedAccounts.Count; peer += offset)
+            if (OrderedAccounts[peer].GroupKey == account.GroupKey) return peer;
+        return -1;
+    }
+
+    private async Task MoveAccountAsync(object sender, int offset)
+    {
+        if (!AccountManagementEnabled || sender is not Button { Tag: Account account }) return;
+        int index = OrderedAccounts.IndexOf(account);
+        int destination = GetAccountMoveDestination(account, offset);
+        if (destination < 0) return;
+        _suppressSelectionChanged = true;
+        try
+        {
+            if (_accountListDisplayMode == AccountListDisplayMode.Grouped)
+                (OrderedAccounts[index], OrderedAccounts[destination]) = (OrderedAccounts[destination], OrderedAccounts[index]);
+            else OrderedAccounts.Move(index, destination);
+        }
+        finally { _suppressSelectionChanged = false; }
+        await SaveReorderedAccountsAsync();
+    }
+
+    private async void AccountGroup_MoveUp_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => MoveAccountGroup(sender, -1), "AccountSettingPage.GroupMoveUp");
+
+    private async void AccountGroup_MoveDown_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => MoveAccountGroup(sender, 1), "AccountSettingPage.GroupMoveDown");
+
+    private void MoveAccountGroup(object sender, int offset)
+    {
+        if (!AccountManagementEnabled || _accountListDisplayMode != AccountListDisplayMode.Grouped
+            || sender is not Button { Tag: AccountGroupInfoList group }) return;
+        List<string> order = Account.GetAccountsGrouped(_loadedAccounts, AppDataManager.AccountGroupOrder)
+            .Select(item => item.Key).ToList();
+        int index = order.IndexOf(group.Key);
+        int destination = GetMoveDestination(index, order.Count, offset);
+        if (destination < 0) return;
+        (order[index], order[destination]) = (order[destination], order[index]);
+        string[] selectedIds = _selectedAccounts.Select(item => item.Id.Trim()).ToArray();
+        SetAccountOperationInProgress(true);
+        try
+        {
+            AppDataManager.AccountGroupOrder = order;
+            ApplyAccounts(_loadedAccounts);
+            RestoreSelectionByIds(selectedIds);
+        }
+        finally { SetAccountOperationInProgress(false); }
+    }
 
     private void ApplySelectionFrom(IEnumerable<Account> accounts)
     {
@@ -714,7 +855,9 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
         AccountsCVS.Source = Account.GetAccountsGrouped(_loadedAccounts
             .Where(account => !string.IsNullOrWhiteSpace(account.Id))
-            .ToList());
+            .ToList(), AppDataManager.AccountGroupOrder);
+
+        RefreshReorderButtons();
 
         ClearSelection();
     }
@@ -868,7 +1011,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 순서 보기에서 드래그로 바뀐 계정 배열 순서를 그대로 저장합니다.
+    /// 드래그 또는 이동 버튼으로 바뀐 계정 배열 순서를 그대로 저장합니다.
     /// </summary>
     private async Task SaveReorderedAccountsAsync()
     {
@@ -903,6 +1046,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (!saveResult.Success)
         {
             ApplyAccounts(_loadedAccounts);
+            RestoreSelectionByIds(selectedIds);
             await AppDataOperationDialog.ShowFailureAsync(
                 XamlRoot,
                 "계정 순서 저장 실패",

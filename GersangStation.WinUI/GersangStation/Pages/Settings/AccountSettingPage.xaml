@@ -15,17 +15,87 @@
 
     <Page.Resources>
         <CollectionViewSource x:Name="AccountsCVS" IsSourceGrouped="True" />
-        <DataTemplate x:Key="AccountListViewTemplate" x:DataType="models:Account">
-            <StackPanel Margin="12,6" Spacing="4">
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <TextBlock Text="아이디:" />
-                    <TextBlock x:Phase="1" Style="{ThemeResource BaseTextBlockStyle}" Text="{x:Bind Id}" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <TextBlock Text="별명:" />
-                    <TextBlock x:Phase="2" Style="{ThemeResource BodyTextBlockStyle}" Text="{x:Bind DisplayNickname}" />
-                </StackPanel>
+        <Style x:Key="AccountItemContainerStyle" TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style x:Key="AccountGroupHeaderContainerStyle" TargetType="ListViewHeaderItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style
+            x:Key="AccountItemActionButtonStyle"
+            BasedOn="{StaticResource SubtleButtonStyle}"
+            TargetType="Button">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <DataTemplate x:Key="AccountItemActionsTemplate" x:DataType="models:Account">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button
+                    x:Name="AccountItemEditButton"
+                    AutomationProperties.Name="계정 수정"
+                    Click="AccountItem_Edit_Click"
+                    DoubleTapped="AccountItemButton_DoubleTapped"
+                    Style="{StaticResource AccountItemActionButtonStyle}"
+                    Tag="{x:Bind}"
+                    ToolTipService.ToolTip="수정">
+                    <FontIcon FontSize="{Binding FontSize, ElementName=AccountItemEditButton}" Glyph="&#xE70F;" />
+                </Button>
+                <Button
+                    x:Name="AccountItemDeleteButton"
+                    AutomationProperties.Name="계정 삭제"
+                    Click="AccountItem_Delete_Click"
+                    DoubleTapped="AccountItemButton_DoubleTapped"
+                    Style="{StaticResource AccountItemActionButtonStyle}"
+                    Tag="{x:Bind}"
+                    ToolTipService.ToolTip="삭제">
+                    <FontIcon FontSize="{Binding FontSize, ElementName=AccountItemDeleteButton}" Glyph="&#xE74D;" />
+                </Button>
             </StackPanel>
+        </DataTemplate>
+        <DataTemplate x:Key="AccountListViewTemplate" x:DataType="models:Account">
+            <Grid Margin="12,4" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Text="{x:Bind local:AccountSettingPage.GetAccountDisplayText(Id, Nickname)}"
+                    TextTrimming="CharacterEllipsis" />
+                <StackPanel
+                    Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="4">
+                    <Button
+                        x:Name="AccountItemUpButton"
+                        CommandParameter="-1"
+                        Loaded="ReorderButton_Loaded"
+                        Unloaded="ReorderButton_Unloaded"
+                        AutomationProperties.Name="계정 위로 이동"
+                        Click="AccountItem_MoveUp_Click"
+                        DoubleTapped="AccountItemButton_DoubleTapped"
+                        Style="{StaticResource AccountItemActionButtonStyle}"
+                        Tag="{x:Bind}"
+                        ToolTipService.ToolTip="위로 이동">
+                        <FontIcon FontSize="{Binding FontSize, ElementName=AccountItemUpButton}" Glyph="&#xE70E;" />
+                    </Button>
+                    <Button
+                        x:Name="AccountItemDownButton"
+                        CommandParameter="1"
+                        Loaded="ReorderButton_Loaded"
+                        Unloaded="ReorderButton_Unloaded"
+                        AutomationProperties.Name="계정 아래로 이동"
+                        Click="AccountItem_MoveDown_Click"
+                        DoubleTapped="AccountItemButton_DoubleTapped"
+                        Style="{StaticResource AccountItemActionButtonStyle}"
+                        Tag="{x:Bind}"
+                        ToolTipService.ToolTip="아래로 이동">
+                        <FontIcon FontSize="{Binding FontSize, ElementName=AccountItemDownButton}" Glyph="&#xE70D;" />
+                    </Button>
+                    <ContentPresenter Content="{x:Bind}" ContentTemplate="{StaticResource AccountItemActionsTemplate}" />
+                </StackPanel>
+            </Grid>
         </DataTemplate>
     </Page.Resources>
 
@@ -47,8 +117,8 @@
                     SizeChanged="AccountCardViewport_SizeChanged">
                     <toolkit:SettingsCard
                         x:Name="AccountSettingsCard"
-                        HorizontalContentAlignment="Stretch"
                         VerticalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
                         ContentAlignment="Vertical">
                         <Grid
                             x:Name="AccountCardContent"
@@ -72,7 +142,7 @@
                             </RadioButtons>
                             <StackPanel
                                 Grid.Row="1"
-                                HorizontalAlignment="Right"
+                                HorizontalAlignment="Left"
                                 VerticalAlignment="Center"
                                 Orientation="Horizontal"
                                 Spacing="8">
@@ -81,7 +151,8 @@
                                     AutomationProperties.AutomationId="AddAccount"
                                     Click="Button_Add_Click"
                                     Content="추가"
-                                    IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}" />
+                                    IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
+                                    Style="{StaticResource AccentButtonStyle}" />
                                 <Button
                                     x:Name="Button_Edit"
                                     AutomationProperties.AutomationId="EditAccount"
@@ -95,56 +166,87 @@
                                     Content="삭제"
                                     IsEnabled="{x:Bind CanDeleteSelectedAccount, Mode=OneWay}" />
                             </StackPanel>
-                            <Grid Grid.Row="2">
-                                <ListView
-                                    x:Name="AccountListView"
-                                    AutomationProperties.AutomationId="GroupedAccountList"
-                                    Background="Transparent"
-                                    ContextRequested="AccountList_ContextRequested"
-                                    DoubleTapped="AccountList_DoubleTapped"
-                                    IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
-                                    ItemTemplate="{StaticResource AccountListViewTemplate}"
-                                    ItemsSource="{x:Bind AccountsCVS.View, Mode=OneWay}"
-                                    SelectionChanged="AccountListView_SelectionChanged"
-                                    SelectionMode="Multiple"
-                                    Visibility="{x:Bind GroupedListVisibility, Mode=OneWay}">
-                                    <ListView.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <ItemsStackPanel AreStickyGroupHeadersEnabled="True" />
-                                        </ItemsPanelTemplate>
-                                    </ListView.ItemsPanel>
-                                    <ListView.GroupStyle>
-                                        <GroupStyle>
-                                            <GroupStyle.HeaderTemplate>
-                                                <DataTemplate x:DataType="models:AccountGroupInfoList">
-                                                    <Border AutomationProperties.AccessibilityView="Raw">
-                                                        <TextBlock
-                                                            AutomationProperties.AccessibilityView="Raw"
-                                                            Style="{ThemeResource TitleTextBlockStyle}"
-                                                            Text="{x:Bind Key}" />
-                                                    </Border>
-                                                </DataTemplate>
-                                            </GroupStyle.HeaderTemplate>
-                                        </GroupStyle>
-                                    </ListView.GroupStyle>
-                                </ListView>
-                                <ListView
-                                    x:Name="OrderedAccountListView"
-                                    AllowDrop="True"
-                                    AutomationProperties.AutomationId="OrderedAccountList"
-                                    Background="Transparent"
-                                    CanDragItems="True"
-                                    CanReorderItems="True"
-                                    ContextRequested="AccountList_ContextRequested"
-                                    DoubleTapped="AccountList_DoubleTapped"
-                                    DragItemsCompleted="OrderedAccountListView_DragItemsCompleted"
-                                    IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
-                                    ItemTemplate="{StaticResource AccountListViewTemplate}"
-                                    ItemsSource="{x:Bind OrderedAccounts, Mode=OneWay}"
-                                    SelectionChanged="OrderedAccountListView_SelectionChanged"
-                                    SelectionMode="Multiple"
-                                    Visibility="{x:Bind OrderedListVisibility, Mode=OneWay}" />
-                            </Grid>
+                            <Border
+                                Grid.Row="2"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{ThemeResource ControlCornerRadius}">
+                                <Grid>
+                                    <ListView
+                                        x:Name="AccountListView"
+                                        AutomationProperties.AutomationId="GroupedAccountList"
+                                        Background="Transparent"
+                                        ContextRequested="AccountList_ContextRequested"
+                                        DoubleTapped="AccountList_DoubleTapped"
+                                        IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
+                                        ItemContainerStyle="{StaticResource AccountItemContainerStyle}"
+                                        ItemTemplate="{StaticResource AccountListViewTemplate}"
+                                        IsMultiSelectCheckBoxEnabled="True"
+                                        ItemsSource="{x:Bind AccountsCVS.View, Mode=OneWay}"
+                                        SelectionChanged="AccountListView_SelectionChanged"
+                                        SelectionMode="Multiple"
+                                        Visibility="{x:Bind GroupedListVisibility, Mode=OneWay}">
+                                        <ListView.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <ItemsStackPanel AreStickyGroupHeadersEnabled="True" />
+                                            </ItemsPanelTemplate>
+                                        </ListView.ItemsPanel>
+                                        <ListView.GroupStyle>
+                                            <GroupStyle HeaderContainerStyle="{StaticResource AccountGroupHeaderContainerStyle}">
+                                                <GroupStyle.HeaderTemplate>
+                                                    <DataTemplate x:DataType="models:AccountGroupInfoList">
+                                                        <Grid ColumnSpacing="12">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock
+                                                                VerticalAlignment="Center"
+                                                                AutomationProperties.AccessibilityView="Raw"
+                                                                Style="{ThemeResource SubtitleTextBlockStyle}"
+                                                                Text="{x:Bind Key}" TextTrimming="CharacterEllipsis" />
+                                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                                                <Button x:Name="AccountGroupUpButton"
+                                                                        CommandParameter="-1" Loaded="ReorderButton_Loaded" Unloaded="ReorderButton_Unloaded"
+                                                                        Style="{StaticResource AccountItemActionButtonStyle}"
+                                                                        AutomationProperties.Name="그룹 위로 이동" ToolTipService.ToolTip="그룹 위로 이동"
+                                                                        Click="AccountGroup_MoveUp_Click" Tag="{x:Bind}">
+                                                                    <FontIcon FontSize="{Binding FontSize, ElementName=AccountGroupUpButton}" Glyph="&#xE70E;" />
+                                                                </Button>
+                                                                <Button x:Name="AccountGroupDownButton"
+                                                                        CommandParameter="1" Loaded="ReorderButton_Loaded" Unloaded="ReorderButton_Unloaded"
+                                                                        Style="{StaticResource AccountItemActionButtonStyle}"
+                                                                        AutomationProperties.Name="그룹 아래로 이동" ToolTipService.ToolTip="그룹 아래로 이동"
+                                                                        Click="AccountGroup_MoveDown_Click" Tag="{x:Bind}">
+                                                                    <FontIcon FontSize="{Binding FontSize, ElementName=AccountGroupDownButton}" Glyph="&#xE70D;" />
+                                                                </Button>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </GroupStyle.HeaderTemplate>
+                                            </GroupStyle>
+                                        </ListView.GroupStyle>
+                                    </ListView>
+                                    <ListView
+                                        x:Name="OrderedAccountListView"
+                                        AllowDrop="True"
+                                        AutomationProperties.AutomationId="OrderedAccountList"
+                                        Background="Transparent"
+                                        CanDragItems="True"
+                                        CanReorderItems="True"
+                                        IsMultiSelectCheckBoxEnabled="True"
+                                        ContextRequested="AccountList_ContextRequested"
+                                        DoubleTapped="AccountList_DoubleTapped"
+                                        DragItemsCompleted="OrderedAccountListView_DragItemsCompleted"
+                                        IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
+                                        ItemContainerStyle="{StaticResource AccountItemContainerStyle}"
+                                        ItemTemplate="{StaticResource AccountListViewTemplate}"
+                                        ItemsSource="{x:Bind OrderedAccounts, Mode=OneWay}"
+                                        SelectionChanged="OrderedAccountListView_SelectionChanged"
+                                        SelectionMode="Multiple"
+                                        Visibility="{x:Bind OrderedListVisibility, Mode=OneWay}" />
+                                </Grid>
+                            </Border>
                         </Grid>
                     </toolkit:SettingsCard>
                 </Grid>
@@ -228,13 +330,15 @@
                                 <Paragraph>예외로 자동 로그인을 위해 아이디 및 비밀번호가 거상 공식 홈페이지를 통해 전송될 수 있습니다.</Paragraph>
                                 <Paragraph>
                                     <Hyperlink Click="PrivacyPolicyHyperlink_Click">개인정보취급방침</Hyperlink>
-                                    을 통해 자세한 정보를 확인하실 수 있습니다.
-                                </Paragraph>
+                                    을 통해 자세한 정보를 확인하실 수 있습니다.</Paragraph>
                             </RichTextBlock>
                         </StackPanel>
                     </ContentControl>
                 </ScrollViewer>
-                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                <StackPanel
+                    Grid.Row="2"
+                    Orientation="Horizontal"
+                    Spacing="8">
                     <Button
                         x:Name="Button_Save"
                         AutomationProperties.AutomationId="SaveAccount"

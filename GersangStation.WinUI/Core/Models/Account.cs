@@ -24,6 +24,9 @@ public sealed class Account(string id, string nickname = "", string groupName = 
     [JsonIgnore]
     public string DisplayNickname => string.IsNullOrWhiteSpace(Nickname) ? Id : Nickname;
 
+    [JsonIgnore]
+    public string GroupKey => string.IsNullOrWhiteSpace(GroupName) ? UnknownGroupName : GroupName.Trim();
+
     public override string ToString() => $"[Id: {Id}, Nickname: {Nickname}, GroupName: {GroupName}]";
 
     public Account Clone() => new(Id, Nickname, GroupName);
@@ -43,12 +46,17 @@ public sealed class Account(string id, string nickname = "", string groupName = 
     public static ObservableCollection<AccountGroupInfoList> GetAccountsGrouped()
         => TryGetAccountsGrouped().Groups;
 
-    public static ObservableCollection<AccountGroupInfoList> GetAccountsGrouped(IEnumerable<Account>? accounts)
+    public static ObservableCollection<AccountGroupInfoList> GetAccountsGrouped(IEnumerable<Account>? accounts,
+        IEnumerable<string>? groupOrder = null)
     {
+        Dictionary<string, int> priorities = (groupOrder ?? [])
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim()).Distinct(StringComparer.Ordinal)
+            .Select((name, index) => (name, index)).ToDictionary(item => item.name, item => item.index, StringComparer.Ordinal);
         var query = from item in accounts ?? []
-                    let groupKey = string.IsNullOrWhiteSpace(item.GroupName) ? UnknownGroupName : item.GroupName.Trim()
+                    let groupKey = item.GroupKey
                     group item by groupKey into g
-                    orderby (g.Key == UnknownGroupName), g.Key
+                    orderby priorities.GetValueOrDefault(g.Key, int.MaxValue), (g.Key == UnknownGroupName), g.Key
                     select new AccountGroupInfoList(g) { Key = g.Key };
 
         return new ObservableCollection<AccountGroupInfoList>(query);

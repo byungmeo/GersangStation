@@ -93,6 +93,31 @@ public static partial class AppDataManager
     private const string BrowserFavoritesFileName = "browser-favorites.json";
 
     #region LocalSettings Properties
+    public static bool AccountListGroupedView
+    {
+        get => LoadLocalSetting("AccountListGroupedView", false);
+        set => SaveLocalSetting("AccountListGroupedView", value);
+    }
+
+    public static IReadOnlyList<string> AccountGroupOrder
+    {
+        get
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<string[]>(LoadLocalSetting("AccountGroupOrder", "[]")) ?? [];
+            }
+            catch (JsonException ex)
+            {
+                Debug.WriteLine($"[AppDataManager] Invalid account group order: {ex}");
+                return [];
+            }
+        }
+        set => SaveLocalSetting("AccountGroupOrder", JsonSerializer.Serialize(value
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim()).Distinct(StringComparer.Ordinal).ToArray()));
+    }
+
     public static AppThemePreference AppThemePreference
     {
         get
