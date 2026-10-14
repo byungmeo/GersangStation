@@ -62,8 +62,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         {"GersangStation.Main.Setting.BrowserSettingPage", typeof(GersangStation.Main.Setting.BrowserSettingPage)},
         {"GersangStation.Main.Setting.DeveloperToolPage", typeof(GersangStation.Main.Setting.DeveloperToolPage)},
         {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
-        // {"GersangStation.Main.Setting.SponsorPage", typeof(GersangStation.Main.Setting.SponsorPage)},
-        // {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
     };
 
     public SettingPage()

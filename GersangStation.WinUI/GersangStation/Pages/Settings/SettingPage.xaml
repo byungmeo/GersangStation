@@ -66,22 +66,6 @@
                 Content="개발자 도구"
                 Icon="Repair"
                 Tag="DeveloperToolPage" />
-            <NavigationViewItem IsEnabled="False" Tag="SponsorPage">
-                <NavigationViewItem.Content>
-                    <StackPanel Orientation="Horizontal">
-                        <Viewbox
-                            Width="17"
-                            Height="17"
-                            Stretch="UniformToFill">
-                            <FontIcon Glyph="&#xEB52;" />
-                        </Viewbox>
-                        <TextBlock
-                            Margin="15,0,0,0"
-                            VerticalAlignment="Center"
-                            Text="후원" />
-                    </StackPanel>
-                </NavigationViewItem.Content>
-            </NavigationViewItem>
             <NavigationViewItem x:Name="NavigationViewItem_ProgramInfo" Tag="ProgramInfoPage">
                 <NavigationViewItem.Content>
                     <StackPanel Orientation="Horizontal">
