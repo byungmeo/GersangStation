@@ -22,7 +22,6 @@ public enum SettingSection
     GameExtension,
     Appearance,
     BrowserSettings,
-    Advanced,
     DeveloperTool,
     ProgramInfo
 }
@@ -58,10 +57,9 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         {"GersangStation.Main.Setting.GameInstallSettingPage", typeof(GersangStation.Main.Setting.GameInstallSettingPage)},
         {"GersangStation.Main.Setting.NotificationSettingPage", typeof(GersangStation.Main.Setting.NotificationSettingPage)},
         {"GersangStation.Main.Setting.GeneralSettingPage", typeof(GersangStation.Main.Setting.GeneralSettingPage)},
-        {"GersangStation.Main.Setting.GameExtensionPlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
+        {"GersangStation.Main.Setting.GameExtensionSettingPage", typeof(GersangStation.Main.Setting.GameExtensionSettingPage)},
         {"GersangStation.Main.Setting.AppearancePlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
         {"GersangStation.Main.Setting.BrowserPlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
-        {"GersangStation.Main.Setting.AdvancedSettingPage", typeof(GersangStation.Main.Setting.AdvancedSettingPage)},
         {"GersangStation.Main.Setting.DeveloperToolPage", typeof(GersangStation.Main.Setting.DeveloperToolPage)},
         {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
         // {"GersangStation.Main.Setting.BrowserSettingPage", typeof(GersangStation.Main.Setting.BrowserSettingPage)},
@@ -150,7 +148,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             SettingSection.Appearance => NavigationViewItem_Appearance,
             SettingSection.BrowserSettings => NavigationViewItem_Browser,
             SettingSection.Account => NavigationViewItem_Account,
-            SettingSection.Advanced => NavigationViewItem_Advanced,
             SettingSection.DeveloperTool => NavigationViewItem_Developer,
             SettingSection.ProgramInfo => NavigationViewItem_ProgramInfo,
             _ => throw new ArgumentOutOfRangeException(nameof(section), section, null),
@@ -162,7 +159,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
 
         object? resolvedParameter = pageParameter ?? section switch
         {
-            SettingSection.GameExtension => "부가기능",
             SettingSection.Appearance => "모양 설정",
             SettingSection.BrowserSettings => "브라우저 설정",
             _ => null
@@ -216,7 +212,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             Type t when t == typeof(GameInstallSettingPage) => NavigationViewItem_GameInstall,
             Type t when t == typeof(NotificationSettingPage) => NavigationViewItem_Notification,
             Type t when t == typeof(GeneralSettingPage) => NavigationViewItem_General,
-            Type t when t == typeof(AdvancedSettingPage) => NavigationViewItem_Advanced,
+            Type t when t == typeof(GameExtensionSettingPage) => NavigationViewItem_GameExtension,
             Type t when t == typeof(DeveloperToolPage) => NavigationViewItem_Developer,
             Type t when t == typeof(ProgramInfoPage) => NavigationViewItem_ProgramInfo,
             _ => null

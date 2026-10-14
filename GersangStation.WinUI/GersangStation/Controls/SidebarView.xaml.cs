@@ -39,7 +39,34 @@ public sealed partial class SidebarView : UserControl
     public FrameworkElement CurrentAppVersionTarget => CurrentAppVersionTextBlock;
     public GameLaunchCoordinator? Launches { get; private set; }
 
-    public SidebarView() => InitializeComponent();
+    public SidebarView()
+    {
+        InitializeComponent();
+        Loaded += SidebarView_Loaded;
+        Unloaded += SidebarView_Unloaded;
+    }
+
+    private void SidebarView_Loaded(object sender, RoutedEventArgs e)
+    {
+        AppDataManager.DeveloperToolEnabledChanged += OnDeveloperToolEnabledChanged;
+        RefreshDeveloperToolVisibility();
+    }
+
+    private void SidebarView_Unloaded(object sender, RoutedEventArgs e)
+        => AppDataManager.DeveloperToolEnabledChanged -= OnDeveloperToolEnabledChanged;
+
+    private void RefreshDeveloperToolVisibility()
+        => DeveloperSettingsListViewItem.Visibility = AppDataManager.IsDeveloperToolEnabled
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    private void OnDeveloperToolEnabledChanged(object? sender, bool enabled)
+    {
+        if (DispatcherQueue.HasThreadAccess)
+            RefreshDeveloperToolVisibility();
+        else
+            _ = DispatcherQueue.TryEnqueue(RefreshDeveloperToolVisibility);
+    }
 
     public void SetLaunchCoordinator(GameLaunchCoordinator coordinator)
     {
@@ -133,9 +160,7 @@ public sealed partial class SidebarView : UserControl
     {
         SidebarControlPanel.Visibility = Visibility.Collapsed;
         SidebarSettingPanel.Visibility = Visibility.Visible;
-        DeveloperSettingsListViewItem.Visibility = AppDataManager.IsDeveloperToolEnabled
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+        RefreshDeveloperToolVisibility();
         if (section is SettingSection selected)
         {
             string tag = selected switch
@@ -185,7 +210,6 @@ public sealed partial class SidebarView : UserControl
             "Appearance" => SettingSection.Appearance,
             "Browser" => SettingSection.BrowserSettings,
             "Developer" => SettingSection.DeveloperTool,
-            "Advanced" => SettingSection.Advanced,
             "ProgramInfo" => SettingSection.ProgramInfo,
             _ => null
         };

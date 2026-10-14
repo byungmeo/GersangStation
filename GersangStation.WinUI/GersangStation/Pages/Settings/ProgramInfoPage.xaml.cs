@@ -1,3 +1,4 @@
+using Core;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Net;
@@ -8,10 +9,12 @@ using Windows.Storage;
 namespace GersangStation.Main.Setting;
 
 /// <summary>
-/// 프로그램 정보, 오픈소스 라이선스, 개인정보처리방침을 안내합니다.
+/// 프로그램 정보, 오픈소스 라이선스, 개인정보처리방침과 개발자 모드 설정을 제공합니다.
 /// </summary>
 public sealed partial class ProgramInfoPage : Page
 {
+    private bool _isInitializing = true;
+
     public string AppDisplayName { get; } = Package.Current.DisplayName;
     public string AppDescription { get; } = "게임 설치, 빠른 패치, 다클라 생성 및 실행을 지원하는 게임 런처";
     public string AppVersion { get; } = GetVersionText();
@@ -22,6 +25,19 @@ public sealed partial class ProgramInfoPage : Page
     public ProgramInfoPage()
     {
         InitializeComponent();
+        ToggleSwitch_DeveloperTool.IsOn = AppDataManager.IsDeveloperToolEnabled;
+        _isInitializing = false;
+    }
+
+    /// <summary>
+    /// 사용자가 변경한 개발자 모드 활성화 상태를 저장합니다.
+    /// </summary>
+    private void ToggleSwitch_DeveloperTool_Toggled(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        if (_isInitializing)
+            return;
+
+        AppDataManager.IsDeveloperToolEnabled = ToggleSwitch_DeveloperTool.IsOn;
     }
 
     /// <summary>

@@ -8,14 +8,14 @@ using Windows.System;
 
 namespace GersangStation.Main.Setting;
 
-public sealed partial class AdvancedSettingPage : Page
+public sealed partial class GameExtensionSettingPage : Page
 {
     private bool _isInitializing;
 
     /// <summary>
-    /// 저장된 개발자 도구 활성화 상태를 토글 초기값에 반영합니다.
+    /// 저장된 부가기능 활성화 상태와 관리자 권한 제한을 토글 초기값에 반영합니다.
     /// </summary>
-    public AdvancedSettingPage()
+    public GameExtensionSettingPage()
     {
         InitializeComponent();
         _isInitializing = true;
@@ -23,7 +23,6 @@ public sealed partial class AdvancedSettingPage : Page
         ToggleSwitch_MouseConfinement.IsEnabled = App.IsRunningAsAdministrator;
         ToggleSwitch_WindowSwitching.IsOn = App.IsRunningAsAdministrator && AppDataManager.IsWindowSwitchingEnabled;
         ToggleSwitch_WindowSwitching.IsEnabled = App.IsRunningAsAdministrator;
-        ToggleSwitch_DeveloperTool.IsOn = AppDataManager.IsDeveloperToolEnabled;
         UpdateClipMouseUiState();
         UpdateWindowSwitchUiState();
         _isInitializing = false;
@@ -51,17 +50,6 @@ public sealed partial class AdvancedSettingPage : Page
 
         AppDataManager.IsWindowSwitchingEnabled = ToggleSwitch_WindowSwitching.IsOn;
         UpdateWindowSwitchUiState();
-    }
-
-    /// <summary>
-    /// 초기 바인딩이 끝난 뒤 사용자가 토글을 바꾸면 개발자 도구 활성화 상태를 저장합니다.
-    /// </summary>
-    private void ToggleSwitch_DeveloperTool_Toggled(object sender, RoutedEventArgs e)
-    {
-        if (_isInitializing)
-            return;
-
-        AppDataManager.IsDeveloperToolEnabled = ToggleSwitch_DeveloperTool.IsOn;
     }
 
     /// <summary>
@@ -100,6 +88,6 @@ public sealed partial class AdvancedSettingPage : Page
 
             if (!await Launcher.LaunchUriAsync(new Uri(url)))
                 throw new InvalidOperationException("기본 외부 브라우저에서 관리자 권한 도움말을 열지 못했습니다.");
-        }, "AdvancedSettingPage.OpenAdminHelpInExternalBrowser");
+        }, "GameExtensionSettingPage.OpenAdminHelpInExternalBrowser");
     }
 }

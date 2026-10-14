@@ -104,6 +104,16 @@
                         </toolkit:SettingsCard>
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
+                <toolkit:SettingsCard
+                    Description="디버깅이나 테스트용 기능이 필요할 때만 개발자 모드를 켜세요."
+                    Header="개발자 모드">
+                    <ToggleSwitch
+                        x:Name="ToggleSwitch_DeveloperTool"
+                        AutomationProperties.Name="개발자 모드"
+                        OffContent="비활성화"
+                        OnContent="활성화"
+                        Toggled="ToggleSwitch_DeveloperTool_Toggled" />
+                </toolkit:SettingsCard>
             </StackPanel>
         </Grid>
     </ScrollViewer>

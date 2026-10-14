@@ -90,7 +90,7 @@
 		<None Remove="Controls\HorizontalScrollContainer.xaml" />
 		<None Remove="Controls\ValidatedTextBox.xaml" />
 		<None Remove="Pages\Settings\AccountSettingPage.xaml" />
-		<None Remove="Pages\Settings\AdvancedSettingPage.xaml" />
+		<None Remove="Pages\Settings\GameExtensionSettingPage.xaml" />
 		<None Remove="Pages\Settings\DeveloperToolPage.xaml" />
 		<None Remove="Pages\Settings\GameInstallSettingPage.xaml" />
 		<None Remove="Pages\Settings\GamePatchSettingPage.xaml" />
@@ -169,7 +169,7 @@
 		</Page>
 	</ItemGroup>
 	<ItemGroup>
-		<Page Update="Pages\Settings\AdvancedSettingPage.xaml">
+		<Page Update="Pages\Settings\GameExtensionSettingPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>

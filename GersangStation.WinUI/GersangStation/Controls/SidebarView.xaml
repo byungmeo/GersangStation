@@ -121,12 +121,6 @@
                                     <TextBlock Text="개발자 도구" />
                                 </StackPanel>
                             </ListViewItem>
-                            <ListViewItem x:Name="AdvancedListViewItem" Tag="Advanced">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon FontSize="{Binding FontSize, ElementName=AdvancedListViewItem}" Glyph="&#xE713;" />
-                                    <TextBlock Text="고급 설정" />
-                                </StackPanel>
-                            </ListViewItem>
 
                             <ListViewItem Content="기타" Style="{ThemeResource GroupHeaderListViewItemStyle}" />
                             <ListViewItem x:Name="InformationListViewItem" Tag="ProgramInfo">
