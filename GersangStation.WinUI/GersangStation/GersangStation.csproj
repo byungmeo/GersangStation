@@ -113,6 +113,9 @@
 
 	<ItemGroup>
 		<Content Include="Assets\Policies\privacy-policy.txt" />
+		<Content Include="Assets\Icons\GersangStationShortcut.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 		<Content Include="Assets\Fonts\NotoSansKR-VariableFont_wght.ttf" />
 		<Content Include="..\metadata\winui-links-manifest.json">
 			<Link>metadata\winui-links-manifest.json</Link>

@@ -148,13 +148,6 @@
                         SelectedIndex="0"
                         SelectionChanged="NavListView_SelectionChanged"
                         SelectionMode="Single">
-                        <ListView.Header>
-                            <TextBlock
-                                Margin="12"
-                                FontSize="18"
-                                FontWeight="Bold"
-                                Text="거상 스테이션 Store Edition" />
-                        </ListView.Header>
                         <ListView.Items>
                             <ListViewItem x:Name="HomePageListViewItem" Tag="Home">
                                 <StackPanel Orientation="Horizontal" Spacing="8">

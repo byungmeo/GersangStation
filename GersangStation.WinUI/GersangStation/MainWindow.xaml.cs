@@ -78,6 +78,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Icons", "GersangStationShortcut.ico"));
         Root.ActualThemeChanged += OnRootActualThemeChanged;
         ApplyAppTheme(AppDataManager.AppThemePreference);
         _contentTransition = new ContentTransition(ShellContent);
