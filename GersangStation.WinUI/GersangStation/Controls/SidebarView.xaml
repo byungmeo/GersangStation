@@ -29,23 +29,24 @@
                                 TargetType="ListViewItem">
                                 <Setter Property="IsHitTestVisible" Value="False" />
                                 <Setter Property="IsTabStop" Value="False" />
-                                <Setter Property="FontSize" Value="12" />
+                                <Setter Property="FontSize" Value="14" />
                                 <Setter Property="FontWeight" Value="SemiBold" />
                                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <Setter Property="MinHeight" Value="28" />
+                                <Setter Property="MinHeight" Value="32" />
                                 <Setter Property="Margin" Value="0,12,0,0" />
                             </Style>
                         </ListView.Resources>
                         <ListView.ItemContainerStyle>
                             <Style BasedOn="{StaticResource DefaultListViewItemStyle}" TargetType="ListViewItem">
-                                <Setter Property="MinHeight" Value="32" />
+                                <Setter Property="MinHeight" Value="36" />
+                                <Setter Property="FontSize" Value="14" />
                             </Style>
                         </ListView.ItemContainerStyle>
                         <ListView.Header>
                             <Button
                                 x:Name="ReturnToControlButton"
                                 MinHeight="36"
-                                Margin="4,0"
+                                Margin="0,12,0,0"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Left"
                                 Click="ReturnToControlButton_Click"
@@ -115,18 +116,17 @@
                                     <TextBlock Text="브라우저" />
                                 </StackPanel>
                             </ListViewItem>
-                            <ListViewItem x:Name="DeveloperSettingsListViewItem" Tag="Developer">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <FontIcon FontSize="{Binding FontSize, ElementName=DeveloperSettingsListViewItem}" Glyph="&#xE950;" />
-                                    <TextBlock Text="개발자 도구" />
-                                </StackPanel>
-                            </ListViewItem>
-
                             <ListViewItem Content="기타" Style="{ThemeResource GroupHeaderListViewItemStyle}" />
                             <ListViewItem x:Name="InformationListViewItem" Tag="ProgramInfo">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon FontSize="{Binding FontSize, ElementName=InformationListViewItem}" Glyph="&#xE946;" />
                                     <TextBlock Text="프로그램 정보" />
+                                </StackPanel>
+                            </ListViewItem>
+                            <ListViewItem x:Name="DeveloperSettingsListViewItem" Tag="Developer">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontSize="{Binding FontSize, ElementName=DeveloperSettingsListViewItem}" Glyph="&#xE950;" />
+                                    <TextBlock Text="개발자 도구" />
                                 </StackPanel>
                             </ListViewItem>
                         </ListView.Items>

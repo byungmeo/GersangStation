@@ -323,7 +323,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dialog.ShowManagedAsync();
+        ContentDialogResult result = await ShowBrowserDialogAsync(dialog);
         if (result == ContentDialogResult.Secondary)
             _roughLoginNoticeSuppressedForSession = true;
     }
@@ -342,7 +342,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Close
         };
 
-        await dialog.ShowManagedAsync();
+        await ShowBrowserDialogAsync(dialog);
 
         if (_currentWindow is MainWindow mainWindow)
             mainWindow.NavigateToWebViewPage();
@@ -366,7 +366,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         {
             _webview?.CoreWebView2?.Stop();
             // 새 문서로 이동해 이전 socketStart 타이머/웹소켓도 폐기합니다.
-            if (attempt?.PreserveDocumentOnCancel != true && !_disposed && _session.IsReady
+            if (!IsMaintenanceInProgress && attempt?.PreserveDocumentOnCancel != true && !_disposed && _session.IsReady
                 && _initialization?.IsCompletedSuccessfully == true)
                 _session.Navigate(Url_Gersang_Main);
         }
@@ -406,7 +406,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// 계정 로그인과 게임 실행 준비를 묶어 처리합니다.
     /// </summary>
-    public async Task<bool> TryGameStart(string id, int clientIndex, GameLaunchAttempt? attempt = null)
+    public Task<bool> TryGameStart(string id, int clientIndex, GameLaunchAttempt? attempt = null)
+        => _session.RunOperationAsync(() => TryGameStartTrackedAsync(id, clientIndex, attempt));
+
+    private async Task<bool> TryGameStartTrackedAsync(string id, int clientIndex, GameLaunchAttempt? attempt)
     {
         attempt ??= _launchAttempt;
         if (attempt is null || !attempt.IsPending || attempt.ClientIndex != clientIndex
@@ -518,7 +521,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// 현재 로그인 세션을 로그아웃 페이지로 이동시켜 정리합니다.
     /// </summary>
-    public async Task TryLogout(GameLaunchAttempt? attempt = null)
+    public Task TryLogout(GameLaunchAttempt? attempt = null)
+        => _session.RunOperationAsync(() => TryLogoutCoreAsync(attempt));
+
+    private async Task TryLogoutCoreAsync(GameLaunchAttempt? attempt)
     {
         await InitializeAsync();
         EnsureLaunchAttempt(attempt);
@@ -615,7 +621,11 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>
     /// 현재 페이지 상태를 고려해 거상 로그인 과정을 진행합니다.
     /// </summary>
-    public async Task<TryLoginResult> TryLogin(string id)
+    public Task<TryLoginResult> TryLogin(string id)
+        => IsMaintenanceInProgress ? Task.FromResult(TryLoginResult.Busy)
+            : _session.RunOperationAsync(() => TryLoginTrackedAsync(id));
+
+    private async Task<TryLoginResult> TryLoginTrackedAsync(string id)
     {
         if (_launchAttempt?.IsPending == true || TryingLogin || TryingLogout) return TryLoginResult.Busy;
         // 초기화 대기 중에도 공유 브라우저를 선점해 게임 실행 요청이 끼어들지 않게 합니다.
@@ -890,7 +900,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             clientIndex,
             attempt.InstallPath,
             attempt.AccountId,
-            gameStartPayload, attempt.Token, attempt);
+            gameStartPayload, attempt.Token, attempt).WaitAsync(_session.OperationToken);
         Debug.WriteLine($"[WebViewManager] GameStarter.StartAsync result:{started}");
     }
 
@@ -930,7 +940,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private async Task UpdateLoginStateByCookieAsync()
     {
-        if (!_session.IsReady || _disposed)
+        if (IsMaintenanceInProgress || !_session.IsReady || _disposed)
             return;
 
         var core = _session.GetReadyCore();
@@ -1064,7 +1074,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         foreach (string lookupUri in BuildCookieLookupUris(_currentSource))
         {
             IReadOnlyList<CoreWebView2Cookie> cookies = await core.CookieManager.GetCookiesAsync(lookupUri)
-                .AsTask().WaitAsync(_session.LifetimeToken);
+                .AsTask().WaitAsync(_session.OperationToken);
             _session.EnsureCurrentDocument(navigationId);
             cookieDebugEntries.Add(
                 $"{lookupUri} => [{string.Join(", ", cookies.Select(cookie => $"{cookie.Name}@{cookie.Domain}{cookie.Path}"))}]");
@@ -1282,7 +1292,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         SubscribeWebViewEvents();
         SubscribeCoreEvents();
         // 페이지 인스턴스와 무관하게 로그인 세션 동기화를 위한 최초 탐색을 한 번만 시작합니다.
-        _session.Navigate(Url_Gersang_Main);
+        if (!IsMaintenanceInProgress) _session.Navigate(Url_Gersang_Main);
     }
 
     private void OnSessionFailed(object? sender, EventArgs args)
@@ -1475,7 +1485,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         };
 
         using CancellationTokenSource countdown = CancellationTokenSource.CreateLinkedTokenSource(
-            _lifetime.Token, attempt?.Token ?? CancellationToken.None);
+            _session.OperationToken, _lifetime.Token, attempt?.Token ?? CancellationToken.None);
         RoutedEventHandler countdownLoaded = async (sender, _) => await SafeExecution.RunHandledAsync(
             () => UpdateOtpCountdownAsync(sender, countdown.Token), "WebViewManager.OtpCountdown");
         if (reEnter)
@@ -1485,7 +1495,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         }
             
         ContentDialogResult result;
-        try { result = await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token); }
+        try { result = await ShowBrowserDialogAsync(dlg, attempt); }
         finally
         {
             dlg.Loaded -= countdownLoaded;
@@ -1568,7 +1578,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
+        await ShowBrowserDialogAsync(dlg, attempt);
 
         EnsureLaunchAttempt(attempt);
         await ShowOtpDialogAsync(true, attempt);
@@ -1580,7 +1590,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private void QueueOtpFailureRecovery(string message)
     {
         GameLaunchAttempt? attempt = _launchAttempt?.IsPending == true ? _launchAttempt : null;
-        _ = _webview.DispatcherQueue.TryEnqueue(async () =>
+        QueueBrowserWork(async () =>
         {
             try
             {
@@ -1593,7 +1603,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 attempt?.Fail("OTP 재입력 처리 실패");
                 Debug.WriteLine($"[WebViewManager] OTP 실패 복구 처리 중 예외: {ex}");
             }
-        });
+        }, "WebViewManager.OtpFailureRecovery");
     }
 
     /// <summary>
@@ -1601,17 +1611,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private void QueueLaunchFailureDialog(string message)
     {
-        _ = _webview.DispatcherQueue.TryEnqueue(async () =>
-        {
-            try
-            {
-                await ShowLaunchFailureDialogAsync(message);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[WebViewManager] 실행 실패 안내 표시 중 예외: {ex}");
-            }
-        });
+        QueueBrowserWork(() => ShowLaunchFailureDialogAsync(message), "WebViewManager.LaunchFailureDialog");
     }
 
     /// <summary>
@@ -1619,16 +1619,17 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private void QueueIpBlockedFaqNavigation()
     {
-        _ = _webview.DispatcherQueue.TryEnqueue(() =>
+        QueueBrowserWork(() =>
         {
             if (_currentWindow is MainWindow mainWindow)
             {
                 mainWindow.NavigateToWebViewPage(Url_Gersang_IpBlockedFaq);
-                return;
+                return Task.CompletedTask;
             }
 
             Navigate(new Uri(Url_Gersang_IpBlockedFaq));
-        });
+            return Task.CompletedTask;
+        }, "WebViewManager.IpBlockedFaqNavigation");
     }
 
     /// <summary>
@@ -1647,7 +1648,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             DefaultButton = ContentDialogButton.Primary
         };
 
-        ContentDialogResult result = await dlg.ShowManagedAsync();
+        ContentDialogResult result = await ShowBrowserDialogAsync(dlg);
         if (result == ContentDialogResult.Secondary
             && _currentWindow is MainWindow mainWindow)
         {
@@ -1694,7 +1695,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Close
                     };
 
-                    await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
+                    await ShowBrowserDialogAsync(dlg, attempt);
                     _session.EnsureCurrentDocument(navigationId);
                     EnsureLaunchAttempt(attempt);
                     args.Accept();
@@ -1713,7 +1714,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Primary
                     };
 
-                    var result = await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
+                    var result = await ShowBrowserDialogAsync(dlg, attempt);
                     _session.EnsureCurrentDocument(navigationId);
                     EnsureLaunchAttempt(attempt);
                     if (result == ContentDialogResult.Primary)
@@ -1740,7 +1741,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                         DefaultButton = ContentDialogButton.Primary
                     };
 
-                    var result = await dlg.ShowManagedAsync(attempt?.Token ?? _lifetime.Token);
+                    var result = await ShowBrowserDialogAsync(dlg, attempt);
                     _session.EnsureCurrentDocument(navigationId);
                     EnsureLaunchAttempt(attempt);
                     if (result == ContentDialogResult.Primary)
@@ -1759,7 +1760,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private async Task HandleDocumentLoadedAsync(CoreWebView2 sender, CoreWebView2DOMContentLoadedEventArgs args)
     {
-        if (_disposed || !_session.IsCurrentDocument(args.NavigationId))
+        if (IsMaintenanceInProgress || _disposed || !_session.IsCurrentDocument(args.NavigationId))
             return;
 #if DEBUGGING
         Debug.WriteLine($"[WebView::OnDOMContentLoaded]");
@@ -1826,10 +1827,22 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     private async void OnScriptDialogOpening(CoreWebView2 sender, CoreWebView2ScriptDialogOpeningEventArgs args)
-        => await SafeExecution.RunHandledAsync(() => RunLaunchCallbackAsync(
-            () => HandleScriptDialogEventAsync(sender, args)), "WebViewManager.ScriptDialogOpening");
+        => await SafeExecution.RunHandledAsync(async () =>
+        {
+            if (IsMaintenanceInProgress)
+            {
+                // The user already confirmed losing site data. A beforeunload prompt must
+                // not trap the old document and prevent our about:blank navigation.
+                if (args.Kind == CoreWebView2ScriptDialogKind.Beforeunload) args.Accept();
+                return;
+            }
+            await RunLaunchCallbackAsync(() => HandleScriptDialogEventAsync(sender, args));
+        }, "WebViewManager.ScriptDialogOpening");
 
-    private async Task RunLaunchCallbackAsync(Func<Task> callback)
+    private Task RunLaunchCallbackAsync(Func<Task> callback)
+        => _session.RunOperationAsync(() => RunLaunchCallbackCoreAsync(callback));
+
+    private async Task RunLaunchCallbackCoreAsync(Func<Task> callback)
     {
         GameLaunchAttempt? attempt = _launchAttempt;
         try { await callback(); }
@@ -1844,7 +1857,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private async Task HandleScriptDialogEventAsync(CoreWebView2 sender, CoreWebView2ScriptDialogOpeningEventArgs args)
     {
-        if (_disposed || !_session.IsReady)
+        if (IsMaintenanceInProgress || _disposed || !_session.IsReady)
             return;
 #if DEBUGGING
         Debug.WriteLine($"[WebView::OnScriptDialogOpening]");
@@ -1899,6 +1912,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private void OnNavigationStarting(WebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
+        if (IsMaintenanceInProgress) return;
 #if DEBUGGING
         Debug.WriteLine($"[WebView::OnNavigationStarting]");
         Debug.WriteLine($"\t- NavigationId: {args.NavigationId}");
@@ -1924,7 +1938,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         Debug.WriteLine($"\t- HttpStatusCode: {args.HttpStatusCode}");
         Debug.WriteLine($"\t- WebErrorStatus: {args.WebErrorStatus}");
 #endif
-        if (_disposed || !_session.IsCurrentDocument(args.NavigationId) || args.IsSuccess)
+        if (IsMaintenanceInProgress || _disposed || !_session.IsCurrentDocument(args.NavigationId) || args.IsSuccess)
             return;
 
         // DOMContentLoaded가 발생하지 않는 네트워크 오류에도 busy/실행 슬롯을 해제합니다.
@@ -1942,19 +1956,20 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     internal void GoBack()
     {
-        if (!_disposed && _session.IsReady && CanGoBack)
+        if (!IsMaintenanceInProgress && !_disposed && _session.IsReady && CanGoBack)
             _session.GetReadyCore().GoBack();
     }
 
     internal void GoForward()
     {
-        if (!_disposed && _session.IsReady && CanGoForward)
+        if (!IsMaintenanceInProgress && !_disposed && _session.IsReady && CanGoForward)
             _session.GetReadyCore().GoForward();
     }
 
     internal void Refresh()
     {
-        RefreshAsync().FireAndForgetHandled("WebViewManager.Refresh");
+        if (IsMaintenanceInProgress) return;
+        _session.RunOperationAsync(RefreshAsync).FireAndForgetHandled("WebViewManager.Refresh");
     }
 
     private async Task RefreshAsync()
@@ -1969,7 +1984,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     internal void RefreshAfterWindowActivation()
     {
-        if (_launchAttempt?.IsPending == true || TryingLogin || TryingGameStart || TryingLogout || IsBusy || _isDisplayingHtmlDocument)
+        if (IsMaintenanceInProgress || _launchAttempt?.IsPending == true || TryingLogin || TryingGameStart || TryingLogout || IsBusy || _isDisplayingHtmlDocument)
             return;
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
@@ -1996,6 +2011,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private void EnsureLaunchAttempt(GameLaunchAttempt? attempt)
     {
+        _session.OperationToken.ThrowIfCancellationRequested();
+        if (IsMaintenanceInProgress) throw new OperationCanceledException("브라우저 데이터 정리 중입니다.");
         if (attempt is null) return;
         attempt.Token.ThrowIfCancellationRequested();
         if (!ReferenceEquals(_launchAttempt, attempt) || !attempt.IsPending)
@@ -2014,12 +2031,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         ArgumentNullException.ThrowIfNull(uri);
 
-        if (_disposed)
+        if (IsMaintenanceInProgress || _disposed)
             return;
 
         _pendingHtmlContent = null;
         _pendingNavigationUri = uri;
-        DispatchWhenInitializedAsync().FireAndForgetHandled("WebViewManager.Navigate");
+        _session.RunOperationAsync(DispatchWhenInitializedAsync).FireAndForgetHandled("WebViewManager.Navigate");
     }
 
     /// <summary>
@@ -2029,12 +2046,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(htmlContent);
 
-        if (_disposed)
+        if (IsMaintenanceInProgress || _disposed)
             return;
 
         _pendingNavigationUri = null;
         _pendingHtmlContent = htmlContent;
-        DispatchWhenInitializedAsync().FireAndForgetHandled("WebViewManager.NavigateToHtmlDocument");
+        _session.RunOperationAsync(DispatchWhenInitializedAsync).FireAndForgetHandled("WebViewManager.NavigateToHtmlDocument");
     }
 
     private async Task DispatchWhenInitializedAsync()
@@ -2047,7 +2064,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// <summary>초기화 중 들어온 화면 이동은 가장 최근 요청 한 개만 실행합니다.</summary>
     private bool DispatchPendingNavigation()
     {
-        if (_disposed || !_session.IsReady || !_initialHomeNavigationCompleted)
+        if (IsMaintenanceInProgress || _disposed || !_session.IsReady || !_initialHomeNavigationCompleted)
             return false;
         if (_pendingNavigationUri is Uri uri)
         {

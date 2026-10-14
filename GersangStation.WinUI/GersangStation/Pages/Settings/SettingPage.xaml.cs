@@ -59,10 +59,9 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         {"GersangStation.Main.Setting.GeneralSettingPage", typeof(GersangStation.Main.Setting.GeneralSettingPage)},
         {"GersangStation.Main.Setting.GameExtensionSettingPage", typeof(GersangStation.Main.Setting.GameExtensionSettingPage)},
         {"GersangStation.Main.Setting.AppearancePlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
-        {"GersangStation.Main.Setting.BrowserPlaceholder", typeof(GersangStation.Main.Setting.PlaceholderSettingPage)},
+        {"GersangStation.Main.Setting.BrowserSettingPage", typeof(GersangStation.Main.Setting.BrowserSettingPage)},
         {"GersangStation.Main.Setting.DeveloperToolPage", typeof(GersangStation.Main.Setting.DeveloperToolPage)},
         {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
-        // {"GersangStation.Main.Setting.BrowserSettingPage", typeof(GersangStation.Main.Setting.BrowserSettingPage)},
         // {"GersangStation.Main.Setting.SponsorPage", typeof(GersangStation.Main.Setting.SponsorPage)},
         // {"GersangStation.Main.Setting.ProgramInfoPage", typeof(GersangStation.Main.Setting.ProgramInfoPage)},
     };
@@ -160,7 +159,6 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         object? resolvedParameter = pageParameter ?? section switch
         {
             SettingSection.Appearance => "모양 설정",
-            SettingSection.BrowserSettings => "브라우저 설정",
             _ => null
         };
         bool navigated = ContentFrame.Navigate(pageType, resolvedParameter, new SuppressNavigationTransitionInfo());
@@ -213,6 +211,7 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             Type t when t == typeof(NotificationSettingPage) => NavigationViewItem_Notification,
             Type t when t == typeof(GeneralSettingPage) => NavigationViewItem_General,
             Type t when t == typeof(GameExtensionSettingPage) => NavigationViewItem_GameExtension,
+            Type t when t == typeof(BrowserSettingPage) => NavigationViewItem_Browser,
             Type t when t == typeof(DeveloperToolPage) => NavigationViewItem_Developer,
             Type t when t == typeof(ProgramInfoPage) => NavigationViewItem_ProgramInfo,
             _ => null

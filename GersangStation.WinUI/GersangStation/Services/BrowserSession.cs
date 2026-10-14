@@ -22,7 +22,7 @@ internal enum BrowserSessionState
 /// MainWindow 수명의 단일 WebView2. 초기화, 문서 유효성, 메모리 정책과 종료를 소유합니다.
 /// 모든 접근은 WebView2를 생성한 UI 스레드에서 수행합니다.
 /// </summary>
-internal sealed class BrowserSession : IDisposable
+internal sealed partial class BrowserSession : IDisposable
 {
     private const int TargetViewportWidth = 1152;
     private readonly CancellationTokenSource _lifetime = new();
@@ -35,6 +35,7 @@ internal sealed class BrowserSession : IDisposable
 
     internal BrowserSession(WebView2 view)
     {
+        _workCancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         View = view;
         View.SizeChanged += OnSizeChanged;
     }
@@ -68,6 +69,7 @@ internal sealed class BrowserSession : IDisposable
             var options = new CoreWebView2EnvironmentOptions
             {
                 AdditionalBrowserArguments = "--disable-features=msSmartScreenProtection"
+                    + (Core.AppDataManager.BrowserHardwareAccelerationEnabled ? "" : " --disable-gpu")
             };
             var environment = await CoreWebView2Environment.CreateWithOptionsAsync(null, null, options);
             _lifetime.Token.ThrowIfCancellationRequested();
@@ -77,6 +79,7 @@ internal sealed class BrowserSession : IDisposable
             _core = View.CoreWebView2 ?? throw new InvalidOperationException("WebView2 초기화 후 Core가 생성되지 않았습니다.");
             _core.Settings.AreDefaultScriptDialogsEnabled = false;
             _core.Settings.IsPasswordAutosaveEnabled = false;
+            _core.DownloadStarting += OnDownloadStarting;
             _core.NavigationStarting += OnNavigationStarting;
             _core.SourceChanged += OnSourceChanged;
             _core.DOMContentLoaded += OnDocumentLoaded;
@@ -106,6 +109,12 @@ internal sealed class BrowserSession : IDisposable
 
     internal CoreWebView2 GetReadyCore()
     {
+        EnsureOperationsAllowed();
+        return GetCoreForMaintenance();
+    }
+
+    private CoreWebView2 GetCoreForMaintenance()
+    {
         VerifyAccess();
         if (State == BrowserSessionState.Faulted)
             throw new InvalidOperationException("브라우저를 사용할 수 없습니다. 앱을 다시 실행해 주세요.", Failure);
@@ -116,10 +125,11 @@ internal sealed class BrowserSession : IDisposable
     }
 
     internal bool IsCurrentDocument(ulong navigationId)
-        => IsReady && NavigationId == navigationId;
+        => !IsSuspended && IsReady && NavigationId == navigationId;
 
     internal void EnsureCurrentDocument(ulong navigationId)
     {
+        EnsureOperationsAllowed();
         if (!IsDocumentReady || !IsCurrentDocument(navigationId))
             throw new OperationCanceledException("브라우저 문서가 변경되었거나 세션이 종료되었습니다.");
     }
@@ -128,7 +138,7 @@ internal sealed class BrowserSession : IDisposable
     {
         var core = GetReadyCore();
         EnsureCurrentDocument(NavigationId);
-        string result = await core.ExecuteScriptAsync(script).AsTask().WaitAsync(_lifetime.Token);
+        string result = await core.ExecuteScriptAsync(script).AsTask().WaitAsync(OperationToken);
         // 탐색을 시작하는 스크립트도 있으므로 문서 일치 검사는 호출자가 작업 단계 사이에 수행합니다.
         return result;
     }
@@ -152,6 +162,37 @@ internal sealed class BrowserSession : IDisposable
         var core = GetReadyCore();
         IsDocumentReady = false;
         core.Reload();
+    }
+
+    private async Task NavigateToBlankForMaintenanceAsync(CoreWebView2 core)
+    {
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ulong? blankNavigationId = null;
+        void Starting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
+        {
+            if (args.Uri == "about:blank" && !args.Cancel) blankNavigationId = args.NavigationId;
+        }
+        void Completed(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
+        {
+            if (args.NavigationId != blankNavigationId) return;
+            if (args.IsSuccess && sender.Source == "about:blank") completed.TrySetResult();
+            else completed.TrySetException(new InvalidOperationException("빈 페이지로 이동하지 못해 데이터 정리를 중단했습니다."));
+        }
+        core.NavigationStarting += Starting;
+        core.NavigationCompleted += Completed;
+        _allowBlankNavigation = true;
+        try
+        {
+            core.Stop();
+            core.Navigate("about:blank");
+            await completed.Task.WaitAsync(TimeSpan.FromSeconds(20), _lifetime.Token);
+        }
+        finally
+        {
+            _allowBlankNavigation = false;
+            core.NavigationStarting -= Starting;
+            core.NavigationCompleted -= Completed;
+        }
     }
 
     internal void SetMemoryTarget(CoreWebView2MemoryUsageTargetLevel target)
@@ -178,6 +219,11 @@ internal sealed class BrowserSession : IDisposable
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
+        if (IsSuspended && !(_allowBlankNavigation && args.Uri == "about:blank"))
+        {
+            args.Cancel = true;
+            return;
+        }
         NavigationId = args.NavigationId;
         IsDocumentReady = false;
     }
@@ -191,7 +237,7 @@ internal sealed class BrowserSession : IDisposable
     private void OnSourceChanged(CoreWebView2 sender, CoreWebView2SourceChangedEventArgs args)
     {
         // fragment/history 이동은 새 DOMContentLoaded 없이 끝납니다.
-        if (IsReady && !args.IsNewDocument)
+        if (!IsSuspended && IsReady && !args.IsNewDocument)
             IsDocumentReady = true;
     }
 
@@ -218,7 +264,7 @@ internal sealed class BrowserSession : IDisposable
 
     private async Task ApplyViewportAsync()
     {
-        if (!IsReady)
+        if (!IsReady || IsSuspended)
             return;
         if (_applyingViewport)
         {
@@ -232,7 +278,7 @@ internal sealed class BrowserSession : IDisposable
             do
             {
                 _viewportPending = false;
-                if (!IsReady || View.ActualWidth <= 0 || View.ActualHeight <= 0)
+                if (!IsReady || IsSuspended || View.ActualWidth <= 0 || View.ActualHeight <= 0)
                     return;
                 var core = GetReadyCore();
                 if (View.ActualWidth >= TargetViewportWidth)
@@ -278,9 +324,14 @@ internal sealed class BrowserSession : IDisposable
         State = BrowserSessionState.Disposed;
         IsDocumentReady = false;
         _lifetime.Cancel();
+        _workCancellation.Cancel();
         View.SizeChanged -= OnSizeChanged;
         if (_core is not null)
         {
+            _core.DownloadStarting -= OnDownloadStarting;
+            foreach (var download in _downloads)
+                download.StateChanged -= OnDownloadStateChanged;
+            _downloads.Clear();
             _core.NavigationStarting -= OnNavigationStarting;
             _core.SourceChanged -= OnSourceChanged;
             _core.DOMContentLoaded -= OnDocumentLoaded;

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="GersangStation.Main.Setting.BrowserSettingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    NavigationCacheMode="Disabled">
+    <Grid>
+        <ScrollViewer HorizontalContentAlignment="Stretch" HorizontalScrollBarVisibility="Disabled"
+                      HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
+            <Grid Padding="24" HorizontalAlignment="Stretch">
+                <StackPanel MaxWidth="896" HorizontalAlignment="Stretch" Spacing="16">
+                    <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="브라우저 설정" />
+                    <toolkit:SettingsCard Header="기본 검색 엔진" Description="주소창에서 검색할 때 사용할 검색 엔진을 선택하세요.">
+                        <ComboBox x:Name="SearchProviderComboBox" MinWidth="160" AutomationProperties.Name="기본 검색 엔진"
+                                  SelectionChanged="SearchProviderComboBox_SelectionChanged">
+                            <ComboBoxItem Content="Google" />
+                            <ComboBoxItem Content="Bing" />
+                            <ComboBoxItem Content="Naver" />
+                            <ComboBoxItem Content="Daum" />
+                        </ComboBox>
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Header="가능한 경우 그래픽 가속 사용" Description="변경 사항은 앱을 다시 실행한 후 적용됩니다. 기기와 드라이버에 따라 사용 여부가 달라질 수 있습니다.">
+                        <ToggleSwitch x:Name="HardwareAccelerationToggle" AutomationProperties.Name="가능한 경우 그래픽 가속 사용"
+                                      OffContent="끔" OnContent="켬" Toggled="HardwareAccelerationToggle_Toggled" />
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Header="브라우저 쿠키 및 캐시 정리"
+                                         Description="일반·웹앱 캐시, 쿠키, 사이트 저장소, 방문·다운로드 기록을 삭제합니다. 사이트에서 로그아웃됩니다.">
+                        <Button Content="정리" Click="ClearCookiesAndCache_Click" IsEnabled="{x:Bind CanClearData, Mode=OneWay}"
+                                AutomationProperties.Name="브라우저 쿠키 및 캐시 정리" />
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Header="브라우저 데이터 초기화"
+                                         Description="쿠키 및 캐시 정리 항목과 자동완성, 웹사이트 저장 암호, 사이트 권한 등 WebView2 프로필 데이터를 모두 초기화합니다.">
+                        <Button Content="초기화" Click="ResetBrowserData_Click" IsEnabled="{x:Bind CanClearData, Mode=OneWay}"
+                                AutomationProperties.Name="브라우저 데이터 초기화" />
+                    </toolkit:SettingsCard>
+                    <Grid ColumnSpacing="12" Visibility="{x:Bind ProgressVisibility, Mode=OneWay}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressRing Width="20" Height="20" IsActive="{x:Bind IsClearingData, Mode=OneWay}" />
+                        <TextBlock Grid.Column="1" Text="브라우저 작업을 중단하고 데이터를 정리하고 있습니다…" TextWrapping="WrapWholeWords" VerticalAlignment="Center" />
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+        <Border x:Name="ResultTipAnchor" Width="1" Height="1" Margin="0,0,0,20" HorizontalAlignment="Center"
+                VerticalAlignment="Bottom" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+        <TeachingTip x:Name="ResultTip" Target="{x:Bind ResultTipAnchor, Mode=OneTime}" PreferredPlacement="Top"
+                     TailVisibility="Collapsed" PlacementMargin="0" IsLightDismissEnabled="True" CloseButtonContent="닫기" />
+    </Grid>
+</Page>

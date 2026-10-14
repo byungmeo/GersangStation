@@ -43,22 +43,6 @@
                         Tag="GameInstallSettingPage" />
                 </NavigationViewItem.MenuItems>
             </NavigationViewItem>
-            <NavigationViewItem IsEnabled="False" Tag="BrowserSettingPage">
-                <NavigationViewItem.Content>
-                    <StackPanel Orientation="Horizontal">
-                        <Viewbox
-                            Width="17"
-                            Height="17"
-                            Stretch="UniformToFill">
-                            <FontIcon Glyph="&#xF6FA;" />
-                        </Viewbox>
-                        <TextBlock
-                            Margin="15,0,0,0"
-                            VerticalAlignment="Center"
-                            Text="브라우저" />
-                    </StackPanel>
-                </NavigationViewItem.Content>
-            </NavigationViewItem>
             <NavigationViewItem x:Name="NavigationViewItem_Notification" Tag="NotificationSettingPage">
                 <NavigationViewItem.Content>
                     <StackPanel Orientation="Horizontal">
@@ -117,7 +101,7 @@
             <NavigationViewItem x:Name="NavigationViewItem_General" Tag="GeneralSettingPage" />
             <NavigationViewItem x:Name="NavigationViewItem_GameExtension" Tag="GameExtensionSettingPage" />
             <NavigationViewItem x:Name="NavigationViewItem_Appearance" Tag="AppearancePlaceholder" />
-            <NavigationViewItem x:Name="NavigationViewItem_Browser" Tag="BrowserPlaceholder" />
+            <NavigationViewItem x:Name="NavigationViewItem_Browser" Tag="BrowserSettingPage" />
         </NavigationView.FooterMenuItems>
     </NavigationView>
     <Frame x:Name="ContentFrame" IsNavigationStackEnabled="False" />

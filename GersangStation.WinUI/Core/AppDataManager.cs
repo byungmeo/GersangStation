@@ -93,6 +93,23 @@ public static class AppDataManager
     private const string BrowserFavoritesFileName = "browser-favorites.json";
 
     #region LocalSettings Properties
+    public static BrowserSearchProvider BrowserSearchProvider
+    {
+        get
+        {
+            int value = LoadLocalSetting("BrowserSearchProvider", (int)Models.BrowserSearchProvider.Google);
+            return Enum.IsDefined(typeof(BrowserSearchProvider), value)
+                ? (BrowserSearchProvider)value : Models.BrowserSearchProvider.Google;
+        }
+        set => SaveLocalSetting("BrowserSearchProvider", (int)value);
+    }
+
+    public static bool BrowserHardwareAccelerationEnabled
+    {
+        get => LoadLocalSetting("BrowserHardwareAccelerationEnabled", true);
+        set => SaveLocalSetting("BrowserHardwareAccelerationEnabled", value);
+    }
+
     public static string PrevVersion
     {
         get => LoadLocalSetting(LatestVersion_SettingKey, defaultValue: "1.0.0.0");

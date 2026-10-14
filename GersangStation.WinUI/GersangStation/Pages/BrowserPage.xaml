@@ -11,9 +11,12 @@
     d:DataContext="{d:DesignInstance Type=service:WebViewManager}"
     NavigationCacheMode="Required"
     mc:Ignorable="d">
-    <Grid>
+    <ContentControl
+        HorizontalContentAlignment="Stretch"
+        VerticalContentAlignment="Stretch"
+        IsEnabled="{x:Bind CanUseBrowser, Mode=OneWay}"
+        IsTabStop="False">
         <Grid
-            Grid.Row="0"
             Padding="8"
             Background="{ThemeResource ControlFillColorDefaultBrush}"
             BorderBrush="{ThemeResource SurfaceStrokeColorDefault}"
@@ -179,5 +182,5 @@
                 </ScrollViewer>
             </Border>
         </Grid>
-    </Grid>
+    </ContentControl>
 </Page>

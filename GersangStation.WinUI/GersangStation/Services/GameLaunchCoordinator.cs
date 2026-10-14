@@ -115,7 +115,7 @@ public sealed class GameLaunchCoordinator : INotifyPropertyChanged, IDisposable
     public GameLaunchButtonState Client1 { get; } = new();
     public GameLaunchButtonState Client2 { get; } = new();
     public GameLaunchButtonState Client3 { get; } = new();
-    public bool CanLogin => !HasPending && !_browser.TryingLogin && !_browser.TryingLogout;
+    public bool CanLogin => !_browser.IsMaintenanceInProgress && !HasPending && !_browser.TryingLogin && !_browser.TryingLogout;
     private bool HasPending => Array.Exists(_attempts, attempt => attempt?.IsPending == true);
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -128,7 +128,7 @@ public sealed class GameLaunchCoordinator : INotifyPropertyChanged, IDisposable
     internal async Task ToggleAsync(GameServer server, int index, string accountId, string installPath,
         Func<GameLaunchAttempt, Task<bool>> execute)
     {
-        if (_disposed) return;
+        if (_disposed || _browser.IsMaintenanceInProgress) return;
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _attempts.Length);
         if (_attempts[index] is { IsPending: true } pending)
@@ -178,8 +178,8 @@ public sealed class GameLaunchCoordinator : INotifyPropertyChanged, IDisposable
         {
             bool busy = _attempts[i]?.IsPending == true;
             bool running = _attempts[i]?.Phase == GameLaunchPhase.Running;
-            buttons[i].Update(busy, running, busy || (!running && !pending
-                && !_browser.TryingLogin && !_browser.TryingLogout && _slotEnabled[i]));
+            buttons[i].Update(busy, running, !_browser.IsMaintenanceInProgress && (busy || (!running && !pending
+                && !_browser.TryingLogin && !_browser.TryingLogout && _slotEnabled[i])));
         }
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanLogin)));
     }
@@ -198,7 +198,10 @@ public sealed class GameLaunchCoordinator : INotifyPropertyChanged, IDisposable
 
     private void OnBrowserChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is not (nameof(WebViewManager.TryingLogin) or nameof(WebViewManager.TryingLogout))) return;
+        if (e.PropertyName == nameof(WebViewManager.IsMaintenanceInProgress) && _browser.IsMaintenanceInProgress)
+            foreach (var attempt in _attempts) attempt?.Cancel("브라우저 데이터 정리");
+        if (e.PropertyName is not (nameof(WebViewManager.TryingLogin) or nameof(WebViewManager.TryingLogout)
+            or nameof(WebViewManager.IsMaintenanceInProgress))) return;
         if (_dispatcher.HasThreadAccess) { if (!_disposed) Refresh(); }
         else _dispatcher.TryEnqueue(() => { if (!_disposed) Refresh(); });
     }

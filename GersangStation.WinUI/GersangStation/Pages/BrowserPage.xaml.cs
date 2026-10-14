@@ -43,6 +43,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
 
     public ObservableCollection<Account> Accounts { get; } = [];
     public bool CanSelectAccount => _shellWindow?.GameLaunchCoordinator.CanLogin != false;
+    public bool CanUseBrowser => _webviewManager?.IsMaintenanceInProgress != true;
     public ObservableCollection<BrowserFavorite> Favorites { get; } = [];
 
     public Visibility FavoritesVisibility => Favorites.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
@@ -158,7 +159,11 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
 
     private void OnLaunchStateChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(GameLaunchCoordinator.CanLogin)) OnPropertyChanged(nameof(CanSelectAccount));
+        if (e.PropertyName == nameof(GameLaunchCoordinator.CanLogin))
+        {
+            OnPropertyChanged(nameof(CanSelectAccount));
+            OnPropertyChanged(nameof(CanUseBrowser));
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -326,42 +331,8 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
             TextBox_Search.Text = _committedUrlText;
     }
 
-    private static Uri BuildSearchUri(string query)
-    {
-        // 예: Google 검색. 필요하면 엔진만 바꾸면 됨.
-        string encoded = Uri.EscapeDataString(query);
-        return new Uri($"https://www.google.com/search?q={encoded}");
-    }
-
     private static Uri? BuildTargetUri(string input)
-    {
-        // 1) 이미 절대 URI면 그대로
-        if (Uri.TryCreate(input, UriKind.Absolute, out var absolute) &&
-            (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
-        {
-            return absolute;
-        }
-
-        // 2) “도메인/호스트처럼 보이는” 케이스면 https:// 붙여서 시도
-        //    - 점(.) 포함 (example.com)
-        //    - localhost
-        //    - 포트(:) 포함 (127.0.0.1:3000)
-        bool looksLikeHost =
-            input.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-            input.Contains('.') ||
-            input.Contains(':');
-
-        if (looksLikeHost)
-        {
-            string candidate = "https://" + input;
-            if (Uri.TryCreate(candidate, UriKind.Absolute, out var withScheme))
-                return withScheme;
-        }
-
-        // 3) 그 외는 검색으로 처리(브라우저 주소창과 유사)
-        //    (원치 않으면 여기서 null 반환하면 됨)
-        return BuildSearchUri(input);
-    }
+        => BrowserAddressResolver.Resolve(input, AppDataManager.BrowserSearchProvider);
 
     private void CommitNavigateFromAddressBar()
     {
