@@ -51,6 +51,8 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private int? _currentClientVersion;
     private int? _latestServerVersion;
     private string _currentInstallPath = string.Empty;
+    private LastPatchRecord? _lastPatchRecord;
+    private bool _patchHistoryUnavailable;
     private bool _suppressServerSelectionChanged;
     private List<PatchReadmeInfoItem> _allPatchReadmeItems = [];
     private int _nextPatchReadmeRenderIndex;
@@ -66,6 +68,14 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     public string PatchReadmeTitle => $"{GameServerHelper.GetServerDisplayName(_selectedGameServer)} 패치 내역";
     public static string ServerSelectionGlyph(bool isSelected) => isSelected ? "\uE73A" : "\uE739";
     public bool IsPatchStartEnabled => IsNotBusy && CanStartPatch;
+    public string LastPatchDescription => _lastPatchRecord is { } record
+        ? $"기준 버전 v{record.FromVersion} → 패치 버전 v{record.ToVersion}\n당시 기준으로 다시 패치를 해서 문제를 해결할 수 있습니다. (패치가 문제였던 경우)"
+        : _patchHistoryUnavailable ? "마지막 패치 기록을 불러오지 못했습니다."
+        : "아직 완료된 패치 기록이 없습니다.";
+    public bool IsRepatchEnabled => IsPatchStartEnabled && _lastPatchRecord is { } record
+        && record.CanReapply(_currentInstallPath, _currentClientVersion, _latestServerVersion)
+        && (record.FromVersion == ManualUpgradeBoundaryVersion
+            || _allPatchReadmeItems.Any(item => item.Version == record.FromVersion));
     public string PatchStatusHeader => GetPatchStatus().Header;
     public string PatchStatusDescription => GetPatchStatus().Description;
     public Visibility PatchStatusLinkVisibility => !IsLoadingPatchInfo && RequiresManualUpgradeLink()
@@ -123,6 +133,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(IsNotBusy));
                 OnPropertyChanged(nameof(IsPatchStartEnabled));
+                OnPropertyChanged(nameof(IsRepatchEnabled));
                 OnPropertyChanged(nameof(PatchStatusHeader));
                 OnPropertyChanged(nameof(PatchStatusDescription));
                 OnPropertyChanged(nameof(LoadingOverlayVisibility));
@@ -142,6 +153,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 OnPropertyChanged(nameof(IsBusy));
                 OnPropertyChanged(nameof(IsNotBusy));
                 OnPropertyChanged(nameof(IsPatchStartEnabled));
+                OnPropertyChanged(nameof(IsRepatchEnabled));
                 OnPropertyChanged(nameof(DownloadingVisibility));
                 OnPropertyChanged(nameof(NotBusyVisibility));
                 OnPropertyChanged(nameof(PatchCancelVisibility));
@@ -154,7 +166,10 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         set
         {
             if (SetProperty(ref _selectedVersionItem, value))
+            {
                 OnPropertyChanged(nameof(IsPatchStartEnabled));
+                OnPropertyChanged(nameof(IsRepatchEnabled));
+            }
         }
     }
     #endregion Properties
@@ -202,6 +217,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         IsLoadingPatchInfo = true;
         try
         {
+            LoadLastPatchRecord();
             (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
                 await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
 
@@ -581,6 +597,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         OnPropertyChanged(nameof(CanOpenPatchReadme));
         OnPropertyChanged(nameof(PatchReadmeTitle));
         OnPropertyChanged(nameof(IsPatchStartEnabled));
+        OnPropertyChanged(nameof(IsRepatchEnabled));
         OnPropertyChanged(nameof(PatchStatusHeader));
         OnPropertyChanged(nameof(PatchStatusDescription));
         OnPropertyChanged(nameof(PatchStatusLinkVisibility));
@@ -630,19 +647,29 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         => SafeExecution.RunHandledAsync(StartPatchAsync, $"{nameof(GamePatchSettingPage)}.{nameof(Button_PatchStart_Click)}")
             .FireAndForgetHandled($"{nameof(GamePatchSettingPage)}.{nameof(Button_PatchStart_Click)}");
 
-    private async Task StartPatchAsync()
+    private Task StartPatchAsync() => StartPatchAsync(reapply: null);
+
+    private void Button_Repatch_Click(object sender, RoutedEventArgs e)
+        => SafeExecution.RunHandledAsync(() => IsRepatchEnabled && _lastPatchRecord is { } record
+                ? StartPatchAsync(record) : Task.CompletedTask,
+                $"{nameof(GamePatchSettingPage)}.{nameof(Button_Repatch_Click)}")
+            .FireAndForgetHandled($"{nameof(GamePatchSettingPage)}.{nameof(Button_Repatch_Click)}");
+
+    private async Task StartPatchAsync(LastPatchRecord? reapply)
     {
-        if (!IsPatchStartEnabled)
+        if (reapply is null ? !IsPatchStartEnabled : !IsRepatchEnabled)
             return;
 
         if (SelectedVersionItem is null)
             return;
 
+        int fromVersion = reapply?.FromVersion ?? SelectedVersionItem.Version;
+        GameServer server = _selectedGameServer;
         IsDownloading = true;
         try
         {
             (ClientSettings clientSetting, AppDataManager.AppDataOperationResult loadResult) =
-                await AppDataManager.LoadServerClientSettingsAsync(_selectedGameServer);
+                await AppDataManager.LoadServerClientSettingsAsync(server);
 
             if (!loadResult.Success)
             {
@@ -662,9 +689,17 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 return;
             }
 
+            if (reapply is not null && !reapply.CanReapply(clientSetting.InstallPath,
+                    PatchManager.TryGetCurrentClientVersion(clientSetting.InstallPath).Version, latestClientVersion))
+            {
+                ShowPatchResultTeachingTip("다시 패치 불가",
+                    "설치 경로나 게임 버전이 변경되었습니다. 새로고침 후 다시 확인해주세요.", isError: true);
+                return;
+            }
+
             string tempRoot = PatchManager.GetPatchTempRoot(
                 clientSetting.InstallPath,
-                SelectedVersionItem.Version,
+                fromVersion,
                 latestClientVersion);
 
             TempPath = $"임시 파일 경로: {tempRoot}";
@@ -713,16 +748,17 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 ArchiveReuseMode: archiveReuseMode);
 
             await GameMaintenanceService.PatchAsync(
-                _selectedGameServer,
-                SelectedVersionItem.Version,
+                server,
+                fromVersion,
                 clientSetting,
                 option,
                 patchProgress,
                 _patchCts.Token);
 
             RefreshInstalledVersionAfterPatch(clientSetting.InstallPath);
+            string? historyWarning = TrySaveLastPatchRecord(server, fromVersion, clientSetting.InstallPath);
             ProgressValue = ProgressMaximum;
-            ProgressText = "패치가 완료되었습니다.";
+            ProgressText = historyWarning ?? "패치가 완료되었습니다.";
             ShowPatchResultTeachingTip("패치 성공", ProgressText);
         }
         catch (OperationCanceledException)
@@ -754,6 +790,48 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
             _patchCts?.Dispose();
             _patchCts = null;
+        }
+    }
+
+    private void LoadLastPatchRecord()
+    {
+        try
+        {
+            _lastPatchRecord = AppDataManager.LoadLastPatchRecord(_selectedGameServer);
+            _patchHistoryUnavailable = false;
+        }
+        catch (Exception ex)
+        {
+            // Optional history must never prevent normal patching or version discovery.
+            _lastPatchRecord = null;
+            _patchHistoryUnavailable = true;
+            Debug.WriteLine($"[GamePatchSettingPage] Failed to load patch history: {ex}");
+        }
+        OnPropertyChanged(nameof(LastPatchDescription));
+        OnPropertyChanged(nameof(IsRepatchEnabled));
+    }
+
+    private string? TrySaveLastPatchRecord(GameServer server, int fromVersion, string installPath)
+    {
+        // A no-op patch must not erase the last useful range needed for reapplication.
+        if (_currentClientVersion is int currentVersion && currentVersion <= fromVersion)
+            return null;
+        try
+        {
+            if (_currentClientVersion is not int toVersion)
+                throw new InvalidOperationException("패치 후 게임 버전을 확인할 수 없습니다.");
+            var record = new LastPatchRecord(fromVersion, toVersion, installPath);
+            AppDataManager.SaveLastPatchRecord(server, record);
+            _lastPatchRecord = record;
+            _patchHistoryUnavailable = false;
+            OnPropertyChanged(nameof(LastPatchDescription));
+            OnPropertyChanged(nameof(IsRepatchEnabled));
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[GamePatchSettingPage] Patch succeeded but history save failed: {ex}");
+            return "패치는 완료되었지만 마지막 패치 기록을 저장하지 못했습니다.";
         }
     }
 

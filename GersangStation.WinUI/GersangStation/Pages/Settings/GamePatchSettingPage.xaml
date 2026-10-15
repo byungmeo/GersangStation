@@ -79,6 +79,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <toolkit:SettingsExpander
                             x:Name="SettingsExpander_Patch"
@@ -193,10 +194,23 @@
                             </toolkit:SettingsExpander.Items>
                         </toolkit:SettingsExpander>
 
+                        <toolkit:SettingsCard
+                            Grid.Row="1"
+                            Description="{x:Bind LastPatchDescription, Mode=OneWay}"
+                            Header="패치를 했는데 안되시나요?">
+                            <Button
+                                AutomationProperties.AutomationId="Button_Repatch"
+                                AutomationProperties.Name="마지막 패치 다시 적용"
+                                Click="Button_Repatch_Click"
+                                Content="다시 패치"
+                                IsEnabled="{x:Bind IsRepatchEnabled, Mode=OneWay}"
+                                ToolTipService.ToolTip="마지막 패치의 시작 버전부터 현재 최신 버전까지 다시 적용합니다." />
+                        </toolkit:SettingsCard>
+
                         <!--#region Progress Row-->
                         <!--  진행 막대/상태 문구의 열 너비를 공유하고 취소 버튼은 첫 행에만 배치하므로 2×2 Grid를 유지합니다.  -->
                         <Grid
-                            Grid.Row="1"
+                            Grid.Row="2"
                             HorizontalAlignment="Stretch"
                             RowSpacing="8"
                             Visibility="{x:Bind PatchProgressVisibility, Mode=OneWay}">
