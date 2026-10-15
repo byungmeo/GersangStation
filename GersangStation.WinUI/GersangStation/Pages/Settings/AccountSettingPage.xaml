@@ -137,8 +137,8 @@
                                 IsEnabled="{x:Bind AccountManagementEnabled, Mode=OneWay}"
                                 MaxColumns="2"
                                 SelectedIndex="{x:Bind AccountListDisplayModeIndex, Mode=TwoWay}">
-                                <x:String>그룹으로 보기</x:String>
                                 <x:String>순서대로 보기</x:String>
+                                <x:String>그룹으로 보기</x:String>
                             </RadioButtons>
                             <StackPanel
                                 Grid.Row="1"

@@ -202,11 +202,11 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     /// </summary>
     public int AccountListDisplayModeIndex
     {
-        get => _accountListDisplayMode == AccountListDisplayMode.Ordered ? 1 : 0;
+        get => _accountListDisplayMode == AccountListDisplayMode.Ordered ? 0 : 1;
         set
         {
             if (value is < 0 or > 1) return;
-            AccountListDisplayMode nextMode = value == 1
+            AccountListDisplayMode nextMode = value == 0
                 ? AccountListDisplayMode.Ordered
                 : AccountListDisplayMode.Grouped;
 
