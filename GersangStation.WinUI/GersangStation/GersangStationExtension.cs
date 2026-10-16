@@ -15,8 +15,8 @@ public static class DispatcherQueueExtensions
     /// </summary>
     public static Task EnqueueAsync(this Microsoft.UI.Dispatching.DispatcherQueue queue, Func<Task> action)
     {
-        var tcs = new TaskCompletionSource<object?>();
-        queue.TryEnqueue(async () =>
+        var tcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        bool enqueued = queue.TryEnqueue(async () =>
         {
             try
             {
@@ -28,6 +28,9 @@ public static class DispatcherQueueExtensions
                 tcs.SetException(ex);
             }
         });
+        // A rejected callback will never run, so its caller must not keep waiting.
+        if (!enqueued)
+            tcs.SetException(new InvalidOperationException("UI DispatcherQueue에 작업을 예약하지 못했습니다. 큐가 종료 중이거나 더 이상 작업을 받지 않습니다."));
         return tcs.Task;
     }
 
