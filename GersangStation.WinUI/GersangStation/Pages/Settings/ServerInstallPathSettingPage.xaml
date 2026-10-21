@@ -18,10 +18,26 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <toolkit:SettingsCard
+                <InfoBar
                     Grid.Row="0"
+                    IsClosable="False"
+                    IsOpen="{x:Bind HasSettingsLoadFailure, Mode=OneWay}"
+                    Message="기존 설정을 보호하기 위해 편집을 잠시 중단했습니다. 파일 사용 여부와 접근 권한을 확인한 후 다시 불러와 주세요."
+                    Severity="Error"
+                    Title="설치 경로 설정을 불러오지 못했습니다.">
+                    <InfoBar.ActionButton>
+                        <Button
+                            Click="RetrySettingsLoadButton_Click"
+                            Content="다시 불러오기"
+                            IsEnabled="{x:Bind CanRetrySettingsLoad, Mode=OneWay}" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+                <toolkit:SettingsCard
+                    Grid.Row="1"
                     HorizontalContentAlignment="Stretch"
                     ContentAlignment="Vertical"
                     Description="거상이 설치되어있는 경로를 지정해주세요. 아직 거상을 설치하지 않았다면 설치 버튼을 통해 설치하실 수 있습니다."
@@ -58,11 +74,24 @@
                             Text="{x:Bind SaveStatusText, Mode=OneWay}"
                             TextWrapping="Wrap"
                             Visibility="{x:Bind SaveStatusVisibility, Mode=OneWay}" />
+                        <InfoBar
+                            IsClosable="False"
+                            IsOpen="{x:Bind HasAutoSaveFailure, Mode=OneWay}"
+                            Message="입력한 경로는 유지됩니다. 파일 사용 여부와 저장 권한을 확인한 후 다시 저장해 주세요. 저장 전에는 페이지를 이동할 수 없습니다."
+                            Severity="Error"
+                            Title="설치 경로를 저장하지 못했습니다.">
+                            <InfoBar.ActionButton>
+                                <Button
+                                    Click="RetryAutoSaveButton_Click"
+                                    Content="다시 저장"
+                                    IsEnabled="{x:Bind CanRetryAutoSave, Mode=OneWay}" />
+                            </InfoBar.ActionButton>
+                        </InfoBar>
                     </StackPanel>
                 </toolkit:SettingsCard>
 
                 <toolkit:SettingsCard
-                    Grid.Row="1"
+                    Grid.Row="2"
                     HorizontalContentAlignment="Stretch"
                     ContentAlignment="Vertical"
                     Description="거상은 한 컴퓨터에서 최대 3클라이언트까지 실행할 수 있습니다."

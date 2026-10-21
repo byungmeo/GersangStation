@@ -101,10 +101,11 @@ public sealed partial class BrowserSettingPage : Page, INotifyPropertyChanged
         catch (OperationCanceledException) when (pageToken.IsCancellationRequested) { }
         catch (Exception ex)
         {
+            App.ExceptionHandler.RecordRecoverable(ex, allData
+                ? "BrowserSettingPage.ResetBrowserData"
+                : "BrowserSettingPage.ClearCookiesAndCache");
             if (!pageToken.IsCancellationRequested)
-                ShowResult("브라우저 데이터 정리 실패", "일부 데이터가 남아 있을 수 있습니다. 앱을 다시 실행한 후 시도해 주세요.\n" + ex.Message);
-            // Keep the original exception in the app's diagnostic log as well.
-            throw;
+                ShowResult("브라우저 데이터 정리 실패", "일부 데이터가 남아 있을 수 있습니다. 앱을 다시 실행한 후 시도해 주세요.");
         }
         finally { _confirming = false; NotifyState(); }
     }

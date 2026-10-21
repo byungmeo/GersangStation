@@ -5,18 +5,30 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:GersangStation.Main"
+    xmlns:controls="using:GersangStation.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:model="using:Core.Models"
     xmlns:service="using:GersangStation.Services"
     d:DataContext="{d:DesignInstance Type=service:WebViewManager}"
     NavigationCacheMode="Required"
+    Loaded="BrowserPage_LoginFeedbackLoaded"
+    Unloaded="BrowserPage_LoginFeedbackUnloaded"
     mc:Ignorable="d">
+    <Page.Resources>
+        <Style x:Key="BrowserLoginWarningTipStyle" TargetType="TeachingTip" BasedOn="{StaticResource AppTeachingTipStyle}">
+            <Setter Property="Background" Value="{ThemeResource SystemFillColorCautionBackgroundBrush}" />
+        </Style>
+        <Style x:Key="BrowserLoginFailureTipStyle" TargetType="TeachingTip" BasedOn="{StaticResource AppTeachingTipStyle}">
+            <Setter Property="Background" Value="{ThemeResource SystemFillColorCriticalBackgroundBrush}" />
+        </Style>
+    </Page.Resources>
     <ContentControl
         HorizontalContentAlignment="Stretch"
         VerticalContentAlignment="Stretch"
         IsEnabled="{x:Bind CanUseBrowser, Mode=OneWay}"
         IsTabStop="False">
         <Grid
+            x:Name="BrowserChrome"
             Padding="8"
             Background="{ThemeResource ControlFillColorDefaultBrush}"
             BorderBrush="{ThemeResource SurfaceStrokeColorDefault}"
@@ -134,53 +146,80 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="model:BrowserFavorite">
-                                <Button
-                                    Padding="5,4"
-                                    Click="FavoriteItem_Click"
-                                    Style="{StaticResource SubtleButtonStyle}"
-                                    Tag="{x:Bind}">
-                                    <Button.ContextFlyout>
-                                        <MenuFlyout>
-                                            <MenuFlyoutItem
-                                                Click="FavoriteRename_Click"
-                                                Tag="{x:Bind}"
-                                                Text="이름 변경" />
-                                            <MenuFlyoutItem
-                                                Click="FavoriteDelete_Click"
-                                                Tag="{x:Bind}"
-                                                Text="삭제" />
-                                        </MenuFlyout>
-                                    </Button.ContextFlyout>
-                                    <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <Grid Width="16" Height="16">
-                                            <Border Background="{ThemeResource ControlFillColorSecondaryBrush}" CornerRadius="4">
-                                                <FontIcon
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    FontSize="10"
-                                                    Glyph="&#xE774;" />
-                                            </Border>
-                                            <Image Width="16" Height="16">
-                                                <Image.Source>
-                                                    <BitmapImage UriSource="{x:Bind DisplayFaviconUrl, Mode=OneTime}" />
-                                                </Image.Source>
-                                            </Image>
-                                        </Grid>
-                                        <TextBlock
-                                            MaxWidth="180"
-                                            MaxLines="1"
-                                            Text="{x:Bind Name}"
-                                            TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                    <ToolTipService.ToolTip>
-                                        <ToolTip Content="{x:Bind Url}" />
-                                    </ToolTipService.ToolTip>
-                                </Button>
+                                <controls:FavoriteItemView
+                                    Loaded="FavoriteView_Loaded"
+                                    Unloaded="FavoriteView_Unloaded"
+                                    NavigateRequested="FavoriteView_NavigateRequested"
+                                    DeleteRequested="FavoriteView_DeleteRequested"
+                                    Tag="{x:Bind}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
             </Border>
+            <TeachingTip x:Name="BrowserLoginTeachingTip" Target="{x:Bind ComboBox_Account}"
+                         Style="{StaticResource BrowserLoginWarningTipStyle}"
+                         IsLightDismissEnabled="True" PreferredPlacement="Bottom"
+                         Closing="BrowserLoginTeachingTip_Closing" Closed="BrowserLoginTeachingTip_Closed">
+                <TeachingTip.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Light">
+                                <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCautionBackground}" />
+                                <SolidColorBrush x:Key="BrowserLoginIconBrush" Color="{ThemeResource SystemFillColorCaution}" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Dark">
+                                <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCautionBackground}" />
+                                <SolidColorBrush x:Key="BrowserLoginIconBrush" Color="{ThemeResource SystemFillColorCaution}" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast">
+                                <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="BrowserLoginIconBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
+                </TeachingTip.Resources>
+                <TeachingTip.IconSource>
+                    <FontIconSource Glyph="&#xE7BA;" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                    Foreground="{ThemeResource BrowserLoginIconBrush}" />
+                </TeachingTip.IconSource>
+                <StackPanel x:Name="BrowserLoginWarningActions" Margin="32,4,0,4" Spacing="8">
+                    <Button x:Name="BrowserLoginAccountSettingsButton" Click="OpenLoginAccountSettingsButton_Click" Content="계정 설정" />
+                    <Button x:Name="BrowserPhoneVerificationButton" Click="OpenPhoneVerificationButton_Click" Content="본인 인증 하기" Visibility="Collapsed" />
+                </StackPanel>
+            </TeachingTip>
+            <TeachingTip x:Name="BrowserLoginFailureTeachingTip" Target="{x:Bind ComboBox_Account}"
+                         Style="{StaticResource BrowserLoginFailureTipStyle}"
+                         IsLightDismissEnabled="True" PreferredPlacement="Bottom"
+                         Closing="BrowserLoginTeachingTip_Closing" Closed="BrowserLoginTeachingTip_Closed">
+                <TeachingTip.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Light">
+                                <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCriticalBackground}" />
+                                <SolidColorBrush x:Key="BrowserLoginIconBrush" Color="{ThemeResource SystemFillColorCritical}" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Dark">
+                                <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCriticalBackground}" />
+                                <SolidColorBrush x:Key="BrowserLoginIconBrush" Color="{ThemeResource SystemFillColorCritical}" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast">
+                                <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="BrowserLoginIconBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                    </ResourceDictionary>
+                </TeachingTip.Resources>
+                <TeachingTip.IconSource>
+                    <FontIconSource Glyph="&#xEA39;" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                    Foreground="{ThemeResource BrowserLoginIconBrush}" />
+                </TeachingTip.IconSource>
+                <StackPanel x:Name="BrowserLoginFailureActions" Margin="32,4,0,4" Spacing="8">
+                    <Button x:Name="BrowserLoginFailureAccountSettingsButton" Click="OpenLoginAccountSettingsButton_Click" Content="계정 설정" />
+                    <Button x:Name="BrowserLoginHelpButton" Click="OpenBrowserLoginHelpButton_Click" Content="해결 방법 보기" />
+                    <Button x:Name="BrowserFailurePhoneVerificationButton" Click="OpenPhoneVerificationButton_Click" Content="본인 인증 하기" Visibility="Collapsed" />
+                </StackPanel>
+            </TeachingTip>
         </Grid>
     </ContentControl>
 </Page>

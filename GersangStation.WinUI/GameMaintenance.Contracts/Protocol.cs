@@ -14,7 +14,7 @@ public sealed record OperationRequest(
 public sealed record PipeMessage(
     OperationRequest? Request = null, PatchProgress? Progress = null,
     RemoteFailure? Error = null, bool Complete = false, bool Canceled = false,
-    bool Cancel = false);
+    bool Cancel = false, RemoteFailure[]? Diagnostics = null);
 
 public sealed record RemoteFailure(
     string Type, string Message, string Details, int HResult,

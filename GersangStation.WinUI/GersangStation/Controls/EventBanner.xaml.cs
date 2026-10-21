@@ -113,6 +113,9 @@ public sealed partial class EventBanner : UserControl
     }
 
     private void OnTick(object? sender, object args)
+        => FatalErrorHandler.Current.RunCallback(AdvanceHighlightPhase, "EventBanner.HighlightTimer");
+
+    private void AdvanceHighlightPhase()
     {
         if (!IsLoaded || !IsActive || !_options.ShouldHighlight(RemainingDays)) { ApplyHighlight(); return; }
         _phase = (_phase + 1) % 4;

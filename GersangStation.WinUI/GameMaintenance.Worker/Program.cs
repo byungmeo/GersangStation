@@ -35,12 +35,14 @@ internal static class Program
         OperationRequest request = first.Request ?? throw new InvalidDataException("Missing maintenance request.");
 
         using var operation = new CancellationTokenSource();
+        using var requestedCancellation = new CancellationTokenSource();
         using var lifetime = new CancellationTokenSource();
-        Task controls = ReadControlsAsync(connection, operation, lifetime.Token);
+        Task controls = ReadControlsAsync(connection, operation, requestedCancellation, lifetime.Token);
         Task parentExit = WatchParentAsync(parent, operation, lifetime.Token);
         var messages = Channel.CreateBounded<PipeMessage>(new BoundedChannelOptions(128) { SingleReader = true, FullMode = BoundedChannelFullMode.Wait });
         Task sender = SendMessagesAsync(connection, messages.Reader, operation, lifetime);
         PipeMessage result;
+        List<RemoteFailure> diagnostics = [];
         try
         {
             await Task.Run(async () =>
@@ -50,16 +52,18 @@ internal static class Program
                 if (request.Kind == OperationKind.Patch)
                     await new PatchService().RunAsync(request.Server, request.CurrentVersion, request.Settings.InstallPath,
                         request.PatchOptions!, request.Settings,
-                        new InlineProgress<PatchProgress>(p => messages.Writer.TryWrite(new(Progress: p))), operation.Token);
+                        new InlineProgress<PatchProgress>(p => messages.Writer.TryWrite(new(Progress: p))), operation.Token,
+                        ex => diagnostics.Add(RemoteFailure.Capture(ex)));
                 else
                 {
                     var cloneResult = new MultiClientService(operation.Token).TryCreateSymbolMultiClient(request.CloneOptions!);
                     if (!cloneResult.Success) throw cloneResult.Exception ?? new IOException(cloneResult.Reason);
                 }
             });
-            result = new(Complete: true);
+            result = new(Complete: true, Diagnostics: diagnostics.ToArray());
         }
-        catch (OperationCanceledException) { result = new(Complete: true, Canceled: true); }
+        catch (OperationCanceledException) when (operation.IsCancellationRequested && requestedCancellation.IsCancellationRequested)
+        { result = new(Complete: true, Canceled: true); }
         catch (Exception ex) { result = new(Complete: true, Error: RemoteFailure.Capture(ex)); }
         try
         {
@@ -99,9 +103,18 @@ internal static class Program
     private static bool SamePath(string first, string second) => string.Equals(
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)), StringComparison.OrdinalIgnoreCase);
 
-    private static async Task ReadControlsAsync(PipeConnection connection, CancellationTokenSource operation, CancellationToken ct)
+    private static async Task ReadControlsAsync(PipeConnection connection, CancellationTokenSource operation,
+        CancellationTokenSource requestedCancellation, CancellationToken ct)
     {
-        try { while (!ct.IsCancellationRequested) if ((await connection.ReceiveAsync(ct)).Cancel) operation.Cancel(); }
+        try
+        {
+            while (!ct.IsCancellationRequested)
+                if ((await connection.ReceiveAsync(ct)).Cancel)
+                {
+                    requestedCancellation.Cancel();
+                    operation.Cancel();
+                }
+        }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
         catch { operation.Cancel(); } // Lost app connection means stop, not continue unattended.
     }

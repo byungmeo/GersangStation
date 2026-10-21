@@ -1,7 +1,7 @@
 using Core;
 using Core.Models;
+using GersangStation.Controls;
 using GersangStation.Diagnostics;
-using GersangStation.Main.Setting;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,11 +11,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -46,6 +44,13 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     public bool CanUseBrowser => _webviewManager?.IsMaintenanceInProgress != true;
     public ObservableCollection<BrowserFavorite> Favorites { get; } = [];
 
+    private readonly BrowserNoticeView _noticeView;
+    /// <summary>셸이 WebView 위에 표시합니다. 도구 모음과 WebView의 배치는 바꾸지 않습니다.</summary>
+    internal FrameworkElement NoticeContent => _noticeView;
+    private InfoBar BrowserAccountsInfoBar => _noticeView.AccountsNotice;
+    private InfoBar FavoriteRecoveryInfoBar => _noticeView.FavoriteRecoveryNotice;
+    private InfoBar FavoriteOperationInfoBar => _noticeView.FavoriteOperationNotice;
+
     public Visibility FavoritesVisibility => Favorites.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
     public string FavoriteButtonGlyph => _isCurrentPageFavorited ? "\uE735" : "\uE734";
     public string FavoriteButtonToolTip => _isCurrentPageFavorited ? "현재 페이지 즐겨찾기 해제" : "현재 페이지 즐겨찾기 추가";
@@ -61,6 +66,13 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     public WebViewPage()
     {
         InitializeComponent();
+        _noticeView = new BrowserNoticeView(this);
+        _noticeView.ReloadAccountsRequested += ReloadBrowserAccountsButton_Click;
+        _noticeView.AccountSettingsRequested += OpenBrowserAccountSettingsButton_Click;
+        _noticeView.ReloadFavoritesRequested += ReloadFavoritesButton_Click;
+        _noticeView.ResetFavoritesRequested += ResetFavoritesButton_Click;
+        BrowserChrome.AddHandler(UIElement.PointerPressedEvent,
+            new Microsoft.UI.Xaml.Input.PointerEventHandler(BrowserChrome_PointerPressed), handledEventsToo: true);
         Favorites.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(FavoritesVisibility));
@@ -108,6 +120,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     /// </summary>
     internal async Task OnShellActivatedAsync(MainWindow? window)
     {
+        _browserLoginFeedbackActive = true;
         EnsureInitialized(window ?? _shellWindow ?? App.CurrentWindow as MainWindow);
         await LoadAccountsAsync();
         await LoadFavoritesAsync();
@@ -115,19 +128,25 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     }
 
     /// <summary>
-    /// Browser 섹션이 숨겨질 때 현재는 별도 정리 작업이 필요하지 않습니다.
+    /// Browser 섹션이 숨겨질 때 로그인 팁과 늦게 도착하는 안내를 정리합니다.
     /// </summary>
     internal void OnShellDeactivated()
     {
+        _browserLoginFeedbackActive = false;
+        ClearBrowserLoginNotice();
     }
 
     private void OnLoggedInChanged(object? sender, EventArgs e)
     {
         SyncSelectedAccountToLoggedInState();
+        if (_webviewManager?.LoggedIn == true)
+            ClearBrowserLoginNotice();
     }
 
     public void Dispose()
     {
+        _browserLoginFeedbackActive = false;
+        ClearBrowserLoginNotice();
         if (_shellWindow is not null)
             _shellWindow.GameLaunchCoordinator.PropertyChanged -= OnLaunchStateChanged;
         Bindings.StopTracking();
@@ -208,36 +227,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     }
 
     private async void Button_Favorite_Click(object sender, RoutedEventArgs e)
-    {
-        Uri? currentUri = GetCurrentPageUri();
-        if (currentUri is null)
-            return;
-
-        BrowserFavorite? existingFavorite = FindFavoriteByUrl(currentUri.AbsoluteUri);
-        List<BrowserFavorite> previousFavorites = SnapshotFavorites();
-        if (existingFavorite is not null)
-        {
-            int existingIndex = Favorites.IndexOf(existingFavorite);
-            if (existingIndex < 0)
-                return;
-
-            Favorites.RemoveAt(existingIndex);
-            await PersistFavoritesAsync(previousFavorites, existingFavorite);
-            return;
-        }
-
-        string? name = await ShowFavoriteNameDialogAsync(
-            title: "즐겨찾기 추가",
-            primaryButtonText: "추가",
-            initialName: GetSuggestedFavoriteName(currentUri));
-
-        if (string.IsNullOrWhiteSpace(name))
-            return;
-
-        string faviconUrl = await CaptureCurrentPageFaviconAsync(currentUri);
-        Favorites.Add(new BrowserFavorite(name, currentUri.AbsoluteUri, faviconUrl));
-        await PersistFavoritesAsync(previousFavorites);
-    }
+        => await SafeExecution.RunHandledAsync(ToggleCurrentFavoriteAsync, "BrowserPage.ToggleFavorite");
 
     private async void Button_WebPreview_LaunchExternal_Click(object sender, RoutedEventArgs e)
     {
@@ -262,6 +252,13 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
 
     internal async Task LoginAccountAsync(Account account)
     {
+        if (_isBrowserAccountsLoading || _hasBrowserAccountsLoadFailure)
+        {
+            if (_hasBrowserAccountsLoadFailure)
+                BrowserAccountsInfoBar.IsOpen = true;
+            SyncSelectedAccountToLoggedInState();
+            return;
+        }
         if (_webviewManager is null || !CanSelectAccount)
             return;
 
@@ -274,16 +271,23 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         SelectedAccount = browserAccount;
         _suppressUserSelectionChanged = false;
 
+        ClearBrowserLoginNotice();
+        int feedbackGeneration = _browserLoginFeedbackGeneration;
         TryLoginResult result = await _webviewManager.TryLogin(browserAccount.Id);
+        if (feedbackGeneration != _browserLoginFeedbackGeneration || !_browserLoginFeedbackActive)
+            return;
         if (result == TryLoginResult.NotFoundPw)
         {
-            await ShowSimpleDialogAsync(
+            SyncSelectedAccountToLoggedInState();
+            ShowBrowserLoginNotice(
                 "비밀번호가 필요합니다",
-                $"계정 '{browserAccount.DisplayNickname}'의 저장된 비밀번호를 찾지 못했습니다.\n계정 설정에서 비밀번호를 다시 입력해 주세요.");
+                $"계정 '{browserAccount.DisplayNickname}'의 저장된 비밀번호를 찾지 못했습니다. 계정 설정에서 비밀번호를 다시 입력해 주세요.", false);
         }
         else if (result == TryLoginResult.VaultUnavailable)
         {
-            await CredentialVaultGuidanceDialog.ShowAsync(XamlRoot);
+            SyncSelectedAccountToLoggedInState();
+            ShowBrowserLoginNotice("비밀번호를 불러오지 못했습니다",
+                "Windows 자격 증명 저장소에 접근하지 못해 로그인하지 못했습니다. 계정 설정에서 확인하거나 해결 방법을 확인한 후 다시 시도해 주세요.", true);
         }
     }
 
@@ -351,90 +355,9 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         _ = WebView.Focus(FocusState.Programmatic);
     }
 
-    private void FavoriteItem_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement element || element.Tag is not BrowserFavorite favorite)
-            return;
-
-        if (!TryCreateBrowsableUri(favorite.Url, out Uri? targetUri))
-            return;
-
-        _webviewManager?.Navigate(targetUri!);
-        _ = WebView.Focus(FocusState.Programmatic);
-    }
-
-    private async void FavoriteRename_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement element || element.Tag is not BrowserFavorite favorite)
-            return;
-
-        int existingIndex = Favorites.IndexOf(favorite);
-        if (existingIndex < 0)
-            return;
-
-        string? name = await ShowFavoriteNameDialogAsync(
-            title: "즐겨찾기 이름 변경",
-            primaryButtonText: "저장",
-            initialName: favorite.Name);
-
-        if (string.IsNullOrWhiteSpace(name))
-            return;
-
-        List<BrowserFavorite> previousFavorites = SnapshotFavorites();
-        Favorites[existingIndex] = new BrowserFavorite(name, favorite.Url, favorite.FaviconUrl);
-        await PersistFavoritesAsync(previousFavorites);
-    }
-
-    private async void FavoriteDelete_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not FrameworkElement element || element.Tag is not BrowserFavorite favorite)
-            return;
-
-        int existingIndex = Favorites.IndexOf(favorite);
-        if (existingIndex < 0)
-            return;
-
-        List<BrowserFavorite> previousFavorites = SnapshotFavorites();
-        Favorites.RemoveAt(existingIndex);
-        await PersistFavoritesAsync(previousFavorites, favorite);
-    }
-
     /// <summary>
-    /// 저장된 즐겨찾기 목록을 페이지 컬렉션으로 반영합니다.
+    /// 즐겨찾기 저장 후보를 생성할 독립 스냅샷을 만듭니다.
     /// </summary>
-    private async Task LoadFavoritesAsync()
-    {
-        (IList<BrowserFavorite> favorites, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadBrowserFavoritesAsync();
-
-        ReplaceFavorites(favorites);
-        UpdateFavoriteButtonState();
-
-        if (!result.Success)
-            await HandleInitialFavoritesLoadFailureAsync(result);
-    }
-
-    /// <summary>
-    /// 변경된 즐겨찾기 목록을 저장하고, 실패 시 이전 스냅샷으로 되돌립니다.
-    /// </summary>
-    private async Task PersistFavoritesAsync(IList<BrowserFavorite> previousFavorites, BrowserFavorite? removedFavorite = null)
-    {
-        AppDataManager.AppDataOperationResult result = await AppDataManager.SaveBrowserFavoritesAsync(Favorites);
-        if (result.Success)
-        {
-            if (removedFavorite is not null)
-                await DeleteFavoriteFaviconFileIfNeededAsync(removedFavorite);
-
-            UpdateFavoriteButtonState();
-            return;
-        }
-
-        ReplaceFavorites(previousFavorites);
-        await AppDataOperationDialog.ShowFailureAsync(
-            XamlRoot,
-            "즐겨찾기 저장 실패",
-            "즐겨찾기 정보를 저장하지 못했습니다.",
-            result);
-    }
 
     private List<BrowserFavorite> SnapshotFavorites()
     {
@@ -451,49 +374,6 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         foreach (BrowserFavorite favorite in favorites)
             Favorites.Add(new BrowserFavorite(favorite.Name, favorite.Url, favorite.FaviconUrl));
     }
-
-    private async Task<string?> ShowFavoriteNameDialogAsync(string title, string primaryButtonText, string initialName)
-    {
-        TextBox input = new()
-        {
-            Text = initialName,
-            PlaceholderText = "즐겨찾기 이름"
-        };
-
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = title,
-            PrimaryButtonText = primaryButtonText,
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Primary,
-            Content = input
-        };
-
-        dialog.PrimaryButtonClick += (_, args) =>
-        {
-            if (string.IsNullOrWhiteSpace(input.Text))
-                args.Cancel = true;
-        };
-
-        ContentDialogResult result = await dialog.ShowManagedAsync();
-        return result == ContentDialogResult.Primary ? input.Text.Trim() : null;
-    }
-
-    private async Task ShowSimpleDialogAsync(string title, string message)
-    {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = title,
-            Content = message,
-            CloseButtonText = "확인",
-            DefaultButton = ContentDialogButton.Close
-        };
-
-        await dialog.ShowManagedAsync();
-    }
-
     private BrowserFavorite? FindFavoriteByUrl(string absoluteUrl)
     {
         for (int i = 0; i < Favorites.Count; i++)
@@ -597,25 +477,41 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
     /// </summary>
     private async Task RefreshCurrentFavoriteFaviconAsync()
     {
-        Uri? currentUri = GetCurrentPageUri();
-        if (currentUri is null)
-            return;
+        await _favoriteMutationGate.WaitAsync();
+        try
+        {
+            if (!_favoritesLoaded)
+                return;
+            Uri? currentUri = GetCurrentPageUri();
+            if (currentUri is null)
+                return;
 
-        BrowserFavorite? existingFavorite = FindFavoriteByUrl(currentUri.AbsoluteUri);
-        if (existingFavorite is null || IsCachedFaviconUrl(existingFavorite.FaviconUrl))
-            return;
+            BrowserFavorite? existingFavorite = FindFavoriteByUrl(currentUri.AbsoluteUri);
+            if (existingFavorite is null || IsCachedFaviconUrl(existingFavorite.FaviconUrl))
+                return;
 
-        string cachedFaviconUrl = await CaptureCurrentPageFaviconAsync(currentUri);
-        if (string.IsNullOrWhiteSpace(cachedFaviconUrl))
-            return;
+            string cachedFaviconUrl = await CaptureCurrentPageFaviconAsync(currentUri);
+            if (string.IsNullOrWhiteSpace(cachedFaviconUrl))
+                return;
 
-        int existingIndex = Favorites.IndexOf(existingFavorite);
-        if (existingIndex < 0)
-            return;
+            int existingIndex = Favorites.IndexOf(existingFavorite);
+            if (existingIndex < 0)
+                return;
 
-        List<BrowserFavorite> previousFavorites = SnapshotFavorites();
-        Favorites[existingIndex] = new BrowserFavorite(existingFavorite.Name, existingFavorite.Url, cachedFaviconUrl);
-        await PersistFavoritesAsync(previousFavorites);
+            List<BrowserFavorite> candidate = SnapshotFavorites();
+            candidate[existingIndex].FaviconUrl = cachedFaviconUrl;
+            if (await PersistFavoritesAsync(candidate, quiet: true))
+            {
+                existingFavorite.FaviconUrl = cachedFaviconUrl;
+                foreach (var view in _favoriteViews.Where(view => view.Favorite == existingFavorite))
+                    view.RefreshDisplay();
+            }
+        }
+        catch (Exception ex)
+        {
+            App.ExceptionHandler.RecordRecoverable(ex, "BrowserPage.RefreshFavoriteFavicon");
+        }
+        finally { _favoriteMutationGate.Release(); }
     }
 
     private static bool IsCachedFaviconUrl(string? faviconUrl)
@@ -665,17 +561,6 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         }
     }
 
-    /// <summary>
-    /// 저장된 계정 목록을 읽어와 로그인 선택 콤보박스에 반영합니다.
-    /// </summary>
-    private async Task LoadAccountsAsync()
-    {
-        (IList<Account> accounts, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadAccountsAsync();
-        ApplyAccounts(accounts);
-
-        if (!result.Success)
-            await HandleInitialAccountsLoadFailureAsync(result);
-    }
 
     /// <summary>
     /// 현재 로그인 상태에 맞춰 계정 콤보박스 선택만 다시 맞춥니다.
@@ -703,124 +588,9 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         _suppressUserSelectionChanged = false;
     }
 
-    /// <summary>
-    /// WebViewPage 초기 계정 목록 로드 실패를 사용자 정책에 맞춰 처리합니다.
-    /// </summary>
-    private async Task HandleInitialAccountsLoadFailureAsync(AppDataManager.AppDataOperationResult result)
-    {
-        if (!IsFileBackedInitialLoadFailure(result))
-        {
-            await App.ExceptionHandler.ShowRecoverableAsync(
-                BuildAppDataLoadException("계정 목록", result),
-                "WebViewPage.LoadAccountsAsync");
-            return;
-        }
-
-        if (result.ErrorKind == AppDataManager.AppDataErrorKind.Serialization)
-        {
-            ContentDialog dialog = new()
-            {
-                XamlRoot = XamlRoot,
-                Title = "계정 목록 불러오기 실패",
-                Content =
-                    "저장된 계정 파일 형식이 손상되어 웹 로그인에 사용할 계정 목록을 읽을 수 없습니다.\n\n" +
-                    "계정 설정 페이지로 이동해 확인할까요?",
-                PrimaryButtonText = "계정 설정",
-                CloseButtonText = "확인",
-                DefaultButton = ContentDialogButton.Primary
-            };
-
-            if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary &&
-                App.CurrentWindow is MainWindow window)
-            {
-                window.NavigateToSettingPage(SettingSection.Account);
-            }
-
-            return;
-        }
-
-        await AppDataOperationDialog.ShowFailureAsync(
-            XamlRoot,
-            "계정 목록 불러오기 실패",
-            "저장된 계정 목록을 불러오지 못했습니다. 계정 선택 기능을 사용할 수 없습니다.",
-            result);
-    }
 
     /// <summary>
-    /// WebViewPage 초기 즐겨찾기 로드 실패를 사용자 정책에 맞춰 처리합니다.
-    /// </summary>
-    private async Task HandleInitialFavoritesLoadFailureAsync(AppDataManager.AppDataOperationResult result)
-    {
-        if (!IsFileBackedInitialLoadFailure(result))
-        {
-            await App.ExceptionHandler.ShowRecoverableAsync(
-                BuildAppDataLoadException("즐겨찾기 목록", result),
-                "WebViewPage.LoadFavoritesAsync");
-            return;
-        }
-
-        if (result.ErrorKind == AppDataManager.AppDataErrorKind.Serialization &&
-            await ShowResetFavoritesDialogAsync(result.Target))
-        {
-            await ResetFavoritesAsync();
-            return;
-        }
-
-        await AppDataOperationDialog.ShowFailureAsync(
-            XamlRoot,
-            "즐겨찾기 불러오기 실패",
-            "저장된 즐겨찾기 목록을 모두 불러오지 못했습니다.",
-            result);
-    }
-
-    /// <summary>
-    /// 손상된 즐겨찾기 파일을 초기화할지 사용자에게 묻습니다.
-    /// </summary>
-    private async Task<bool> ShowResetFavoritesDialogAsync(string target)
-    {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = "즐겨찾기 초기화",
-            Content =
-                $"즐겨찾기 파일({target}) 형식이 손상되어 읽을 수 없습니다.\n\n" +
-                "즐겨찾기를 비운 상태로 초기화할까요?",
-            PrimaryButtonText = "초기화",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Close
-        };
-
-        return await dialog.ShowManagedAsync() == ContentDialogResult.Primary;
-    }
-
-    /// <summary>
-    /// 손상된 즐겨찾기 파일을 빈 목록으로 초기화합니다.
-    /// </summary>
-    private async Task ResetFavoritesAsync()
-    {
-        AppDataManager.AppDataOperationResult result = await AppDataManager.SaveBrowserFavoritesAsync([]);
-        if (!result.Success)
-        {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "즐겨찾기 초기화 실패",
-                "손상된 즐겨찾기 파일을 초기화하지 못했습니다.",
-                result);
-            return;
-        }
-
-        ReplaceFavorites([]);
-        UpdateFavoriteButtonState();
-    }
-
-    /// <summary>
-    /// 파일 손상 또는 접근 실패처럼 사용자가 조치할 수 있는 초기 로드 실패인지 판별합니다.
-    /// </summary>
-    private static bool IsFileBackedInitialLoadFailure(AppDataManager.AppDataOperationResult result)
-        => result.ErrorKind is AppDataManager.AppDataErrorKind.Storage or AppDataManager.AppDataErrorKind.Serialization;
-
-    /// <summary>
-    /// AppData 로드 실패를 기본 상세 예외 창으로 전달할 예외 객체로 정리합니다.
+    /// AppData 로드 실패의 작업 정보와 원본 예외를 진단 기록에 보존합니다.
     /// </summary>
     private static Exception BuildAppDataLoadException(string dataName, AppDataManager.AppDataOperationResult result)
     {

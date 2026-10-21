@@ -97,7 +97,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     }
 
     private readonly record struct ClientLaunchAvailability(ClientLaunchStatus Status, string? Detail = null);
-    private readonly record struct MultiClientCreationAttemptResult(bool Success, string Reason, Exception? Exception = null);
 
     private bool _isInitializing = true;
     private bool _isShellActive;
@@ -446,6 +445,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     private async Task<bool> HandleClientExecuteAsync(GameLaunchAttempt attempt)
     {
         if (_shellWindow is not MainWindow window) return false;
+        window.ClearGameLaunchWarnings();
         GameServer server = attempt.Server;
         int clientIndex = attempt.ClientIndex;
         string accountId = attempt.AccountId;
@@ -454,11 +454,15 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         {
             case ClientLaunchStatus.InstallPathMissing:
                 attempt.Fail("경로 미설정");
-                await HandleMissingInstallPathAsync(window, server);
+                window.ShowGameLaunchSettingsNotice(clientIndex, "설치 경로 미설정",
+                    $"{GameServerHelper.GetServerDisplayName(server)} 게임 설치 경로가 없습니다.",
+                    SettingSection.GameInstall, server, "설치 경로 설정");
                 return false;
             case ClientLaunchStatus.InstallPathInvalid:
                 attempt.Fail("잘못된 경로");
-                await HandleInvalidInstallPathAsync(window, server, availability.Detail);
+                window.ShowGameLaunchSettingsNotice(clientIndex, "잘못된 설치 경로",
+                    $"{GameServerHelper.GetServerDisplayName(server)} 게임 설치 경로가 올바르지 않습니다.",
+                    SettingSection.GameInstall, server, "설치 경로 설정");
                 return false;
             case ClientLaunchStatus.MultiClientSetupRequired:
                 attempt.Fail("다클라 생성 필요");
@@ -466,7 +470,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 return false;
             case ClientLaunchStatus.RetryCooldown:
                 attempt.Fail("재시도 제한");
-                await ShowWarningDialogAsync("잠시 후 다시 시도해 주세요", "인증 실패 후 5초 동안은 다시 실행할 수 없습니다.");
+                window.ShowGameLaunchWarning(clientIndex, "잠시 후 다시 시도해 주세요", "로그인 실패 후 5초 동안은 다시 실행할 수 없습니다.");
                 return false;
             case ClientLaunchStatus.Starting:
             case ClientLaunchStatus.Running:
@@ -476,10 +480,12 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(accountId))
         {
             attempt.Fail("계정 미선택");
-            await HandleMissingAccountSelectionAsync(window);
+            window.ShowGameLaunchSettingsNotice(clientIndex, "계정 미선택",
+                "선택된 계정이 없습니다.",
+                SettingSection.Account, actionLabel: "계정 설정", actionLeadingText: "아직 계정 추가를 안하셨나요?");
             return false;
         }
-        if (!await EnsureAccountReadyForLaunchAsync(window, server, accountId, attempt)) return false;
+        if (!EnsureAccountReadyForLaunch(window, accountId, attempt)) return false;
         attempt.Token.ThrowIfCancellationRequested();
         if (await CheckAndHandleRequiredPatchAsync(window, server, attempt.InstallPath, attempt)) return false;
         attempt.Token.ThrowIfCancellationRequested();
@@ -488,101 +494,25 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (window.GameStarter.ActiveClients.Any(client => client.State == GameClientState.Starting))
         {
             attempt.Fail("이전 런처 탐색 중");
-            await ShowWarningDialogAsync("이전 실행 요청을 확인 중입니다",
-                "이미 호출한 런처는 강제 종료하지 않습니다. 이전 런처가 닫히거나 게임 실행이 확인된 뒤 다시 시도해 주세요.");
+            window.ShowGameLaunchWarning(clientIndex, "중복된 게임 실행 요청",
+                "이미 게임 실행을 시도하고 있습니다. 잠시만 기다려주세요.");
             return false;
         }
         if (window.GameStarter.ActiveClientCount >= 3)
         {
             attempt.Fail("최대 실행 개수");
-            await ShowWarningDialogAsync("최대 실행 개수에 도달했어요", "거상은 동시에 최대 3개 클라이언트까지만 실행할 수 있습니다.");
+            window.ShowGameLaunchWarning(clientIndex, "게임 실행 불가", "게임이 이미 한 컴퓨터에서 실행할 수 있는 최대 개수만큼 켜져있습니다. 확인하신 뒤 다시 시도해주세요.");
             return false;
         }
         if (window.GameStarter.IsAccountActive(accountId))
         {
             attempt.Fail("동일 계정 중복");
-            await ShowWarningDialogAsync("이미 사용 중인 계정이에요", "동일한 계정으로 다른 클라이언트를 동시에 실행할 수 없습니다.");
+            window.ShowGameLaunchWarning(clientIndex, "이미 사용 중인 계정", "동일한 계정으로 다른 클라이언트를 동시에 실행할 수 없습니다.");
             return false;
         }
         return await window.WebViewManager.TryGameStart(accountId, clientIndex, attempt);
     }
 
-    /// <summary>
-    /// 실행할 계정이 선택되지 않았을 때 계정 설정 페이지 이동을 제안합니다.
-    /// </summary>
-    private async Task HandleMissingAccountSelectionAsync(MainWindow window)
-    {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = "계정을 먼저 선택해 주세요",
-            Content =
-                "선택한 클라이언트에 사용할 계정이 없습니다.\n\n" +
-                "계정 설정 페이지로 이동할까요?",
-            PrimaryButtonText = "계정 설정",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
-            window.NavigateToSettingPage(SettingSection.Account);
-    }
-
-    /// <summary>
-    /// 메인 클라이언트 경로가 비어 있을 때 경로 설정 또는 게임 설치 화면으로 안내합니다.
-    /// </summary>
-    private async Task HandleMissingInstallPathAsync(MainWindow window, GameServer server)
-    {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = "경로 미설정",
-            Content = $"{GameServerHelper.GetServerDisplayName(server)} 메인 클라이언트 경로가 설정되지 않았습니다.",
-            PrimaryButtonText = "경로 설정",
-            SecondaryButtonText = "게임 설치",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        ContentDialogResult result = await dialog.ShowManagedAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            window.NavigateToSettingPage(
-                SettingSection.InstallPath,
-                new GameServerSettingNavigationParameter { Server = server });
-        }
-        else if (result == ContentDialogResult.Secondary)
-        {
-            window.NavigateToSettingPage(
-                SettingSection.GameInstall,
-                new GameServerSettingNavigationParameter { Server = server });
-        }
-    }
-
-    /// <summary>
-    /// 메인 클라이언트 경로가 잘못되었을 때 서버별 경로 설정 화면으로 유도합니다.
-    /// </summary>
-    private async Task HandleInvalidInstallPathAsync(MainWindow window, GameServer server, string? reason)
-    {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = "잘못된 경로",
-            Content = string.IsNullOrWhiteSpace(reason)
-                ? "현재 설정된 메인 클라이언트 경로가 올바르지 않습니다.\n경로를 다시 설정할까요?"
-                : $"{reason}\n\n경로를 다시 설정할까요?",
-            PrimaryButtonText = "다시 설정",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
-        {
-            window.NavigateToSettingPage(
-                SettingSection.InstallPath,
-                new GameServerSettingNavigationParameter { Server = server });
-        }
-    }
 
     /// <summary>
     /// 복제 클라이언트가 없거나 메인 클라이언트와 불일치할 때 다클라 생성을 제안합니다.
@@ -595,8 +525,8 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             XamlRoot = XamlRoot,
             Title = "다클 생성 필요",
             Content = string.IsNullOrWhiteSpace(detail)
-                ? $"{clientLabel} 경로가 없거나 메인 클라이언트와 동기화되지 않았습니다.\n다클라를 생성할까요?"
-                : $"{clientLabel} 생성이 필요합니다.\n{detail}\n\n다클라를 생성할까요?",
+                ? $"{clientLabel} 경로가 없거나 메인 클라이언트와 동기화되지 않았습니다.\n\n2·3클라이언트를 함께 생성합니다. 이미 생성된 클라이언트도 다시 동기화됩니다.\n계속할까요?"
+                : $"{clientLabel} 생성이 필요합니다.\n{detail}\n\n2·3클라이언트를 함께 생성합니다. 이미 생성된 클라이언트도 다시 동기화됩니다.\n계속할까요?",
             PrimaryButtonText = "생성",
             CloseButtonText = "취소",
             DefaultButton = ContentDialogButton.Primary
@@ -605,20 +535,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (await dialog.ShowManagedAsync() != ContentDialogResult.Primary)
             return;
 
-        MultiClientCreationAttemptResult createResult;
-        try { createResult = await TryCreateMissingMultiClientAsync(server, clientIndex); }
-        catch (OperationCanceledException)
-        {
-            MultiClientCreationCompleted?.Invoke(this,
-                new(server, clientIndex, false, $"{clientLabel} 생성을 취소했습니다.", canceled: true));
-            RefreshClientAvailabilityState();
-            return;
-        }
-        catch (Exception ex) { createResult = new(false, ex.Message, ex); }
-
+        MultiClientCreationResult createResult = await MultiClientCreationService.CreateFromSavedSettingsAsync(server);
         MultiClientCreationCompleted?.Invoke(this, new(server, clientIndex, createResult.Success,
-            createResult.Success ? $"{clientLabel} 생성을 완료했습니다." : createResult.Reason,
-            createResult.Exception));
+            createResult.Message, createResult.Exception, createResult.Canceled));
 
         RefreshClientAvailabilityState();
         await UpdateServer();
@@ -637,7 +556,7 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (!currentVersionResult.Success)
         {
             attempt.Fail("클라이언트 버전 확인 실패");
-            await ShowClientVersionCheckRequiredDialogAsync(window, server, currentVersionResult);
+            ShowClientVersionCheckRequiredNotice(window, server, currentVersionResult, attempt.ClientIndex);
             return true;
         }
 
@@ -645,9 +564,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         if (currentVersion <= 0)
         {
             attempt.Fail("클라이언트 버전 없음");
-            await ShowWarningDialogAsync(
-                "클라이언트 버전 확인 필요",
-                $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트 버전을 확인하지 못했습니다.\n설치 경로가 올바른지 확인해 주세요.");
+            window.ShowGameLaunchSettingsNotice(attempt.ClientIndex, "게임 버전 확인 실패",
+                $"{GameServerHelper.GetServerDisplayName(server)} 게임 버전을 확인할 수 없습니다.",
+                SettingSection.GameInstall, server, "설치 경로 설정");
             return true;
         }
 
@@ -657,9 +576,16 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             latestVersion = await PatchManager.GetLatestServerVersionAsync(server).WaitAsync(attempt.Token);
             attempt.Token.ThrowIfCancellationRequested();
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException) when (attempt.Token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
         {
             attempt.Token.ThrowIfCancellationRequested();
+            if (ex is OperationCanceledException)
+                ex = new IOException("최신 게임 버전 확인이 예기치 않게 중단되었습니다.", ex);
+            App.ExceptionHandler.RecordRecoverable(ex, "StationPage.CheckLatestVersionBeforeLaunch");
             bool shouldContinue = await ShowLatestVersionCheckFailedDialogAsync(server, attempt.Token);
             if (!shouldContinue)
             {
@@ -667,7 +593,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
                 return true;
             }
 
-            Debug.WriteLine($"[StationPage] Latest version check failed but user chose to continue. Server: {server}, Error: {ex}");
             return false;
         }
 
@@ -675,27 +600,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             return false;
 
         attempt.Fail("패치 필요");
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = "패치가 필요합니다",
-            Content =
-                $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트가 구버전입니다.\n\n" +
-                $"현재 버전: v{currentVersion}\n" +
-                $"최신 버전: v{latestVersion}\n\n" +
-                $"패치 설정 화면으로 이동할까요?",
-            PrimaryButtonText = "이동",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        ContentDialogResult result = await dialog.ShowManagedAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            window.NavigateToSettingPage(
-                SettingSection.GamePatch,
-                new GamePatchSettingNavigationParameter { Server = server });
-        }
+        window.ShowGameLaunchSettingsNotice(attempt.ClientIndex, "패치가 필요합니다",
+            $"{GameServerHelper.GetServerDisplayName(server)} 현재 v{currentVersion} → 최신 v{latestVersion}",
+            SettingSection.GamePatch, server, "패치 하기");
 
         return true;
     }
@@ -703,113 +610,46 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// <summary>
     /// 게임 실행 전에 선택한 계정의 비밀번호 상태를 확인합니다.
     /// </summary>
-    private async Task<bool> EnsureAccountReadyForLaunchAsync(MainWindow window, GameServer server, string accountId,
+    private bool EnsureAccountReadyForLaunch(MainWindow window, string accountId,
         GameLaunchAttempt attempt)
     {
         PasswordVaultHelper.PasswordVaultReadResult passwordResult = PasswordVaultHelper.TryGetPassword(accountId);
         if (!passwordResult.Success)
         {
             attempt.Fail("비밀번호 저장소 접근 실패");
-            if (await CredentialVaultGuidanceDialog.TryShowAsync(XamlRoot, passwordResult.Exception))
-                return false;
-
-            await App.ExceptionHandler.ShowRecoverableAsync(
-                new InvalidOperationException(
-                    $"윈도우 자격 증명 관리자에서 계정 비밀번호를 읽지 못했습니다. AccountId='{accountId}'",
-                    passwordResult.Exception),
+            window.ReportGameLaunchCredentialFailure(
+                attempt.ClientIndex,
+                passwordResult.Exception ?? new InvalidOperationException("비밀번호 저장소에서 실패 원인을 반환하지 않았습니다."),
                 "StationPage.EnsureAccountReadyForLaunch");
             return false;
         }
 
-        if (passwordResult.HasCredential)
+        if (passwordResult.HasCredential && !string.IsNullOrWhiteSpace(passwordResult.Password))
             return true;
 
         attempt.Fail("비밀번호 없음");
-        Account? brokenAccount = Accounts.FirstOrDefault(account =>
+        Account? account = Accounts.FirstOrDefault(account =>
             string.Equals(account.Id?.Trim(), accountId, StringComparison.OrdinalIgnoreCase));
-
-        if (brokenAccount is null)
-        {
-            await ShowWarningDialogAsync("계정을 다시 선택해 주세요", "선택한 계정 정보를 찾지 못했습니다. 계정을 다시 선택해 주세요.");
-            return false;
-        }
-
-        return await HandleBrokenAccountCredentialAsync(window, server, brokenAccount);
-    }
-
-    /// <summary>
-    /// 계정은 남아 있지만 비밀번호가 없는 깨진 계정을 정리하고 설정 페이지로 유도합니다.
-    /// </summary>
-    private async Task<bool> HandleBrokenAccountCredentialAsync(MainWindow window, GameServer server, Account brokenAccount)
-    {
-        List<Account> nextAccounts = Accounts
-            .Where(account => !string.Equals(account.Id?.Trim(), brokenAccount.Id?.Trim(), StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult saveResult) =
-            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts);
-        if (!saveResult.Success)
-        {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "계정 정리 실패",
-                "비밀번호가 없는 깨진 계정을 정리하지 못했습니다.",
-                saveResult);
-            return false;
-        }
-
-        Accounts = savedAccounts;
-        RefreshStateFromStorage();
-        RefreshClientAvailabilityState();
-        Bindings.Update();
-
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = "계정 다시 등록 필요",
-            Content =
-                $"계정 '{brokenAccount.DisplayNickname}'의 저장된 비밀번호를 찾지 못했습니다.\n" +
-                "이 계정은 깨진 상태로 판단되어 목록에서 제거했습니다.\n\n" +
-                "계정 설정 페이지에서 다시 등록해 주세요.",
-            PrimaryButtonText = "계정 설정",
-            CloseButtonText = "확인",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
-            window.NavigateToSettingPage(SettingSection.Account);
-
+        window.ShowMissingGameLaunchCredential(attempt.ClientIndex, account?.DisplayNickname ?? accountId);
         return false;
     }
 
     /// <summary>
     /// 설치된 클라이언트의 vsn.dat을 읽지 못했을 때 경로 확인을 안내합니다.
     /// </summary>
-    private async Task ShowClientVersionCheckRequiredDialogAsync(
+    private void ShowClientVersionCheckRequiredNotice(
         MainWindow window,
         GameServer server,
-        ClientVersionReadResult result)
+        ClientVersionReadResult result, int clientIndex)
     {
         string message = result.Exception is FileNotFoundException
-            ? $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트의 버전 파일(vsn.dat)을 찾지 못했습니다.\n설치 경로가 올바른지 확인해 주세요."
-            : $"{GameServerHelper.GetServerDisplayName(server)} 클라이언트 버전을 읽지 못했습니다.\n설치 경로와 클라이언트 파일 상태를 확인해 주세요.";
+            ? $"{GameServerHelper.GetServerDisplayName(server)} 게임 버전 파일이 없습니다."
+            : $"{GameServerHelper.GetServerDisplayName(server)} 게임 버전을 읽을 수 없습니다.";
 
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = "설치 경로 확인 필요",
-            Content = message,
-            PrimaryButtonText = "경로 설정",
-            CloseButtonText = "취소",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        if (await dialog.ShowManagedAsync() == ContentDialogResult.Primary)
-        {
-            window.NavigateToSettingPage(
-                SettingSection.InstallPath,
-                new GameServerSettingNavigationParameter { Server = server });
-        }
+        if (result.Exception is { } exception)
+            App.ExceptionHandler.RecordRecoverable(exception, "StationPage.CheckClientVersion");
+        window.ShowGameLaunchSettingsNotice(clientIndex, "게임 버전 확인 실패", message,
+            SettingSection.GameInstall, server, "설치 경로 설정");
     }
 
     /// <summary>
@@ -833,22 +673,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         return await dialog.ShowManagedAsync(cancellationToken) == ContentDialogResult.Primary;
     }
 
-    /// <summary>
-    /// 실행 제한 사유를 사용자에게 경고 다이얼로그로 알립니다.
-    /// </summary>
-    private async Task ShowWarningDialogAsync(string title, string content)
-    {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = title,
-            Content = content,
-            PrimaryButtonText = "확인",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        await dialog.ShowManagedAsync();
-    }
 
     /// <summary>
     /// 초기 상태 로드 중 실패한 계정/프리셋 데이터를 사용자 정책에 맞춰 처리합니다.
@@ -875,18 +699,17 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
             return;
         }
 
-        if (result.ErrorKind == AppDataManager.AppDataErrorKind.Serialization &&
-            await ShowResetCorruptedDataDialogAsync(dataName, result.Target))
+        if (result.ErrorKind == AppDataManager.AppDataErrorKind.Serialization)
         {
-            await ResetStationDataAsync(result.Target);
+            App.ExceptionHandler.RecordRecoverable(BuildAppDataLoadException(dataName, result),
+                "StationPage.HandleInitialStorageLoadIssuesAsync");
+            if (await ShowResetCorruptedDataDialogAsync(dataName, result.Target))
+                await ResetStationDataAsync(result.Target);
             return;
         }
 
-        await AppDataOperationDialog.ShowFailureAsync(
-            XamlRoot,
-            $"{dataName} 불러오기 실패",
-            $"저장된 {dataName}을(를) 불러오지 못했습니다.",
-            result);
+        await App.ExceptionHandler.ShowRecoverableAsync(BuildAppDataLoadException(dataName, result),
+            "StationPage.LoadStoredData");
     }
 
     /// <summary>
@@ -923,11 +746,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
         if (!resetResult.Success)
         {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "초기화 실패",
-                $"손상된 데이터 파일({target})을 초기화하지 못했습니다.",
-                resetResult);
+            await App.ExceptionHandler.ShowRecoverableAsync(new IOException(
+                $"저장된 데이터를 초기화하지 못했습니다. Operation={resetResult.Operation}, Target={resetResult.Target}, ErrorKind={resetResult.ErrorKind}", resetResult.Exception),
+                "StationPage.ResetStoredData");
             return;
         }
 
@@ -1005,7 +826,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[StationPage] UpdateServer latest version check failed. Server: {server}, Error: {ex}");
+            if (ex is OperationCanceledException)
+                ex = new IOException("최신 게임 버전 확인이 예기치 않게 중단되었습니다.", ex);
+            App.ExceptionHandler.RecordRecoverable(ex, "StationPage.RefreshLatestVersion");
             SetVersionStatus(
                 "최신 버전 확인 실패",
                 clientSettingVisible: Visibility.Collapsed,
@@ -1199,54 +1022,6 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         return new ClientLaunchAvailability(ClientLaunchStatus.Available);
     }
 
-    /// <summary>
-    /// 선택한 슬롯에서 다클라 생성이 필요할 때 해당 복제 클라이언트 하나만 생성합니다.
-    /// </summary>
-    private async Task<MultiClientCreationAttemptResult> TryCreateMissingMultiClientAsync(GameServer server, int clientIndex)
-    {
-        if (clientIndex == 0)
-            return new(false, "1클라는 메인 클라이언트이므로 별도 생성이 필요하지 않습니다.");
-
-        (ClientSettings settings, AppDataManager.AppDataOperationResult loadResult) =
-            await AppDataManager.LoadServerClientSettingsAsync(server);
-        if (!loadResult.Success)
-            return new(false, "서버 설정을 불러오지 못해 다클라를 생성할 수 없습니다.", loadResult.Exception);
-        string installPath = settings.InstallPath?.Trim() ?? string.Empty;
-        if (!GameClientHelper.IsValidInstallPath(server, installPath, out string reason))
-            return new(false, $"메인 클라이언트 경로가 유효하지 않아 다클라를 만들 수 없습니다. {reason}");
-
-        ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(installPath);
-        if (!currentVersionResult.Success || (currentVersionResult.Version ?? 0) <= 0)
-            return new(false, BuildVersionCheckFailureDetail("메인 클라이언트", currentVersionResult), currentVersionResult.Exception);
-
-        int currentClientVersion = currentVersionResult.Version!.Value;
-
-        GameClientHelper.MultiClientLayoutPolicy layoutPolicy =
-            currentClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
-                ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
-                : GameClientHelper.MultiClientLayoutPolicy.Legacy;
-
-        CreateSymbolMultiClientResult createResult;
-        try
-        {
-            await GameMaintenanceService.CreateMultiClientAsync(server, settings,
-                new CreateSymbolMultiClientArgs
-                {
-                    InstallPath = installPath,
-                    DestPath2 = clientIndex == 1 ? settings.Client2Path : string.Empty,
-                    DestPath3 = clientIndex == 2 ? settings.Client3Path : string.Empty,
-                    LayoutPolicy = layoutPolicy
-                });
-            createResult = new(true, string.Empty, null, null, null);
-        }
-        catch (OperationCanceledException) { throw; }
-        catch (Exception ex) { createResult = new(false, ex.Message, null, null, ex); }
-
-        if (!createResult.Success)
-            return new(false, createResult.Reason, createResult.Exception);
-
-        return new(true, string.Empty);
-    }
 
     /// <summary>
     /// 클라이언트 버전 파일을 읽지 못했을 때 실행 가능 상태 문구에 사용할 안내를 만듭니다.
@@ -1588,6 +1363,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     /// 5초마다 다음 이벤트로 이동하고 마지막이면 처음으로 되돌립니다.
     /// </summary>
     private void EventFlipTimer_Tick(object? sender, object e)
+        => FatalErrorHandler.Current.RunCallback(AdvanceEventFlip, "StationPage.EventFlipTimer");
+
+    private void AdvanceEventFlip()
     {
         if (EventItems.Count <= 1)
         {

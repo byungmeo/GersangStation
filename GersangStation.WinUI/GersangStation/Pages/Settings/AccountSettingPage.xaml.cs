@@ -24,8 +24,48 @@ namespace GersangStation.Main.Setting;
 /// <summary>
 /// An empty page that can be used on its own or navigated to within a Frame.
 /// </summary>
-public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
+public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged, IConfirmLeave
 {
+    protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+    {
+        base.OnNavigatingFrom(e);
+        e.Cancel |= _isAccountOperationInProgress || _isEditorOpen
+            || AccountEditorDrawer.State != DrawerState.Closed;
+    }
+
+    public async Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation)
+    {
+        if (_isAccountOperationInProgress)
+        {
+            const string message = "계정 작업이 끝난 뒤 다시 시도해 주세요.";
+            if (_isEditorOpen)
+            {
+                ShowEditorFeedback("작업 진행 중", message);
+                AccountEditorInfoBar.Severity = InfoBarSeverity.Warning;
+            }
+            else
+            {
+                ClearAccountListFeedback();
+                AccountListInfoBar.Title = "작업 진행 중";
+                AccountListInfoBar.Message = message;
+                AccountListInfoBar.Severity = InfoBarSeverity.Warning;
+                AccountListInfoBar.IsOpen = true;
+            }
+            return false;
+        }
+
+        // 종료를 취소했는데 편집 내용부터 버려지는 일이 없도록 종료 의사를 먼저 확인합니다.
+        if (reason == LeaveReason.AppExit
+            && (XamlRoot is null || !await ExitConfirmationDialog.ShowAsync(XamlRoot)))
+            return false;
+
+        if (AccountEditorDrawer.State != DrawerState.Closed
+            && !await AccountEditorDrawer.CloseAsync())
+            return false;
+
+        return !_isAccountOperationInProgress;
+    }
+
     private enum AccountListDisplayMode
     {
         Grouped = 0,
@@ -160,6 +200,8 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     private bool _isAccountOperationInProgress;
     private bool _isEditorOpen;
     private bool _allowEditorClose;
+    private int _editorFeedbackGeneration;
+    private int _accountListFeedbackGeneration;
     private MenuFlyout? _accountContextMenu;
     private List<Account> _loadedAccounts = [];
     private AccountListDisplayMode _accountListDisplayMode = AppDataManager.AccountListGroupedView
@@ -188,6 +230,8 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     public string PasswordBoxHeader => Editor.IsEditingExisting ? "새 패스워드" : "패스워드";
     public string PasswordPlaceholderText => Editor.IsEditingExisting ? "변경할 때만 입력" : "필수 입력";
     public bool AccountManagementEnabled => !_isLoadingAccounts && !_hasBlockingAccountLoadFailure && !_isAccountOperationInProgress && !_isEditorOpen;
+    public bool CanUseAccountListActions => !_isLoadingAccounts && !_isAccountOperationInProgress && !_isEditorOpen;
+    public bool CanReloadAccounts => _hasBlockingAccountLoadFailure && CanUseAccountListActions;
     public bool EditorInputsEnabled => !_isAccountOperationInProgress && AccountEditorDrawer.State == DrawerState.Open;
     public Visibility ChangePasswordToggleVisibility => Editor.IsEditingExisting ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PasswordBoxVisibility => !Editor.IsEditingExisting || Editor.IsChangingPassword ? Visibility.Visible : Visibility.Collapsed;
@@ -409,10 +453,17 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (destination < 0) return;
         (order[index], order[destination]) = (order[destination], order[index]);
         string[] selectedIds = _selectedAccounts.Select(item => item.Id.Trim()).ToArray();
+        ClearAccountListFeedback();
         SetAccountOperationInProgress(true);
         try
         {
-            AppDataManager.AccountGroupOrder = order;
+            try { AppDataManager.AccountGroupOrder = order; }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                ReportAccountListFailure(ex, "ReorderAccountGroups", "그룹 순서 저장 실패",
+                    "계정 그룹 순서를 저장하지 못했습니다. 기존 순서와 선택한 계정은 유지됩니다. 잠시 후 다시 시도해 주세요.");
+                return;
+            }
             ApplyAccounts(_loadedAccounts);
             RestoreSelectionByIds(selectedIds);
         }
@@ -461,10 +512,11 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private async Task SaveEditorCoreAsync()
     {
+        ClearEditorFeedback();
         string? validationError = GetValidationErrorMessage();
         if (!string.IsNullOrWhiteSpace(validationError))
         {
-            await ShowMessageDialogAsync("계정을 저장할 수 없어요", validationError);
+            ShowEditorFeedback("계정을 저장할 수 없어요", validationError);
             return;
         }
 
@@ -498,20 +550,42 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            await ShowMessageDialogAsync("비밀번호를 준비하지 못했어요", ex.Message);
+            ReportEditorSaveFailure(ex, "비밀번호를 준비하지 못했어요",
+                "비밀번호 저장을 준비하지 못했습니다. 입력한 내용은 유지됩니다. 잠시 후 다시 저장해 주세요.");
             return;
         }
 
-        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult saveResult) =
-            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts, credentialUpdates, credentialRenames);
+        IList<Account> savedAccounts;
+        AppDataManager.AppDataOperationResult saveResult;
+        try
+        {
+            (savedAccounts, saveResult) =
+                await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts, credentialUpdates, credentialRenames);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ReportEditorSaveFailure(ex, "계정 저장 실패",
+                "계정 정보를 저장하지 못했습니다. 입력한 내용은 유지됩니다. 잠시 후 다시 저장해 주세요.");
+            return;
+        }
 
         if (!saveResult.Success)
         {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "계정 저장 실패",
-                "계정 정보를 저장하지 못했습니다.",
-                saveResult);
+            string message = saveResult.ErrorKind switch
+            {
+                AppDataManager.AppDataErrorKind.CredentialVault =>
+                    "Windows 자격 증명 저장소에 비밀번호를 저장하지 못했습니다. 입력한 내용은 유지됩니다. 잠시 후 다시 저장해 주세요.",
+                AppDataManager.AppDataErrorKind.Storage =>
+                    "계정 파일에 접근하거나 저장하지 못했습니다. 입력한 내용은 유지됩니다. 파일 사용 여부와 저장 권한을 확인한 후 다시 저장해 주세요.",
+                AppDataManager.AppDataErrorKind.Serialization =>
+                    "계정 데이터 형식을 처리하지 못했습니다. 입력한 내용은 유지됩니다. 문제가 반복되면 문의해 주세요.",
+                AppDataManager.AppDataErrorKind.Validation =>
+                    "계정 정보가 저장 조건에 맞지 않습니다. 입력한 내용을 확인한 후 다시 저장해 주세요.",
+                _ => "계정 정보를 저장하지 못했습니다. 입력한 내용은 유지됩니다. 잠시 후 다시 저장해 주세요."
+            };
+            ReportEditorSaveFailure(new InvalidOperationException(
+                $"계정 저장 실패: {saveResult.Operation}, {saveResult.Target}, {saveResult.ErrorKind}", saveResult.Exception),
+                "계정 저장 실패", message);
             return;
         }
 
@@ -530,6 +604,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (!AccountManagementEnabled || !IsLoaded)
             return;
 
+        ClearEditorFeedback();
         _accountContextMenu?.Hide();
         if (account is null)
             BeginCreateMode(clearSelection: true);
@@ -759,6 +834,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (result != ContentDialogResult.Primary)
             return;
 
+        ClearAccountListFeedback();
         HashSet<string> selectedIds = targets
             .Select(account => account.Id.Trim())
             .Where(id => id.Length > 0)
@@ -770,18 +846,10 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             .Select(account => account.Clone())
             .ToList();
 
-        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult saveResult) =
-            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts);
-
-        if (!saveResult.Success)
-        {
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "계정 삭제 실패",
-                "계정 정보를 삭제하지 못했습니다.",
-                saveResult);
+        var (savedAccounts, saved) = await TrySaveAccountListAsync(nextAccounts, "DeleteAccounts",
+            "계정 삭제 실패", "계정 정보를 삭제하지 못했습니다. 목록과 선택한 계정은 유지됩니다. 파일 사용 여부와 저장 권한을 확인한 후 다시 시도해 주세요.");
+        if (!saved)
             return;
-        }
 
         ApplyAccounts(savedAccounts);
         BeginCreateMode(clearSelection: true);
@@ -823,23 +891,52 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private async Task LoadAccountsAsync()
     {
+        if (!CanUseAccountListActions)
+            return;
+        string[] selectedIds = _selectedAccounts.Select(account => account.Id.Trim()).ToArray();
+        _accountListFeedbackGeneration++;
         _isLoadingAccounts = true;
         NotifyEditorStateChanged();
         NotifySelectionStateChanged();
-
-        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult result) = await AppDataManager.LoadAccountsAsync();
-        ApplyAccounts(savedAccounts);
-        _hasBlockingAccountLoadFailure = !result.Success;
-        _isLoadingAccounts = false;
-        NotifyEditorStateChanged();
-        NotifySelectionStateChanged();
-
-        if (!result.Success)
+        try
         {
-            await App.ExceptionHandler.ShowRecoverableAsync(
-                BuildAccountLoadException(result),
-                "AccountSettingPage.LoadAccountsAsync");
+            var (savedAccounts, result) = await AppDataManager.LoadAccountsAsync();
+            if (!result.Success)
+            {
+                ReportAccountLoadFailure(BuildAccountLoadException(result));
+                return;
+            }
+            ApplyAccounts(savedAccounts);
+            RestoreSelectionByIds(selectedIds);
+            _hasBlockingAccountLoadFailure = false;
+            ClearAccountListFeedback();
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ReportAccountLoadFailure(ex);
+        }
+        finally
+        {
+            _isLoadingAccounts = false;
+            NotifyEditorStateChanged();
+            NotifySelectionStateChanged();
+        }
+    }
+
+    private void ReportAccountLoadFailure(Exception exception)
+    {
+        _hasBlockingAccountLoadFailure = true;
+        ReportAccountListFailure(exception, "LoadAccountsAsync", "계정 목록 불러오기 실패",
+            "계정 목록을 불러오지 못했습니다. 기존 데이터를 보호하기 위해 계정 변경을 중단했습니다. 파일 접근 문제나 데이터 상태를 확인한 후 다시 불러와 주세요.");
+        AccountListInfoBar.IsClosable = false;
+        ReloadAccountsButton.Visibility = Visibility.Visible;
+    }
+
+    private async void ReloadAccountsButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!CanReloadAccounts)
+            return;
+        await SafeExecution.RunHandledAsync(LoadAccountsAsync, "AccountSettingPage.ReloadAccounts");
     }
 
     private void ApplyAccounts(IEnumerable<Account> accounts)
@@ -864,6 +961,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
 
     private void BeginCreateMode(bool clearSelection)
     {
+        ClearEditorFeedback();
         Editor.BeginCreate();
 
         if (clearSelection)
@@ -910,7 +1008,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 계정 목록 로드 실패를 상세 예외 창으로 전달할 예외 객체로 정리합니다.
+    /// 계정 목록 로드 실패의 원본 예외와 작업 메타데이터를 진단 기록에 보존합니다.
     /// </summary>
     private static Exception BuildAccountLoadException(AppDataManager.AppDataOperationResult result)
     {
@@ -980,18 +1078,47 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         return renames;
     }
 
-    private async Task ShowMessageDialogAsync(string title, string content)
+    private void ClearEditorFeedback()
     {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = this.XamlRoot,
-            Title = title,
-            Content = content,
-            CloseButtonText = "확인",
-            DefaultButton = ContentDialogButton.Close
-        };
+        _editorFeedbackGeneration++;
+        AccountEditorInfoBar.IsOpen = false;
+        EditorCredentialHelpButton.Visibility = Visibility.Collapsed;
+    }
 
-        await dialog.ShowManagedAsync();
+    private void ShowEditorFeedback(string title, string message, bool showCredentialHelp = false)
+    {
+        AccountEditorInfoBar.Severity = InfoBarSeverity.Error;
+        AccountEditorInfoBar.Title = title;
+        AccountEditorInfoBar.Message = message;
+        EditorCredentialHelpButton.Visibility = showCredentialHelp ? Visibility.Visible : Visibility.Collapsed;
+        AccountEditorInfoBar.IsOpen = true;
+    }
+
+    private void ReportEditorSaveFailure(Exception exception, string title, string message)
+    {
+        App.ExceptionHandler.RecordRecoverable(exception, "AccountSettingPage.SaveEditor");
+        bool serviceUnavailable = CredentialVaultGuidanceDialog.IsServiceUnavailable(exception);
+        if (serviceUnavailable)
+            message = "Windows 자격 증명 관리자 서비스에 접근하지 못했습니다. 입력한 내용은 유지됩니다. 해결 방법을 확인한 후 다시 저장해 주세요.";
+        ShowEditorFeedback(title, message, serviceUnavailable);
+    }
+
+    private async void EditorCredentialHelpButton_Click(object sender, RoutedEventArgs e)
+    {
+        int generation = _editorFeedbackGeneration;
+        try
+        {
+            if (!App.LinkManager.TryGetUrl(AppLinkKeys.HelpCredentialVault, out string url) ||
+                !await Launcher.LaunchUriAsync(new Uri(url)))
+                throw new InvalidOperationException("자격 증명 관리자 도움말을 외부 브라우저에서 열지 못했습니다.");
+        }
+        catch (Exception ex)
+        {
+            App.ExceptionHandler.RecordRecoverable(ex, "AccountSettingPage.OpenCredentialHelp");
+            if (_isEditorOpen && generation == _editorFeedbackGeneration)
+                ShowEditorFeedback("도움말을 열지 못했습니다.",
+                    "계정은 아직 저장되지 않았으며 입력한 내용은 유지됩니다. 잠시 후 다시 시도해 주세요.", showCredentialHelp: true);
+        }
     }
 
     private void NotifyEditorStateChanged()
@@ -1004,6 +1131,8 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         OnPropertyChanged(nameof(PasswordBoxHeader));
         OnPropertyChanged(nameof(PasswordPlaceholderText));
         OnPropertyChanged(nameof(AccountManagementEnabled));
+        OnPropertyChanged(nameof(CanUseAccountListActions));
+        OnPropertyChanged(nameof(CanReloadAccounts));
         OnPropertyChanged(nameof(EditorInputsEnabled));
         OnPropertyChanged(nameof(ChangePasswordToggleVisibility));
         OnPropertyChanged(nameof(PasswordBoxVisibility));
@@ -1030,6 +1159,7 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
         if (currentOrder.SequenceEqual(reorderedOrder, StringComparer.Ordinal))
             return;
 
+        ClearAccountListFeedback();
         HashSet<string> selectedIds = _selectedAccounts
             .Select(account => account.Id.Trim())
             .Where(id => id.Length > 0)
@@ -1040,23 +1170,88 @@ public sealed partial class AccountSettingPage : Page, INotifyPropertyChanged
             .Select(account => account.Clone())
             .ToList();
 
-        (IList<Account> savedAccounts, AppDataManager.AppDataOperationResult saveResult) =
-            await AppDataManager.SaveAccountsWithCredentialsAsync(nextAccounts);
-
-        if (!saveResult.Success)
+        bool committed = false;
+        try
         {
-            ApplyAccounts(_loadedAccounts);
+            var (savedAccounts, saved) = await TrySaveAccountListAsync(nextAccounts, "ReorderAccounts",
+                "계정 순서 저장 실패", "계정 표시 순서를 저장하지 못해 이전 순서로 되돌렸습니다. 선택한 계정은 유지됩니다. 잠시 후 다시 시도해 주세요.");
+            if (!saved)
+                return;
+            committed = true;
+            ApplyAccounts(savedAccounts);
             RestoreSelectionByIds(selectedIds);
-            await AppDataOperationDialog.ShowFailureAsync(
-                XamlRoot,
-                "계정 순서 저장 실패",
-                "계정 표시 순서를 저장하지 못했습니다.",
-                saveResult);
-            return;
         }
+        finally
+        {
+            if (!committed)
+            {
+                ApplyAccounts(_loadedAccounts);
+                RestoreSelectionByIds(selectedIds);
+            }
+        }
+    }
 
-        ApplyAccounts(savedAccounts);
-        RestoreSelectionByIds(selectedIds);
+    private void ClearAccountListFeedback()
+    {
+        _accountListFeedbackGeneration++;
+        AccountListInfoBar.IsOpen = false;
+        AccountListInfoBar.IsClosable = true;
+        ReloadAccountsButton.Visibility = Visibility.Collapsed;
+        AccountListCredentialHelpButton.Visibility = Visibility.Collapsed;
+    }
+
+    private async Task<(IList<Account> Accounts, bool Success)> TrySaveAccountListAsync(
+        List<Account> accounts, string operation, string title, string message)
+    {
+        AppDataManager.AppDataOperationResult result;
+        IList<Account> savedAccounts;
+        try { (savedAccounts, result) = await AppDataManager.SaveAccountsWithCredentialsAsync(accounts); }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            ReportAccountListFailure(ex, operation, title, message);
+            return (Array.Empty<Account>(), false);
+        }
+        if (!result.Success)
+        {
+            ReportAccountListFailure(new InvalidOperationException(
+                $"계정 목록 저장 실패: {result.Operation}, {result.Target}, {result.ErrorKind}", result.Exception),
+                operation, title, message);
+            return (Array.Empty<Account>(), false);
+        }
+        return (savedAccounts, true);
+    }
+
+    private void ReportAccountListFailure(Exception exception, string operation, string title, string message)
+    {
+        App.ExceptionHandler.RecordRecoverable(exception, $"AccountSettingPage.{operation}");
+        bool serviceUnavailable = CredentialVaultGuidanceDialog.IsServiceUnavailable(exception);
+        if (serviceUnavailable)
+            message += " Windows 자격 증명 관리자 서비스에 접근하지 못했습니다. 해결 방법을 확인해 주세요.";
+        AccountListInfoBar.Severity = InfoBarSeverity.Error;
+        AccountListInfoBar.Title = title;
+        AccountListInfoBar.Message = message;
+        AccountListCredentialHelpButton.Visibility = serviceUnavailable ? Visibility.Visible : Visibility.Collapsed;
+        AccountListInfoBar.IsOpen = true;
+    }
+
+    private async void AccountListCredentialHelpButton_Click(object sender, RoutedEventArgs e)
+    {
+        int generation = _accountListFeedbackGeneration;
+        try
+        {
+            if (!App.LinkManager.TryGetUrl(AppLinkKeys.HelpCredentialVault, out string url) ||
+                !await Launcher.LaunchUriAsync(new Uri(url)))
+                throw new InvalidOperationException("자격 증명 관리자 도움말을 외부 브라우저에서 열지 못했습니다.");
+        }
+        catch (Exception ex)
+        {
+            App.ExceptionHandler.RecordRecoverable(ex, "AccountSettingPage.OpenListCredentialHelp");
+            if (IsLoaded && generation == _accountListFeedbackGeneration)
+            {
+                AccountListInfoBar.Message = "도움말을 열지 못했습니다. 잠시 후 다시 시도해 주세요.";
+                AccountListInfoBar.IsOpen = true;
+            }
+        }
     }
 
     /// <summary>

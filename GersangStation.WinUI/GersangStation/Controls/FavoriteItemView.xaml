@@ -1,0 +1,33 @@
+<UserControl
+    x:Class="GersangStation.Controls.FavoriteItemView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid ColumnSpacing="4">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Button x:Name="LinkButton" Padding="5,4" Click="LinkButton_Click"
+                KeyDown="LinkButton_KeyDown" Style="{ThemeResource SubtleButtonStyle}">
+            <Button.ContextFlyout>
+                <MenuFlyout>
+                    <MenuFlyoutItem Click="Rename_Click" Text="이름 변경" />
+                    <MenuFlyoutItem Click="Delete_Click" Text="삭제" />
+                </MenuFlyout>
+            </Button.ContextFlyout>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Grid Width="16" Height="16">
+                    <Border Background="{ThemeResource ControlFillColorSecondaryBrush}" CornerRadius="4">
+                        <FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10" Glyph="&#xE774;" />
+                    </Border>
+                    <Image x:Name="FaviconImage" Width="16" Height="16" />
+                </Grid>
+                <TextBlock x:Name="NameText" MaxWidth="180" MaxLines="1" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </Button>
+        <TextBox x:Name="NameEditor" Grid.Column="1" Width="220"
+                 AutomationProperties.Name="즐겨찾기 이름"
+                 KeyDown="NameEditor_KeyDown" LostFocus="NameEditor_LostFocus"
+                 Visibility="Collapsed" />
+    </Grid>
+</UserControl>

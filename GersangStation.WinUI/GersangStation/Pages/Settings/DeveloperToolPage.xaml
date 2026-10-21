@@ -16,6 +16,9 @@
         HorizontalScrollMode="Disabled"
         VerticalScrollBarVisibility="Auto">
         <Grid Padding="24" HorizontalAlignment="Stretch">
+            <TeachingTip x:Name="DowngradeResultTip" Target="{x:Bind Button_Downgrade}"
+                         IsLightDismissEnabled="True" PreferredPlacement="Bottom"
+                         Closing="DowngradeResultTip_Closing" Closed="DowngradeResultTip_Closed" />
             <StackPanel
                 MaxWidth="896"
                 HorizontalAlignment="Stretch"

@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Web.WebView2.Core;
+using GersangStation.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Text.Json;
@@ -43,6 +44,15 @@ internal sealed partial class BrowserSession : IDisposable
     internal WebView2 View { get; }
     internal BrowserSessionState State { get; private set; }
     internal Exception? Failure { get; private set; }
+    private BrowserUnavailableException? _failureNotice;
+    internal BrowserUnavailableException FailureNotice => _failureNotice ??= new(Failure);
+
+    // 진행 중이던 작업의 연쇄 중단은 같은 안내로, 사용자가 새로 시도한 요청은 별도 안내로 처리합니다.
+    internal void ThrowIfFaulted(bool? newRequest = null)
+    {
+        if (State == BrowserSessionState.Faulted)
+            throw (newRequest ?? !_operationContext.Value.HasValue) ? new BrowserUnavailableException(Failure) : FailureNotice;
+    }
     internal bool IsReady => State == BrowserSessionState.Ready;
     internal bool IsDocumentReady { get; private set; }
     internal ulong NavigationId { get; private set; }
@@ -55,7 +65,7 @@ internal sealed partial class BrowserSession : IDisposable
         if (State == BrowserSessionState.Disposed)
             return Task.FromCanceled(_lifetime.Token);
         if (State == BrowserSessionState.Faulted)
-            return Task.FromException(new InvalidOperationException("브라우저를 사용할 수 없습니다. 앱을 다시 실행해 주세요.", Failure));
+            return Task.FromException(_operationContext.Value.HasValue ? FailureNotice : new BrowserUnavailableException(Failure));
 
         // 여러 호출자가 같은 초기화 결과를 기다리며, 실패도 다시 실행하지 않고 보존합니다.
         return _initialization ??= InitializeCoreAsync();
@@ -97,7 +107,7 @@ internal sealed partial class BrowserSession : IDisposable
         {
             Failure = ex;
             State = BrowserSessionState.Faulted;
-            throw;
+            throw FailureNotice;
         }
     }
 
@@ -116,8 +126,7 @@ internal sealed partial class BrowserSession : IDisposable
     private CoreWebView2 GetCoreForMaintenance()
     {
         VerifyAccess();
-        if (State == BrowserSessionState.Faulted)
-            throw new InvalidOperationException("브라우저를 사용할 수 없습니다. 앱을 다시 실행해 주세요.", Failure);
+        ThrowIfFaulted();
         _lifetime.Token.ThrowIfCancellationRequested();
         if (!IsReady || _core is null)
             throw new InvalidOperationException("브라우저 준비가 완료되지 않았습니다.", Failure);

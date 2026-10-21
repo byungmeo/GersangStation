@@ -3,6 +3,7 @@ using Core;
 using Core.Models;
 using GersangStation.Diagnostics;
 using GersangStation.Services;
+using GameMaintenance;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -60,6 +61,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private bool _isPatchReadmeScrollResetPending;
     private bool _hasRequestedPatchReadmeScrollReset;
     private string? _patchResultExplorerPath;
+    private bool _patchResultPermissionHelp;
 
     public ObservableCollection<PatchReadmeInfoItem> Versions { get; } = [];
 
@@ -192,11 +194,12 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         await LoadPatchInfoAsync();
     }
 
-    protected override async void OnNavigatingFrom(NavigatingCancelEventArgs e)
+    protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
     {
         base.OnNavigatingFrom(e);
 
-        e.Cancel = !await ConfirmLeaveAsync();
+        // 셸이 비동기 확인을 담당하며, 이 이벤트에서는 즉시 취소만 결정합니다.
+        e.Cancel |= IsBusy || PatchReadmeDrawer.State != DrawerState.Closed;
         if (!e.Cancel)
         {
             CancelPatchInfoLoad();
@@ -223,11 +226,17 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
             if (!loadResult.Success)
             {
-                await AppDataOperationDialog.ShowFailureAsync(
-                    XamlRoot,
-                    "설정 불러오기 실패",
-                    "패치 설정을 준비하는 동안 서버 설정을 모두 불러오지 못했습니다.",
-                    loadResult);
+                ReportPatchSettingsLoadFailure(loadResult);
+                _currentClientVersion = null;
+                _latestServerVersion = null;
+                _allPatchReadmeItems = [];
+                DisplayLatestVersion = string.Empty;
+                SelectedVersionItem = null;
+                Versions.Clear();
+                ResetPatchReadmeRendering();
+                NotifyPatchStateChanged();
+                OnPropertyChanged(nameof(CanOpenPatchReadme));
+                return;
             }
 
             _currentInstallPath = clientSetting.InstallPath;
@@ -252,7 +261,9 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[GamePatchSettingPage] Failed to load patch info. Server: {_selectedGameServer}, Error: {ex}");
+                if (ex is OperationCanceledException)
+                    ex = new IOException("패치 정보 확인이 예기치 않게 중단되었습니다.", ex);
+                App.ExceptionHandler.RecordRecoverable(ex, $"GamePatchSettingPage.LoadPatchInfo.{_selectedGameServer}");
                 _latestServerVersion = null;
                 DisplayLatestVersion = "최신 버전 확인 불가";
                 NotifyPatchStateChanged();
@@ -618,7 +629,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             && currentVersion < ManualUpgradeBoundaryVersion;
     }
 
-    private async Task<PatchArchiveReuseMode> AskArchiveReuseModeAsync(string tempRoot)
+    private async Task<PatchArchiveReuseMode?> AskArchiveReuseModeAsync(string tempRoot)
     {
         ContentDialog dialog = new()
         {
@@ -630,14 +641,18 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
                 $"이어받기를 진행할까요?",
             PrimaryButtonText = "이어받기",
             SecondaryButtonText = "처음부터",
+            CloseButtonText = "취소",
             DefaultButton = ContentDialogButton.Primary
         };
 
         ContentDialogResult result = await dialog.ShowManagedAsync();
 
-        return result == ContentDialogResult.Primary
-            ? PatchArchiveReuseMode.ResumeIfPossible
-            : PatchArchiveReuseMode.RestartFromScratch;
+        return result switch
+        {
+            ContentDialogResult.Primary => PatchArchiveReuseMode.ResumeIfPossible,
+            ContentDialogResult.Secondary => PatchArchiveReuseMode.RestartFromScratch,
+            _ => null
+        };
     }
 
     /// <summary>
@@ -673,19 +688,15 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
             if (!loadResult.Success)
             {
-                await AppDataOperationDialog.ShowFailureAsync(
-                    XamlRoot,
-                    "설정 불러오기 실패",
-                    "패치를 시작하기 전에 서버 설정을 모두 불러오지 못했습니다.",
-                    loadResult);
+                ReportPatchSettingsLoadFailure(loadResult);
                 return;
             }
 
             if (_latestServerVersion is not int latestClientVersion)
             {
-                await ShowSimpleDialogAsync(
+                ShowPatchResultTeachingTip(
                     "패치 불가",
-                    "최신 버전을 확인할 수 없어 지금은 패치를 진행할 수 없습니다.");
+                    "최신 버전을 확인할 수 없습니다.", isError: true);
                 return;
             }
 
@@ -707,7 +718,12 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             PatchArchiveReuseMode archiveReuseMode = PatchArchiveReuseMode.ResumeIfPossible;
             if (Directory.Exists(tempRoot))
             {
-                archiveReuseMode = await AskArchiveReuseModeAsync(tempRoot);
+                if (await AskArchiveReuseModeAsync(tempRoot) is not { } selectedMode)
+                {
+                    ProgressText = "패치가 취소되었습니다.";
+                    return;
+                }
+                archiveReuseMode = selectedMode;
             }
 
             _patchCts = new CancellationTokenSource();
@@ -761,22 +777,31 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             ProgressText = historyWarning ?? "패치가 완료되었습니다.";
             ShowPatchResultTeachingTip("패치 성공", ProgressText);
         }
-        catch (OperationCanceledException)
+        catch (MaintenanceCanceledException ex)
+        {
+            ProgressText = ex.Message;
+        }
+        catch (OperationCanceledException) when (_patchCts?.IsCancellationRequested == true)
         {
             ProgressText = "패치가 취소되었습니다.";
         }
         catch (Exception ex)
         {
+            if (ex is OperationCanceledException)
+                ex = new IOException("패치가 예기치 않게 중단되었습니다. 작업 상태를 확인해 주세요.", ex);
+            App.ExceptionHandler.RecordRecoverable(ex, $"GamePatchSettingPage.StartPatch.{_selectedGameServer}");
             MarkPatchProgressAsFailed();
 
             if (TryShowMultiClientSymbolicDirectoryConflictTeachingTip(ex))
                 return;
 
-            if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, ex, "게임 패치"))
+            if (PathPermissionDialog.IsPermissionFailure(ex))
             {
                 string failureMessage = "패치에 실패했습니다.\n권한 문제 해결 방법을 확인해 주세요.";
                 ProgressText = "패치 실패";
                 ShowPatchResultTeachingTip("패치 실패", failureMessage, isError: true);
+                _patchResultPermissionHelp = true;
+                TeachingTip_PatchResult.ActionButtonContent = "해결 방법 확인하기";
                 return;
             }
 
@@ -805,7 +830,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             // Optional history must never prevent normal patching or version discovery.
             _lastPatchRecord = null;
             _patchHistoryUnavailable = true;
-            Debug.WriteLine($"[GamePatchSettingPage] Failed to load patch history: {ex}");
+            App.ExceptionHandler.RecordRecoverable(ex, $"GamePatchSettingPage.LoadLastPatchRecord.{_selectedGameServer}");
         }
         OnPropertyChanged(nameof(LastPatchDescription));
         OnPropertyChanged(nameof(IsRepatchEnabled));
@@ -830,7 +855,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[GamePatchSettingPage] Patch succeeded but history save failed: {ex}");
+            App.ExceptionHandler.RecordRecoverable(ex, $"GamePatchSettingPage.SaveLastPatchRecord.{server}");
             return "패치는 완료되었지만 마지막 패치 기록을 저장하지 못했습니다.";
         }
     }
@@ -855,6 +880,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     private void ShowPatchResultTeachingTip(string title, string subtitle, bool isError = false)
     {
         _patchResultExplorerPath = null;
+        _patchResultPermissionHelp = false;
         TeachingTip_PatchResult.Title = title;
         TeachingTip_PatchResult.Subtitle = subtitle;
         TeachingTip_PatchResult.IconSource = isError ? CreateErrorBadgeIconSource() : null;
@@ -875,6 +901,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
         string failureMessage = BuildMultiClientSymbolicDirectoryConflictMessage(creationException, conflictException);
         ProgressText = "패치 실패";
+        _patchResultPermissionHelp = false;
         _patchResultExplorerPath = ResolveMultiClientConflictExplorerPath(creationException, conflictException);
         TeachingTip_PatchResult.Title = "패치 실패";
         TeachingTip_PatchResult.Subtitle = failureMessage;
@@ -887,11 +914,19 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
     private void TeachingTip_PatchResult_ActionButtonClick(TeachingTip sender, object args)
     {
-        if (string.IsNullOrWhiteSpace(_patchResultExplorerPath))
-            return;
-
         try
         {
+            if (_patchResultPermissionHelp)
+            {
+                TeachingTip_PatchResult.IsOpen = false;
+                if (App.CurrentWindow is MainWindow window)
+                    window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpPermissionMultiClient);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_patchResultExplorerPath))
+                return;
+
             if (!Directory.Exists(_patchResultExplorerPath))
             {
                 TeachingTip_PatchResult.Subtitle = "대상 폴더를 찾을 수 없습니다.";
@@ -905,7 +940,9 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
         }
         catch (Exception ex)
         {
-            TeachingTip_PatchResult.Subtitle = $"폴더 열기 실패: {ex.Message}";
+            App.ExceptionHandler.RecordRecoverable(ex, "GamePatchSettingPage.PatchResultAction");
+            TeachingTip_PatchResult.Subtitle = "해결 방법을 열지 못했습니다. 잠시 후 다시 시도해 주세요.";
+            TeachingTip_PatchResult.IsOpen = true;
         }
     }
 
@@ -1046,18 +1083,8 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     {
         if (IsBusy)
         {
-            ContentDialog contentDialog = new()
-            {
-                XamlRoot = XamlRoot,
-                Title = reason == LeaveReason.AppExit ? "종료 불가" : "이동 불가",
-                Content = reason == LeaveReason.AppExit
-                    ? "작업 진행 중에는 프로그램을 종료할 수 없습니다."
-                    : "작업 진행 중 페이지를 이동할 수 없습니다.",
-                IsPrimaryButtonEnabled = true,
-                PrimaryButtonText = "확인",
-                DefaultButton = ContentDialogButton.Primary
-            };
-        await contentDialog.ShowManagedAsync();
+            ShowPatchResultTeachingTip(reason == LeaveReason.AppExit ? "종료 불가" : "이동 불가",
+                "작업이 끝난 뒤 다시 시도해 주세요.");
             return false;
         }
 
@@ -1088,20 +1115,14 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
     }
 
     /// <summary>
-    /// 페이지에서 사용하는 단순 안내 대화상자를 표시합니다.
+    /// 설정 읽기 실패는 원인을 기록하고 페이지 안에서만 안내합니다.
     /// </summary>
-    private async Task ShowSimpleDialogAsync(string title, string content)
+    private void ReportPatchSettingsLoadFailure(AppDataManager.AppDataOperationResult result)
     {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = title,
-            Content = content,
-            CloseButtonText = "확인",
-            DefaultButton = ContentDialogButton.Close
-        };
-
-        await dialog.ShowManagedAsync();
+        App.ExceptionHandler.RecordRecoverable(new IOException(
+            $"패치용 서버 설정을 불러오지 못했습니다. Operation={result.Operation}, Target={result.Target}, ErrorKind={result.ErrorKind}", result.Exception),
+            $"GamePatchSettingPage.LoadSettings.{_selectedGameServer}");
+        ShowPatchResultTeachingTip("설정 불러오기 실패", "서버 설정을 불러올 수 없습니다. 다시 시도해 주세요.", isError: true);
     }
 
     #region Segmented server selection

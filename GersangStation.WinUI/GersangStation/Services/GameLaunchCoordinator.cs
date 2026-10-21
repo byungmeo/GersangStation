@@ -1,4 +1,5 @@
 using Core.Models;
+using GersangStation.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using System;
@@ -117,6 +118,10 @@ public sealed class GameLaunchCoordinator : INotifyPropertyChanged, IDisposable
     public GameLaunchButtonState Client3 { get; } = new();
     public bool CanLogin => !_browser.IsMaintenanceInProgress && !HasPending && !_browser.TryingLogin && !_browser.TryingLogout;
     private bool HasPending => Array.Exists(_attempts, attempt => attempt?.IsPending == true);
+    internal bool IsCurrentAttempt(GameLaunchAttempt attempt)
+        => !_disposed && attempt.ClientIndex >= 0 && attempt.ClientIndex < _attempts.Length
+            && ReferenceEquals(_attempts[attempt.ClientIndex], attempt)
+            && attempt.Phase == GameLaunchPhase.Failed;
     public event PropertyChangedEventHandler? PropertyChanged;
 
     internal void SetSlotEnabled(int index, bool enabled)
@@ -167,7 +172,7 @@ public sealed class GameLaunchCoordinator : INotifyPropertyChanged, IDisposable
                 _browser.CancelLaunchAttempt(attempt.Server, attempt.ClientIndex, attempt.Reason!, attempt);
         }
         if (_dispatcher.HasThreadAccess) Apply();
-        else _dispatcher.TryEnqueue(Apply);
+        else _dispatcher.TryEnqueue(() => FatalErrorHandler.Current.RunCallback(Apply, "GameLaunchCoordinator.AttemptChanged"));
     }
 
     private void Refresh()
@@ -203,6 +208,7 @@ public sealed class GameLaunchCoordinator : INotifyPropertyChanged, IDisposable
         if (e.PropertyName is not (nameof(WebViewManager.TryingLogin) or nameof(WebViewManager.TryingLogout)
             or nameof(WebViewManager.IsMaintenanceInProgress))) return;
         if (_dispatcher.HasThreadAccess) { if (!_disposed) Refresh(); }
-        else _dispatcher.TryEnqueue(() => { if (!_disposed) Refresh(); });
+        else _dispatcher.TryEnqueue(() => FatalErrorHandler.Current.RunCallback(
+            () => { if (!_disposed) Refresh(); }, "GameLaunchCoordinator.BrowserChanged"));
     }
 }

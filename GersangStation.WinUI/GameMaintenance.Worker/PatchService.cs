@@ -19,7 +19,8 @@ internal sealed class PatchService
     PatchRunOptions options,
     ClientSettings clientSettings,
     IProgress<PatchProgress>? progress,
-    CancellationToken ct)
+    CancellationToken ct,
+    Action<Exception>? recordDiagnostic = null)
     {
         Debug.WriteLine(
             $"RunAsync\n\t" +
@@ -252,10 +253,23 @@ internal sealed class PatchService
             // 이어받기 / 새로 받기 선택이 가능해야 한다.
             if (patchSucceeded && options.DeleteTempFilesAfterPatch)
             {
-                DirectoryDeleteResult deleteResult = await TryDeleteDirectoryIfExistsAsync(tempRoot, ct).ConfigureAwait(false);
-                if (!deleteResult.Success)
+                try
                 {
-                    Debug.WriteLine($"[PatchManager] Temp root cleanup failed after successful patch: {tempRoot}, Error: {deleteResult.Exception}");
+                    // 이미 적용된 패치는 정리 중 취소/오류 때문에 실패로 바뀌지 않습니다.
+                    DirectoryDeleteResult deleteResult = await TryDeleteDirectoryIfExistsAsync(tempRoot, CancellationToken.None).ConfigureAwait(false);
+                    if (!deleteResult.Success)
+                        throw deleteResult.Exception ?? new IOException("패치 임시 파일을 정리하지 못했습니다.");
+                }
+                catch (Exception ex)
+                {
+                    var diagnostic = new PatchOperationException("패치는 완료되었지만 임시 파일 정리에 실패했습니다.",
+                        targetServer, PatchFailureStage.CleanupTempDirectory, ex, targetPath: tempRoot);
+                    try { recordDiagnostic?.Invoke(diagnostic); }
+                    catch (Exception recordException)
+                    {
+                        // 진단 전달 실패도 이미 완료된 패치의 성공 결과를 바꾸지 않습니다.
+                        Debug.WriteLine($"[PatchService] Cleanup diagnostic delivery failed: {recordException}; original: {diagnostic}");
+                    }
                 }
             }
         }

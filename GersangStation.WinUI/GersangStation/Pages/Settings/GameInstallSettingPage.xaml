@@ -97,5 +97,14 @@
             VerticalAlignment="Bottom"
             AutomationProperties.AccessibilityView="Raw"
             IsHitTestVisible="False" />
+        <TeachingTip
+            x:Name="TeachingTip_InstallResult"
+            Target="{x:Bind InstallTeachingTipAnchor}"
+            ActionButtonClick="TeachingTip_InstallResult_ActionButtonClick"
+            CloseButtonContent="닫기"
+            IsLightDismissEnabled="True"
+            PlacementMargin="0"
+            PreferredPlacement="Top"
+            TailVisibility="Collapsed" />
     </Grid>
 </Page>

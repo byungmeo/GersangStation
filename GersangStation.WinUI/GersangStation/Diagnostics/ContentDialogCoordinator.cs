@@ -33,7 +33,8 @@ public sealed class ContentDialogCoordinator
                 cancellationToken.ThrowIfCancellationRequested();
                 EnsureXamlRoot(dialog);
                 using CancellationTokenRegistration registration = cancellationToken.Register(() =>
-                    dispatcherQueue.TryEnqueue(() => dialog.Hide()));
+                    dispatcherQueue.TryEnqueue(() => FatalErrorHandler.Current.RunCallback(
+                        dialog.Hide, "ContentDialogCoordinator.CancelDialog")));
                 result = await dialog.ShowAsync();
                 cancellationToken.ThrowIfCancellationRequested();
             });

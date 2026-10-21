@@ -1,0 +1,37 @@
+<UserControl
+    x:Class="GersangStation.Controls.DiagnosticDetailsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Click="CopyButton_Click" Content="원본 복사" AutomationProperties.AutomationId="CopyDiagnosticDetailsButton" />
+            <Button Click="LogFolderButton_Click" Content="로그 폴더 열기" />
+        </StackPanel>
+        <TextBox
+            x:Name="DetailsTextBox"
+            Grid.Row="1"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            AcceptsReturn="True"
+            Padding="12"
+            AutomationProperties.Name="오류 상세 기록"
+            FontFamily="Consolas"
+            IsReadOnly="True"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            TextWrapping="Wrap" />
+        <TextBlock
+            x:Name="LogPathTextBlock"
+            Grid.Row="2"
+            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+            IsTextSelectionEnabled="True"
+            TextWrapping="Wrap" />
+        <InfoBar x:Name="ActionInfoBar" Grid.Row="3" IsOpen="False" />
+    </Grid>
+</UserControl>

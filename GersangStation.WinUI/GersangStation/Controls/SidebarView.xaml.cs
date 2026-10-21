@@ -6,10 +6,7 @@ using GersangStation.Diagnostics;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using System;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -29,7 +26,7 @@ public sealed partial class SidebarView : UserControl
 {
     private StationPage? _homePage;
     private bool _suppressSelection;
-    private Action? _multiClientResultAction;
+    private MultiClientCreationFeedback? _multiClientFeedback;
 
     public event EventHandler? HomeRequested;
     public event EventHandler? BrowserRequested;
@@ -53,7 +50,34 @@ public sealed partial class SidebarView : UserControl
     }
 
     private void SidebarView_Unloaded(object sender, RoutedEventArgs e)
-        => AppDataManager.DeveloperToolEnabledChanged -= OnDeveloperToolEnabledChanged;
+    {
+        AppDataManager.DeveloperToolEnabledChanged -= OnDeveloperToolEnabledChanged;
+        ClearLaunchWarnings();
+    }
+
+    internal void ClearLaunchWarnings()
+    {
+        Client1LaunchControl?.ClearLaunchWarning();
+        Client2LaunchControl?.ClearLaunchWarning();
+        Client3LaunchControl?.ClearLaunchWarning();
+    }
+
+    internal void ShowLaunchWarning(int clientIndex, string title, string message)
+        => ShowLaunchNotice(clientIndex, new(title, message));
+
+    internal void ShowLaunchNotice(int clientIndex, GameLaunchNotice notice)
+    {
+        if (!IsLoaded || SidebarControlPanel.Visibility != Visibility.Visible) return;
+        AccountLaunchControl control = clientIndex switch
+        {
+            0 => Client1LaunchControl,
+            1 => Client2LaunchControl,
+            2 => Client3LaunchControl,
+            _ => throw new ArgumentOutOfRangeException(nameof(clientIndex))
+        };
+        try { control.ShowLaunchNotice(notice); }
+        catch (Exception ex) { App.ExceptionHandler.RecordRecoverable(ex, "SidebarView.ShowLaunchWarning"); }
+    }
 
     private void RefreshDeveloperToolVisibility()
         => DeveloperSettingsListViewItem.Visibility = AppDataManager.IsDeveloperToolEnabled
@@ -65,7 +89,8 @@ public sealed partial class SidebarView : UserControl
         if (DispatcherQueue.HasThreadAccess)
             RefreshDeveloperToolVisibility();
         else
-            _ = DispatcherQueue.TryEnqueue(RefreshDeveloperToolVisibility);
+            _ = DispatcherQueue.TryEnqueue(() => FatalErrorHandler.Current.RunCallback(
+                RefreshDeveloperToolVisibility, "SidebarView.RefreshDeveloperToolVisibility"));
     }
 
     public void SetLaunchCoordinator(GameLaunchCoordinator coordinator)
@@ -83,69 +108,17 @@ public sealed partial class SidebarView : UserControl
         DataContext = homePage;
     }
 
+    private MultiClientCreationFeedback MultiClientFeedback
+        => _multiClientFeedback ??= new(MultiClientResultTeachingTip);
+
     private void HomePage_MultiClientCreationCompleted(object? sender, MultiClientCreationCompletedEventArgs e)
     {
-        // The result belongs to the always-loaded sidebar, not the possibly hidden home page.
-        _multiClientResultAction = null;
-        MultiClientResultTeachingTip.ActionButtonContent = null;
-        MultiClientResultTeachingTip.IconSource = e.Success || e.Canceled ? null : new FontIconSource
-        {
-            FontFamily = new FontFamily("Segoe MDL2 Assets"),
-            Glyph = "\uEA39"
-        };
-        MultiClientResultTeachingTip.Title = e.Canceled ? "다클라 생성 취소"
-            : e.Success ? "다클라 생성 완료" : "다클라 생성 실패";
-        MultiClientResultTeachingTip.Subtitle = $"{GameServerHelper.GetServerDisplayName(e.Server)}\n{e.Message}";
-
-        if (!e.Success && !e.Canceled)
-        {
-            GameClientHelper.MultiClientSymbolicDirectoryConflictException? conflict = null;
-            for (Exception? current = e.Exception; current is not null; current = current.InnerException)
-            {
-                if (current is GameClientHelper.MultiClientSymbolicDirectoryConflictException matched)
-                {
-                    conflict = matched;
-                    break;
-                }
-            }
-
-            if (conflict is not null)
-            {
-                string? parentPath = Path.GetDirectoryName(conflict.DestinationPath);
-                MultiClientResultTeachingTip.Subtitle =
-                    $"{conflict.DestinationPath}\n위 폴더를 삭제하신 후 다시 다클라를 생성해주세요.";
-                if (!string.IsNullOrWhiteSpace(parentPath))
-                {
-                    MultiClientResultTeachingTip.ActionButtonContent = "상위 폴더 열기";
-                    _multiClientResultAction = () =>
-                    {
-                        var start = new ProcessStartInfo("explorer.exe") { UseShellExecute = true };
-                        start.ArgumentList.Add(parentPath);
-                        Process.Start(start);
-                    };
-                }
-            }
-            else if (PathPermissionDialog.IsPermissionFailure(e.Exception))
-            {
-                MultiClientResultTeachingTip.ActionButtonContent = "해결 방법 확인하기";
-                _multiClientResultAction = () =>
-                {
-                    if (App.CurrentWindow is MainWindow window)
-                        window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpPermissionMultiClient);
-                };
-            }
-        }
-
-        MultiClientResultTeachingTip.IsOpen = true;
+        // 페이지 전환과 무관하게 사이드바가 생성 결과를 표시합니다.
+        MultiClientFeedback.Show(e.Server, new(e.Success, e.Message, e.Exception, e.Canceled));
     }
 
-    private async void MultiClientResultTeachingTip_ActionButtonClick(TeachingTip sender, object args)
-    {
-        Action? action = _multiClientResultAction;
-        sender.IsOpen = false;
-        if (action is not null)
-            await SafeExecution.RunHandledAsync(action, "SidebarView.MultiClientResultAction");
-    }
+    private void MultiClientResultTeachingTip_ActionButtonClick(TeachingTip sender, object args)
+        => _multiClientFeedback?.InvokeAction();
 
     public void ShowControl(bool browserSelected = false)
     {
@@ -158,6 +131,7 @@ public sealed partial class SidebarView : UserControl
 
     public void ShowSettings(SettingSection? section = null)
     {
+        ClearLaunchWarnings();
         SidebarControlPanel.Visibility = Visibility.Collapsed;
         SidebarSettingPanel.Visibility = Visibility.Visible;
         RefreshDeveloperToolVisibility();
@@ -217,7 +191,10 @@ public sealed partial class SidebarView : UserControl
     }
 
     private async void ServerSelectRadioButtons_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        => await InvokeHomeAsync(page => page.RefreshServerAsync());
+    {
+        ClearLaunchWarnings();
+        await InvokeHomeAsync(page => page.RefreshServerAsync());
+    }
     private async void RefreshVersionButton_Click(object sender, RoutedEventArgs e)
         => await InvokeHomeAsync(page => page.RefreshServerAsync());
     private void PatchButton_Click(object sender, RoutedEventArgs e)

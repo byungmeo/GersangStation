@@ -225,11 +225,11 @@ public sealed partial class SettingPage : Page, IConfirmLeave
         _suppressNavSelectionChanged = false;
         _previousSelectedItem = selectedItem;
 
-        _ = DispatcherQueue.TryEnqueue(() =>
+        _ = DispatcherQueue.TryEnqueue(() => FatalErrorHandler.Current.RunCallback(() =>
         {
             selectedItem.StartBringIntoView();
             selectedItem.Focus(FocusState.Programmatic);
-        });
+        }, "SettingPage.RevealSelectedItem"));
     }
 
     /// <summary>
@@ -254,7 +254,8 @@ public sealed partial class SettingPage : Page, IConfirmLeave
             return;
         }
 
-        _ = DispatcherQueue.TryEnqueue(RefreshDeveloperToolVisibility);
+        _ = DispatcherQueue.TryEnqueue(() => FatalErrorHandler.Current.RunCallback(
+            RefreshDeveloperToolVisibility, "SettingPage.RefreshDeveloperToolVisibility"));
     }
 
     /// <summary>

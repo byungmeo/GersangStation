@@ -4,6 +4,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:GersangStation.Controls"
+    xmlns:diagnostics="using:GersangStation.Diagnostics"
+    xmlns:drawer="using:SideDrawer.Controls"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     Title="거상스테이션(GersangStation)">
 
@@ -46,6 +48,40 @@
             <Grid.Shadow>
                 <ThemeShadow />
             </Grid.Shadow>
+            <!--  본문과 같은 셀에 겹쳐 표시하여 안내가 본문의 높이를 줄이지 않도록 합니다.  -->
+            <StackPanel
+                x:Name="DiagnosticNoticeHost"
+                Canvas.ZIndex="1"
+                Margin="24"
+                VerticalAlignment="Top"
+                Spacing="8"
+                Visibility="Collapsed">
+                <InfoBar
+                    x:Name="PreviousCrashInfoBar"
+                    Closed="PreviousCrashInfoBar_Closed"
+                    IsClosable="True"
+                    IsOpen="False"
+                    Message="{x:Bind PreviousCrashNoticeMessage}"
+                    Severity="Warning"
+                    Title="이전 실행이 정상적으로 종료되지 않았습니다."
+                    Visibility="Collapsed">
+                    <InfoBar.ActionButton>
+                        <Button x:Name="PreviousCrashDetailsButton" Click="PreviousCrashDetailsButton_Click" Content="오류 기록 보기" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+                <InfoBar
+                    x:Name="RecoverableErrorInfoBar"
+                    Closed="RecoverableErrorInfoBar_Closed"
+                    IsClosable="True"
+                    IsOpen="False"
+                    Severity="Error"
+                    Title="작업 중 오류가 발생했습니다."
+                    Visibility="Collapsed">
+                    <InfoBar.ActionButton>
+                        <Button Click="RecoverableErrorDetailsButton_Click" Content="오류 기록 보기" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+            </StackPanel>
             <Grid x:Name="ShellContent">
                 <Frame x:Name="StationFrame" IsNavigationStackEnabled="False" />
                 <Grid x:Name="BrowserSurface" Visibility="Collapsed">
@@ -55,6 +91,13 @@
                     </Grid.RowDefinitions>
                     <Frame x:Name="BrowserFrame" IsNavigationStackEnabled="False" />
                     <WebView2 x:Name="BrowserWebView" Grid.Row="1" />
+                    <ContentPresenter
+                        x:Name="BrowserNoticePresenter"
+                        Grid.Row="1"
+                        Canvas.ZIndex="1"
+                        Margin="24"
+                        HorizontalContentAlignment="Stretch"
+                        VerticalAlignment="Top" />
                 </Grid>
                 <Frame
                     x:Name="SettingFrame"
@@ -62,6 +105,90 @@
                     Visibility="Collapsed" />
             </Grid>
         </Grid>
+
+        <drawer:Drawer
+            x:Name="PreviousCrashDrawer"
+            Grid.Column="2"
+            AutomationProperties.Name="이전 실행 기록"
+            Host="{x:Bind Root}"
+            InteractionFailed="PreviousCrashDrawer_InteractionFailed"
+            Modal="False"
+            PanelLength="720"
+            Placement="Right">
+            <Grid RowSpacing="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        x:Name="PreviousCrashDrawerTitleTextBlock"
+                        VerticalAlignment="Center"
+                        Style="{ThemeResource TitleTextBlockStyle}"
+                        Text="이전 실행 오류 기록"
+                        TextWrapping="Wrap" />
+                    <Button
+                        Grid.Column="1"
+                        Click="PreviousCrashCloseButton_Click"
+                        Content="닫기" />
+                </Grid>
+                <TextBlock
+                    x:Name="PreviousCrashDescriptionTextBlock"
+                    Grid.Row="1"
+                    Text="이전 실행에서 앱을 종료시킨 오류입니다. 문제가 반복되면 아래 기록을 복사해 전달해 주세요."
+                    TextWrapping="Wrap" />
+                <controls:DiagnosticDetailsView x:Name="PreviousCrashDetailsView" Grid.Row="2" />
+            </Grid>
+        </drawer:Drawer>
+
+        <drawer:Drawer
+            x:Name="RecoverableErrorDrawer"
+            Grid.Column="2"
+            AutomationProperties.Name="현재 실행 오류 기록"
+            Host="{x:Bind Root}"
+            InteractionFailed="RecoverableErrorDrawer_InteractionFailed"
+            Modal="False"
+            PanelLength="720"
+            Placement="Right">
+            <Grid RowSpacing="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="현재 실행 오류 기록" TextWrapping="Wrap" />
+                    <Button Grid.Column="1" Click="RecoverableErrorCloseButton_Click" Content="닫기" />
+                </Grid>
+                <TextBlock Grid.Row="1" Text="이번 실행에서 안내한 최근 오류 20건입니다. 문제가 반복되면 기록을 복사해 전달해 주세요." TextWrapping="Wrap" />
+                <ComboBox
+                    x:Name="RecoverableErrorSelector"
+                    Grid.Row="2"
+                    HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="최근 오류 기록 선택"
+                    PlaceholderText="현재 읽는 기록은 최근 20건보다 이전 기록입니다."
+                    SelectionChanged="RecoverableErrorSelector_SelectionChanged">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="diagnostics:DiagnosticRecord">
+                            <TextBlock Text="{x:Bind DisplayName}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock x:Name="SelectedRecoverableRecordTextBlock" Grid.Row="3" TextWrapping="Wrap" />
+                <controls:DiagnosticDetailsView x:Name="RecoverableErrorDetailsView" Grid.Row="4" />
+            </Grid>
+        </drawer:Drawer>
 
         <TeachingTip
             x:Name="StoreUpdateTeachingTip"

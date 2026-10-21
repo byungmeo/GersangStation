@@ -7,6 +7,7 @@ using GersangStation.Diagnostics;
 using GersangStation.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
@@ -40,6 +41,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     private bool _deleteArchiveArtifactsOnCancel;
     private bool _isPreparingInstall;
     private bool _isLoadingSettings;
+    private bool _installResultPermissionHelp;
     private InstallProgressPhase _progressPhase = InstallProgressPhase.Downloading;
     private double _downloadProgressMaximum = 100;
     private double _downloadProgressValue;
@@ -121,11 +123,12 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             .FireAndForgetHandled($"{nameof(GameInstallSettingPage)}.{nameof(OnNavigatedTo)}");
     }
 
-    protected override async void OnNavigatingFrom(NavigatingCancelEventArgs e)
+    protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
     {
         base.OnNavigatingFrom(e);
 
-        e.Cancel = !await ConfirmLeaveAsync();
+        // 비동기 확인/저장은 셸에서 먼저 완료합니다. 직접 Frame 이동도 작업을 건너뛰지 못하게 합니다.
+        e.Cancel |= IsBusy || CurrentInstallPanel.SettingsEditor?.HasBlockingOperation == true;
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -136,6 +139,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
 
     internal void CancelPanelTransition()
     {
+        HideInstallResult();
         _panelTransition.Cancel();
         SynchronizeServerSelection();
     }
@@ -148,6 +152,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     /// </summary>
     private async Task ApplySelectedServerAsync(GameServer server)
     {
+        HideInstallResult();
         SetProperty(ref _selectedGameServer, server, nameof(SelectedGameServer));
         SynchronizeServerSelection();
 
@@ -323,11 +328,15 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             string finalInstallPath = BuildFinalInstallPath(folder.Path, _selectedGameServer);
             if (!IsInstallTargetPathAvailable(finalInstallPath))
             {
-                await ShowDialogAsync("설치 경로 확인",
-                    $"최종 설치 경로에 이미 게임 또는 다른 파일이 존재합니다. 다른 상위 폴더를 선택해 주세요.\n{finalInstallPath}");
+                ShowInstallResult("설치 경로 확인",
+                    $"최종 설치 경로에 이미 게임 또는 다른 파일이 존재합니다. 다른 상위 폴더를 선택해 주세요.\n{finalInstallPath}", InfoBarSeverity.Warning);
                 return;
             }
             await RunInstallAsync(finalInstallPath, editor);
+        }
+        catch (Exception ex)
+        {
+            ReportInstallFailure(ex, "PrepareInstall", "설치를 준비하지 못했습니다. 설치할 폴더를 다시 선택한 후 시도해 주세요.");
         }
         finally
         {
@@ -346,6 +355,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
 
         _installCts?.Dispose();
         _installCts = new CancellationTokenSource();
+        CancellationTokenSource installCancellation = _installCts;
         _deleteArchiveArtifactsOnCancel = false;
 
         try
@@ -358,6 +368,10 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
 
             Progress<GameInstallProgress> installProgress = new(p =>
             {
+                // 완료/취소 후 도착한 이전 작업의 진행 알림이 결과 문구를 덮지 않게 합니다.
+                if (!IsDownloading || !ReferenceEquals(_installCts, installCancellation)
+                    || installCancellation.IsCancellationRequested)
+                    return;
                 string downloadFileName = string.IsNullOrWhiteSpace(p.DownloadFileName) ? "-" : p.DownloadFileName;
                 string downloadAmount = p.DownloadTotalBytes is long totalBytes && totalBytes > 0
                     ? $"{FormatBytes(p.DownloadedBytes)} / {FormatBytes(totalBytes)}"
@@ -398,13 +412,21 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             // 다운로드/압축 해제는 끝났습니다. 경로 저장 중에는 준비 상태로
             // 이동을 막되, 완료된 설치를 취소하는 버튼은 더 이상 표시하지 않습니다.
             IsDownloading = false;
-            bool pathSaved = await editor.SaveInstalledPathAsync(finalInstallPath);
+            bool pathSaved;
+            try { pathSaved = await editor.SaveInstalledPathAsync(finalInstallPath); }
+            catch (Exception ex)
+            {
+                App.ExceptionHandler.RecordRecoverable(new IOException("설치 완료 후 경로 저장 실패", ex),
+                    $"GameInstallSettingPage.SaveInstalledPath.{_selectedGameServer}");
+                pathSaved = false;
+            }
 
             SetExtractProgress(_extractProgressMaximum, _extractProgressMaximum);
-            ProgressText = pathSaved ? "게임 설치가 완료되었습니다."
-                : "게임 설치는 완료되었지만 설치 경로를 저장하지 못했습니다. 설정 저장을 다시 시도해 주세요.";
+            ShowInstallResult("게임 설치 완료", pathSaved ? "게임 설치가 완료되었습니다."
+                : "게임 설치는 완료되었지만 설치 경로를 저장하지 못했습니다. 설치된 게임의 경로를 다시 지정해 주세요.",
+                pathSaved ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (_installCts?.IsCancellationRequested == true)
         {
             if (_deleteArchiveArtifactsOnCancel)
             {
@@ -414,24 +436,20 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
                 }
                 catch (Exception ex)
                 {
-                    ProgressText = $"설치를 취소했지만 임시 파일 정리에 실패했습니다.\n{ex.Message}";
+                    App.ExceptionHandler.RecordRecoverable(ex, $"GameInstallSettingPage.CancelCleanup.{_selectedGameServer}");
+                    ShowInstallResult("게임 설치 취소", "설치는 취소했지만 임시 파일 일부를 삭제하지 못했습니다. 다음 설치 시 임시 파일이 남아 있을 수 있습니다.",
+                        InfoBarSeverity.Warning);
                     return;
                 }
             }
 
-            ProgressText = _deleteArchiveArtifactsOnCancel
+            ShowInstallResult("게임 설치 취소", _deleteArchiveArtifactsOnCancel
                 ? "설치를 취소하고 임시 파일을 삭제했습니다."
-                : "설치를 취소했습니다. 다음에 이어받을 수 있도록 임시 파일을 남겨두었습니다.";
+                : "설치를 취소했습니다. 다음에 이어받을 수 있도록 임시 파일을 남겨두었습니다.");
         }
         catch (Exception ex)
         {
-            if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, ex, "게임 설치"))
-            {
-                ProgressText = "설치에 실패했습니다.\n권한 문제 해결 방법을 확인해 주세요.";
-                return;
-            }
-
-            ProgressText = $"설치에 실패했습니다.\n{ex.Message}";
+            ReportInstallFailure(ex, "Install", "게임 설치를 완료하지 못했습니다. 네트워크 상태와 설치 경로를 확인한 후 다시 시도해 주세요.");
         }
         finally
         {
@@ -480,20 +498,67 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     {
         if (!IsBusy)
         {
-            if (CurrentInstallPanel.SettingsEditor is { } editor)
-                return await editor.ConfirmLeaveAsync(reason);
-            if (reason == LeaveReason.AppExit && XamlRoot is not null)
-                return await ExitConfirmationDialog.ShowAsync(XamlRoot);
-
-            return true;
+            bool canLeave = CurrentInstallPanel.SettingsEditor is { } editor
+                ? await editor.ConfirmLeaveAsync(reason)
+                : reason != LeaveReason.AppExit || XamlRoot is null || await ExitConfirmationDialog.ShowAsync(XamlRoot);
+            if (canLeave) HideInstallResult();
+            return canLeave;
         }
 
-        await ShowDialogAsync(
+        ShowInstallResult(
             reason == LeaveReason.AppExit ? "종료 불가" : "이동 불가",
-            reason == LeaveReason.AppExit
-                ? "작업 진행 중에는 프로그램을 종료할 수 없습니다."
-                : "작업 진행 중 페이지를 이동할 수 없습니다.");
+            "작업이 끝난 뒤 다시 시도해 주세요.", InfoBarSeverity.Warning);
         return false;
+    }
+
+    private void HideInstallResult()
+    {
+        TeachingTip_InstallResult.IsOpen = false;
+        TeachingTip_InstallResult.ActionButtonContent = null;
+        _installResultPermissionHelp = false;
+    }
+
+    private void ShowInstallResult(string title, string message,
+        InfoBarSeverity severity = InfoBarSeverity.Informational, bool permissionHelp = false)
+    {
+        ProgressText = message;
+        _installResultPermissionHelp = permissionHelp;
+        TeachingTip_InstallResult.Title = title;
+        TeachingTip_InstallResult.Subtitle = $"{GameServerHelper.GetServerDisplayName(_selectedGameServer)}\n{message}";
+        TeachingTip_InstallResult.ActionButtonContent = permissionHelp ? "해결 방법 확인하기" : null;
+        TeachingTip_InstallResult.IconSource = severity is InfoBarSeverity.Error or InfoBarSeverity.Warning
+            ? new FontIconSource { FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                Glyph = severity == InfoBarSeverity.Error ? "\uEA39" : "\uE7BA" }
+            : null;
+        TeachingTip_InstallResult.IsOpen = true;
+    }
+
+    private void ReportInstallFailure(Exception exception, string operation, string message)
+    {
+        if (exception is OperationCanceledException)
+            exception = new IOException("설치가 예기치 않게 중단되었습니다.", exception);
+        App.ExceptionHandler.RecordRecoverable(exception, $"GameInstallSettingPage.{operation}.{_selectedGameServer}");
+        bool permissionFailure = PathPermissionDialog.IsPermissionFailure(exception);
+        ShowInstallResult("게임 설치 실패", permissionFailure
+            ? "설치 경로에 파일을 쓸 권한이 부족합니다. 해결 방법을 확인한 후 다시 시도해 주세요."
+            : message, InfoBarSeverity.Error, permissionHelp: permissionFailure);
+    }
+
+    private void TeachingTip_InstallResult_ActionButtonClick(TeachingTip sender, object args)
+    {
+        if (!_installResultPermissionHelp) return;
+        TeachingTip_InstallResult.IsOpen = false;
+        try
+        {
+            if (App.CurrentWindow is MainWindow window)
+                window.NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpPermissionMultiClient);
+        }
+        catch (Exception ex)
+        {
+            App.ExceptionHandler.RecordRecoverable(ex, "GameInstallSettingPage.ResultAction");
+            TeachingTip_InstallResult.Subtitle = "해결 방법을 열지 못했습니다. 잠시 후 다시 시도해 주세요.";
+            TeachingTip_InstallResult.IsOpen = true;
+        }
     }
 
     private void ShowInstallProgress()
@@ -541,20 +606,6 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         _extractProgressValue = Math.Clamp(value, 0, _extractProgressMaximum);
         OnPropertyChanged(nameof(ProgressMaximum));
         OnPropertyChanged(nameof(ProgressValue));
-    }
-
-    private async Task ShowDialogAsync(string title, string content)
-    {
-        ContentDialog dialog = new()
-        {
-            XamlRoot = XamlRoot,
-            Title = title,
-            Content = content,
-            PrimaryButtonText = "확인",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        await dialog.ShowManagedAsync();
     }
 
     private bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)

@@ -252,6 +252,7 @@
                             SelectedIndex="{Binding SelectedPreset, Mode=TwoWay}" />
                         <StackPanel Orientation="Vertical" Spacing="8">
                             <controls:AccountLaunchControl
+                                x:Name="Client1LaunchControl"
                                 BrowserRequested="AccountLaunch_BrowserRequested"
                                 CanBrowse="{x:Bind Launches.CanLogin, Mode=OneWay}"
                                 ClientIndex="0"
@@ -261,6 +262,7 @@
                                 LaunchState="{x:Bind Launches.Client1, Mode=OneWay}"
                                 SelectedAccountId="{Binding SelectedAccount1Id, Mode=TwoWay}" />
                             <controls:AccountLaunchControl
+                                x:Name="Client2LaunchControl"
                                 BrowserRequested="AccountLaunch_BrowserRequested"
                                 CanBrowse="{x:Bind Launches.CanLogin, Mode=OneWay}"
                                 ClientIndex="1"
@@ -270,6 +272,7 @@
                                 LaunchState="{x:Bind Launches.Client2, Mode=OneWay}"
                                 SelectedAccountId="{Binding SelectedAccount2Id, Mode=TwoWay}" />
                             <controls:AccountLaunchControl
+                                x:Name="Client3LaunchControl"
                                 BrowserRequested="AccountLaunch_BrowserRequested"
                                 CanBrowse="{x:Bind Launches.CanLogin, Mode=OneWay}"
                                 ClientIndex="2"

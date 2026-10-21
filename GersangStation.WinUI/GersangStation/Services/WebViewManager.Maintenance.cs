@@ -27,6 +27,7 @@ public sealed partial class WebViewManager
     internal async Task ClearBrowsingDataAsync(bool allData)
     {
         _session.VerifyAccess();
+        _session.ThrowIfFaulted();
         if (IsMaintenanceInProgress) throw new InvalidOperationException("브라우저 데이터 정리가 이미 진행 중입니다.");
         _lifetime.Token.ThrowIfCancellationRequested();
 

@@ -1,6 +1,7 @@
 using Core;
 using Core.Models;
 using GameMaintenance;
+using GersangStation.Diagnostics;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -33,14 +34,26 @@ internal static class GameMaintenanceService
         // Snapshot before any await: editing another page must not mutate the approved request.
         request = JsonSerializer.Deserialize<OperationRequest>(JsonSerializer.Serialize(request))!;
         nint owner = App.CurrentWindow is { } window ? WinRT.Interop.WindowNative.GetWindowHandle(window) : 0;
-        await Gate.WaitAsync(ct);
-        try { await ExecuteAsync(request, progress, owner, ct); }
-        finally { Gate.Release(); }
+        try
+        {
+            try { await Gate.WaitAsync(ct); }
+            catch (OperationCanceledException ex) when (ct.IsCancellationRequested)
+            { throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct, ex); }
+            try { await ExecuteAsync(request, progress, owner, ct); }
+            finally { Gate.Release(); }
+        }
+        catch (MaintenanceCanceledException) { throw; }
+        catch (OperationCanceledException ex)
+        {
+            // 원인이 확인되지 않은 취소 예외가 공통 경계에서 조용히 무시되지 않게 합니다.
+            throw new IOException("게임 작업이 예기치 않게 중단되었습니다. 완료 상태를 확인해 주세요.", ex);
+        }
     }
 
     private static async Task ExecuteAsync(OperationRequest request, IProgress<PatchProgress>? progress, nint owner, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
+        if (ct.IsCancellationRequested)
+            throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct);
         string exe = Path.Combine(AppContext.BaseDirectory, "Maintenance", "GersangStation.GameMaintenance.exe");
         if (!File.Exists(exe)) throw new FileNotFoundException("게임 작업용 실행 파일을 찾지 못했습니다. 앱을 복구하거나 다시 설치해 주세요.", exe);
         string nonce = Guid.NewGuid().ToString("N");
@@ -54,14 +67,14 @@ internal static class GameMaintenanceService
         using var pipe = NamedPipeServerStreamAcl.Create("GersangStation.Maintenance." + nonce,
             PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.FirstPipeInstance,
             4096, 4096, security);
-        using var connectTimeout = new CancellationTokenSource();
+        using var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         Task connected = pipe.WaitForConnectionAsync(connectTimeout.Token);
         try
         {
             Process process;
             try { process = await LaunchAsync(exe, nonce, owner); }
             catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
-            { throw new OperationCanceledException("관리자 권한 요청을 취소했습니다.", ex, ct); }
+            { throw new MaintenanceCanceledException(MaintenanceCancellationReason.ElevationDeclined, ct, ex); }
             using (process)
             {
                 try
@@ -69,30 +82,53 @@ internal static class GameMaintenanceService
                     // The timeout starts AFTER the user has answered UAC, not while the prompt is open.
                     connectTimeout.CancelAfter(TimeSpan.FromSeconds(60));
                     Task exited = process.WaitForExitAsync();
-                    if (await Task.WhenAny(connected, exited) == exited)
+                    if (await Task.WhenAny(connected, exited) == exited && !connected.IsCompletedSuccessfully)
                         throw new IOException($"게임 작업 프로세스가 연결 전에 종료되었습니다. ExitCode={process.ExitCode}");
-                    await connected;
+                    try { await connected; }
+                    catch (OperationCanceledException ex) when (ct.IsCancellationRequested)
+                    { throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct, ex); }
+                    catch (OperationCanceledException ex)
+                    { throw new TimeoutException("게임 작업 프로세스에 연결하는 시간이 초과되었습니다. 작업은 시작하지 않았습니다.", ex); }
                     PipePeer.Verify(pipe, process.Id, peerIsServer: false);
                     await using var connection = new PipeConnection(pipe);
                     using var lifetime = new CancellationTokenSource();
                     // If canceled while UAC was open, disconnect without ever sending a write request.
-                    ct.ThrowIfCancellationRequested();
-                    await connection.SendAsync(new(Request: request), connectTimeout.Token);
+                    if (ct.IsCancellationRequested)
+                        throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct);
+                    try { await connection.SendAsync(new(Request: request), connectTimeout.Token); }
+                    catch (OperationCanceledException ex)
+                    { throw new IOException("게임 작업 요청을 전달하는 중 연결이 중단되어 작업 상태를 확인하지 못했습니다.", ex); }
                     Task cancellation = SendCancellationAsync(connection, ct, lifetime);
                     try
                     {
                         while (true)
                         {
-                            PipeMessage message = await connection.ReceiveAsync(lifetime.Token);
+                            PipeMessage message;
+                            try { message = await connection.ReceiveAsync(lifetime.Token); }
+                            catch (OperationCanceledException ex)
+                            { throw new IOException("취소 요청 후 게임 작업의 완료 여부를 확인하지 못했습니다. 작업 상태를 확인해 주세요.", ex); }
+                            catch (IOException ex)
+                            { throw new IOException("게임 작업 프로세스와의 연결이 끊겨 완료 여부를 확인하지 못했습니다.", ex); }
                             if (message.Progress is { } update) progress?.Report(update);
                             if (!message.Complete) continue;
-                            if (message.Canceled) throw new OperationCanceledException("게임 작업을 취소했습니다.", ct);
+                            if (message.Diagnostics is { } diagnostics)
+                                foreach (RemoteFailure diagnostic in diagnostics)
+                                {
+                                    var diagnosticException = new RemoteOperationException(diagnostic);
+                                    diagnosticException.Data["WorkerException"] = diagnostic.Details;
+                                    App.ExceptionHandler.RecordRecoverable(diagnosticException,
+                                        $"GameMaintenance.{request.Kind}.PostCompletionCleanup.{request.Server}");
+                                }
                             if (message.Error is { } error) throw error.Restore();
+                            if (message.Canceled)
+                            {
+                                if (ct.IsCancellationRequested)
+                                    throw new MaintenanceCanceledException(MaintenanceCancellationReason.UserCanceled, ct);
+                                throw new IOException("취소를 요청하지 않았지만 게임 작업이 중단되었습니다. 작업 상태를 확인해 주세요.");
+                            }
                             return;
                         }
                     }
-                    catch (Exception ex) when (ct.IsCancellationRequested && ex is IOException or OperationCanceledException)
-                    { throw new OperationCanceledException("게임 작업을 취소했습니다.", ex, ct); }
                     finally
                     {
                         lifetime.Cancel();

@@ -21,6 +21,7 @@ internal sealed partial class BrowserSession
     private void EnsureOperationsAllowed()
     {
         VerifyAccess();
+        ThrowIfFaulted();
         OperationToken.ThrowIfCancellationRequested();
         _lifetime.Token.ThrowIfCancellationRequested();
         if (IsSuspended)
@@ -32,6 +33,8 @@ internal sealed partial class BrowserSession
 
     internal async Task<T> RunOperationAsync<T>(Func<Task<T>> action)
     {
+        VerifyAccess();
+        ThrowIfFaulted(newRequest: !_operationContext.Value.HasValue);
         EnsureOperationsAllowed();
         // Nested login/logout/launch callbacks belong to the same cancellation generation.
         if (_operationContext.Value.HasValue)
@@ -48,8 +51,14 @@ internal sealed partial class BrowserSession
             try
             {
                 T result = await action();
+                ThrowIfFaulted();
                 OperationToken.ThrowIfCancellationRequested();
                 return result;
+            }
+            catch (OperationCanceledException) when (State == BrowserSessionState.Faulted)
+            {
+                // 프로세스 고장 때문에 취소된 작업을 정상 사용자 취소로 숨기지 않습니다.
+                throw FailureNotice;
             }
             finally { _operationContext.Value = null; }
         }

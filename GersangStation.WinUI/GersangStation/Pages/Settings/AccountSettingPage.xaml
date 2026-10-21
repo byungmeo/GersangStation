@@ -127,6 +127,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
                             <RadioButtons
@@ -166,8 +167,29 @@
                                     Content="삭제"
                                     IsEnabled="{x:Bind CanDeleteSelectedAccount, Mode=OneWay}" />
                             </StackPanel>
-                            <Border
+                            <InfoBar
+                                x:Name="AccountListInfoBar"
                                 Grid.Row="2"
+                                IsClosable="True"
+                                IsOpen="False"
+                                Severity="Error">
+                                <StackPanel Spacing="8">
+                                    <Button
+                                        x:Name="ReloadAccountsButton"
+                                        Click="ReloadAccountsButton_Click"
+                                        Content="다시 불러오기"
+                                        IsEnabled="{x:Bind CanReloadAccounts, Mode=OneWay}"
+                                        Visibility="Collapsed" />
+                                    <Button
+                                        x:Name="AccountListCredentialHelpButton"
+                                        Click="AccountListCredentialHelpButton_Click"
+                                        Content="해결 방법 보기"
+                                        IsEnabled="{x:Bind CanUseAccountListActions, Mode=OneWay}"
+                                        Visibility="Collapsed" />
+                                </StackPanel>
+                            </InfoBar>
+                            <Border
+                                Grid.Row="3"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                 BorderThickness="1"
                                 CornerRadius="{ThemeResource ControlCornerRadius}">
@@ -269,6 +291,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="{x:Bind EditorTitle, Mode=OneWay}" />
                 <ScrollViewer
@@ -335,8 +358,23 @@
                         </StackPanel>
                     </ContentControl>
                 </ScrollViewer>
-                <StackPanel
+                <InfoBar
+                    x:Name="AccountEditorInfoBar"
                     Grid.Row="2"
+                    IsClosable="False"
+                    IsOpen="False"
+                    Severity="Error">
+                    <InfoBar.ActionButton>
+                        <Button
+                            x:Name="EditorCredentialHelpButton"
+                            Click="EditorCredentialHelpButton_Click"
+                            Content="해결 방법 보기"
+                            IsEnabled="{x:Bind EditorInputsEnabled, Mode=OneWay}"
+                            Visibility="Collapsed" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+                <StackPanel
+                    Grid.Row="3"
                     Orientation="Horizontal"
                     Spacing="8">
                     <Button

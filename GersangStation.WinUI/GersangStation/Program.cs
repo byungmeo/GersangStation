@@ -1,8 +1,13 @@
+using GersangStation.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.Storage;
+using Package = Windows.ApplicationModel.Package;
+using PackageVersion = Windows.ApplicationModel.PackageVersion;
 
 namespace GersangStation;
 
@@ -24,13 +29,67 @@ public static class Program
         if (DecideRedirection())
             return;
 
-        Application.Start(static _ =>
+        // 보조 인스턴스는 이전 오류 안내 표식을 읽거나 변경하지 않습니다.
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledProcessException;
+        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+        try
         {
-            var context = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(
-                Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
-            SynchronizationContext.SetSynchronizationContext(context);
-            new App();
-        });
+            InitializeFatalErrorHandling();
+            Application.Start(static _ =>
+            {
+                try
+                {
+                    var context = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(
+                        Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
+                    SynchronizationContext.SetSynchronizationContext(context);
+                    new App();
+                }
+                catch (Exception ex)
+                {
+                    FatalErrorHandler.Current.Terminate(ex, "Program.Application.Start");
+                }
+            });
+            FatalErrorHandler.Current.CompleteSession();
+        }
+        catch (Exception ex)
+        {
+            FatalErrorHandler.Current.Terminate(ex, "Program.Main");
+        }
+    }
+
+    private static void InitializeFatalErrorHandling()
+    {
+        string localFolder;
+        try { localFolder = ApplicationData.Current.LocalFolder.Path; }
+        catch
+        {
+            localFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GersangStation");
+        }
+
+        string? version = null;
+        try
+        {
+            PackageVersion packageVersion = Package.Current.Id.Version;
+            version = $"{packageVersion.Major}.{packageVersion.Minor}.{packageVersion.Build}.{packageVersion.Revision}";
+        }
+        catch { /* 패키지 정보가 없어도 치명적 오류 경계는 사용할 수 있어야 합니다. */ }
+
+        FatalErrorHandler.Current.Initialize(localFolder, version);
+    }
+
+    private static void OnUnhandledProcessException(object sender, System.UnhandledExceptionEventArgs e)
+    {
+        if (e.IsTerminating)
+        {
+            Exception exception = e.ExceptionObject as Exception ?? new Exception("A non-Exception object was thrown.");
+            FatalErrorHandler.Current.RecordProcessFailure(exception, "AppDomain.CurrentDomain.UnhandledException");
+        }
+    }
+
+    private static void OnProcessExit(object? sender, EventArgs e)
+    {
+        if (Environment.ExitCode == 0)
+            FatalErrorHandler.Current.CompleteSession();
     }
 
     /// <summary>

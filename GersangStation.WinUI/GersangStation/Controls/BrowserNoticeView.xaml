@@ -1,0 +1,36 @@
+<UserControl
+    x:Class="GersangStation.Controls.BrowserNoticeView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:GersangStation.Controls"
+    IsEnabled="{x:Bind Owner.CanUseBrowser, Mode=OneWay}">
+    <StackPanel Spacing="8">
+        <InfoBar x:Name="BrowserAccountsInfoBar" IsOpen="False" IsClosable="False"
+                 Visibility="{x:Bind local:BrowserNoticeView.NoticeVisibility(BrowserAccountsInfoBar.IsOpen), Mode=OneWay}"
+                 Severity="Error" Title="계정 목록 불러오기 실패">
+            <StackPanel Spacing="8">
+                <Button Click="ReloadAccounts_Click" Content="다시 불러오기"
+                        AutomationProperties.AutomationId="ReloadBrowserAccountsButton"
+                        IsEnabled="{x:Bind Owner.CanRetryBrowserAccounts, Mode=OneWay}" />
+                <Button Click="AccountSettings_Click" Content="계정 설정"
+                        AutomationProperties.AutomationId="BrowserAccountSettingsButton"
+                        IsEnabled="{x:Bind Owner.CanOpenBrowserAccountSettings, Mode=OneWay}" />
+            </StackPanel>
+        </InfoBar>
+        <InfoBar x:Name="FavoriteRecoveryInfoBar" IsOpen="False" IsClosable="False" Severity="Error"
+                 Visibility="{x:Bind local:BrowserNoticeView.NoticeVisibility(FavoriteRecoveryInfoBar.IsOpen), Mode=OneWay}">
+            <StackPanel Spacing="8">
+                <Button Click="ReloadFavorites_Click" Content="다시 불러오기"
+                        AutomationProperties.AutomationId="ReloadBrowserFavoritesButton"
+                        IsEnabled="{x:Bind Owner.CanRetryFavorites, Mode=OneWay}" />
+                <Button Click="ResetFavorites_Click" Content="초기화"
+                        AutomationProperties.AutomationId="ResetBrowserFavoritesButton"
+                        IsEnabled="{x:Bind Owner.CanResetFavorites, Mode=OneWay}"
+                        Visibility="{x:Bind Owner.ResetFavoritesVisibility, Mode=OneWay}" />
+            </StackPanel>
+        </InfoBar>
+        <InfoBar x:Name="FavoriteOperationInfoBar"
+                 Visibility="{x:Bind local:BrowserNoticeView.NoticeVisibility(FavoriteOperationInfoBar.IsOpen), Mode=OneWay}"
+                 IsOpen="False" IsClosable="True" Severity="Error" Title="즐겨찾기 저장 실패" />
+    </StackPanel>
+</UserControl>

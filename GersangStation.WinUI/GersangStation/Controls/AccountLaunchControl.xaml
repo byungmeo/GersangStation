@@ -6,6 +6,19 @@
     xmlns:controls="using:GersangStation.Controls"
     HorizontalAlignment="Stretch">
 
+    <UserControl.Resources>
+        <!--  공통 TeachingTip의 아이콘 슬롯 20px + 본문과의 간격 12px에 맞춥니다.  -->
+        <Thickness x:Key="GameLaunchNoticeActionsMargin">32,4,0,4</Thickness>
+        <Style x:Key="CautionGameLaunchTeachingTipStyle" TargetType="TeachingTip" BasedOn="{StaticResource AppTeachingTipStyle}">
+            <Setter Property="Background" Value="{ThemeResource SystemFillColorCautionBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+        </Style>
+        <Style x:Key="CriticalGameLaunchTeachingTipStyle" TargetType="TeachingTip" BasedOn="{StaticResource AppTeachingTipStyle}">
+            <Setter Property="Background" Value="{ThemeResource SystemFillColorCriticalBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+        </Style>
+    </UserControl.Resources>
+
     <StackPanel>
         <!--  헤더는 행 밖에 두어 입력 영역의 높이만 버튼과 공유합니다.  -->
         <TextBlock
@@ -75,5 +88,65 @@
                 </Viewbox>
             </Button>
         </controls:AccountActionPanel>
+        <TeachingTip x:Name="LaunchWarningTeachingTip"
+                     Target="{x:Bind ExecuteButton}"
+                     Style="{StaticResource CautionGameLaunchTeachingTipStyle}"
+                     IsLightDismissEnabled="True"
+                     PreferredPlacement="Right"
+                     Closing="LaunchWarningTeachingTip_Closing"
+                     Closed="LaunchWarningTeachingTip_Closed">
+            <TeachingTip.Resources>
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Light">
+                            <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCautionBackground}" />
+                            <SolidColorBrush x:Key="LaunchWarningIconBrush" Color="{ThemeResource SystemFillColorCaution}" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Dark">
+                            <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCautionBackground}" />
+                            <SolidColorBrush x:Key="LaunchWarningIconBrush" Color="{ThemeResource SystemFillColorCaution}" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemColorWindowColor}" />
+                            <SolidColorBrush x:Key="LaunchWarningIconBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
+            </TeachingTip.Resources>
+            <TeachingTip.IconSource>
+                <FontIconSource Glyph="&#xE7BA;" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                Foreground="{ThemeResource LaunchWarningIconBrush}" />
+            </TeachingTip.IconSource>
+            <StackPanel x:Name="LaunchWarningActions" Margin="{StaticResource GameLaunchNoticeActionsMargin}" Spacing="8" />
+        </TeachingTip>
+        <TeachingTip x:Name="LaunchFailureTeachingTip"
+                     Target="{x:Bind ExecuteButton}"
+                     Style="{StaticResource CriticalGameLaunchTeachingTipStyle}"
+                     IsLightDismissEnabled="True" PreferredPlacement="Right"
+                     Closing="LaunchWarningTeachingTip_Closing" Closed="LaunchWarningTeachingTip_Closed">
+            <TeachingTip.Resources>
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Light">
+                            <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCriticalBackground}" />
+                            <SolidColorBrush x:Key="LaunchFailureIconBrush" Color="{ThemeResource SystemFillColorCritical}" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Dark">
+                            <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemFillColorCriticalBackground}" />
+                            <SolidColorBrush x:Key="LaunchFailureIconBrush" Color="{ThemeResource SystemFillColorCritical}" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <SolidColorBrush x:Key="TeachingTipTransientBackground" Color="{ThemeResource SystemColorWindowColor}" />
+                            <SolidColorBrush x:Key="LaunchFailureIconBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
+            </TeachingTip.Resources>
+            <TeachingTip.IconSource>
+                <FontIconSource Glyph="&#xEA39;" FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                Foreground="{ThemeResource LaunchFailureIconBrush}" />
+            </TeachingTip.IconSource>
+            <StackPanel x:Name="LaunchFailureActions" Margin="{StaticResource GameLaunchNoticeActionsMargin}" Spacing="8" />
+        </TeachingTip>
     </StackPanel>
 </UserControl>

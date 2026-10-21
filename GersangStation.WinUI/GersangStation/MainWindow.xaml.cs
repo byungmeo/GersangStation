@@ -120,6 +120,7 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        DetachRecoverableErrors();
         Root.ActualThemeChanged -= OnRootActualThemeChanged;
         _contentTransition.Cancel();
         (SettingFrame.Content as SettingPage)?.PrepareForContentNavigation();
@@ -143,6 +144,7 @@ public sealed partial class MainWindow : Window
             try { BrowserSession.Dispose(); }
             finally { GameStarter.Dispose(); }
         }
+        FatalErrorHandler.Current.CompleteSession();
     }
 
     internal void ApplyAppTheme(AppThemePreference preference)
@@ -233,6 +235,8 @@ public sealed partial class MainWindow : Window
         _isStartupFlowRunning = true;
         try
         {
+            AttachRecoverableErrors();
+            ShowPreviousCrashNotice();
             WebViewManager.InitializeAsync().FireAndForgetHandled("MainWindow.InitializeBrowserSession");
             await HandleStartupFirstRunPromptAsync();
             HandleInitialNavigation();
@@ -368,33 +372,51 @@ public sealed partial class MainWindow : Window
 
         args.Cancel = true;
 
+        if (_isCloseConfirmationPending)
+            return;
+
         if (AppDataManager.CloseBehavior == AppDataManager.WindowCloseBehavior.HideToSystemTray)
         {
             _systemTrayService.HideWindowToTray();
             return;
         }
 
-        if (_isCloseConfirmationPending)
+        await SafeExecution.RunHandledAsync(() => RequestCloseAsync(),
+            $"{nameof(MainWindow)}.{nameof(OnAppWindowClosing)}");
+    }
+
+    private async Task RequestCloseAsync(bool restoreWindow = false)
+    {
+        if (restoreWindow)
+            RestoreFromTray();
+        if (_allowForceClose || _isCloseConfirmationPending)
             return;
 
-        // AppWindowClosingEventArgs는 deferral을 제공하지 않으므로
-        // 일단 종료를 막고 확인 결과에 따라 명시적으로 다시 닫습니다.
         _isCloseConfirmationPending = true;
-
         try
         {
-            bool canClose = GetActiveRootPage() switch
+            // 진행 중인 이동이 끝난 뒤 같은 게이트에서 종료를 확인합니다.
+            // 이후 이동 요청은 위 플래그로 거절하며, 대기 중인 이전 이동은 무효화합니다.
+            _contentTransition.Cancel();
+            bool canClose = await _contentTransition.RunAsync(() => Task.FromResult(true), async () =>
             {
-                IConfirmLeave confirm => await confirm.ConfirmLeaveAsync(LeaveReason.AppExit),
-                _ when Root.XamlRoot is not null => await ExitConfirmationDialog.ShowAsync(Root.XamlRoot),
-                _ => true
-            };
+                if (_allowForceClose)
+                    return false;
+                return GetActiveRootPage() switch
+                {
+                    IConfirmLeave confirm => await confirm.ConfirmLeaveAsync(LeaveReason.AppExit),
+                    _ when Root.XamlRoot is not null => await ExitConfirmationDialog.ShowAsync(Root.XamlRoot),
+                    _ => false
+                };
+            }, () => false);
 
-            if (!canClose)
+            if (!canClose || _allowForceClose)
                 return;
 
+            // 게이트의 UI 복원 처리가 끝난 후 창을 닫습니다.
             _allowForceClose = true;
-            Close();
+            try { Close(); }
+            catch { _allowForceClose = false; throw; }
         }
         finally
         {
@@ -479,14 +501,16 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(url))
             return;
 
-        if (Uri.TryCreate(url, UriKind.Absolute, out Uri? targetUri))
-            WebViewManager?.Navigate(targetUri);
-
-        NavigateToWebViewPage();
+        ShowSectionAsync(MainShellSection.Browser, () =>
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out Uri? targetUri))
+                WebViewManager?.Navigate(targetUri);
+            return true;
+        }).FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(NavigateToWebViewPage)}");
     }
 
     /// <summary>
-    /// 메타데이터 매니페스트의 링크 key를 해석해 브라우저 페이지로 엽니다.
+    /// 메타데이터 매니페스트의ㄱㄱ 링크 key를 해석해 브라우저 페이지로 엽니다.
     /// </summary>
     public void NavigateToWebViewPageByLinkKey(string linkKey)
     {
@@ -512,8 +536,11 @@ public sealed partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(htmlContent))
             return;
 
-        NavigateToWebViewPage();
-        WebViewManager?.NavigateToHtmlDocument(htmlContent);
+        ShowSectionAsync(MainShellSection.Browser, () =>
+        {
+            WebViewManager?.NavigateToHtmlDocument(htmlContent);
+            return true;
+        }).FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(NavigateToWebViewPageHtml)}");
     }
 
     /// <summary>
@@ -554,12 +581,18 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task<bool> ShowSectionAsync(MainShellSection section, Func<bool>? navigate = null)
     {
+        if (_isCloseConfirmationPending || _allowForceClose)
+            return false;
+
         bool ChangesContent() => _activeSection != section || navigate is not null;
         bool switched = await _contentTransition.RunAsync(() =>
         {
             // WebView2는 이동하거나 재생성하지 않고 도구 모음 페이지만 필요할 때 생성합니다.
             if (section == MainShellSection.Browser && BrowserFrame.Content is null)
+            {
                 BrowserFrame.Navigate(typeof(WebViewPage), this, new SuppressNavigationTransitionInfo());
+                BrowserNoticePresenter.Content = (BrowserFrame.Content as WebViewPage)?.NoticeContent;
+            }
             if (navigate is not null && !navigate())
                 return Task.FromResult(false);
 
@@ -576,6 +609,8 @@ public sealed partial class MainWindow : Window
             return Task.FromResult(true);
         }, async () =>
         {
+            if (_isCloseConfirmationPending || _allowForceClose)
+                return false;
             if (!ChangesContent())
                 return true;
             if (GetActiveRootPage() is IConfirmLeave confirm && !await confirm.ConfirmLeaveAsync())
@@ -591,7 +626,7 @@ public sealed partial class MainWindow : Window
         }
 
         // 네트워크 갱신은 페이드 완료 후 실행하여 빈 화면으로 기다리거나 다음 이동을 막지 않습니다.
-        if (_activeSection != section)
+        if (_activeSection != section || _isCloseConfirmationPending || _allowForceClose)
             return false;
         await ActivateSectionAsync(section);
         return _activeSection == section;
@@ -872,7 +907,7 @@ public sealed partial class MainWindow : Window
     private void ForceCloseForInstalledStoreUpdate()
     {
         _allowForceClose = true;
-        Application.Current.Exit();
+        App.ExitNormally();
     }
 
     /// <summary>
@@ -885,12 +920,12 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 트레이 우클릭 메뉴의 종료 명령으로 앱을 즉시 종료합니다.
+    /// 창을 복원한 뒤 일반 종료와 같은 확인 절차를 실행합니다.
     /// </summary>
     private void ExitFromTray()
     {
-        _allowForceClose = true;
-        Application.Current.Exit();
+        RequestCloseAsync(restoreWindow: true)
+            .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(ExitFromTray)}");
     }
 
     /// <summary>

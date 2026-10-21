@@ -1,8 +1,7 @@
-using Microsoft.UI.Xaml;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Windows.Storage;
 
@@ -13,16 +12,11 @@ namespace GersangStation.Diagnostics;
 /// </summary>
 public sealed class AppExceptionHandler
 {
-    private enum PresentationMode
-    {
-        Recoverable,
-        FatalUiCrash
-    }
-
     private static readonly TimeSpan DuplicateSuppressionWindow = TimeSpan.FromSeconds(2);
 
-    private readonly SemaphoreSlim _presentationGate = new(1, 1);
+    internal RecoverableErrorStore RecoverableErrors { get; } = new();
     private readonly object _duplicateLock = new();
+    private readonly ConditionalWeakTable<Exception, Lazy<(string Details, string? LogPath)>> _recordedExceptions = new();
 
     private string? _lastFingerprint;
     private DateTimeOffset _lastPresentedAt;
@@ -42,104 +36,101 @@ public sealed class AppExceptionHandler
     }
 
     /// <summary>
-    /// 복구 가능한 경계 예외를 상세 정보 창으로 표시합니다.
+    /// 복구 가능한 경계 예외를 기록하고 비모달 안내를 예약합니다. 사용자 응답을 기다리지 않습니다.
     /// </summary>
-    public async Task ShowRecoverableAsync(Exception exception, string context)
-        => await HandleUiPresentationAsync(exception, context, PresentationMode.Recoverable, preferNativeFallback: false).ConfigureAwait(false);
+    public Task ShowRecoverableAsync(Exception exception, string context)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        if (exception is OperationCanceledException ||
+            exception is BrowserUnavailableException browserFailure && !browserFailure.TryClaimReport())
+            return Task.CompletedTask;
+
+        try
+        {
+            var (details, logPath) = RecordRecoverableOnce(exception, context);
+            if (ShouldSuppressDuplicate(exception, isFatal: false))
+                return Task.CompletedTask;
+            string summary = exception is BrowserUnavailableException
+                ? "브라우저 요청을 완료하지 못했습니다. 앱을 다시 실행한 후 시도해 주세요."
+                : "요청을 완료하지 못했습니다. 문제가 반복되면 오류 기록을 확인해 주세요.";
+            RecoverableErrors.Add(new DiagnosticRecord(Guid.NewGuid(), DateTimeOffset.Now,
+                context, summary, details, logPath));
+        }
+        catch (Exception recordingException)
+        {
+            Debug.WriteLine($"[AppExceptionHandler] 오류 기록 및 안내 준비 실패: {recordingException}");
+        }
+        return Task.CompletedTask;
+    }
 
     /// <summary>
-    /// 전역 UI 미처리 예외를 마지막 crash UI로 표시한 뒤 앱을 종료합니다.
+    /// 작업별 UI에서 이미 안내하는 복구 가능한 오류를 기록만 합니다.
+    /// Dialog/Dispatcher에 접근하지 않으며, 기록 실패를 호출자에게 다시 던지지 않습니다.
     /// </summary>
-    public async Task HandleFatalUiExceptionAsync(Exception exception, string context)
-        => await HandleUiPresentationAsync(exception, context, PresentationMode.FatalUiCrash, preferNativeFallback: false).ConfigureAwait(false);
+    public void RecordRecoverable(Exception exception, string context)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        if (exception is OperationCanceledException)
+            return;
+
+        try { RecordRecoverableOnce(exception, context); }
+        catch (Exception recordingException)
+        {
+            Debug.WriteLine($"[AppExceptionHandler] 예외 기록 실패: {recordingException}");
+        }
+    }
 
     /// <summary>
-    /// WinUI를 신뢰할 수 없는 전역 프로세스 수준 예외를 저수준 fallback으로만 기록하고 안내합니다.
+    /// 기존 비동기 호출부용 호환 진입점입니다. UI를 사용하지 않고 기록 후 즉시 종료합니다.
+    /// </summary>
+    public Task HandleFatalUiExceptionAsync(Exception exception, string context)
+    {
+        FatalErrorHandler.Current.Terminate(exception, context);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// CLR이 이미 프로세스를 종료하는 AppDomain 경계용입니다. UI 없이 기록만 시도합니다.
     /// </summary>
     public void HandleFatalProcessException(Exception exception, string context)
-        => HandleProcessFallbackException(exception, context, isFatal: true, exitApplication: false);
+        => FatalErrorHandler.Current.RecordProcessFailure(exception, context);
 
     /// <summary>
     /// WinUI를 사용할 수 없는 경로에서 예외를 저수준 fallback으로만 기록하고 안내합니다.
     /// </summary>
     public void HandleProcessFallbackException(Exception exception, string context, bool isFatal, bool exitApplication)
     {
+        if (isFatal)
+            FatalErrorHandler.Current.Terminate(exception, context);
+
         ArgumentNullException.ThrowIfNull(exception);
 
         if (exception is OperationCanceledException)
             return;
 
-        if (ShouldSuppressDuplicate(exception, isFatal))
+        if (exception is BrowserUnavailableException browserFailure && !browserFailure.TryClaimReport())
             return;
 
-        string details = ExceptionDetailsBuilder.Build(exception, context, isFatal);
-        string? logPath = TryWriteCrashLog(details, isFatal);
-        string detailsWithLogPath = logPath is null
-            ? details
-            : $"{details}{Environment.NewLine}Crash Log: {logPath}";
-
-        Debug.WriteLine(detailsWithLogPath);
+        var (_, logPath) = RecordRecoverableOnce(exception, context);
+        if (ShouldSuppressDuplicate(exception, isFatal)) return;
         ShowNativeFallback(exception, context, logPath, isFatal, exitApplication);
     }
 
     /// <summary>
     /// WinUI 창을 건너뛰고 Win32 fallback 경로를 바로 테스트합니다.
     /// </summary>
-    public async Task HandleWithNativeFallbackAsync(Exception exception, string context, bool isFatal)
+    public Task HandleWithNativeFallbackAsync(Exception exception, string context, bool isFatal)
     {
-        PresentationMode mode = isFatal
-            ? PresentationMode.FatalUiCrash
-            : PresentationMode.Recoverable;
-
-        await HandleUiPresentationAsync(exception, context, mode, preferNativeFallback: true).ConfigureAwait(false);
-    }
-
-    private async Task HandleUiPresentationAsync(
-        Exception exception,
-        string context,
-        PresentationMode presentationMode,
-        bool preferNativeFallback)
-    {
-        ArgumentNullException.ThrowIfNull(exception);
-
-        if (exception is OperationCanceledException)
-            return;
-
-        bool isFatal = presentationMode is PresentationMode.FatalUiCrash;
-        if (ShouldSuppressDuplicate(exception, isFatal))
-            return;
-
-        string details = ExceptionDetailsBuilder.Build(exception, context, isFatal);
-        string? logPath = TryWriteCrashLog(details, isFatal);
-        string detailsWithLogPath = logPath is null
-            ? details
-            : $"{details}{Environment.NewLine}Crash Log: {logPath}";
-
-        Debug.WriteLine(detailsWithLogPath);
-
-        await _presentationGate.WaitAsync().ConfigureAwait(false);
-        try
-        {
-            bool presented = !preferNativeFallback &&
-                await TryShowWindowAsync(exception, context, detailsWithLogPath, logPath, isFatal).ConfigureAwait(false);
-            if (!presented)
-                ShowNativeFallback(exception, context, logPath, isFatal, exitApplication: isFatal);
-        }
-        catch (Exception presentationException)
-        {
-            Debug.WriteLine(
-                $"[AppExceptionHandler] 예외 창 표시 중 추가 예외가 발생했습니다.{Environment.NewLine}{presentationException}");
-
-            ShowNativeFallback(exception, context, logPath, isFatal, exitApplication: isFatal);
-        }
-        finally
-        {
-            _presentationGate.Release();
-        }
+        HandleProcessFallbackException(exception, context, isFatal, exitApplication: false);
+        return Task.CompletedTask;
     }
 
     private bool ShouldSuppressDuplicate(Exception exception, bool isFatal)
     {
+        // 연쇄 중단은 같은 안내 객체를 공유합니다. 새 사용자 요청은 시간 간격과 무관하게 안내합니다.
+        if (exception is BrowserUnavailableException)
+            return false;
+
         string fingerprint = string.Join(
             "|",
             exception.GetType().FullName,
@@ -159,28 +150,28 @@ public sealed class AppExceptionHandler
             return isDuplicate;
         }
     }
+    private (string Details, string? LogPath) RecordRecoverableOnce(Exception exception, string context)
+        => _recordedExceptions.GetValue(exception,
+            error => new Lazy<(string Details, string? LogPath)>(() => RecordException(error, context, isFatal: false))).Value;
 
     /// <summary>
-    /// WinUI 예외 상세 ContentDialog를 표시할 수 있으면 표시하고, 실패하면 false를 반환합니다.
+    /// 기록 전용/안내 경로가 공유하는 진단 기록입니다. 안내 중복 억제와는 독립적입니다.
     /// </summary>
-    private static async Task<bool> TryShowWindowAsync(Exception exception, string context, string details, string? logPath, bool isFatal)
+    private static (string Details, string? LogPath) RecordException(Exception exception, string context, bool isFatal)
     {
-        Microsoft.UI.Dispatching.DispatcherQueue? dispatcherQueue = App.UiDispatcherQueue ?? App.CurrentWindow?.DispatcherQueue;
-        if (dispatcherQueue is null)
-            return false;
-
-        await dispatcherQueue.RunOrEnqueueAsync(async () =>
+        string details;
+        try { details = ExceptionDetailsBuilder.Build(exception, context, isFatal); }
+        catch (Exception formattingException)
         {
-            if (App.CurrentWindow?.Content is not FrameworkElement rootElement || rootElement.XamlRoot is null)
-                throw new InvalidOperationException("예외 상세 대화상자를 표시할 XamlRoot를 찾을 수 없습니다.");
-
-            await ExceptionDisplayDialog.ShowAsync(rootElement.XamlRoot, context, details, logPath, isFatal);
-
-            if (isFatal)
-                Application.Current.Exit();
-        });
-
-        return true;
+            Debug.WriteLine($"[AppExceptionHandler] 상세 정보 구성 실패: {formattingException}");
+            details = $"Context: {context}{Environment.NewLine}{exception}";
+        }
+        string? logPath = TryWriteCrashLog(details, isFatal);
+        string detailsWithLogPath = logPath is null
+            ? details
+            : $"{details}{Environment.NewLine}Crash Log: {logPath}";
+        Debug.WriteLine(detailsWithLogPath);
+        return (detailsWithLogPath, logPath);
     }
 
     /// <summary>
@@ -195,7 +186,7 @@ public sealed class AppExceptionHandler
             Directory.CreateDirectory(logDirectory);
 
             string timestamp = DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss-fff");
-            string fileName = isFatal ? $"fatal-{timestamp}.log" : $"error-{timestamp}.log";
+            string fileName = $"{(isFatal ? "fatal" : "error")}-{timestamp}-{Guid.NewGuid():N}.log";
             string filePath = Path.Combine(logDirectory, fileName);
             File.WriteAllText(filePath, details);
             return filePath;
@@ -235,7 +226,7 @@ public sealed class AppExceptionHandler
         }
 
         if (exitApplication)
-            Application.Current.Exit();
+            App.ExitNormally();
     }
 
     /// <summary>

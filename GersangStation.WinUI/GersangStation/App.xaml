@@ -3,6 +3,7 @@
     x:Class="GersangStation.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:GersangStation.Controls"
     xmlns:local="using:GersangStation">
     <Application.Resources>
         <ResourceDictionary>
@@ -16,6 +17,10 @@
             <Style TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="{StaticResource AppFontFamily}" />
             </Style>
+            <Style x:Key="AppTeachingTipStyle" TargetType="TeachingTip">
+                <Setter Property="controls:TeachingTipIconLayout.AlignWithTitle" Value="True" />
+            </Style>
+            <Style TargetType="TeachingTip" BasedOn="{StaticResource AppTeachingTipStyle}" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

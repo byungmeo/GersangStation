@@ -329,23 +329,19 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// 휴대폰 본인 인증이 필요한 경우 브라우저 탭으로 유도합니다.
+    /// 본인 인증 문서는 보존하고, 사용자가 버튼으로 브라우저를 열도록 안내합니다.
     /// </summary>
-    private async Task ShowPhoneVerificationGuideAsync()
+    private void ShowPhoneVerificationGuide()
     {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = _currentWindow.Content.XamlRoot,
-            Title = "휴대폰 본인 인증 필요",
-            Content = "게임 실행 전에 거상 웹페이지에서 휴대폰 본인 인증을 완료해주세요. 브라우저 탭으로 이동합니다.",
-            CloseButtonText = "확인",
-            DefaultButton = ContentDialogButton.Close
-        };
-
-        await ShowBrowserDialogAsync(dialog);
-
+        GameLaunchAttempt? attempt = _launchAttempt?.IsPending == true ? _launchAttempt : null;
+        if (attempt is not null) attempt.PreserveDocumentOnCancel = true;
+        ResetLoginAttemptState();
+        ClearPendingPostLoginEventPage();
+        TryingLogout = false;
+        CancelPendingGameStart("휴대폰 본인 인증 필요");
+        IsBusy = false;
         if (_currentWindow is MainWindow mainWindow)
-            mainWindow.NavigateToWebViewPage();
+            mainWindow.ShowPhoneVerificationGuide(attempt);
     }
 
     /// <summary>
@@ -480,16 +476,22 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 return false;
             case TryLoginResult.NotFoundPw:
                 CancelPendingGameStart("비밀번호 없음");
+                if (_currentWindow is MainWindow missingCredentialWindow)
+                    missingCredentialWindow.ShowMissingGameLaunchCredential(attempt.ClientIndex, id);
                 return false;
             case TryLoginResult.VaultUnavailable:
+            {
+                Exception credentialException = _lastCredentialVaultException
+                    ?? new InvalidOperationException("비밀번호 저장소에서 실패 원인을 반환하지 않았습니다.");
                 CancelPendingGameStart("비밀번호 저장소 접근 실패");
-                if (await CredentialVaultGuidanceDialog.TryShowAsync(_currentWindow.Content.XamlRoot, _lastCredentialVaultException))
-                    return false;
-
-                _ = App.ExceptionHandler.ShowRecoverableAsync(
-                    new InvalidOperationException("윈도우 자격 증명 관리자에서 비밀번호를 읽지 못했습니다.", _lastCredentialVaultException),
-                    "WebViewManager.TryGameStart");
+                if (_currentWindow is MainWindow credentialWindow)
+                    credentialWindow.ReportGameLaunchCredentialFailure(attempt.ClientIndex, credentialException,
+                        "WebViewManager.TryGameStart");
+                else
+                    _ = App.ExceptionHandler.ShowRecoverableAsync(credentialException,
+                        "WebViewManager.TryGameStart");
                 return false;
+            }
             case TryLoginResult.NullWebview:
                 CancelPendingGameStart("WebView 없음");
                 return false;
@@ -630,7 +632,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         if (_launchAttempt?.IsPending == true || TryingLogin || TryingLogout) return TryLoginResult.Busy;
         // 초기화 대기 중에도 공유 브라우저를 선점해 게임 실행 요청이 끼어들지 않게 합니다.
         TryingLogin = true;
-        try { return await TryLoginCoreAsync(id, continueExistingAttempt: false); }
+        try
+        {
+            TryLoginResult result = await TryLoginCoreAsync(id, continueExistingAttempt: false);
+            if (result == TryLoginResult.VaultUnavailable && _lastCredentialVaultException is { } exception)
+                App.ExceptionHandler.RecordRecoverable(exception, "WebViewManager.TryLogin.CredentialVault");
+            return result;
+        }
         catch
         {
             ResetLoginAttemptState();
@@ -928,14 +936,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     /// </summary>
     private void CancelRepeatedGameStartLoginAttempt()
     {
-        const string message =
-            "로그인 시도 후에도 로그인 완료 상태를 확인하지 못했습니다.\n" +
-            "무한 재시도를 막기 위해 게임 실행을 중단했습니다.\n" +
-            "브라우저 탭에서 로그인 상태를 확인한 뒤 다시 시도해 주세요.";
+        const string message = "로그인 완료 여부를 확인할 수 없습니다.";
 
         Debug.WriteLine("[WebViewManager] 게임 실행 로그인 재시도 루프를 감지하여 자동 재시도를 중단합니다.");
+        GameLaunchAttempt? failedAttempt = _launchAttempt?.IsPending == true ? _launchAttempt : null;
         CancelLaunchAttemptWithRetryCooldown("로그인 상태 확인 실패");
-        QueueLaunchFailureDialog(message);
+        QueueLoginFailureNotice(message, failedAttempt);
     }
 
     private async Task UpdateLoginStateByCookieAsync()
@@ -1282,6 +1288,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         _session.VerifyAccess();
         if (_disposed)
             return Task.FromCanceled(_lifetime.Token);
+        if (_session.State == BrowserSessionState.Faulted)
+            return _session.InitializeAsync();
         return (_initialization ??= InitializeCoreAsync()).WaitAsync(_session.LifetimeToken);
     }
 
@@ -1306,7 +1314,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         CanGoBack = CanGoForward = false;
         _lifetime.Cancel();
         LoggedInChanged?.Invoke(this, EventArgs.Empty);
-        Exception failure = _session.Failure ?? new InvalidOperationException("브라우저 세션이 종료되었습니다.");
+        Exception failure = _session.FailureNotice;
         // WebView2 콜백 내부에서 모달 UI를 열지 않습니다.
         _webview.DispatcherQueue.TryEnqueueHandled(
             () => App.ExceptionHandler.ShowRecoverableAsync(failure, "BrowserSession.ProcessFailed"),
@@ -1607,11 +1615,17 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// WebView script dialog를 즉시 닫은 뒤 로그인 실패 안내를 UI 스레드에서 표시합니다.
+    /// 로그인 실패를 게임 실행 슬롯 또는 브라우저 계정 선택 위치에서 안내합니다.
     /// </summary>
-    private void QueueLaunchFailureDialog(string message)
+    private void QueueLoginFailureNotice(string message, GameLaunchAttempt? failedAttempt = null, bool retryBlocked = false)
     {
-        QueueBrowserWork(() => ShowLaunchFailureDialogAsync(message), "WebViewManager.LaunchFailureDialog");
+        if (_currentWindow is MainWindow window)
+        {
+            if (failedAttempt is not null)
+                window.ShowGameLaunchLoginFailure(failedAttempt, message, retryBlocked);
+            else
+                window.ShowBrowserLoginFailure(message, retryBlocked);
+        }
     }
 
     /// <summary>
@@ -1630,30 +1644,6 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             Navigate(new Uri(Url_Gersang_IpBlockedFaq));
             return Task.CompletedTask;
         }, "WebViewManager.IpBlockedFaqNavigation");
-    }
-
-    /// <summary>
-    /// 로그인 실패/재시도 제한 알림을 표시하고 필요 시 계정 설정 페이지로 이동합니다.
-    /// </summary>
-    private async Task ShowLaunchFailureDialogAsync(string message)
-    {
-        _lifetime.Token.ThrowIfCancellationRequested();
-        var dlg = new ContentDialog
-        {
-            XamlRoot = _currentWindow.Content.XamlRoot,
-            Title = "게임 실행 취소",
-            Content = message,
-            PrimaryButtonText = "확인",
-            SecondaryButtonText = "계정 다시 설정",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        ContentDialogResult result = await ShowBrowserDialogAsync(dlg);
-        if (result == ContentDialogResult.Secondary
-            && _currentWindow is MainWindow mainWindow)
-        {
-            mainWindow.NavigateToSettingPage(SettingSection.Account);
-        }
     }
 
     /// <summary>
@@ -1803,9 +1793,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
                 return;
             }
 
-            if (absoluteUri.Contains("loginCertUp.gs", StringComparison.OrdinalIgnoreCase))
+            if (IsGersangDomain(currentUri) && absoluteUri.Contains("loginCertUp.gs", StringComparison.OrdinalIgnoreCase))
             {
-                await ShowPhoneVerificationGuideAsync();
+                ShowPhoneVerificationGuide();
+                return;
             }
         }
 
@@ -1892,9 +1883,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         if (isCredentialFailure || isPasswordChangeRequired || isRetryBlocked)
         {
+            GameLaunchAttempt? failedAttempt = _launchAttempt?.IsPending == true ? _launchAttempt : null;
             args.Accept();
             CancelLaunchAttemptWithRetryCooldown(message);
-            QueueLaunchFailureDialog(message);
+            QueueLoginFailureNotice(message, failedAttempt, isRetryBlocked);
             return;
         }
 

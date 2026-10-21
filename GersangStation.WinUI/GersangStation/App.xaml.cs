@@ -34,6 +34,13 @@ namespace GersangStation
         public static LinkManager LinkManager { get; } = new();
         public static bool IsRunningAsAdministrator { get; private set; }
 
+        /// <summary>앱이 명시적으로 승인한 정상 종료 경로입니다. 숨김/닫기 취소에서는 호출하지 않습니다.</summary>
+        internal static void ExitNormally()
+        {
+            FatalErrorHandler.Current.CompleteSession();
+            Application.Current.Exit();
+        }
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -62,7 +69,7 @@ namespace GersangStation
         /// Invoked when the application is launched.
         /// </summary>
         /// <param name="args">Details about the launch request and process.</param>
-        protected override async void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
+        protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
             try
             {
@@ -70,7 +77,7 @@ namespace GersangStation
             }
             catch (Exception ex)
             {
-                await ExceptionHandler.HandleFatalUiExceptionAsync(ex, "App.OnLaunched");
+                FatalErrorHandler.Current.Terminate(ex, "App.OnLaunched");
             }
         }
 
@@ -204,43 +211,18 @@ namespace GersangStation
         private void RegisterGlobalExceptionHandlers()
         {
             UnhandledException += OnUnhandledException;
-            AppDomain.CurrentDomain.UnhandledException += OnCurrentDomainUnhandledException;
             TaskScheduler.UnobservedTaskException += OnTaskSchedulerUnobservedTaskException;
         }
 
         /// <summary>
-        /// WinUI UI 스레드에서 처리되지 않은 예외를 마지막 crash UI로 표시한 뒤 종료합니다.
+        /// WinUI 미처리 예외에서는 복구나 UI 표시를 시도하지 않고 기록 후 종료합니다.
         /// </summary>
-        private async void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
         {
-            // 창을 보여줄 마지막 기회를 확보하기 위해 handled로 전환하되, 복구 시도는 하지 않습니다.
-            e.Handled = true;
-            await ExceptionHandler.HandleFatalUiExceptionAsync(
+            // Handled로 바꾸고 이벤트 루프로 복귀하지 않습니다.
+            FatalErrorHandler.Current.Terminate(
                 e.Exception,
                 "Microsoft.UI.Xaml.Application.UnhandledException");
-        }
-
-        /// <summary>
-        /// 앱 도메인 수준의 처리되지 않은 예외는 WinUI를 거치지 않고 저수준 fallback으로만 처리합니다.
-        /// </summary>
-        private void OnCurrentDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
-        {
-            Exception exception = e.ExceptionObject as Exception
-                ?? new Exception($"Non-Exception object was thrown: {e.ExceptionObject}");
-
-            if (e.IsTerminating)
-            {
-                ExceptionHandler.HandleFatalProcessException(
-                    exception,
-                    "AppDomain.CurrentDomain.UnhandledException");
-                return;
-            }
-
-            ExceptionHandler.HandleProcessFallbackException(
-                exception,
-                "AppDomain.CurrentDomain.UnhandledException",
-                isFatal: false,
-                exitApplication: false);
         }
 
         /// <summary>

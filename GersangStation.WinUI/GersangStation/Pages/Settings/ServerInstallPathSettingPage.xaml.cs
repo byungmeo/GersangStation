@@ -9,7 +9,6 @@ using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Windows.Storage.Pickers;
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -25,15 +24,17 @@ namespace GersangStation.Main.Setting
     public sealed partial class ServerInstallPathSettingPage : Page, INotifyPropertyChanged, IConfirmLeave
     {
         private GameServer currentGameServer = GameServer.Korea_Live;
-        private string? _multiClientConflictExplorerPath;
+        private MultiClientCreationFeedback? _multiClientFeedback;
         private GameInstallSettingPage? _installPage;
         private bool _settingsLoaded;
+        private bool _isLoadingSettings;
+        private bool _hasSettingsLoadFailure;
         private bool _isCreatingMultiClient;
         private string _savedInstallPath = string.Empty;
         private bool _isInitializing = true;
         private Task _saveTask = Task.CompletedTask;
         private bool _isSaving;
-        private AppDataManager.AppDataOperationResult? _saveFailure;
+        private bool _hasAutoSaveFailure;
         private string _saveStatusText = string.Empty;
         private bool _client2Created;
         private bool _client3Created;
@@ -42,8 +43,13 @@ namespace GersangStation.Main.Setting
         internal bool SettingsLoaded => _settingsLoaded;
         public bool IsEditorEnabled => !_isCreatingMultiClient && _settingsLoaded && _installPage?.IsBusy != true;
         private bool HasPendingSave => _settingsLoaded && ClientSettings.InstallPath != _savedInstallPath;
+        internal bool HasBlockingOperation => _isCreatingMultiClient || _isSaving || HasPendingSave;
         public string SaveStatusText => _saveStatusText;
         public Visibility SaveStatusVisibility => string.IsNullOrEmpty(SaveStatusText) ? Visibility.Collapsed : Visibility.Visible;
+        public bool HasAutoSaveFailure => _hasAutoSaveFailure;
+        public bool CanRetryAutoSave => HasAutoSaveFailure && HasPendingSave && !_isSaving && IsEditorEnabled;
+        public bool HasSettingsLoadFailure => _hasSettingsLoadFailure;
+        public bool CanRetrySettingsLoad => HasSettingsLoadFailure && !_isLoadingSettings;
         public string Client2StatusText => _client2Created ? "2클라 생성됨" : "2클라 미생성";
         public string Client3StatusText => _client3Created ? "3클라 생성됨" : "3클라 미생성";
         public string Client2StatusGlyph => _client2Created ? "\uE73E" : "\uE711";
@@ -127,21 +133,66 @@ namespace GersangStation.Main.Setting
                 finally { Loaded -= OnLoaded; }
             }
 
-            var (settings, result) = await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
-            ClientSettings = settings;
-            _savedInstallPath = settings.InstallPath;
-            TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
-            TextBox_Path1.Text = settings.InstallPath;
-            ValidateInstallPath();
-            _settingsLoaded = result.Success;
-            _isInitializing = false;
-            NotifyEditorState();
-            if (!result.Success)
-                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "설정 불러오기 실패",
-                    "서버별 설치 경로 설정을 불러오지 못했습니다. 기존 설정 보호를 위해 편집을 중단합니다.", result);
+            await LoadSettingsAsync();
         }
 
-        private void NotifyEditorState() => OnPropertyChanged(nameof(IsEditorEnabled));
+        private async Task LoadSettingsAsync()
+        {
+            // 성공한 편집 세션을 재시도로 덮어쓰거나 동일 읽기를 중복 실행하지 않습니다.
+            if (_isLoadingSettings || _settingsLoaded)
+                return;
+            _isLoadingSettings = true;
+            _isInitializing = true;
+            OnPropertyChanged(nameof(CanRetrySettingsLoad));
+            try
+            {
+                var (settings, result) = await AppDataManager.LoadServerClientSettingsAsync(currentGameServer);
+                if (!result.Success)
+                {
+                    App.ExceptionHandler.RecordRecoverable(new IOException(
+                        $"설치 경로 설정 불러오기 실패: {result.Operation}, {result.Target}, {result.ErrorKind}", result.Exception),
+                        $"ServerInstallPathSettingPage.LoadSettings.{currentGameServer}");
+                    _hasSettingsLoadFailure = true;
+                    return;
+                }
+
+                ClientSettings = settings;
+                _savedInstallPath = settings.InstallPath;
+                TextBox_Path1.PlaceholderText = $"예시) {GameServerHelper.GetInstallPathPlaceholder(currentGameServer)}";
+                TextBox_Path1.Text = settings.InstallPath;
+                ValidateInstallPath();
+                _settingsLoaded = true;
+                _hasSettingsLoadFailure = false;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                App.ExceptionHandler.RecordRecoverable(ex, $"ServerInstallPathSettingPage.LoadSettings.{currentGameServer}");
+                _hasSettingsLoadFailure = true;
+            }
+            finally
+            {
+                _isLoadingSettings = false;
+                _isInitializing = false;
+                OnPropertyChanged(nameof(HasSettingsLoadFailure));
+                OnPropertyChanged(nameof(CanRetrySettingsLoad));
+                NotifyEditorState();
+            }
+        }
+
+        private async void RetrySettingsLoadButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CanRetrySettingsLoad)
+                return;
+            Initialization = SafeExecution.RunHandledAsync(LoadSettingsAsync,
+                $"{nameof(ServerInstallPathSettingPage)}.RetrySettingsLoad");
+            await Initialization;
+        }
+
+        private void NotifyEditorState()
+        {
+            OnPropertyChanged(nameof(IsEditorEnabled));
+            OnPropertyChanged(nameof(CanRetryAutoSave));
+        }
 
         private void InstallPage_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -154,15 +205,19 @@ namespace GersangStation.Main.Setting
             base.OnNavigatingFrom(e);
             // The owning page awaits ConfirmLeaveAsync before navigation. Never await in this
             // synchronous cancellation callback: a late e.Cancel cannot stop Frame navigation.
-            e.Cancel = _isCreatingMultiClient || HasPendingSave;
+            e.Cancel |= HasBlockingOperation;
         }
 
         public async Task<bool> ConfirmLeaveAsync(LeaveReason reason = LeaveReason.Navigation)
         {
             if (_isCreatingMultiClient)
             {
-                ContentDialog busy = new() { XamlRoot = XamlRoot, Title = "작업 진행 중", Content = "다클라 생성이 끝난 뒤 이동하거나 종료해 주세요.", CloseButtonText = "확인" };
-                await busy.ShowManagedAsync();
+                TeachingTip_General.Title = "작업 진행 중";
+                TeachingTip_General.Subtitle = "다클라 생성이 끝난 뒤 다시 시도해 주세요.";
+                TeachingTip_General.ActionButtonContent = null;
+                TeachingTip_General.IconSource = null;
+                TeachingTip_General.CloseButtonContent = "닫기";
+                TeachingTip_General.IsOpen = true;
                 return false;
             }
             if (!await FlushAutoSaveAsync())
@@ -201,11 +256,12 @@ namespace GersangStation.Main.Setting
                 return;
             if (!HasPendingSave)
             {
-                _saveFailure = null;
+                SetAutoSaveFailure(false);
                 SetSaveStatus(string.Empty);
                 return;
             }
             _isSaving = true;
+            OnPropertyChanged(nameof(CanRetryAutoSave));
             _saveTask = SafeExecution.RunHandledAsync(SavePendingPathAsync,
                 $"{nameof(ServerInstallPathSettingPage)}.AutoSave");
         }
@@ -223,19 +279,48 @@ namespace GersangStation.Main.Setting
                     var result = await AppDataManager.SaveServerInstallPathAsync(currentGameServer, path);
                     if (!result.Success)
                     {
-                        _saveFailure = result;
+                        App.ExceptionHandler.RecordRecoverable(new IOException(
+                            $"설치 경로 자동 저장 실패: {result.Operation}, {result.Target}, {result.ErrorKind}", result.Exception),
+                            $"ServerInstallPathSettingPage.AutoSave.{currentGameServer}");
                         // An edit received while awaiting this write must not be lost.
                         if (path != ClientSettings.InstallPath)
                             continue;
-                        SetSaveStatus("자동 저장 실패. 경로 변경 또는 페이지 이동 시 다시 시도합니다.");
+                        SetSaveStatus(string.Empty);
+                        SetAutoSaveFailure(true);
                         return;
                     }
-                    _saveFailure = null;
                     _savedInstallPath = path;
+                    SetAutoSaveFailure(false);
                 }
+                SetAutoSaveFailure(false);
                 SetSaveStatus(string.Empty);
             }
-            finally { _isSaving = false; }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                App.ExceptionHandler.RecordRecoverable(ex, $"ServerInstallPathSettingPage.AutoSave.{currentGameServer}");
+                SetSaveStatus(string.Empty);
+                SetAutoSaveFailure(true);
+            }
+            finally
+            {
+                _isSaving = false;
+                OnPropertyChanged(nameof(CanRetryAutoSave));
+            }
+        }
+
+        private void SetAutoSaveFailure(bool failed)
+        {
+            _hasAutoSaveFailure = failed;
+            OnPropertyChanged(nameof(HasAutoSaveFailure));
+            OnPropertyChanged(nameof(CanRetryAutoSave));
+        }
+
+        private async void RetryAutoSaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!CanRetryAutoSave)
+                return;
+            QueueAutoSave();
+            await _saveTask;
         }
 
         private async Task<bool> FlushAutoSaveAsync()
@@ -248,9 +333,6 @@ namespace GersangStation.Main.Setting
             await _saveTask;
             if (!HasPendingSave)
                 return true;
-            if (_saveFailure is { } failure)
-                await AppDataOperationDialog.ShowFailureAsync(XamlRoot, "자동 저장 실패",
-                    "설치 경로를 저장하지 못했습니다. 입력한 경로는 그대로 유지됩니다. 문제를 해결한 뒤 다시 시도해 주세요.", failure);
             return false;
         }
 
@@ -279,6 +361,9 @@ namespace GersangStation.Main.Setting
             => SafeExecution.RunHandledAsync(CreateMultiClientAsync, $"{nameof(ServerInstallPathSettingPage)}.{nameof(Button_CreateMultiClient_Click)}")
                 .FireAndForgetHandled($"{nameof(ServerInstallPathSettingPage)}.{nameof(Button_CreateMultiClient_Click)}");
 
+        private MultiClientCreationFeedback MultiClientFeedback
+            => _multiClientFeedback ??= new(TeachingTip_General);
+
         private async Task CreateMultiClientAsync()
         {
             if (!IsEditorEnabled)
@@ -291,70 +376,8 @@ namespace GersangStation.Main.Setting
                 if (!await FlushAutoSaveAsync())
                     return;
 
-                GameClientHelper.InstallPathValidationResult installPathValidation =
-                    GameClientHelper.TryValidateInstallPath(currentGameServer, TextBox_Path1.Text);
-
-                if (!installPathValidation.Success)
-                {
-                    ResetGeneralTeachingTipAction();
-                    TeachingTip_General.Title = "다클라 생성 실패";
-                    TeachingTip_General.Subtitle = BuildInstallPathValidationMessage(currentGameServer, TextBox_Path1.Text, installPathValidation);
-                    TeachingTip_General.IsOpen = true;
-                    return;
-                }
-
-                ClientVersionReadResult currentVersionResult = PatchManager.TryGetCurrentClientVersion(TextBox_Path1.Text);
-                if (!currentVersionResult.Success || currentVersionResult.Version is null or <= 0)
-                {
-                    ResetGeneralTeachingTipAction();
-                    TeachingTip_General.Title = "다클라 생성 실패";
-                    TeachingTip_General.Subtitle = "현재 클라이언트 버전을 확인할 수 없습니다. 설치 경로를 다시 확인해주세요.";
-                    TeachingTip_General.IsOpen = true;
-                    return;
-                }
-
-                int currentClientVersion = currentVersionResult.Version.Value;
-                GameClientHelper.MultiClientLayoutPolicy layoutPolicy =
-                    currentClientVersion >= GameClientHelper.MultiClientLayoutBoundaryVersion
-                        ? GameClientHelper.MultiClientLayoutPolicy.V34100OrLater
-                        : GameClientHelper.MultiClientLayoutPolicy.Legacy;
-
-                CreateSymbolMultiClientResult createResult;
-                try
-                {
-                    await GameMaintenanceService.CreateMultiClientAsync(currentGameServer, ClientSettings, new CreateSymbolMultiClientArgs
-                    {
-                        InstallPath = TextBox_Path1.Text,
-                        DestPath2 = ClientSettings.Client2Path,
-                        DestPath3 = ClientSettings.Client3Path,
-                        LayoutPolicy = layoutPolicy
-                    });
-                    createResult = new(true, string.Empty, null, null, null);
-                }
-                catch (OperationCanceledException) { return; }
-                catch (Exception ex) { createResult = new(false, ex.Message, null, null, ex); }
-
-                if (createResult.Success)
-                {
-                    ResetGeneralTeachingTipAction();
-                    TeachingTip_General.Title = "다클라 생성 성공";
-                    TeachingTip_General.Subtitle = "";
-                }
-                else if (TryShowMultiClientSymbolicDirectoryConflictTeachingTip(createResult.Exception))
-                {
-                    return;
-                }
-                else
-                {
-                    Exception exception = createResult.Exception ?? new IOException(createResult.Reason);
-                    if (await PathPermissionDialog.ShowFailureGuidanceWhenPermissionMissingAsync(XamlRoot, exception, "다클라 생성"))
-                        return;
-
-                    await App.ExceptionHandler.ShowRecoverableAsync(exception, $"ServerInstallPathSettingPage.Button_CreateMultiClient_Click");
-                    return;
-                }
-
-                TeachingTip_General.IsOpen = true;
+                MultiClientCreationResult result = await MultiClientCreationService.CreateAsync(currentGameServer, ClientSettings);
+                MultiClientFeedback.Show(currentGameServer, result);
             }
             finally
             {
@@ -364,169 +387,8 @@ namespace GersangStation.Main.Setting
             }
         }
 
-        /// <summary>
-        /// 심볼릭 링크로 대체해야 하는 폴더가 일반 폴더로 존재하는 충돌을 경로 설정 화면의 TeachingTip으로 안내합니다.
-        /// </summary>
-        private bool TryShowMultiClientSymbolicDirectoryConflictTeachingTip(Exception? exception)
-        {
-            GameClientHelper.MultiClientSymbolicDirectoryConflictException? conflictException =
-                FindException<GameClientHelper.MultiClientSymbolicDirectoryConflictException>(exception);
-            if (conflictException is null)
-                return false;
-
-            GameClientHelper.MultiClientCreationException? creationException =
-                FindException<GameClientHelper.MultiClientCreationException>(exception);
-
-            _multiClientConflictExplorerPath = ResolveMultiClientConflictExplorerPath(creationException, conflictException);
-            TeachingTip_General.IconSource = new FontIconSource
-            {
-                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
-                Glyph = "\uEA39"
-            };
-            TeachingTip_General.ActionButtonContent = "상위 폴더 열기";
-            TeachingTip_General.CloseButtonContent = "닫기";
-            TeachingTip_General.Title = "다클라 생성 실패";
-            TeachingTip_General.Subtitle = BuildMultiClientSymbolicDirectoryConflictMessage(creationException, conflictException);
-            TeachingTip_General.IsOpen = true;
-            return true;
-        }
-
-        private static string BuildMultiClientSymbolicDirectoryConflictMessage(
-            GameClientHelper.MultiClientCreationException? creationException,
-            GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException)
-        {
-            string targetPath = creationException?.DestinationPath ?? conflictException.DestinationPath;
-            string targetFolderName = TryGetDirectoryName(targetPath) ?? targetPath;
-            return $"{targetFolderName}{Environment.NewLine}위 폴더를 삭제하신 후 다시 다클라를 생성해주세요.";
-        }
-
-        private void ResetGeneralTeachingTipAction()
-        {
-            _multiClientConflictExplorerPath = null;
-            TeachingTip_General.IconSource = null;
-            TeachingTip_General.ActionButtonContent = null;
-            TeachingTip_General.CloseButtonContent = "네, 확인했습니다.";
-        }
-
         private void TeachingTip_General_ActionButtonClick(TeachingTip sender, object args)
-        {
-            if (string.IsNullOrWhiteSpace(_multiClientConflictExplorerPath))
-                return;
-
-            try
-            {
-                if (!Directory.Exists(_multiClientConflictExplorerPath))
-                {
-                    TeachingTip_General.Subtitle = "대상 폴더를 찾을 수 없습니다.";
-                    return;
-                }
-
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{_multiClientConflictExplorerPath}\"")
-                {
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                TeachingTip_General.Subtitle = $"폴더 열기 실패: {ex.Message}";
-            }
-        }
-
-        private static string ResolveMultiClientConflictExplorerPath(
-            GameClientHelper.MultiClientCreationException? creationException,
-            GameClientHelper.MultiClientSymbolicDirectoryConflictException conflictException)
-        {
-            string sourcePath = creationException?.SourcePath ?? conflictException.SourcePath;
-            string destinationPath = creationException?.DestinationPath ?? conflictException.DestinationPath;
-            string? sourceParent = TryGetParentDirectory(sourcePath);
-            string? destinationParent = TryGetParentDirectory(destinationPath);
-
-            if (!string.IsNullOrWhiteSpace(sourceParent)
-                && string.Equals(sourceParent, destinationParent, StringComparison.OrdinalIgnoreCase))
-            {
-                return sourceParent;
-            }
-
-            return TryGetCommonDirectory(sourcePath, destinationPath)
-                ?? destinationParent
-                ?? sourceParent
-                ?? TryGetParentDirectory(conflictException.DestinationPath)
-                ?? conflictException.DestinationPath;
-        }
-
-        private static string? TryGetParentDirectory(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                return null;
-
-            try
-            {
-                string fullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(path.Trim()));
-                return Directory.GetParent(fullPath)?.FullName;
-            }
-            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
-            {
-                return null;
-            }
-        }
-
-        private static string? TryGetDirectoryName(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-                return null;
-
-            try
-            {
-                string fullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(path.Trim()));
-                return Path.GetFileName(fullPath);
-            }
-            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
-            {
-                return null;
-            }
-        }
-
-        private static string? TryGetCommonDirectory(string firstPath, string secondPath)
-        {
-            try
-            {
-                string firstFullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(firstPath.Trim()));
-                string secondFullPath = Path.GetFullPath(Path.TrimEndingDirectorySeparator(secondPath.Trim()));
-                DirectoryInfo? current = Directory.Exists(firstFullPath)
-                    ? new DirectoryInfo(firstFullPath)
-                    : Directory.GetParent(firstFullPath);
-
-                while (current is not null)
-                {
-                    string candidate = current.FullName;
-                    if (secondFullPath.StartsWith(
-                        Path.TrimEndingDirectorySeparator(candidate) + Path.DirectorySeparatorChar,
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        return candidate;
-                    }
-
-                    current = current.Parent;
-                }
-            }
-            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException or PathTooLongException)
-            {
-            }
-
-            return null;
-        }
-
-        private static TException? FindException<TException>(Exception? exception)
-            where TException : Exception
-        {
-            for (Exception? current = exception; current is not null; current = current.InnerException)
-            {
-                if (current is TException matched)
-                    return matched;
-            }
-
-            return null;
-        }
+            => _multiClientFeedback?.InvokeAction();
 
         private void Button_InstallNew_Click(object sender, RoutedEventArgs e)
             => _installPage?.InstallSelectedServerAsync().FireAndForgetHandled(
