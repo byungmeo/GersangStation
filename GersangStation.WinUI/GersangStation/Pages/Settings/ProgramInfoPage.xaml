@@ -47,7 +47,7 @@
                                     <Setter Property="TextWrapping" Value="WrapWholeWords" />
                                 </Style>
                             </toolkit:SettingsCard.Resources>
-                            <StackPanel Orientation="Vertical">
+                            <StackPanel Orientation="Vertical" Spacing="4">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
