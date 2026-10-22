@@ -191,6 +191,17 @@
         </drawer:Drawer>
 
         <TeachingTip
+            x:Name="UserGuideTeachingTip"
+            Title="사용자 설명서"
+            Subtitle="거상스테이션 사용 방법을 확인해 보세요."
+            ActionButtonContent="사용자 설명서 보기"
+            ActionButtonClick="UserGuideTeachingTip_ActionButtonClick"
+            CloseButtonContent="닫기"
+            IsLightDismissEnabled="False"
+            PlacementMargin="16"
+            PreferredPlacement="TopLeft" />
+
+        <TeachingTip
             x:Name="StoreUpdateTeachingTip"
             Grid.Column="2"
             ActionButtonClick="StoreUpdateTeachingTip_ActionButtonClick"

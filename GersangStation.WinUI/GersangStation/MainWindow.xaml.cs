@@ -56,7 +56,6 @@ public sealed partial class MainWindow : Window
     private bool _isWindowActive = true;
     private bool _hasStartedStartupStoreUpdateCheck;
     private bool _isStartupFlowRunning;
-    private bool _skipDefaultInitialNavigation;
     private MainShellSection _activeSection = MainShellSection.Station;
     private StoreContext? _storeContext;
     private IReadOnlyList<StorePackageUpdate> _availableStoreUpdates = [];
@@ -227,7 +226,7 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// 루트가 시각 트리에 연결되면 시작 시 필요한 안내와 초기 탐색을 순차적으로 처리합니다.
     /// </summary>
-    private async void OnRootLoaded(object sender, RoutedEventArgs e)
+    private void OnRootLoaded(object sender, RoutedEventArgs e)
     {
         if (Root.XamlRoot is null || _isStartupFlowRunning)
             return;
@@ -238,7 +237,7 @@ public sealed partial class MainWindow : Window
             AttachRecoverableErrors();
             ShowPreviousCrashNotice();
             WebViewManager.InitializeAsync().FireAndForgetHandled("MainWindow.InitializeBrowserSession");
-            await HandleStartupFirstRunPromptAsync();
+            ShowFirstRunPrompt();
             HandleInitialNavigation();
             EnsureStartupStoreUpdateAsync()
                 .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(EnsureStartupStoreUpdateAsync)}");
@@ -250,28 +249,17 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 최초 실행 안내를 표시하고 설정 페이지 이동 여부를 처리합니다.
+    /// 최초 실행 안내를 비차단 방식으로 표시합니다. 닫기 전까지 탐색 중에도 유지합니다.
     /// </summary>
-    private async Task ShowFirstRunPromptAsync()
+    private void ShowFirstRunPrompt()
     {
-        if (_hasShownFirstRunPrompt || Root.XamlRoot is null)
+        if (_hasShownFirstRunPrompt || AppDataManager.IsSetupCompleted || Root.XamlRoot is null)
             return;
 
         _hasShownFirstRunPrompt = true;
 
         AppDataManager.IsSetupCompleted = true;
-        await ShowInitialSettingPromptAsync();
-    }
-
-    /// <summary>
-    /// 최초 실행 안내를 시작 플로우 안에서 순차적으로 표시합니다.
-    /// </summary>
-    private async Task HandleStartupFirstRunPromptAsync()
-    {
-        if (_hasShownFirstRunPrompt || AppDataManager.IsSetupCompleted)
-            return;
-
-        await ShowFirstRunPromptAsync();
+        UserGuideTeachingTip.IsOpen = true;
     }
 
     /// <summary>
@@ -283,9 +271,6 @@ public sealed partial class MainWindow : Window
             return;
 
         _hasHandledInitialNavigation = true;
-
-        if (_skipDefaultInitialNavigation)
-            return;
 
         string[] versionParts = AppDataManager.PrevVersion.Split('.');
         PackageVersion prevVersion = versionParts.Length == 4
@@ -337,29 +322,11 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 최초 실행 시 필요한 초기 안내를 표시합니다.
+    /// 사용자가 요청한 경우에만 설명서로 이동하며, 안내 자체는 닫기 버튼으로 닫습니다.
     /// </summary>
-    private async Task ShowInitialSettingPromptAsync()
+    private void UserGuideTeachingTip_ActionButtonClick(TeachingTip sender, object args)
     {
-        if (Root.XamlRoot is null)
-            return;
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = Root.XamlRoot,
-            Title = "최초 실행 안내",
-            Content = "거상스테이션을 처음 실행하셨습니다. 사용자 설명서를 읽으시겠습니까?",
-            PrimaryButtonText = "예",
-            CloseButtonText = "아니오",
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        ContentDialogResult result = await dialog.ShowManagedAsync();
-        if (result == ContentDialogResult.Primary)
-        {
-            _skipDefaultInitialNavigation = true;
-            NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpUserGuide);
-        }
+        NavigateToWebViewPageByLinkKey(AppLinkKeys.HelpUserGuide);
     }
 
     /// <summary>
