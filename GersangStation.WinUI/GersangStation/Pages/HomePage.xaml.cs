@@ -320,6 +320,12 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     {
         RefreshStateFromStorage();
         InitializeComponent();
+        EventLoad.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName != nameof(HomeContentLoadState.HasSucceeded)) return;
+            OnPropertyChanged(nameof(EventHeaderText));
+            UpdateEventFlipTimerState();
+        };
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         _eventFlipTimer.Interval = EventFlipInterval;
@@ -382,8 +388,9 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
         await HandleInitialStorageLoadIssuesAsync();
         RefreshClientAvailabilityState();
         Bindings.Update();
-        await UpdateServer();
+        if (!_isShellActive) return;
         await Task.WhenAll(
+            UpdateServer(),
             LoadEventsAsync(),
             LoadHomepageNoticesAsync(),
             LoadGersangStationNoticesAsync());
@@ -1038,13 +1045,10 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
     #region EventFlipView
     private readonly DispatcherTimer _eventFlipTimer = new();
-    private CancellationTokenSource? _eventLoadCts;
-    private CancellationTokenSource? _homepageNoticeLoadCts;
-    private CancellationTokenSource? _gersangStationNoticeLoadCts;
-    private DateTimeOffset? _lastEventLoadedAt;
-    private DateTimeOffset? _lastHomepageNoticeLoadedAt;
-    private DateTimeOffset? _lastGersangStationNoticeLoadedAt;
-    private static readonly TimeSpan EventRefreshInterval = TimeSpan.FromMinutes(10);
+    public HomeContentLoadState EventLoad { get; } = new();
+    public HomeContentLoadState HomepageNoticeLoad { get; } = new();
+    public HomeContentLoadState GersangStationNoticeLoad { get; } = new();
+    public static Visibility VisibleIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
     private static readonly TimeSpan EventFlipInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan EventPeriodOverlayShowDelay = TimeSpan.FromMilliseconds(320);
     private int _eventPeriodOverlayVersion;
@@ -1053,18 +1057,15 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
     public IReadOnlyList<StationHomepageNoticeItem> HomepageNoticeItems { get; private set; } = [];
     public IReadOnlyList<StationHomepageNoticeItem> GersangStationNoticeItems { get; private set; } = [];
     public Visibility EventPeriodOverlayVisibility { get; private set; } = Visibility.Collapsed;
-    public Visibility HomepageNoticeEmptyVisibility => HomepageNoticeItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility GersangStationNoticeEmptyVisibility => GersangStationNoticeItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    public string HomepageNoticeStatusText { get; private set; } = "공지사항이 없습니다.";
-    public string GersangStationNoticeStatusText { get; private set; } = "공지사항이 없습니다.";
-    private string _eventHeaderWhenEmpty = "진행 중인 이벤트가 없습니다";
 
     public string EventHeaderText
     {
         get
         {
+            if (EventLoad.IsLoading) return "이벤트를 불러오는 중...";
+            if (EventLoad.HasFailed) return "이벤트를 불러올 수 없습니다.";
             if (EventItems.Count == 0)
-                return _eventHeaderWhenEmpty;
+                return EventLoad.IsEmpty ? "진행 중인 이벤트가 없습니다" : string.Empty;
 
             int selectedIndex = _selectedEventIndex;
             int currentPage = selectedIndex >= 0 && selectedIndex < EventItems.Count
@@ -1091,206 +1092,73 @@ public sealed partial class StationPage : Page, INotifyPropertyChanged
 
     public int CurrentEventRemainingDays => GetCurrentEventItem()?.RemainingDays ?? -1;
 
-    /// <summary>
-    /// 이벤트 목록을 주기적으로 다시 읽어오되, 최근 결과가 있으면 재사용합니다.
-    /// </summary>
-    private async Task LoadEventsAsync(bool forceRefresh = false)
-    {
-        if (!forceRefresh
-            && EventItems.Count > 0
-            && _lastEventLoadedAt is DateTimeOffset loadedAt
-            && DateTimeOffset.UtcNow - loadedAt < EventRefreshInterval)
-        {
-            return;
-        }
-
-        CancelEventLoad();
-        CancellationTokenSource cts = new();
-        _eventLoadCts = cts;
-
-        try
-        {
-            IReadOnlyList<GameEventInfo> events = await GameHomepageCrawler.GetAllEventsAsync(
-                HttpClientProvider.Http,
-                new GameEventLoadOptions(IgnorePlaceholderEndDate: true),
-                cts.Token);
-
-            EventItems = events
+    /// <summary>이벤트 목록을 독립적으로 조회하며, 성공한 빈 결과만 '없음'으로 표시합니다.</summary>
+    private Task LoadEventsAsync(bool forceRefresh = false)
+        => EventLoad.LoadAsync<StationEventThumbnailItem>(
+            async ct => (await GameHomepageCrawler.GetAllEventsAsync(HttpClientProvider.Http,
+                new GameEventLoadOptions(IgnorePlaceholderEndDate: true), ct))
                 .Where(item => !string.IsNullOrWhiteSpace(item.ThumbnailUrl))
-                .Select(CreateEventThumbnailItem)
-                .ToList();
+                .Select(CreateEventThumbnailItem).ToArray(),
+            items =>
+            {
+                EventItems = items;
+                SetSelectedEventIndex(EventItems.Count > 0 ? 0 : -1);
+                OnPropertyChanged(nameof(EventItems));
+                OnPropertyChanged(nameof(EventHeaderText));
+                OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
+                OnPropertyChanged(nameof(CurrentEventRemainingDays));
+                EventPeriodOverlayVisibility = EventItems.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
+            },
+            ex => App.ExceptionHandler.RecordRecoverable(ex, "StationPage.LoadEvents"), forceRefresh);
 
-            _eventHeaderWhenEmpty = "진행 중인 이벤트가 없습니다";
-            SetSelectedEventIndex(EventItems.Count > 0 ? 0 : -1);
-            _lastEventLoadedAt = DateTimeOffset.UtcNow;
-            OnPropertyChanged(nameof(EventItems));
-            OnPropertyChanged(nameof(EventHeaderText));
-            OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
-            OnPropertyChanged(nameof(CurrentEventRemainingDays));
-            EventPeriodOverlayVisibility = EventItems.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
-            UpdateEventFlipTimerState();
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            EventItems = [];
-            _eventHeaderWhenEmpty = "이벤트를 불러올 수 없습니다.";
-            SetSelectedEventIndex(-1);
-            EventPeriodOverlayVisibility = Visibility.Collapsed;
-            OnPropertyChanged(nameof(EventItems));
-            OnPropertyChanged(nameof(EventHeaderText));
-            OnPropertyChanged(nameof(CurrentEventPeriodOverlayText));
-            OnPropertyChanged(nameof(EventPeriodOverlayVisibility));
-            OnPropertyChanged(nameof(CurrentEventRemainingDays));
-            UpdateEventFlipTimerState();
-            Debug.WriteLine($"[StationPage] 이벤트 목록 로드 실패: {ex}");
-        }
-        finally
-        {
-            cts.Dispose();
-            if (ReferenceEquals(_eventLoadCts, cts))
-                _eventLoadCts = null;
-        }
-    }
+    private void CancelEventLoad() => EventLoad.Cancel();
 
-    /// <summary>
-    /// 진행 중인 이벤트 목록 요청이 있으면 취소합니다.
-    /// </summary>
-    private void CancelEventLoad()
-    {
-        _eventLoadCts?.Cancel();
-    }
+    private Task LoadHomepageNoticesAsync(bool forceRefresh = false)
+        => HomepageNoticeLoad.LoadAsync<StationHomepageNoticeItem>(
+            async ct => (await GameHomepageCrawler.GetHomepageNoticesAsync(HttpClientProvider.Http, ct))
+                .Take(5).Select(CreateHomepageNoticeItem).ToArray(),
+            items =>
+            {
+                HomepageNoticeItems = items;
+                OnPropertyChanged(nameof(HomepageNoticeItems));
+            },
+            ex => App.ExceptionHandler.RecordRecoverable(ex, "StationPage.LoadHomepageNotices"), forceRefresh);
 
-    /// <summary>
-    /// 메인 홈페이지 공지사항 목록을 주기적으로 다시 읽어오되, 최근 결과가 있으면 재사용합니다.
-    /// </summary>
-    private async Task LoadHomepageNoticesAsync(bool forceRefresh = false)
-    {
-        if (!forceRefresh
-            && HomepageNoticeItems.Count > 0
-            && _lastHomepageNoticeLoadedAt is DateTimeOffset loadedAt
-            && DateTimeOffset.UtcNow - loadedAt < EventRefreshInterval)
-        {
-            return;
-        }
+    private void CancelHomepageNoticeLoad() => HomepageNoticeLoad.Cancel();
 
-        CancelHomepageNoticeLoad();
-        CancellationTokenSource cts = new();
-        _homepageNoticeLoadCts = cts;
+    private Task LoadGersangStationNoticesAsync(bool forceRefresh = false)
+        => GersangStationNoticeLoad.LoadAsync<StationHomepageNoticeItem>(
+            async ct => (await GersangStationNoticeCrawler.GetNoticesAsync(HttpClientProvider.Http, ct))
+                .Select(CreateGersangStationNoticeItem).ToArray(),
+            items =>
+            {
+                GersangStationNoticeItems = items;
+                OnPropertyChanged(nameof(GersangStationNoticeItems));
+            },
+            ex => App.ExceptionHandler.RecordRecoverable(ex, "StationPage.LoadStationNotices"), forceRefresh);
 
-        try
-        {
-            IReadOnlyList<GameHomepageNoticeInfo> notices = await GameHomepageCrawler.GetHomepageNoticesAsync(
-                HttpClientProvider.Http,
-                cts.Token);
+    private void CancelGersangStationNoticeLoad() => GersangStationNoticeLoad.Cancel();
 
-            HomepageNoticeItems = notices
-                .Take(5)
-                .Select(CreateHomepageNoticeItem)
-                .ToList();
+    private async void RetryEvents_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => LoadEventsAsync(true), "StationPage.RetryEvents");
 
-            HomepageNoticeStatusText = "공지사항이 없습니다.";
-            _lastHomepageNoticeLoadedAt = DateTimeOffset.UtcNow;
-            OnPropertyChanged(nameof(HomepageNoticeItems));
-            OnPropertyChanged(nameof(HomepageNoticeStatusText));
-            OnPropertyChanged(nameof(HomepageNoticeEmptyVisibility));
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            HomepageNoticeItems = [];
-            HomepageNoticeStatusText = "공지사항을 불러올 수 없습니다.";
-            OnPropertyChanged(nameof(HomepageNoticeItems));
-            OnPropertyChanged(nameof(HomepageNoticeStatusText));
-            OnPropertyChanged(nameof(HomepageNoticeEmptyVisibility));
-            Debug.WriteLine($"[StationPage] 공지사항 목록 로드 실패: {ex}");
-        }
-        finally
-        {
-            cts.Dispose();
-            if (ReferenceEquals(_homepageNoticeLoadCts, cts))
-                _homepageNoticeLoadCts = null;
-        }
-    }
+    private async void RetryHomepageNotices_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => LoadHomepageNoticesAsync(true), "StationPage.RetryHomepageNotices");
 
-    /// <summary>
-    /// 진행 중인 공지사항 목록 요청이 있으면 취소합니다.
-    /// </summary>
-    private void CancelHomepageNoticeLoad()
-    {
-        _homepageNoticeLoadCts?.Cancel();
-    }
-
-    /// <summary>
-    /// GersangStation GitHub Discussions 공지사항을 읽어와 고정 공지와 최신 공지를 합쳐 표시합니다.
-    /// </summary>
-    private async Task LoadGersangStationNoticesAsync(bool forceRefresh = false)
-    {
-        if (!forceRefresh
-            && GersangStationNoticeItems.Count > 0
-            && _lastGersangStationNoticeLoadedAt is DateTimeOffset loadedAt
-            && DateTimeOffset.UtcNow - loadedAt < EventRefreshInterval)
-        {
-            return;
-        }
-
-        CancelGersangStationNoticeLoad();
-        CancellationTokenSource cts = new();
-        _gersangStationNoticeLoadCts = cts;
-
-        try
-        {
-            IReadOnlyList<GersangStationNoticeInfo> notices = await GersangStationNoticeCrawler.GetNoticesAsync(
-                HttpClientProvider.Http,
-                cts.Token);
-
-            GersangStationNoticeItems = notices
-                .Select(CreateGersangStationNoticeItem)
-                .ToList();
-            GersangStationNoticeStatusText = "공지사항이 없습니다.";
-            _lastGersangStationNoticeLoadedAt = DateTimeOffset.UtcNow;
-            OnPropertyChanged(nameof(GersangStationNoticeItems));
-            OnPropertyChanged(nameof(GersangStationNoticeStatusText));
-            OnPropertyChanged(nameof(GersangStationNoticeEmptyVisibility));
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            GersangStationNoticeItems = [];
-            GersangStationNoticeStatusText = "공지사항을 불러올 수 없습니다.";
-            OnPropertyChanged(nameof(GersangStationNoticeItems));
-            OnPropertyChanged(nameof(GersangStationNoticeStatusText));
-            OnPropertyChanged(nameof(GersangStationNoticeEmptyVisibility));
-            Debug.WriteLine($"[StationPage] 거상스테이션 공지사항 로드 실패: {ex}");
-        }
-        finally
-        {
-            cts.Dispose();
-            if (ReferenceEquals(_gersangStationNoticeLoadCts, cts))
-                _gersangStationNoticeLoadCts = null;
-        }
-    }
-
-    /// <summary>
-    /// 진행 중인 GersangStation 공지사항 요청이 있으면 취소합니다.
-    /// </summary>
-    private void CancelGersangStationNoticeLoad()
-    {
-        _gersangStationNoticeLoadCts?.Cancel();
-    }
+    private async void RetryStationNotices_Click(object sender, RoutedEventArgs e)
+        => await SafeExecution.RunHandledAsync(() => LoadGersangStationNoticesAsync(true), "StationPage.RetryStationNotices");
 
     /// <summary>
     /// 이벤트 개수에 따라 자동 넘김 타이머를 시작하거나 중지합니다.
     /// </summary>
     private void UpdateEventFlipTimerState()
     {
+        if (!_isShellActive || !EventLoad.HasSucceeded)
+        {
+            StopEventFlipTimer();
+            return;
+        }
         if (EventItems.Count > 1)
         {
             if (_selectedEventIndex < 0 || _selectedEventIndex >= EventItems.Count)
