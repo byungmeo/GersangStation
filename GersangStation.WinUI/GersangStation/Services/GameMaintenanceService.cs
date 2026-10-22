@@ -1,4 +1,5 @@
 using Core;
+using Core.Download;
 using Core.Models;
 using GameMaintenance;
 using GersangStation.Diagnostics;
@@ -21,6 +22,12 @@ internal static class GameMaintenanceService
     // Serialize maintenance writes even when different pages/launch slots request them concurrently.
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
+    public static Task InstallAsync(GameServer server, string installPath,
+        DownloadExistingArtifactMode archiveReuseMode, IProgress<GameInstallProgress>? progress,
+        Func<bool> deleteArtifactsOnCancel, CancellationToken ct)
+        => RunAsync(new(OperationKind.Install, server, new ClientSettings { InstallPath = installPath },
+            InstallArchiveReuseMode: archiveReuseMode), null, ct, progress, deleteArtifactsOnCancel);
+
     public static Task PatchAsync(GameServer server, int version, ClientSettings settings,
         PatchRunOptions options, IProgress<PatchProgress>? progress, CancellationToken ct)
         => RunAsync(new(OperationKind.Patch, server, settings, version, options), progress, ct);
@@ -29,7 +36,8 @@ internal static class GameMaintenanceService
         CreateSymbolMultiClientArgs args, CancellationToken ct = default)
         => RunAsync(new(OperationKind.CreateMultiClient, server, settings, CloneOptions: args), null, ct);
 
-    private static async Task RunAsync(OperationRequest request, IProgress<PatchProgress>? progress, CancellationToken ct)
+    private static async Task RunAsync(OperationRequest request, IProgress<PatchProgress>? progress, CancellationToken ct,
+        IProgress<GameInstallProgress>? installProgress = null, Func<bool>? deleteArtifactsOnCancel = null)
     {
         // Snapshot before any await: editing another page must not mutate the approved request.
         request = JsonSerializer.Deserialize<OperationRequest>(JsonSerializer.Serialize(request))!;
@@ -39,7 +47,7 @@ internal static class GameMaintenanceService
             try { await Gate.WaitAsync(ct); }
             catch (OperationCanceledException ex) when (ct.IsCancellationRequested)
             { throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct, ex); }
-            try { await ExecuteAsync(request, progress, owner, ct); }
+            try { await ExecuteAsync(request, progress, owner, ct, installProgress, deleteArtifactsOnCancel); }
             finally { Gate.Release(); }
         }
         catch (MaintenanceCanceledException) { throw; }
@@ -50,7 +58,8 @@ internal static class GameMaintenanceService
         }
     }
 
-    private static async Task ExecuteAsync(OperationRequest request, IProgress<PatchProgress>? progress, nint owner, CancellationToken ct)
+    private static async Task ExecuteAsync(OperationRequest request, IProgress<PatchProgress>? progress, nint owner, CancellationToken ct,
+        IProgress<GameInstallProgress>? installProgress, Func<bool>? deleteArtifactsOnCancel)
     {
         if (ct.IsCancellationRequested)
             throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct);
@@ -98,7 +107,7 @@ internal static class GameMaintenanceService
                     try { await connection.SendAsync(new(Request: request), connectTimeout.Token); }
                     catch (OperationCanceledException ex)
                     { throw new IOException("게임 작업 요청을 전달하는 중 연결이 중단되어 작업 상태를 확인하지 못했습니다.", ex); }
-                    Task cancellation = SendCancellationAsync(connection, ct, lifetime);
+                    Task cancellation = SendCancellationAsync(connection, ct, lifetime, deleteArtifactsOnCancel);
                     try
                     {
                         while (true)
@@ -110,6 +119,7 @@ internal static class GameMaintenanceService
                             catch (IOException ex)
                             { throw new IOException("게임 작업 프로세스와의 연결이 끊겨 완료 여부를 확인하지 못했습니다.", ex); }
                             if (message.Progress is { } update) progress?.Report(update);
+                            if (message.InstallProgress is { } installUpdate) installProgress?.Report(installUpdate);
                             if (!message.Complete) continue;
                             if (message.Diagnostics is { } diagnostics)
                                 foreach (RemoteFailure diagnostic in diagnostics)
@@ -117,13 +127,14 @@ internal static class GameMaintenanceService
                                     var diagnosticException = new RemoteOperationException(diagnostic);
                                     diagnosticException.Data["WorkerException"] = diagnostic.Details;
                                     App.ExceptionHandler.RecordRecoverable(diagnosticException,
-                                        $"GameMaintenance.{request.Kind}.PostCompletionCleanup.{request.Server}");
+                                        $"GameMaintenance.{request.Kind}.{(message.Canceled ? "CancellationCleanup" : "PostCompletionCleanup")}.{request.Server}");
                                 }
                             if (message.Error is { } error) throw error.Restore();
                             if (message.Canceled)
                             {
                                 if (ct.IsCancellationRequested)
-                                    throw new MaintenanceCanceledException(MaintenanceCancellationReason.UserCanceled, ct);
+                                    throw new MaintenanceCanceledException(MaintenanceCancellationReason.UserCanceled, ct,
+                                        cleanupFailed: message.CancellationCleanupFailed);
                                 throw new IOException("취소를 요청하지 않았지만 게임 작업이 중단되었습니다. 작업 상태를 확인해 주세요.");
                             }
                             return;
@@ -152,14 +163,16 @@ internal static class GameMaintenanceService
         }
     }
 
-    private static async Task SendCancellationAsync(PipeConnection connection, CancellationToken ct, CancellationTokenSource lifetime)
+    private static async Task SendCancellationAsync(PipeConnection connection, CancellationToken ct, CancellationTokenSource lifetime,
+        Func<bool>? deleteArtifactsOnCancel)
     {
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, lifetime.Token);
         try { await Task.Delay(Timeout.Infinite, linked.Token); }
         catch (OperationCanceledException) { }
         if (!ct.IsCancellationRequested || lifetime.IsCancellationRequested) return;
         lifetime.CancelAfter(TimeSpan.FromSeconds(30));
-        try { await connection.SendAsync(new(Cancel: true), lifetime.Token); }
+        try { await connection.SendAsync(new(Cancel: true,
+            DeleteInstallArtifactsOnCancel: deleteArtifactsOnCancel?.Invoke() == true), lifetime.Token); }
         catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException) { lifetime.Cancel(); }
     }
 

@@ -6,12 +6,18 @@ public enum MaintenanceCancellationReason { BeforeStart, UserCanceled, Elevation
 public sealed class MaintenanceCanceledException : OperationCanceledException
 {
     public MaintenanceCancellationReason Reason { get; }
+    public bool CleanupFailed { get; }
 
-    public MaintenanceCanceledException(MaintenanceCancellationReason reason, CancellationToken token, Exception? inner = null)
+    public MaintenanceCanceledException(MaintenanceCancellationReason reason, CancellationToken token, Exception? inner = null,
+        bool cleanupFailed = false)
         : base(reason switch
         {
             MaintenanceCancellationReason.ElevationDeclined => "관리자 권한 요청을 취소하여 작업을 시작하지 않았습니다.",
             MaintenanceCancellationReason.BeforeStart => "작업을 시작하기 전에 취소했습니다.",
             _ => "작업을 취소했습니다."
-        }, inner, token) => Reason = reason;
+        }, inner, token)
+    {
+        Reason = reason;
+        CleanupFailed = cleanupFailed;
+    }
 }

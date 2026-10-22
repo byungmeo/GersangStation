@@ -13,29 +13,40 @@
             Grid.Row="1"
             Margin="0,12,0,0"
             HorizontalAlignment="Stretch"
+            RowSpacing="8"
             Visibility="{x:Bind State.InstallProgressVisibility, Mode=OneWay}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Spacing="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
                 <ProgressBar
                     Height="8"
+                    VerticalAlignment="Center"
                     Maximum="{x:Bind State.ProgressMaximum, Mode=OneWay}"
                     Value="{x:Bind State.ProgressValue, Mode=OneWay}" />
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    Text="{x:Bind State.ProgressText, Mode=OneWay}"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-            <Button
-                Grid.Column="1"
-                Click="Cancel_Click"
-                IsEnabled="{x:Bind State.IsDownloading, Mode=OneWay}"
-                Style="{ThemeResource AlternateCloseButtonStyle}"
-                Visibility="{x:Bind State.InstallCancelVisibility, Mode=OneWay}">
-                <FontIcon Glyph="&#xE711;" />
-            </Button>
+                <Button
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="게임 설치 취소"
+                    Click="Cancel_Click"
+                    IsEnabled="{x:Bind State.IsDownloading, Mode=OneWay}"
+                    Style="{ThemeResource AlternateCloseButtonStyle}"
+                    ToolTipService.ToolTip="설치 취소"
+                    Visibility="{x:Bind State.InstallCancelVisibility, Mode=OneWay}">
+                    <FontIcon Glyph="&#xE711;" />
+                </Button>
+            </Grid>
+            <TextBlock
+                Grid.Row="1"
+                HorizontalAlignment="Center"
+                Text="{x:Bind State.ProgressText, Mode=OneWay}"
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
         </Grid>
     </Grid>
 </UserControl>

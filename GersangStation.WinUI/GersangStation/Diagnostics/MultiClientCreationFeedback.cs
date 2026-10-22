@@ -46,7 +46,7 @@ internal sealed class MultiClientCreationFeedback(TeachingTip tip)
                     };
                 }
             }
-            else if (PathPermissionDialog.IsPermissionFailure(result.Exception))
+            else if (PathPermissionFailure.IsPermissionFailure(result.Exception))
             {
                 message = "다클라 생성에 필요한 파일 접근 권한이 부족합니다. 해결 방법을 확인한 후 다시 시도해 주세요.";
                 tip.ActionButtonContent = "해결 방법 확인하기";

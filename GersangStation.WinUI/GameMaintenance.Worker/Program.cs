@@ -37,19 +37,27 @@ internal static class Program
         using var operation = new CancellationTokenSource();
         using var requestedCancellation = new CancellationTokenSource();
         using var lifetime = new CancellationTokenSource();
-        Task controls = ReadControlsAsync(connection, operation, requestedCancellation, lifetime.Token);
+        bool deleteInstallArtifactsOnCancel = false;
+        Task controls = ReadControlsAsync(connection, operation, requestedCancellation,
+            deleteArtifacts => deleteInstallArtifactsOnCancel = deleteArtifacts, lifetime.Token);
         Task parentExit = WatchParentAsync(parent, operation, lifetime.Token);
         var messages = Channel.CreateBounded<PipeMessage>(new BoundedChannelOptions(128) { SingleReader = true, FullMode = BoundedChannelFullMode.Wait });
         Task sender = SendMessagesAsync(connection, messages.Reader, operation, lifetime);
         PipeMessage result;
         List<RemoteFailure> diagnostics = [];
+        bool requestValidated = false;
         try
         {
             await Task.Run(async () =>
             {
                 Validate(request);
+                requestValidated = true;
                 operation.Token.ThrowIfCancellationRequested();
-                if (request.Kind == OperationKind.Patch)
+                if (request.Kind == OperationKind.Install)
+                    await new GameInstallManager().RunAsync(request.Server, request.Settings.InstallPath,
+                        request.InstallArchiveReuseMode,
+                        new InlineProgress<GameInstallProgress>(p => messages.Writer.TryWrite(new(InstallProgress: p))), operation.Token);
+                else if (request.Kind == OperationKind.Patch)
                     await new PatchService().RunAsync(request.Server, request.CurrentVersion, request.Settings.InstallPath,
                         request.PatchOptions!, request.Settings,
                         new InlineProgress<PatchProgress>(p => messages.Writer.TryWrite(new(Progress: p))), operation.Token,
@@ -63,7 +71,21 @@ internal static class Program
             result = new(Complete: true, Diagnostics: diagnostics.ToArray());
         }
         catch (OperationCanceledException) when (operation.IsCancellationRequested && requestedCancellation.IsCancellationRequested)
-        { result = new(Complete: true, Canceled: true); }
+        {
+            bool cleanupFailed = false;
+            // Only clean an authenticated, validated installation, after all download/extraction writes stop.
+            if (requestValidated && request.Kind == OperationKind.Install && deleteInstallArtifactsOnCancel)
+            {
+                try { GameInstallManager.DeleteArchiveArtifacts(request.Server, request.Settings.InstallPath); }
+                catch (Exception ex)
+                {
+                    diagnostics.Add(RemoteFailure.Capture(ex));
+                    cleanupFailed = true;
+                }
+            }
+            result = new(Complete: true, Canceled: true, Diagnostics: diagnostics.ToArray(),
+                CancellationCleanupFailed: cleanupFailed);
+        }
         catch (Exception ex) { result = new(Complete: true, Error: RemoteFailure.Capture(ex)); }
         try
         {
@@ -82,6 +104,13 @@ internal static class Program
     private static void Validate(OperationRequest request)
     {
         if (!Enum.IsDefined(request.Kind) || !Enum.IsDefined(request.Server)) throw new InvalidDataException("Invalid operation/server.");
+        if (request.Kind == OperationKind.Install)
+        {
+            if (!Enum.IsDefined(request.InstallArchiveReuseMode)
+                || !GameInstallManager.IsInstallTargetPathAvailable(request.Server, request.Settings.InstallPath))
+                throw new InvalidDataException("설치 대상 경로에 기존 파일이 있거나 올바르지 않습니다. 다른 설치 경로를 선택해 주세요.");
+            return;
+        }
         var validation = GameClientHelper.TryValidateInstallPath(request.Server, request.Settings.InstallPath);
         if (!validation.Success) throw new InvalidDataException(validation.Reason, validation.Exception);
         if (request.Kind == OperationKind.Patch)
@@ -104,16 +133,20 @@ internal static class Program
         Path.TrimEndingDirectorySeparator(Path.GetFullPath(first)), Path.TrimEndingDirectorySeparator(Path.GetFullPath(second)), StringComparison.OrdinalIgnoreCase);
 
     private static async Task ReadControlsAsync(PipeConnection connection, CancellationTokenSource operation,
-        CancellationTokenSource requestedCancellation, CancellationToken ct)
+        CancellationTokenSource requestedCancellation, Action<bool> setDeleteArtifacts, CancellationToken ct)
     {
         try
         {
             while (!ct.IsCancellationRequested)
-                if ((await connection.ReceiveAsync(ct)).Cancel)
+            {
+                PipeMessage message = await connection.ReceiveAsync(ct);
+                if (message.Cancel && !requestedCancellation.IsCancellationRequested)
                 {
+                    setDeleteArtifacts(message.DeleteInstallArtifactsOnCancel);
                     requestedCancellation.Cancel();
                     operation.Cancel();
                 }
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
         catch { operation.Cancel(); } // Lost app connection means stop, not continue unattended.

@@ -9,6 +9,23 @@
     mc:Ignorable="d">
 
     <Grid RowSpacing="12">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="Enabled">
+                    <VisualState.StateTriggers>
+                        <StateTrigger IsActive="{x:Bind IsEnabled, Mode=OneWay}" />
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="Disabled">
+                    <VisualState.StateTriggers>
+                        <StateTrigger IsActive="{x:Bind local:ValidatedTextBox.IsDisabled(IsEnabled), Mode=OneWay}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="ErrorTextBlock.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <!--  Header  -->

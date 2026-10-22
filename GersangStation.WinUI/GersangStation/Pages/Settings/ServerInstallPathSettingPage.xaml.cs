@@ -42,6 +42,7 @@ namespace GersangStation.Main.Setting
         internal Task Initialization { get; private set; } = Task.CompletedTask;
         internal bool SettingsLoaded => _settingsLoaded;
         public bool IsEditorEnabled => !_isCreatingMultiClient && _settingsLoaded && _installPage?.IsBusy != true;
+        public bool IsEditorDisabled => !IsEditorEnabled;
         private bool HasPendingSave => _settingsLoaded && ClientSettings.InstallPath != _savedInstallPath;
         internal bool HasBlockingOperation => _isCreatingMultiClient || _isSaving || HasPendingSave;
         public string SaveStatusText => _saveStatusText;
@@ -191,6 +192,7 @@ namespace GersangStation.Main.Setting
         private void NotifyEditorState()
         {
             OnPropertyChanged(nameof(IsEditorEnabled));
+            OnPropertyChanged(nameof(IsEditorDisabled));
             OnPropertyChanged(nameof(CanRetryAutoSave));
         }
 

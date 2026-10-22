@@ -1,20 +1,24 @@
 using Core;
 using Core.Models;
+using Core.Download;
 
 namespace GameMaintenance;
 
-public enum OperationKind { Patch, CreateMultiClient }
+public enum OperationKind { Patch, CreateMultiClient, Install }
 
 // Only game-maintenance data crosses the elevation boundary. Never send account credentials.
 public sealed record OperationRequest(
     OperationKind Kind, GameServer Server, ClientSettings Settings,
     int CurrentVersion = 0, PatchRunOptions? PatchOptions = null,
-    CreateSymbolMultiClientArgs? CloneOptions = null);
+    CreateSymbolMultiClientArgs? CloneOptions = null,
+    DownloadExistingArtifactMode InstallArchiveReuseMode = DownloadExistingArtifactMode.ResumeIfPossible);
 
 public sealed record PipeMessage(
     OperationRequest? Request = null, PatchProgress? Progress = null,
     RemoteFailure? Error = null, bool Complete = false, bool Canceled = false,
-    bool Cancel = false, RemoteFailure[]? Diagnostics = null);
+    bool Cancel = false, RemoteFailure[]? Diagnostics = null,
+    GameInstallProgress? InstallProgress = null, bool DeleteInstallArtifactsOnCancel = false,
+    bool CancellationCleanupFailed = false);
 
 public sealed record RemoteFailure(
     string Type, string Message, string Details, int HResult,
@@ -26,7 +30,7 @@ public sealed record RemoteFailure(
         foreach (var property in exception.GetType().GetProperties())
         {
             if (property.Name is "SourcePath" or "DestinationPath" or "ClientNumber" or "Stage"
-                or "Server" or "Version" or "TargetPath" or "FileName")
+                or "Server" or "Version" or "TargetPath" or "FileName" or "InstallPath" or "ArchivePath")
                 context[property.Name] = property.GetValue(exception)?.ToString() ?? string.Empty;
         }
         return new(exception.GetType().FullName ?? exception.GetType().Name, exception.Message,
@@ -40,6 +44,10 @@ public sealed record RemoteFailure(
         string Value(string key) => Context.GetValueOrDefault(key) ?? string.Empty;
         Exception result = Type switch
         {
+            "Core.GameInstallManager+GameInstallOperationException" =>
+                new GameInstallManager.GameInstallOperationException(Message, Enum.Parse<GameServer>(Value("Server")),
+                    Enum.Parse<GameInstallManager.GameInstallFailureStage>(Value("Stage")),
+                    Value("InstallPath"), Value("ArchivePath"), inner),
             "Core.GameClientHelper+MultiClientSymbolicDirectoryConflictException" =>
                 new GameClientHelper.MultiClientSymbolicDirectoryConflictException(Value("SourcePath"), Value("DestinationPath")),
             "Core.GameClientHelper+MultiClientCreationException" =>

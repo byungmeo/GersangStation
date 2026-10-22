@@ -7,6 +7,8 @@ namespace GersangStation.Controls;
 
 public sealed partial class ValidatedTextBox : UserControl
 {
+    public static bool IsDisabled(bool isEnabled) => !isEnabled;
+
     public ValidatedTextBox()
     {
         InitializeComponent();

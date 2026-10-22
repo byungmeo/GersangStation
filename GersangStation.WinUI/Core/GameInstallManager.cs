@@ -74,6 +74,30 @@ public sealed class GameInstallManager
     private readonly Downloader _downloader = new(HttpClientProvider.Http);
     private readonly NativeSevenZipExtractor _extractor = new();
 
+    /// <summary>쓰기 없이 설치 경로와 기존 파일 충돌만 확인합니다. 승격된 작업에서도 다시 검증합니다.</summary>
+    public static bool IsInstallTargetPathAvailable(GameServer server, string installPath)
+    {
+        if (string.IsNullOrWhiteSpace(installPath) || !Path.IsPathFullyQualified(installPath))
+            return false;
+        string fullPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(installPath));
+        if (string.Equals(fullPath, Path.TrimEndingDirectorySeparator(Path.GetPathRoot(fullPath)!), StringComparison.OrdinalIgnoreCase)
+            || File.Exists(fullPath))
+            return false;
+        if (!Directory.Exists(fullPath))
+            return true;
+        if ((File.GetAttributes(fullPath) & FileAttributes.ReparsePoint) != 0)
+            return false;
+
+        string archivePath = GetArchivePath(server, fullPath);
+        HashSet<string> allowedFiles = new(StringComparer.OrdinalIgnoreCase)
+        {
+            archivePath, $"{archivePath}.gsdownload", $"{archivePath}.meta"
+        };
+        return Directory.EnumerateFileSystemEntries(fullPath).All(entry =>
+            allowedFiles.Contains(Path.GetFullPath(entry))
+            && (File.GetAttributes(entry) & (FileAttributes.Directory | FileAttributes.ReparsePoint)) == 0);
+    }
+
     /// <summary>
     /// 선택한 서버의 전체 클라이언트를 지정 경로에 설치합니다.
     /// </summary>

@@ -795,7 +795,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
             if (TryShowMultiClientSymbolicDirectoryConflictTeachingTip(ex))
                 return;
 
-            if (PathPermissionDialog.IsPermissionFailure(ex))
+            if (PathPermissionFailure.IsPermissionFailure(ex))
             {
                 string failureMessage = "패치에 실패했습니다.\n권한 문제 해결 방법을 확인해 주세요.";
                 ProgressText = "패치 실패";

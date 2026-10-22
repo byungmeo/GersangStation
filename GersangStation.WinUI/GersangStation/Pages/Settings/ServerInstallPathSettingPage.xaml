@@ -13,6 +13,27 @@
     mc:Ignorable="d">
 
     <Grid>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState x:Name="EditorEnabled">
+                    <VisualState.StateTriggers>
+                        <StateTrigger IsActive="{x:Bind IsEditorEnabled, Mode=OneWay}" />
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="EditorDisabled">
+                    <VisualState.StateTriggers>
+                        <StateTrigger IsActive="{x:Bind IsEditorDisabled, Mode=OneWay}" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="SaveStatusTextBlock.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+                        <Setter Target="Client2StatusIcon.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+                        <Setter Target="Client2StatusTextBlock.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+                        <Setter Target="Client3StatusIcon.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+                        <Setter Target="Client3StatusTextBlock.Foreground" Value="{ThemeResource TextFillColorDisabledBrush}" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
         <ScrollView>
             <Grid RowSpacing="12">
                 <Grid.RowDefinitions>
@@ -71,6 +92,7 @@
                             </controls:ValidatedTextBox.InputRowRightContent>
                         </controls:ValidatedTextBox>
                         <TextBlock
+                            x:Name="SaveStatusTextBlock"
                             Text="{x:Bind SaveStatusText, Mode=OneWay}"
                             TextWrapping="Wrap"
                             Visibility="{x:Bind SaveStatusVisibility, Mode=OneWay}" />
@@ -104,6 +126,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <FontIcon
+                                x:Name="Client2StatusIcon"
                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="{x:Bind Client2StatusTextBlock.FontSize, Mode=OneWay}"
                                 Glyph="{x:Bind Client2StatusGlyph, Mode=OneWay}" />
@@ -124,6 +147,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <FontIcon
+                                x:Name="Client3StatusIcon"
                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="{x:Bind Client3StatusTextBlock.FontSize, Mode=OneWay}"
                                 Glyph="{x:Bind Client3StatusGlyph, Mode=OneWay}" />

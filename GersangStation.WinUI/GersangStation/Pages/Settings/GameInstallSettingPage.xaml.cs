@@ -2,6 +2,7 @@ using CommunityToolkit.WinUI.Controls;
 using Core;
 using Core.Download;
 using Core.Models;
+using GameMaintenance;
 using GersangStation.Controls;
 using GersangStation.Diagnostics;
 using GersangStation.Services;
@@ -10,7 +11,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -221,38 +221,6 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
     }
 
     /// <summary>
-    /// 설치 대상 폴더가 비어 있거나 이어받기용 다운로드 산출물만 있을 때 설치 가능으로 판단합니다.
-    /// </summary>
-    private bool IsInstallTargetPathAvailable(string finalInstallPath)
-    {
-        if (!Directory.Exists(finalInstallPath))
-            return true;
-
-        string archivePath = GameInstallManager.GetArchivePath(_selectedGameServer, finalInstallPath);
-        HashSet<string> allowedFiles =
-        [
-            Path.GetFullPath($"{archivePath}.gsdownload"),
-            Path.GetFullPath($"{archivePath}.meta")
-        ];
-
-        string[] directories = Directory.GetDirectories(finalInstallPath, "*", SearchOption.TopDirectoryOnly);
-        if (directories.Length > 0)
-            return false;
-
-        string[] files = Directory.GetFiles(finalInstallPath, "*", SearchOption.TopDirectoryOnly);
-        if (files.Length == 0)
-            return true;
-
-        foreach (string file in files)
-        {
-            if (!allowedFiles.Contains(Path.GetFullPath(file)))
-                return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
     /// 사용자가 선택한 루트 경로를 서버별 실제 거상 설치 경로로 변환합니다.
     /// </summary>
     private static string BuildFinalInstallPath(string? baseRoot, GameServer server)
@@ -326,7 +294,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             if (folder is null)
                 return;
             string finalInstallPath = BuildFinalInstallPath(folder.Path, _selectedGameServer);
-            if (!IsInstallTargetPathAvailable(finalInstallPath))
+            if (!GameInstallManager.IsInstallTargetPathAvailable(_selectedGameServer, finalInstallPath))
             {
                 ShowInstallResult("설치 경로 확인",
                     $"최종 설치 경로에 이미 게임 또는 다른 파일이 존재합니다. 다른 상위 폴더를 선택해 주세요.\n{finalInstallPath}", InfoBarSeverity.Warning);
@@ -347,12 +315,6 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
 
     private async Task RunInstallAsync(string finalInstallPath, ServerInstallPathSettingPage editor)
     {
-        DirectoryWriteProbeResult writeProbeResult = PathWriteProbe.TryProbeDirectoryWriteAccess(finalInstallPath);
-        if (!await PathPermissionDialog.ConfirmContinueWhenPermissionMissingAsync(XamlRoot, writeProbeResult))
-            return;
-
-        GameInstallManager installManager = new();
-
         _installCts?.Dispose();
         _installCts = new CancellationTokenSource();
         CancellationTokenSource installCancellation = _installCts;
@@ -364,7 +326,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             ShowInstallProgress();
 
             ResetProgressState();
-            ProgressText = "설치를 준비하는 중...";
+            ProgressText = "관리자 권한 승인 후 설치를 시작합니다...";
 
             Progress<GameInstallProgress> installProgress = new(p =>
             {
@@ -402,12 +364,13 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
                 ProgressText = $"다운로드: {downloadFileName}  {downloadAmount}  {(p.DownloadPercent ?? 0):F1}%";
             });
 
-            await installManager.RunAsync(
+            await GameMaintenanceService.InstallAsync(
                 _selectedGameServer,
                 finalInstallPath,
                 DownloadExistingArtifactMode.ResumeIfPossible,
                 installProgress,
-                _installCts.Token);
+                () => _deleteArchiveArtifactsOnCancel,
+                installCancellation.Token);
 
             // 다운로드/압축 해제는 끝났습니다. 경로 저장 중에는 준비 상태로
             // 이동을 막되, 완료된 설치를 취소하는 버튼은 더 이상 표시하지 않습니다.
@@ -426,21 +389,19 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
                 : "게임 설치는 완료되었지만 설치 경로를 저장하지 못했습니다. 설치된 게임의 경로를 다시 지정해 주세요.",
                 pathSaved ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
         }
-        catch (OperationCanceledException) when (_installCts?.IsCancellationRequested == true)
+        catch (MaintenanceCanceledException ex)
         {
-            if (_deleteArchiveArtifactsOnCancel)
+            if (ex.Reason != MaintenanceCancellationReason.UserCanceled)
             {
-                try
-                {
-                    GameInstallManager.DeleteArchiveArtifacts(_selectedGameServer, finalInstallPath);
-                }
-                catch (Exception ex)
-                {
-                    App.ExceptionHandler.RecordRecoverable(ex, $"GameInstallSettingPage.CancelCleanup.{_selectedGameServer}");
-                    ShowInstallResult("게임 설치 취소", "설치는 취소했지만 임시 파일 일부를 삭제하지 못했습니다. 다음 설치 시 임시 파일이 남아 있을 수 있습니다.",
-                        InfoBarSeverity.Warning);
-                    return;
-                }
+                ShowInstallResult("게임 설치 취소", ex.Message);
+                return;
+            }
+            if (ex.CleanupFailed)
+            {
+                // 진단은 작업 서비스에서 이미 기록했습니다. 동일 오류를 다시 안내/기록하지 않습니다.
+                ShowInstallResult("게임 설치 취소", "설치는 취소했지만 임시 파일 일부를 삭제하지 못했습니다. 다음 설치 시 임시 파일이 남아 있을 수 있습니다.",
+                    InfoBarSeverity.Warning);
+                return;
             }
 
             ShowInstallResult("게임 설치 취소", _deleteArchiveArtifactsOnCancel
@@ -538,7 +499,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
         if (exception is OperationCanceledException)
             exception = new IOException("설치가 예기치 않게 중단되었습니다.", exception);
         App.ExceptionHandler.RecordRecoverable(exception, $"GameInstallSettingPage.{operation}.{_selectedGameServer}");
-        bool permissionFailure = PathPermissionDialog.IsPermissionFailure(exception);
+        bool permissionFailure = PathPermissionFailure.IsPermissionFailure(exception);
         ShowInstallResult("게임 설치 실패", permissionFailure
             ? "설치 경로에 파일을 쓸 권한이 부족합니다. 해결 방법을 확인한 후 다시 시도해 주세요."
             : message, InfoBarSeverity.Error, permissionHelp: permissionFailure);
