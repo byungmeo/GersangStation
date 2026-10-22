@@ -79,17 +79,17 @@ public sealed partial class MainWindow
         RecoverableErrorInfoBar.Message = records[0].Summary;
         RecoverableErrorInfoBar.Visibility = Visibility.Visible;
         RecoverableErrorInfoBar.IsOpen = true;
-        UpdateDiagnosticNoticeHostVisibility();
+        UpdateShellNoticeHostVisibility();
     }
 
-    private void UpdateDiagnosticNoticeHostVisibility()
-        => DiagnosticNoticeHost.Visibility = PreviousCrashInfoBar.IsOpen || RecoverableErrorInfoBar.IsOpen
+    private void UpdateShellNoticeHostVisibility()
+        => ShellNoticeHost.Visibility = PreviousCrashInfoBar.IsOpen || RecoverableErrorInfoBar.IsOpen
             ? Visibility.Visible : Visibility.Collapsed;
 
     private void RecoverableErrorInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
     {
         RecoverableErrorInfoBar.Visibility = Visibility.Collapsed;
-        UpdateDiagnosticNoticeHostVisibility();
+        UpdateShellNoticeHostVisibility();
     }
 
     private async void RecoverableErrorDetailsButton_Click(object sender, RoutedEventArgs e)
@@ -150,7 +150,7 @@ public sealed partial class MainWindow
             RecoverableErrorInfoBar.Message = message;
             RecoverableErrorInfoBar.Visibility = Visibility.Visible;
             RecoverableErrorInfoBar.IsOpen = true;
-            UpdateDiagnosticNoticeHostVisibility();
+            UpdateShellNoticeHostVisibility();
         }
         catch (Exception presentationException) { RecordDiagnosticViewerFailure(presentationException); }
     }

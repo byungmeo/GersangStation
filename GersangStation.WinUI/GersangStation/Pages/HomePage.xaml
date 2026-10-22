@@ -34,6 +34,18 @@
                             </controls:Tile.Source>
                         </controls:Tile>
                         <controls:Tile
+                            Title="패치노트 보러가기"
+                            Description="최신버전에서 무엇이 바뀌었는지 확인하세요."
+                            Link="https://github.com/byungmeo/GersangStation/wiki/%EA%B1%B0%EC%83%81%EC%8A%A4%ED%85%8C%EC%9D%B4%EC%85%98-%ED%8C%A8%EC%B9%98%EB%85%B8%ED%8A%B8">
+                            <controls:Tile.Source>
+                                <FontIcon
+                                    Margin="0,8,0,0"
+                                    FontSize="24"
+                                    Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                    Glyph="&#xE736;" />
+                            </controls:Tile.Source>
+                        </controls:Tile>
+                        <controls:Tile
                             Title="도움이 필요하신가요?"
                             Description="자주 물어보는 질문 및 문의 방법을 확인하세요."
                             Link="https://github.com/byungmeo/GersangStation/wiki/Q&amp;A">

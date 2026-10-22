@@ -50,10 +50,11 @@
             </Grid.Shadow>
             <!--  본문과 같은 셀에 겹쳐 표시하여 안내가 본문의 높이를 줄이지 않도록 합니다.  -->
             <StackPanel
-                x:Name="DiagnosticNoticeHost"
+                x:Name="ShellNoticeHost"
                 Canvas.ZIndex="1"
                 Margin="24"
                 VerticalAlignment="Top"
+                Orientation="Vertical"
                 Spacing="8"
                 Visibility="Collapsed">
                 <InfoBar

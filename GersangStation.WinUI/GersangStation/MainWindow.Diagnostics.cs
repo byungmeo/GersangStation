@@ -33,7 +33,7 @@ public sealed partial class MainWindow
             : "이전 실행에서 앱을 종료시킨 오류입니다. 문제가 반복되면 아래 기록을 복사해 전달해 주세요.";
         PreviousCrashInfoBar.Visibility = Visibility.Visible;
         PreviousCrashInfoBar.IsOpen = true;
-        UpdateDiagnosticNoticeHostVisibility();
+        UpdateShellNoticeHostVisibility();
         // 표시한 안내 표식만 소비합니다. 로그는 보존하고 다음 시작 시 같은 안내를 반복하지 않습니다.
         FatalErrorHandler.Current.AcknowledgePreviousError();
     }
@@ -41,7 +41,7 @@ public sealed partial class MainWindow
     private void PreviousCrashInfoBar_Closed(InfoBar sender, InfoBarClosedEventArgs args)
     {
         PreviousCrashInfoBar.Visibility = Visibility.Collapsed;
-        UpdateDiagnosticNoticeHostVisibility();
+        UpdateShellNoticeHostVisibility();
     }
 
     private async void PreviousCrashDetailsButton_Click(object sender, RoutedEventArgs e)
@@ -110,7 +110,7 @@ public sealed partial class MainWindow
             PreviousCrashInfoBar.Message = message;
             PreviousCrashInfoBar.Visibility = Visibility.Visible;
             PreviousCrashInfoBar.IsOpen = true;
-            UpdateDiagnosticNoticeHostVisibility();
+            UpdateShellNoticeHostVisibility();
         }
         catch (Exception presentationException) { RecordDiagnosticViewerFailure(presentationException); }
     }

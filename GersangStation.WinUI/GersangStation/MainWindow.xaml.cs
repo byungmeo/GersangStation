@@ -49,7 +49,6 @@ public sealed partial class MainWindow : Window
 
     private readonly SystemTrayService _systemTrayService;
     private readonly ContentTransition _contentTransition;
-    private bool _hasHandledInitialNavigation;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
     private bool _isCloseConfirmationPending;
@@ -238,7 +237,6 @@ public sealed partial class MainWindow : Window
             ShowPreviousCrashNotice();
             WebViewManager.InitializeAsync().FireAndForgetHandled("MainWindow.InitializeBrowserSession");
             ShowFirstRunPrompt();
-            HandleInitialNavigation();
             EnsureStartupStoreUpdateAsync()
                 .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(EnsureStartupStoreUpdateAsync)}");
         }
@@ -262,42 +260,6 @@ public sealed partial class MainWindow : Window
         UserGuideTeachingTip.IsOpen = true;
     }
 
-    /// <summary>
-    /// 시작 시 최초 한 번만 Station 또는 릴리즈 노트 화면으로 이동합니다.
-    /// </summary>
-    private void HandleInitialNavigation()
-    {
-        if (_hasHandledInitialNavigation)
-            return;
-
-        _hasHandledInitialNavigation = true;
-
-        string[] versionParts = AppDataManager.PrevVersion.Split('.');
-        PackageVersion prevVersion = versionParts.Length == 4
-            ? new PackageVersion(
-                ushort.Parse(versionParts[0]),
-                ushort.Parse(versionParts[1]),
-                ushort.Parse(versionParts[2]),
-                ushort.Parse(versionParts[3]))
-            : new PackageVersion(1, 0, 0, 0);
-
-        PackageVersion currentVersion = Package.Current.Id.Version;
-        if (_hasShownFirstRunPrompt)
-        {
-            // 최초 실행자에게 굳이 업데이트 노트를 보여주지는 않는다.
-            AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
-            prevVersion = currentVersion;
-        }
-
-        if (PackageVersionComparer.IsNewer(currentVersion, prevVersion))
-        {
-            AppDataManager.PrevVersion = $"{currentVersion.Major}.{currentVersion.Minor}.{currentVersion.Build}.{currentVersion.Revision}";
-            NavigateToWebViewPageByLinkKey("help.update.release-note");
-            return;
-        }
-
-        ShowSection(MainShellSection.Station);
-    }
 
     /// <summary>
     /// 시작 시 Store 업데이트를 확인하고, 가능한 경우 사용자 입력 없이 다운로드를 준비합니다.
