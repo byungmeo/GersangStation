@@ -7,6 +7,8 @@
     <Configurations>Debug;Release;Dev</Configurations>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <!-- 메인 앱과 동일하게 구형 Windows의 CET 초기화 오류를 우회합니다 (#188). -->
+    <CETCompat>false</CETCompat>
     <PublishTrimmed>false</PublishTrimmed>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>

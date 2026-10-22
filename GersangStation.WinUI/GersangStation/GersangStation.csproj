@@ -9,6 +9,8 @@
 		<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
 		<PublishProfile>win-$(Platform).pubxml</PublishProfile>
 		<SelfContained>true</SelfContained>
+		<!-- #188: CET가 수정되지 않은 구형 Windows에서도 apphost를 시작할 수 있게 합니다. -->
+		<CETCompat>false</CETCompat>
 		<UseWinUI>true</UseWinUI>
 		<WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 		<WinUISDKReferences>false</WinUISDKReferences>
