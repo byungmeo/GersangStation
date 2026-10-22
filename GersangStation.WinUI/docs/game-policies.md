@@ -6,6 +6,7 @@ Applies to WinUI launch, client install/patch/clone, and game-window behavior. R
 
 - At most 3 clients across all servers; account uniqueness is global and launch buttons represent global slots.
 - Mark the slot `Starting` on click; restore `Available` if preconditions fail before game startup.
+- Attempt ownership, completion detection, cancellation races, and OTP lifetime: [game launch lifecycle](game-launch.md).
 
 ## Install, patch, and cloning
 

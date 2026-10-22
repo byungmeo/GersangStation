@@ -41,17 +41,6 @@ GPU/utility 장애는 WebView2 런타임의 자동 복구에 맡깁니다.
 현재는 앱 재시작으로 복구합니다. 컨트롤 자동 재생성이나 로그인 자동 재시도는 구현하지 않았습니다.
 렌더러 무응답은 진단 로그만 남깁니다.
 
-## 회귀 확인
-
-- 브라우저 페이지를 열지 않은 상태에서 게임 실행과 도움말 이동.
-- 초기화 중 Alt-Tab, 초기화 중 종료, 트레이 숨김/복원.
-- 연속 URL/HTML 요청, 초기 홈페이지 네트워크 실패 후 로컬 안내 표시.
-- 로그인/OTP 중 취소 또는 다른 문서 이동; 실행 슬롯과 소켓 정리.
-- 창 너비 변경 시 1152 CSS px 배율, 즐겨찾기/주소창 동기화.
-- WebView2 프로세스 종료 후 오류 1회 보고, 실행 자동 재시도 없음.
-
-실제 WebView2/로그인/게임 실행 검증은 앱 실행 환경에서 별도로 수행해야 합니다.
-
 참조: [초기화](https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/webview2),
 [UI 스레드 및 재진입](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/threading-model),
 [프로세스 실패](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-related-events).

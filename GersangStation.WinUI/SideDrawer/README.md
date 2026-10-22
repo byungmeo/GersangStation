@@ -47,7 +47,7 @@ bool closed = await Editor.CloseAsync();
 - 작은 Host 밖의 UI는 흐려지거나 차단되지 않으며, Host 밖 클릭은 닫기 요청으로 처리하지 않습니다.
 - `Modal=false`이면 흐림/배경 입력 차단 없이 표시하고, Host 내부의 패널 밖 클릭은 입력을 통과시키면서 닫기를 요청합니다.
 
-Host는 같은 UI 스레드/XamlRoot의 로드된 컨테이너여야 합니다. 열린 동안 Host/ParentDrawer/Template을 변경하지 마세요.
+Host는 같은 UI 스레드/XamlRoot의 로드된 컨테이너여야 합니다. 열린 동안 Host/ParentDrawer/Template 변경은 지원하지 않습니다.
 회전/기울임을 적용하지 않은 일반 레이아웃 컨테이너가 대상입니다. 창 경계 밖 부분은 클리핑합니다.
 Host의 이동/크기 변경은 표시 중에 추적합니다. 기존 콘텐츠의 IsEnabled 값이나 바인딩을 덮어쓰지 않습니다.
 
@@ -120,7 +120,6 @@ Closing 안에서 같은 Drawer의 CloseAsync를 await하면 자기 자신을 �
 Content/ContentTemplate/ContentTemplateSelector로 임의 콘텐츠를 표시합니다.
 Padding/Background/Foreground/BorderBrush/BorderThickness/CornerRadius는 패널 외관에 적용됩니다.
 Light/Dark/HighContrast를 지원합니다. OS 투명 효과가 꺼져 있으면 Acrylic은 단색 fallback을 사용합니다.
-Swipe Handle, Snap Points, Responsive 방향 전환은 구현하지 않습니다.
 [shadcn Drawer](https://ui.shadcn.com/docs/components/base/drawer)는 동작 참고 자료이며 웹 라이브러리 의존성은 없습니다.
 
 Host/선언이 Unloaded되면 자식부터 제거하고 애니메이션과 대기 중인 deferral을 중단합니다.
@@ -131,9 +130,3 @@ Host/선언이 Unloaded되면 자식부터 제거하고 애니메이션과 대�
 호출하는 명령, 코드에서 직접 실행하는 탐색까지 가로채는 보안 경계는 아닙니다.
 그러한 명령은 `Drawer.IsInputBlockedFor(대상요소)`로 확인하세요.
 ComboBox/Flyout/ContentDialog의 별도 팝업은 WinUI 자체 입력 처리를 사용합니다.
-
-## 검증
-
-전체 솔루션의 Visual Studio MSBuild 빌드 및 임시 검사 코드를 사용합니다.
-모의 UI 요소로 하는 상태/수명/배치 검사는 실제 WinUI 렌더링 검증을 대신하지 않습니다.
-실제 창의 Acrylic, 포인터/Tab/별도 팝업, DPI/이동/애니메이션 및 WebView2 위 표시에는 실행 검증이 필요합니다.
