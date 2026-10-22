@@ -1295,16 +1295,27 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private async Task InitializeCoreAsync()
     {
-        await _session.InitializeAsync();
-        _lifetime.Token.ThrowIfCancellationRequested();
-        SubscribeWebViewEvents();
-        SubscribeCoreEvents();
-        // 페이지 인스턴스와 무관하게 로그인 세션 동기화를 위한 최초 탐색을 한 번만 시작합니다.
-        if (!IsMaintenanceInProgress) _session.Navigate(Url_Gersang_Main);
+        try
+        {
+            await _session.InitializeAsync();
+            _lifetime.Token.ThrowIfCancellationRequested();
+            SubscribeWebViewEvents();
+            SubscribeCoreEvents();
+            // 페이지 인스턴스와 무관하게 로그인 세션 동기화를 위한 최초 탐색을 한 번만 시작합니다.
+            if (!IsMaintenanceInProgress) _session.Navigate(Url_Gersang_Main);
+        }
+        catch
+        {
+            if (!_disposed) AddressState.Fail();
+            throw;
+        }
     }
 
     private void OnSessionFailed(object? sender, EventArgs args)
     {
+        ++_addressFaviconVersion;
+        AddressFavicon = null;
+        AddressState.Fail();
         CancelPendingGameStart("브라우저 프로세스 종료");
         ResetLoginAttemptState();
         TryingLogout = false;
@@ -1346,6 +1357,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _subscribedCore = core;
         core.SourceChanged += OnSourceChanged;
+        core.FaviconChanged += OnAddressFaviconChanged;
         core.HistoryChanged += OnHistoryChanged;
         core.DOMContentLoaded += OnDOMContentLoaded;
         core.ScriptDialogOpening += OnScriptDialogOpening;
@@ -1359,6 +1371,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
         _subscribedCore = null;
         core.SourceChanged -= OnSourceChanged;
+        core.FaviconChanged -= OnAddressFaviconChanged;
         core.HistoryChanged -= OnHistoryChanged;
         core.DOMContentLoaded -= OnDOMContentLoaded;
         core.ScriptDialogOpening -= OnScriptDialogOpening;
@@ -1406,6 +1419,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 #endif
         CurrentTitle = sender.DocumentTitle;
         CurrentSource = sender.Source;
+        AddressState.UpdateAddress(sender.Source);
 
         SourceChanged?.Invoke(sender, args);
     }
@@ -1904,6 +1918,12 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private void OnNavigationStarting(WebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
+        if (!_disposed && !args.Cancel)
+        {
+            ++_addressFaviconVersion;
+            AddressFavicon = null;
+            AddressState.Begin(args.NavigationId, args.Uri);
+        }
         if (IsMaintenanceInProgress) return;
 #if DEBUGGING
         Debug.WriteLine($"[WebView::OnNavigationStarting]");
@@ -1923,6 +1943,13 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
 
     private void OnNavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
     {
+        if (!_disposed && args.NavigationId == AddressState.NavigationId)
+        {
+            bool success = args.IsSuccess && args.HttpStatusCode < 400;
+            AddressState.Complete(args.NavigationId, success);
+            if (success && sender.CoreWebView2 is { } core)
+                RefreshAddressFaviconAsync(core).FireAndForgetHandled("WebViewManager.AddressFavicon");
+        }
 #if DEBUGGING
         Debug.WriteLine($"[WebView::OnNavigationCompleted]");
         Debug.WriteLine($"\t- NavigationId: {args.NavigationId}");

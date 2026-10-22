@@ -152,6 +152,7 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         Bindings.StopTracking();
         if (_webviewManager is not null)
         {
+            _webviewManager.AddressState.PropertyChanged -= OnAddressStateChanged;
             _webviewManager.SourceChanged -= OnSourceChanged;
             _webviewManager.LoggedInChanged -= OnLoggedInChanged;
             _webviewManager = null;
@@ -170,10 +171,21 @@ public sealed partial class WebViewPage : Page, INotifyPropertyChanged, IDisposa
         _shellWindow = window;
         window.GameLaunchCoordinator.PropertyChanged += OnLaunchStateChanged;
         _webviewManager = window.WebViewManager;
+        _webviewManager.AddressState.PropertyChanged += OnAddressStateChanged;
         _webviewManager.SourceChanged += OnSourceChanged;
         _webviewManager.LoggedInChanged += OnLoggedInChanged;
-        TextBox_Search.Text = _committedUrlText = _webviewManager.CurrentSource;
+        TextBox_Search.Text = _committedUrlText = _webviewManager.AddressState.Address;
         Bindings.Update();
+    }
+
+    public static Visibility VisibleIf(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
+
+    private void OnAddressStateChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(BrowserAddressState.Address) || _webviewManager is null) return;
+        _committedUrlText = _webviewManager.AddressState.Address;
+        // 탐색 중에도 사용자가 편집 중인 주소는 덮어쓰지 않습니다.
+        if (!_isUserEditing) TextBox_Search.Text = _committedUrlText;
     }
 
     private void OnLaunchStateChanged(object? sender, PropertyChangedEventArgs e)
