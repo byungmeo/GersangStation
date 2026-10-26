@@ -26,7 +26,7 @@ jobs:
       - name: set git username
         run: git config --global user.name "byungmeo"
       - name: set remote url
-        run: git remote set-url origin https://${{ secrets.GIT_TOKEN }}@github.com/byungmeo/GersangStation.git
+        run: git remote set-url origin https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/byungmeo/GersangStation.git
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
