@@ -12,7 +12,10 @@ import PageLoadingSpinner from "@/_components/PageLoadingSpinner";
 function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
-      <Route element={<SupportLayout />}>
+      <Route
+        element={<SupportLayout />}
+        hydrateFallbackElement={<PageLoadingSpinner text="Gersang Station..." />}
+      >
         <Route element={<SupportPage />} path="/" />,
       </Route>
     ),
@@ -21,12 +24,7 @@ function App() {
     }
   );
 
-  return (
-    <RouterProvider
-      router={router}
-      fallbackElement={<PageLoadingSpinner text="Gersang Station..." />}
-    />
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

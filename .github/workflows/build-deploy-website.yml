@@ -34,6 +34,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: './Website/package-lock.json'
       - name: install dependencies
-        run: npm i
+        run: npm ci
       - name: build and deploy
         run: npm run deploy

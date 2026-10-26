@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import Markdown from "react-markdown";
 // remark and rehype plugins
@@ -67,7 +67,7 @@ function Page() {
   const scrollingDown = useRef(false);
   const prevScrollY = useRef(scrollY);
 
-  function calcButtonPosition() {
+  const calcButtonPosition = useCallback(() => {
     if (prevScrollY.current != scrollY)
       scrollingDown.current = prevScrollY.current < scrollY;
 
@@ -84,7 +84,7 @@ function Page() {
     }
 
     prevScrollY.current = scrollY;
-  }
+  }, []);
 
   function resizeContent() {
     buttonRef.current!.style.width = `${pannerRef.current!.clientWidth}px`;
@@ -148,7 +148,7 @@ function Page() {
       document.removeEventListener("orientationchange", calcButtonPosition);
       window.removeEventListener("resize", resizeContent);
     };
-  }, []);
+  }, [calcButtonPosition]);
 
   return (
     <>

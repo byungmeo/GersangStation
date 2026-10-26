@@ -8,7 +8,7 @@ interface QAProps {
   calcButtonPosition: () => void;
 }
 
-function QA({ question, answer, calcButtonPosition }: QAProps) {
+export default function QA({ question, answer, calcButtonPosition }: QAProps) {
   const [showAnswer, setShowAnswer] = useState(false);
 
   const toggleQA = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
@@ -19,7 +19,7 @@ function QA({ question, answer, calcButtonPosition }: QAProps) {
 
   useEffect(() => {
     calcButtonPosition();
-  }, [showAnswer]);
+  }, [showAnswer, calcButtonPosition]);
 
   return (
     <article className="cursor-pointer w-full">
@@ -47,5 +47,3 @@ function QA({ question, answer, calcButtonPosition }: QAProps) {
     </article>
   );
 }
-
-export default QA;
