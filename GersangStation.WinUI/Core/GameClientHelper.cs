@@ -74,7 +74,7 @@ public static class GameClientHelper
     }
 
     /// <summary>
-    /// 다클라 대상에 심볼릭 링크로 대체해야 하는 폴더가 일반 폴더로 존재할 때 발생합니다.
+    /// 다클라 대상에 정션으로 연결해야 하는 폴더가 일반 폴더로 존재할 때 발생합니다.
     /// </summary>
     public sealed class MultiClientSymbolicDirectoryConflictException : IOException
     {
@@ -82,7 +82,7 @@ public static class GameClientHelper
         public string DestinationPath { get; }
 
         public MultiClientSymbolicDirectoryConflictException(string sourcePath, string destinationPath)
-            : base($"심볼릭 링크로 생성해야 하는 폴더가 일반 폴더로 존재합니다. Path={destinationPath}")
+            : base($"정션으로 연결해야 하는 폴더가 일반 폴더로 존재합니다. Path={destinationPath}")
         {
             SourcePath = sourcePath;
             DestinationPath = destinationPath;
@@ -100,7 +100,7 @@ public static class GameClientHelper
         Exception? Exception);
 
     /// <summary>
-    /// 디렉터리 심볼릭 링크 여부 확인 결과를 실패 문맥과 함께 반환합니다.
+    /// 정션 및 기존 심볼릭 링크를 포함한 디렉터리 링크 검사 결과입니다.
     /// </summary>
     public sealed record SymbolDirectoryProbeResult(
         bool ProbeSuccess,
@@ -209,7 +209,7 @@ public static class GameClientHelper
     }
 
     /// <summary>
-    /// 특정 폴더가 심볼릭 링크 방식으로 생성된 것인지 상세 결과와 함께 반환합니다.
+    /// 특정 폴더의 정션/심볼릭 링크 여부를 검사합니다. 기존 다클라 호환을 위해 이름은 유지합니다.
     /// </summary>
     public static SymbolDirectoryProbeResult TryIsSymbolDirectory(string dirPath)
     {
@@ -232,7 +232,7 @@ public static class GameClientHelper
             if (!di.Exists)
                 return new SymbolDirectoryProbeResult(false, false, SymbolProbeFailureStage.ReadDirectoryAttributes, null);
             bool isSymbolDirectory = (di.Attributes & FileAttributes.ReparsePoint) != 0;
-            return new SymbolDirectoryProbeResult(true, isSymbolDirectory, null, new DirectoryNotFoundException(dirPath));
+            return new SymbolDirectoryProbeResult(true, isSymbolDirectory, null, null);
         }
         catch (Exception ex)
         {
@@ -390,7 +390,7 @@ public static class GameClientHelper
             if (!symbolDirectoryResult.ProbeSuccess)
             {
                 return CreateInstallPathFailure(
-                    "❌ 설치 경로의 심볼릭 링크 상태를 확인하지 못했습니다.",
+                    "❌ 설치 경로의 디렉터리 링크 상태를 확인하지 못했습니다.",
                     InstallPathValidationFailureReason.SymbolDirectoryProbeFailed,
                     symbolDirectoryResult.Exception);
             }

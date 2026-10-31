@@ -326,7 +326,7 @@ public sealed partial class GameInstallSettingPage : Page, INotifyPropertyChange
             ShowInstallProgress();
 
             ResetProgressState();
-            ProgressText = "관리자 권한 승인 후 설치를 시작합니다...";
+            ProgressText = "설치를 준비하고 있습니다...";
 
             Progress<GameInstallProgress> installProgress = new(p =>
             {

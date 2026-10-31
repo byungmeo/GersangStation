@@ -18,8 +18,6 @@ internal static class Program
 
     private static async Task<int> RunAsync(string[] args)
     {
-        using WindowsIdentity identity = WindowsIdentity.GetCurrent();
-        if (!new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator)) return 3;
         if (args.Length != 2 || !Guid.TryParseExact(args[0], "N", out _) || !int.TryParse(args[1], out int parentPid)) return 2;
         using Process parent = Process.GetProcessById(parentPid);
         string expectedParent = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "GersangStation.exe"));

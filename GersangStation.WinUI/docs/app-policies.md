@@ -24,7 +24,7 @@ Applies to `GersangStation.WinUI/GersangStation/`. Core returns results or excep
 - Tray Exit restores the main window and uses the same pending-work/unsaved-edit decisions as normal exit. Close-to-tray and Store-update termination are distinct paths.
 - Async results belong to their originating page, document, or operation. Late callbacks cannot replace newer state or revive dismissed UI.
 - Browser document faults retain their cause and are distinct from request replacement, maintenance suspension, and disposal cancellation. See [browser session](browser-session.md) and [data maintenance](browser-maintenance.md).
-- Automatic startup uses the package's `GersangStationStartup` task through `Windows.ApplicationModel.StartupTask`, including Windows' user-disabled and policy-controlled states. The main app runs asInvoker; maintenance-worker elevation is separate.
+- Automatic startup uses the package's `GersangStationStartup` task through `Windows.ApplicationModel.StartupTask`, including Windows' user-disabled and policy-controlled states. The main app and maintenance worker run asInvoker.
 
 ## Assets and links
 

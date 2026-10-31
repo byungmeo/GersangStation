@@ -4,7 +4,6 @@ using Core.Models;
 using GameMaintenance;
 using GersangStation.Diagnostics;
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
@@ -16,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace GersangStation.Services;
 
-/// <summary>작업 하나당 승격된 프로세스를 실행합니다. 계정 저장소/비밀번호는 전달하지 않습니다.</summary>
+/// <summary>작업 하나당 일반 권한 작업 프로세스를 실행합니다. 계정 저장소/비밀번호는 전달하지 않습니다.</summary>
 internal static class GameMaintenanceService
 {
     // Serialize maintenance writes even when different pages/launch slots request them concurrently.
@@ -41,13 +40,12 @@ internal static class GameMaintenanceService
     {
         // Snapshot before any await: editing another page must not mutate the approved request.
         request = JsonSerializer.Deserialize<OperationRequest>(JsonSerializer.Serialize(request))!;
-        nint owner = App.CurrentWindow is { } window ? WinRT.Interop.WindowNative.GetWindowHandle(window) : 0;
         try
         {
             try { await Gate.WaitAsync(ct); }
             catch (OperationCanceledException ex) when (ct.IsCancellationRequested)
             { throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct, ex); }
-            try { await ExecuteAsync(request, progress, owner, ct, installProgress, deleteArtifactsOnCancel); }
+            try { await ExecuteAsync(request, progress, ct, installProgress, deleteArtifactsOnCancel); }
             finally { Gate.Release(); }
         }
         catch (MaintenanceCanceledException) { throw; }
@@ -58,7 +56,7 @@ internal static class GameMaintenanceService
         }
     }
 
-    private static async Task ExecuteAsync(OperationRequest request, IProgress<PatchProgress>? progress, nint owner, CancellationToken ct,
+    private static async Task ExecuteAsync(OperationRequest request, IProgress<PatchProgress>? progress, CancellationToken ct,
         IProgress<GameInstallProgress>? installProgress, Func<bool>? deleteArtifactsOnCancel)
     {
         if (ct.IsCancellationRequested)
@@ -70,9 +68,6 @@ internal static class GameMaintenanceService
         var security = new PipeSecurity();
         security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
         security.AddAccessRule(new PipeAccessRule(identity.User!, PipeAccessRights.FullControl, AccessControlType.Allow));
-        // Permit credential-based UAC by another administrator, not just the logged-in user.
-        security.AddAccessRule(new PipeAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null),
-            PipeAccessRights.ReadWrite, AccessControlType.Allow));
         using var pipe = NamedPipeServerStreamAcl.Create("GersangStation.Maintenance." + nonce,
             PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.FirstPipeInstance,
             4096, 4096, security);
@@ -80,15 +75,12 @@ internal static class GameMaintenanceService
         Task connected = pipe.WaitForConnectionAsync(connectTimeout.Token);
         try
         {
-            Process process;
-            try { process = await LaunchAsync(exe, nonce, owner); }
-            catch (Win32Exception ex) when (ex.NativeErrorCode == 1223)
-            { throw new MaintenanceCanceledException(MaintenanceCancellationReason.ElevationDeclined, ct, ex); }
+            Process process = Launch(exe, nonce);
             using (process)
             {
                 try
                 {
-                    // The timeout starts AFTER the user has answered UAC, not while the prompt is open.
+                    // Allow for worker startup without accepting an unrelated pipe client.
                     connectTimeout.CancelAfter(TimeSpan.FromSeconds(60));
                     Task exited = process.WaitForExitAsync();
                     if (await Task.WhenAny(connected, exited) == exited && !connected.IsCompletedSuccessfully)
@@ -101,7 +93,7 @@ internal static class GameMaintenanceService
                     PipePeer.Verify(pipe, process.Id, peerIsServer: false);
                     await using var connection = new PipeConnection(pipe);
                     using var lifetime = new CancellationTokenSource();
-                    // If canceled while UAC was open, disconnect without ever sending a write request.
+                    // If canceled during startup, disconnect without ever sending a write request.
                     if (ct.IsCancellationRequested)
                         throw new MaintenanceCanceledException(MaintenanceCancellationReason.BeforeStart, ct);
                     try { await connection.SendAsync(new(Request: request), connectTimeout.Token); }
@@ -176,26 +168,16 @@ internal static class GameMaintenanceService
         catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException) { lifetime.Cancel(); }
     }
 
-    private static Task<Process> LaunchAsync(string exe, string nonce, nint owner)
+    private static Process Launch(string exe, string nonce)
     {
-        var completion = new TaskCompletionSource<Process>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var thread = new Thread(() =>
+        var start = new ProcessStartInfo(exe)
         {
-            try
-            {
-                var start = new ProcessStartInfo(exe)
-                {
-                    UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden,
-                    WorkingDirectory = Path.GetDirectoryName(exe)!, ErrorDialogParentHandle = owner
-                };
-                start.ArgumentList.Add(nonce);
-                start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                completion.SetResult(Process.Start(start) ?? throw new IOException("게임 작업 프로세스를 시작하지 못했습니다."));
-            }
-            catch (Exception ex) { completion.SetException(ex); }
-        }) { IsBackground = true, Name = "Game maintenance elevation" };
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        return completion.Task;
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(exe)!
+        };
+        start.ArgumentList.Add(nonce);
+        start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return Process.Start(start) ?? throw new IOException("게임 작업 프로세스를 시작하지 못했습니다.");
     }
 }

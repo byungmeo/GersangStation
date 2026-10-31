@@ -733,7 +733,7 @@ public sealed partial class GamePatchSettingPage : Page, INotifyPropertyChanged,
 
             ProgressMaximum = 1;
             ProgressValue = 0;
-            ProgressText = "관리자 권한 승인 후 패치를 시작합니다...";
+            ProgressText = "패치를 준비하고 있습니다...";
 
             Progress<PatchProgress> patchProgress = new(p =>
             {

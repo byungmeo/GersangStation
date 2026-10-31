@@ -444,7 +444,7 @@ namespace GersangStation.Main.Setting
                 GameClientHelper.InstallPathValidationFailureReason.ServerFileMismatch =>
                     $"{serverDisplayName} 서버 식별 파일을 찾지 못했습니다.\n확인한 파일: {Path.Combine(normalizedPath, serverFileName)}",
                 GameClientHelper.InstallPathValidationFailureReason.SymbolDirectoryProbeFailed =>
-                    "설치 경로의 심볼릭 링크 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.",
+                    "설치 경로의 디렉터리 링크 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.",
                 _ => validationResult.Reason
             };
         }

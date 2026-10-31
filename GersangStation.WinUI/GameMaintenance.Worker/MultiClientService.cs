@@ -90,10 +90,11 @@ internal sealed class MultiClientService(CancellationToken ct)
     }
 
     /// <summary>
-    /// 기존 대상이 심볼릭 링크면 정리한 뒤 디렉터리 심볼릭 링크를 다시 만듭니다.
+    /// 기존 심볼릭 링크/정션만 제거한 뒤 디렉터리 정션으로 연결합니다.
     /// </summary>
-    private void RecreateSymbolicDirectory(string sourceDirPath, string destDirPath)
+    private void RecreateJunctionDirectory(string sourceDirPath, string destDirPath)
     {
+        DirectoryJunction.ValidatePaths(destDirPath, sourceDirPath);
         if (Directory.Exists(destDirPath))
         {
             SymbolDirectoryProbeResult symbolDirectoryResult = TryIsSymbolDirectory(destDirPath);
@@ -114,7 +115,7 @@ internal sealed class MultiClientService(CancellationToken ct)
             File.Delete(destDirPath);
         }
 
-        Directory.CreateSymbolicLink(destDirPath, sourceDirPath);
+        DirectoryJunction.Create(destDirPath, sourceDirPath);
     }
 
     /// <summary>
@@ -170,16 +171,16 @@ internal sealed class MultiClientService(CancellationToken ct)
                 continue;
             }
 
-            RecreateSymbolicDirectory(sourceDirPath, destDirPath);
+            RecreateJunctionDirectory(sourceDirPath, destDirPath);
         }
     }
 
     /*
-     * Symbol 방식 다클라 생성 정책
-     * 1. 목적지 경로가 비어있지 않고 Online\Map이 Symbol이 아니라면 실패(삭제 안내)
+     * Junction 방식 다클라 생성 정책
+     * 1. 기존 Online\Map의 정션/심볼릭 링크는 재연결하고 일반 폴더 충돌은 거절
      * 2. 최상위 폴더 내 파일들은 모두 HardCopy(.tmp, .bmp, .dmp 확장자 파일은 아예 무시)
      * 3. XIGONCODE 폴더는 안의 내용물 포함 모두 HardCopy
-     * 4. Online 직접 파일은 설정파일을 제외하고 덮어쓰며, 하위 폴더는 Symbol
+     * 4. Online 직접 파일은 설정파일을 제외하고 덮어쓰며, 하위 폴더는 정션
      * 5. Assets\Config와 config.ln은 기존 파일을 보존하고, 없는 설정파일만 복사
     */
 
@@ -229,24 +230,17 @@ internal sealed class MultiClientService(CancellationToken ct)
                 destinationPath: destPath);
         }
 
-        SymbolSupportResult symbolSupportResult = TryCanUseSymbol(destPath);
-        if (!symbolSupportResult.Success)
+        try
         {
-            return CreateFailureResult(
-                $"{clientPrefix}목적지 드라이브의 심볼릭 링크 지원 여부를 확인하지 못했습니다.",
-                clientNumber,
-                MultiClientCreationFailureStage.ValidateDestinationPath,
-                symbolSupportResult.Exception,
-                sourcePath: orgInstallPath,
-                destinationPath: destPath);
+            DirectoryJunction.ValidatePaths(destPath, orgInstallPath);
         }
-
-        if (!symbolSupportResult.CanUseSymbol)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             return CreateFailureResult(
-                $"{clientPrefix}Symbol을 지원하지 않는 드라이브입니다. Format={symbolSupportResult.ResolvedFormat}",
+                $"{clientPrefix}로컬 NTFS 경로와 정션 생성 대상을 확인해 주세요.",
                 clientNumber,
                 MultiClientCreationFailureStage.ValidateDestinationPath,
+                ex,
                 sourcePath: orgInstallPath,
                 destinationPath: destPath);
         }
@@ -258,7 +252,7 @@ internal sealed class MultiClientService(CancellationToken ct)
             if (!destMapProbeResult.ProbeSuccess)
             {
                 return CreateFailureResult(
-                    $"{clientPrefix}기존 다클라 경로의 심볼릭 링크 상태를 확인하지 못했습니다.",
+                    $"{clientPrefix}기존 다클라 경로의 디렉터리 링크 상태를 확인하지 못했습니다.",
                     clientNumber,
                     MultiClientCreationFailureStage.ValidateDestinationPath,
                     destMapProbeResult.Exception,
@@ -270,7 +264,7 @@ internal sealed class MultiClientService(CancellationToken ct)
             {
                 string sourceOnlineMapPath = Path.Combine(orgInstallPath, "Online", "Map");
                 return CreateFailureResult(
-                    $"{clientPrefix}기존 다클라 경로에 심볼릭 링크로 생성해야 하는 폴더가 일반 폴더로 존재합니다.",
+                    $"{clientPrefix}기존 다클라 경로에 정션으로 연결해야 하는 폴더가 일반 폴더로 존재합니다.",
                     clientNumber,
                     MultiClientCreationFailureStage.ValidateDestinationPath,
                     new MultiClientSymbolicDirectoryConflictException(sourceOnlineMapPath, destOnlineMapPath),
@@ -340,13 +334,13 @@ internal sealed class MultiClientService(CancellationToken ct)
             {
                 string? dirName = new DirectoryInfo(eachDirPath).Name;
                 string destDirPath = $"{destOnlinePath}\\{dirName}";
-                RecreateSymbolicDirectory(eachDirPath, destDirPath);
+                RecreateJunctionDirectory(eachDirPath, destDirPath);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return CreateFailureResult(
-                $"{clientPrefix}Online 하위 폴더 심볼릭 링크 생성 중 오류가 발생했습니다.",
+                $"{clientPrefix}Online 하위 폴더 정션 생성 중 오류가 발생했습니다.",
                 clientNumber,
                 MultiClientCreationFailureStage.LinkOnlineDirectories,
                 ex,
@@ -382,7 +376,7 @@ internal sealed class MultiClientService(CancellationToken ct)
                     SymbolDirectoryProbeResult result = TryIsSymbolDirectory(destDirPath);
                     if (result.ProbeSuccess && result.IsSymbolDirectory)
                     {
-                        Directory.Delete(destDirPath, true);
+                        Directory.Delete(destDirPath);
                     }
                     continue;
                 }
@@ -393,7 +387,7 @@ internal sealed class MultiClientService(CancellationToken ct)
                     continue;
                 }
 
-                RecreateSymbolicDirectory(eachDirPath, destDirPath);
+                RecreateJunctionDirectory(eachDirPath, destDirPath);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

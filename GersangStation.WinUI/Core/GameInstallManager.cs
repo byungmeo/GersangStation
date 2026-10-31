@@ -74,7 +74,7 @@ public sealed class GameInstallManager
     private readonly Downloader _downloader = new(HttpClientProvider.Http);
     private readonly NativeSevenZipExtractor _extractor = new();
 
-    /// <summary>쓰기 없이 설치 경로와 기존 파일 충돌만 확인합니다. 승격된 작업에서도 다시 검증합니다.</summary>
+    /// <summary>쓰기 없이 설치 경로와 기존 파일 충돌만 확인합니다. 작업 프로세스에서도 다시 검증합니다.</summary>
     public static bool IsInstallTargetPathAvailable(GameServer server, string installPath)
     {
         if (string.IsNullOrWhiteSpace(installPath) || !Path.IsPathFullyQualified(installPath))
