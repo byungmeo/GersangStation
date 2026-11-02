@@ -9,9 +9,7 @@ namespace GersangStation.Main;
 
 public sealed partial class MainWindow
 {
-    private string PreviousCrashNoticeMessage => _previousFatalError?.IsUncleanExit == true
-        ? "이전 실행의 정상 종료 기록을 확인하지 못했습니다. 강제 종료나 시스템 종료 등이 원인일 수 있으며, 예외 정보는 확보되지 않았습니다."
-        : "이전 실행 중 오류로 앱이 종료되었습니다. 문제가 반복되면 오류 기록을 확인해 주세요.";
+    private string PreviousCrashNoticeMessage => "이전 실행 중 오류로 앱이 종료되었습니다. 문제가 반복되면 오류 기록을 확인해 주세요.";
     private bool _hasShownPreviousCrash;
     private PendingFatalError? _previousFatalError;
 
@@ -22,15 +20,7 @@ public sealed partial class MainWindow
 
         _hasShownPreviousCrash = true;
         _previousFatalError = previous;
-        PreviousCrashInfoBar.Title = previous.IsUncleanExit
-            ? "이전 실행의 종료 상태를 확인하지 못했습니다."
-            : "이전 실행이 정상적으로 종료되지 않았습니다.";
         PreviousCrashInfoBar.Message = PreviousCrashNoticeMessage;
-        PreviousCrashDetailsButton.Content = previous.IsUncleanExit ? "종료 기록 보기" : "오류 기록 보기";
-        PreviousCrashDrawerTitleTextBlock.Text = previous.IsUncleanExit ? "이전 실행 종료 기록" : "이전 실행 오류 기록";
-        PreviousCrashDescriptionTextBlock.Text = previous.IsUncleanExit
-            ? "정상 종료 기록이 남지 않은 실행입니다. 예외 상세 정보는 없어 종료 원인을 특정할 수 없습니다."
-            : "이전 실행에서 앱을 종료시킨 오류입니다. 문제가 반복되면 아래 기록을 복사해 전달해 주세요.";
         PreviousCrashInfoBar.Visibility = Visibility.Visible;
         PreviousCrashInfoBar.IsOpen = true;
         UpdateShellNoticeHostVisibility();

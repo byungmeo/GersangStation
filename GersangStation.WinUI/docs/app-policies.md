@@ -7,7 +7,7 @@ Applies to `GersangStation.WinUI/GersangStation/`. Core returns results or excep
 - Recoverable failures use `AppExceptionHandler`. Global notices use an InfoBar with on-demand diagnostic details; feature-owned feedback records through `RecordRecoverable` without a duplicate global notice.
 - Preserve original exceptions and operation/target context. Logging and notice suppression are independent: forwarding one exception shares its record, while a new failure can be logged even when its notice is suppressed.
 - Fatal UI/startup failures use `FatalErrorHandler`: bounded best-effort recording followed by termination, without depending on XAML, dispatcher scheduling, or normal cleanup. The terminating AppDomain hook leaves termination to the CLR.
-- `AppSessionJournal` distinguishes an incomplete previous session from a captured exception. Tray hiding, cancelled exit, and secondary-instance redirection are not completed primary sessions.
+- `AppSessionJournal` distinguishes an incomplete previous session from a captured exception. Incomplete sessions are logged silently without a next-launch notice; only recorded fatal errors create a pending notice, even if their detailed log is missing. Tray hiding, cancelled exit, and secondary-instance redirection are not completed primary sessions.
 - Native/WinRT callbacks contain managed exceptions. UI dispatch and fire-and-forget boundaries use the handled helpers in `Diagnostics`.
 - Diagnostic viewer/reporting failures are recorded without recursively presenting another error.
 - `App.DialogCoordinator` serializes dialogs through `ShowManagedAsync`; reusable dialogs derive from `AppContentDialog`. Cancellation belongs to the operation that requested the dialog.

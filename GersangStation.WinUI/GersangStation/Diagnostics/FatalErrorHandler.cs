@@ -48,7 +48,7 @@ internal sealed class FatalErrorHandler
         PreviousError = _store.ReadPending();
         if (interrupted is not null &&
             (PreviousError is null || !PreviousError.LogPath.EndsWith($"-{interrupted.Id}.log", StringComparison.OrdinalIgnoreCase)))
-            PreviousError = _store.RecordUnexpectedTermination(interrupted);
+            _store.RecordUnexpectedTermination(interrupted);
     }
 
     internal void CompleteSession()

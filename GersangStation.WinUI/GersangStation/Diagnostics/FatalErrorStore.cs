@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -40,7 +41,7 @@ internal sealed class FatalErrorStore(string localFolder)
     internal string? AppVersion { get; set; }
     internal string? SessionId { get; set; }
 
-    internal PendingFatalError RecordUnexpectedTermination(AppSessionSnapshot previous)
+    internal void RecordUnexpectedTermination(AppSessionSnapshot previous)
     {
         string fileName = $"interrupted-{DateTimeOffset.Now:yyyyMMdd-HHmmss-fff}-{previous.Id}.log";
         string filePath = Path.Combine(_logDirectory, fileName);
@@ -57,15 +58,11 @@ internal sealed class FatalErrorStore(string localFolder)
                 "예외 정보는 확보되지 않았으므로 종료 원인을 특정할 수 없습니다.\n" +
                 "강제 종료, Windows/프로세스 수준 오류, 시스템 종료 또는 전원 문제 등이 원인일 수 있습니다.";
             File.WriteAllText(filePath, details);
-            string temporaryMarker = filePath + ".pending";
-            File.WriteAllText(temporaryMarker, fileName);
-            File.Move(temporaryMarker, _pendingPath, overwrite: true);
         }
-        catch
+        catch (Exception ex)
         {
-            // 기록 저장이 실패해도 이번 실행의 안내에는 종료 원인 불명임을 표시합니다.
+            Debug.WriteLine($"[FatalErrorStore] 종료 원인 불명 기록 저장 실패: {ex}");
         }
-        return new PendingFatalError(filePath, IsUncleanExit: true);
     }
 
     internal PendingFatalError? ReadPending()
@@ -79,7 +76,8 @@ internal sealed class FatalErrorStore(string localFolder)
             if (new FileInfo(_pendingPath).Length > 256)
                 return null;
             string fileName = File.ReadAllText(_pendingPath).Trim();
-            if (!(fileName.StartsWith("fatal-", StringComparison.Ordinal) || fileName.StartsWith("interrupted-", StringComparison.Ordinal)) ||
+            // 이전 버전이 남긴 interrupted 표식도 안내하지 않습니다. 로그 파일은 보존합니다.
+            if (!fileName.StartsWith("fatal-", StringComparison.Ordinal) ||
                 !fileName.EndsWith(".log", StringComparison.Ordinal) ||
                 fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
                 Path.GetFileName(fileName) != fileName)
@@ -89,8 +87,7 @@ internal sealed class FatalErrorStore(string localFolder)
                 File.ReadAllText(_acknowledgedPath).Trim() == fileName)
                 return null;
 
-            return new PendingFatalError(Path.Combine(_logDirectory, fileName),
-                IsUncleanExit: fileName.StartsWith("interrupted-", StringComparison.Ordinal));
+            return new PendingFatalError(Path.Combine(_logDirectory, fileName));
         }
         catch
         {
@@ -119,17 +116,13 @@ internal sealed class FatalErrorStore(string localFolder)
             using StreamReader reader = new(previous.LogPath);
             char[] buffer = new char[MaxDetailsLength];
             int length = reader.ReadBlock(buffer, 0, buffer.Length);
-            return length == 0 ? GetMissingDetailsMessage(previous) : new string(buffer, 0, length);
+            return length == 0 ? MissingDetailsMessage : new string(buffer, 0, length);
         }
         catch
         {
-            return GetMissingDetailsMessage(previous);
+            return MissingDetailsMessage;
         }
     }
-
-    private static string GetMissingDetailsMessage(PendingFatalError previous) => previous.IsUncleanExit
-        ? "이전 실행의 정상 종료 기록을 확인하지 못했습니다. 예외 정보가 없어 종료 원인은 알 수 없으며, 종료 기록 파일도 읽을 수 없습니다."
-        : MissingDetailsMessage;
 }
 
-internal sealed record PendingFatalError(string LogPath, bool IsUncleanExit = false);
+internal sealed record PendingFatalError(string LogPath);
