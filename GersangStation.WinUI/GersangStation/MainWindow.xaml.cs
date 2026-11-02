@@ -48,6 +48,7 @@ public sealed partial class MainWindow : Window
     public WindowSwitchService WindowSwitchService { get; }
 
     private readonly SystemTrayService _systemTrayService;
+    private readonly WindowPlacementService _windowPlacementService;
     private readonly ContentTransition _contentTransition;
     private bool _allowForceClose;
     private bool _hasShownFirstRunPrompt;
@@ -102,6 +103,7 @@ public sealed partial class MainWindow : Window
             ExitFromTray);
 
         InitializeShellFrames();
+        _windowPlacementService = new WindowPlacementService(this);
     }
 
     /// <summary>
@@ -118,6 +120,7 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        _windowPlacementService.Dispose();
         DetachRecoverableErrors();
         Root.ActualThemeChanged -= OnRootActualThemeChanged;
         _contentTransition.Cancel();
@@ -404,6 +407,8 @@ public sealed partial class MainWindow : Window
     {
         _systemTrayService.RestoreWindow();
     }
+
+    internal void SaveWindowPlacement() => _windowPlacementService.SaveCurrentPlacement();
 
     /// <summary>
     /// 현재 창을 시스템 트레이로 숨깁니다.

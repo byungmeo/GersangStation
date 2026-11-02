@@ -38,6 +38,7 @@ public sealed class SystemTrayService : IDisposable
     private const uint LrLoadFromFile = 0x00000010;
     private const uint LrDefaultSize = 0x00000040;
     private const int SwHide = 0;
+    private const int SwShow = 5;
     private const int SwRestore = 9;
     private static readonly nint DefaultApplicationIconResource = new(32512);
 
@@ -93,7 +94,7 @@ public sealed class SystemTrayService : IDisposable
         ThrowIfDisposed();
 
         _isHiddenToTray = false;
-        ShowWindow(_windowHandle, SwRestore);
+        ShowWindow(_windowHandle, IsIconic(_windowHandle) ? SwRestore : SwShow);
         SetForegroundWindow(_windowHandle);
         RemoveNotifyIcon();
     }
@@ -357,6 +358,10 @@ public sealed class SystemTrayService : IDisposable
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool ShowWindow(nint hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsIconic(nint hWnd);
 
     [DllImport("user32.dll", EntryPoint = "LoadImageW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern nint LoadImage(

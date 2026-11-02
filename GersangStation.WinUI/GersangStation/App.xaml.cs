@@ -18,7 +18,7 @@ namespace GersangStation
     /// </summary>
     public partial class App : Application
     {
-        private const int SwRestore = 9;
+        private const int SwShow = 5;
         private const uint SwpNoMove = 0x0002;
         private const uint SwpNoSize = 0x0001;
         private const uint SwpNoActivate = 0x0010;
@@ -37,6 +37,8 @@ namespace GersangStation
         /// <summary>앱이 명시적으로 승인한 정상 종료 경로입니다. 숨김/닫기 취소에서는 호출하지 않습니다.</summary>
         internal static void ExitNormally()
         {
+            if (CurrentWindow is Main.MainWindow mainWindow)
+                mainWindow.SaveWindowPlacement();
             FatalErrorHandler.Current.CompleteSession();
             Application.Current.Exit();
         }
@@ -87,7 +89,6 @@ namespace GersangStation
             mainWindow.Closed += CurrentWindow_Closed;
 
             CurrentWindow = mainWindow;
-            PrepareMainWindow(CurrentWindow);
             BringCurrentWindowToForeground();
             EnsureForegroundAfterLaunchAsync()
                 .FireAndForgetHandled($"{nameof(App)}.{nameof(EnsureForegroundAfterLaunchAsync)}");
@@ -104,42 +105,6 @@ namespace GersangStation
                 $"{nameof(App)}.{nameof(EnsureForegroundAfterLaunchAsync)}.Dispatcher");
         }
 
-        /// <summary>
-        /// 메인 창 최초 표시 전에 크기와 위치, 프레젠터 구성을 적용합니다.
-        /// </summary>
-        private static void PrepareMainWindow(Window window)
-        {
-            AppWindow appWindow = window.AppWindow;
-            var displayArea = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary);
-            if (displayArea is not null)
-            {
-                int centeredX = displayArea.WorkArea.X + (displayArea.WorkArea.Width - appWindow.Size.Width) / 2;
-                int centeredY = displayArea.WorkArea.Y + (displayArea.WorkArea.Height - appWindow.Size.Height) / 2;
-                appWindow.Move(new Windows.Graphics.PointInt32(centeredX, centeredY));
-            }
-
-            /*
-            HD:             1280 × 720
-            HD+:            1600 × 900
-            FHD (Full HD):  1920 × 1080
-            QHD (Quad HD):  2560 × 1440
-            4K UHD:         3840 × 2160
-            8K UHD:         7680 × 4320 
-            */
-            // 5K 300% 환경 사용 유저 입장에서 1600 x 900으로 하면 아무것도 안 보일 정도로 작다
-            // appWindow.Resize(new Windows.Graphics.SizeInt32(1600, 900));
-
-            appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
-            if (appWindow.Presenter is OverlappedPresenter presenter)
-            {
-                presenter.PreferredMinimumWidth = 960;
-                presenter.PreferredMinimumHeight = 640;
-                presenter.IsResizable = true;
-                presenter.IsMaximizable = true;
-                presenter.IsMinimizable = true;
-            }
-        }                           
-            
         /// <summary>
         /// 현재 메인 창을 복원하고 전면    에 표시합니다.
         /// </summary>      
@@ -159,7 +124,7 @@ namespace GersangStation
                 presenter.Restore();
             }
 
-            ShowWindow(windowHandle, SwRestore);
+            ShowWindow(windowHandle, SwShow);
             CurrentWindow.Activate();
             SetForegroundWindow(windowHandle);
             PulseWindowToFront(windowHandle);
