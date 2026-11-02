@@ -13,7 +13,7 @@
   <Identity
     Name="GersangStation"
     Publisher="CN=byungmeo.dev"
-    Version="2.0.2.0" />
+    Version="2.1.2.0" />
 
   <mp:PhoneIdentity PhoneProductId="f6396486-2156-43e1-b703-c284a582d1bc" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
