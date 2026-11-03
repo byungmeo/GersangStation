@@ -19,6 +19,9 @@ public sealed class SystemTrayService : IDisposable
     private const uint NifMessage = 0x00000001;
     private const uint NifIcon = 0x00000002;
     private const uint NifTip = 0x00000004;
+    private const uint NifInfo = 0x00000010;
+    private const uint NifRealtime = 0x00000040;
+    private const uint NiifInfo = 0x00000001;
     private const uint NimAdd = 0x00000000;
     private const uint NimModify = 0x00000001;
     private const uint NimDelete = 0x00000002;
@@ -44,7 +47,6 @@ public sealed class SystemTrayService : IDisposable
 
     private readonly nint _windowHandle;
     private readonly Func<bool> _shouldHideOnMinimize;
-    private readonly Action _hiddenToTrayCallback;
     private readonly Action _restoreRequestedCallback;
     private readonly Action _exitRequestedCallback;
     private readonly SubclassProc _subclassProc;
@@ -64,19 +66,16 @@ public sealed class SystemTrayService : IDisposable
     public SystemTrayService(
         Window window,
         Func<bool> shouldHideOnMinimize,
-        Action hiddenToTrayCallback,
         Action restoreRequestedCallback,
         Action exitRequestedCallback)
     {
         ArgumentNullException.ThrowIfNull(window);
         ArgumentNullException.ThrowIfNull(shouldHideOnMinimize);
-        ArgumentNullException.ThrowIfNull(hiddenToTrayCallback);
         ArgumentNullException.ThrowIfNull(restoreRequestedCallback);
         ArgumentNullException.ThrowIfNull(exitRequestedCallback);
 
         _windowHandle = WindowNative.GetWindowHandle(window);
         _shouldHideOnMinimize = shouldHideOnMinimize;
-        _hiddenToTrayCallback = hiddenToTrayCallback;
         _restoreRequestedCallback = restoreRequestedCallback;
         _exitRequestedCallback = exitRequestedCallback;
         _subclassProc = WindowSubclassProc;
@@ -152,7 +151,7 @@ public sealed class SystemTrayService : IDisposable
     }
 
     /// <summary>
-    /// 최소화된 창을 트레이로 숨기고 알림 콜백을 실행합니다.
+    /// 최소화된 창을 트레이로 숨기고 즉시 알림을 요청합니다.
     /// </summary>
     private void HideToTray()
     {
@@ -162,7 +161,27 @@ public sealed class SystemTrayService : IDisposable
         EnsureNotifyIconVisible();
         ShowWindow(_windowHandle, SwHide);
         _isHiddenToTray = true;
-        _hiddenToTrayCallback();
+        ShowMinimizedToTrayNotification();
+    }
+
+    /// <summary>
+    /// 트레이로 이동할 때마다 셸에 실시간 알림 표시를 요청하며, 별도로 예약하거나 재시도하지 않습니다.
+    /// </summary>
+    private void ShowMinimizedToTrayNotification()
+    {
+        NOTIFYICONDATA data = CreateNotifyIconData();
+        // WinRT 알림 COM 호출이나 Dispatcher 예약 없이 현재 트레이 아이콘으로 안내합니다.
+        // NIF_REALTIME을 지정해도 Windows 셸에서 연속 알림을 지연 표시하는 경우가 있습니다.
+        data.uFlags = NifInfo | NifRealtime;
+        data.szInfoTitle = "시스템 트레이로 이동하였습니다.";
+        data.szInfo = "창 최소화 시 기본 동작은 설정 - 동작에서 변경하실 수 있습니다.";
+        data.dwInfoFlags = NiifInfo;
+        if (!ShellNotifyIcon(NimModify, ref data))
+        {
+            App.ExceptionHandler.RecordRecoverable(
+                new InvalidOperationException("시스템 트레이 이동 알림을 표시하지 못했습니다."),
+                "SystemTrayService.ShowMinimizedToTrayNotification");
+        }
     }
 
     /// <summary>

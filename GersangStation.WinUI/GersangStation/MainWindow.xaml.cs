@@ -15,9 +15,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
-using Windows.Data.Xml.Dom;
 using Windows.Services.Store;
-using Windows.UI.Notifications;
 using WinRT.Interop;
 
 namespace GersangStation.Main;
@@ -98,7 +96,6 @@ public sealed partial class MainWindow : Window
         _systemTrayService = new SystemTrayService(
             this,
             () => AppDataManager.MinimizeBehavior == AppDataManager.WindowMinimizeBehavior.HideToSystemTray,
-            ShowMinimizedToTrayNotification,
             RestoreFromTray,
             ExitFromTray);
 
@@ -862,26 +859,4 @@ public sealed partial class MainWindow : Window
             .FireAndForgetHandled($"{nameof(MainWindow)}.{nameof(ExitFromTray)}");
     }
 
-    /// <summary>
-    /// 최소화 시 트레이로 이동했음을 Windows 알림으로 안내합니다.
-    /// </summary>
-    private static void ShowMinimizedToTrayNotification()
-    {
-        var toastXml = new XmlDocument();
-        toastXml.LoadXml(
-            """
-            <toast>
-              <visual>
-                <binding template="ToastGeneric">
-                  <text>시스템 트레이로 이동하였습니다.</text>
-                  <text>창 최소화 시 기본 동작은 설정 - 동작에서 변경하실 수 있습니다.</text>
-                </binding>
-              </visual>
-            </toast>
-            """);
-
-        ToastNotifier toastNotifier = ToastNotificationManager.CreateToastNotifier(Package.Current.Id.FamilyName + "!App");
-        ToastNotification toastNotification = new(toastXml);
-        toastNotifier.Show(toastNotification);
-    }
 }
