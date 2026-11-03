@@ -62,6 +62,9 @@
             img_help_clip = new PictureBox();
             materialCheckbox_mouseClip = new MaterialSkin.Controls.MaterialCheckbox();
             tabPage_settings = new TabPage();
+            tableLayoutPanel_settings = new TableLayoutPanel();
+            flowLayoutPanel_settings = new FlowLayoutPanel();
+            materialButton_setting_startup = new MaterialSkin.Controls.MaterialButton();
             materialButton_setting_shortcut = new MaterialSkin.Controls.MaterialButton();
             materialButton_setting_client = new MaterialSkin.Controls.MaterialButton();
             materialButton_setting_account = new MaterialSkin.Controls.MaterialButton();
@@ -104,6 +107,8 @@
             tabPage_extension.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)img_help_clip).BeginInit();
             tabPage_settings.SuspendLayout();
+            tableLayoutPanel_settings.SuspendLayout();
+            flowLayoutPanel_settings.SuspendLayout();
             tabPage_help.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox3).BeginInit();
             tabPage_sponsor.SuspendLayout();
@@ -684,9 +689,7 @@
             // 
             tabPage_settings.AutoScroll = true;
             tabPage_settings.BackColor = Color.White;
-            tabPage_settings.Controls.Add(materialButton_setting_shortcut);
-            tabPage_settings.Controls.Add(materialButton_setting_client);
-            tabPage_settings.Controls.Add(materialButton_setting_account);
+            tabPage_settings.Controls.Add(tableLayoutPanel_settings);
             tabPage_settings.ImageKey = "outline_settings_black_24dp.png";
             tabPage_settings.Location = new Point(4, 31);
             tabPage_settings.Name = "tabPage_settings";
@@ -694,6 +697,52 @@
             tabPage_settings.Size = new Size(398, 218);
             tabPage_settings.TabIndex = 1;
             tabPage_settings.Text = "설정";
+            //
+            // tableLayoutPanel_settings
+            //
+            tableLayoutPanel_settings.ColumnCount = 1;
+            tableLayoutPanel_settings.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            tableLayoutPanel_settings.Controls.Add(flowLayoutPanel_settings, 0, 0);
+            tableLayoutPanel_settings.Dock = DockStyle.Fill;
+            tableLayoutPanel_settings.Name = "tableLayoutPanel_settings";
+            tableLayoutPanel_settings.RowCount = 1;
+            tableLayoutPanel_settings.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            tableLayoutPanel_settings.TabIndex = 0;
+            //
+            // flowLayoutPanel_settings
+            //
+            flowLayoutPanel_settings.Anchor = AnchorStyles.None;
+            flowLayoutPanel_settings.AutoSize = true;
+            flowLayoutPanel_settings.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            flowLayoutPanel_settings.Controls.Add(materialButton_setting_account);
+            flowLayoutPanel_settings.Controls.Add(materialButton_setting_client);
+            flowLayoutPanel_settings.Controls.Add(materialButton_setting_shortcut);
+            flowLayoutPanel_settings.Controls.Add(materialButton_setting_startup);
+            flowLayoutPanel_settings.FlowDirection = FlowDirection.TopDown;
+            flowLayoutPanel_settings.Margin = new Padding(0);
+            flowLayoutPanel_settings.Name = "flowLayoutPanel_settings";
+            flowLayoutPanel_settings.TabIndex = 0;
+            flowLayoutPanel_settings.WrapContents = false;
+            //
+            // materialButton_setting_startup
+            //
+            materialButton_setting_startup.AutoSize = false;
+            materialButton_setting_startup.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            materialButton_setting_startup.Density = MaterialSkin.Controls.MaterialButton.MaterialButtonDensity.Default;
+            materialButton_setting_startup.Depth = 0;
+            materialButton_setting_startup.HighEmphasis = true;
+            materialButton_setting_startup.Icon = (Image)resources.GetObject("materialButton_start_1.Icon");
+            materialButton_setting_startup.Margin = new Padding(4, 6, 4, 6);
+            materialButton_setting_startup.MouseState = MaterialSkin.MouseState.HOVER;
+            materialButton_setting_startup.Name = "materialButton_setting_startup";
+            materialButton_setting_startup.NoAccentTextColor = Color.Empty;
+            materialButton_setting_startup.Size = new Size(155, 36);
+            materialButton_setting_startup.TabIndex = 35;
+            materialButton_setting_startup.Text = "시작 프로그램 등록";
+            materialButton_setting_startup.Type = MaterialSkin.Controls.MaterialButton.MaterialButtonType.Contained;
+            materialButton_setting_startup.UseAccentColor = false;
+            materialButton_setting_startup.UseVisualStyleBackColor = true;
+            materialButton_setting_startup.Click += materialButton_setting_startup_Click;
             // 
             // materialButton_setting_shortcut
             // 
@@ -1167,6 +1216,10 @@
             tabPage_extension.ResumeLayout(false);
             tabPage_extension.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)img_help_clip).EndInit();
+            flowLayoutPanel_settings.ResumeLayout(false);
+            flowLayoutPanel_settings.PerformLayout();
+            tableLayoutPanel_settings.ResumeLayout(false);
+            tableLayoutPanel_settings.PerformLayout();
             tabPage_settings.ResumeLayout(false);
             tabPage_help.ResumeLayout(false);
             tabPage_help.PerformLayout();
@@ -1234,6 +1287,9 @@
         private MaterialSkin.Controls.MaterialButton materialButton_setting_client;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_account;
         private MaterialSkin.Controls.MaterialButton materialButton_setting_shortcut;
+        private MaterialSkin.Controls.MaterialButton materialButton_setting_startup;
+        private TableLayoutPanel tableLayoutPanel_settings;
+        private FlowLayoutPanel flowLayoutPanel_settings;
         private MaterialSkin.Controls.MaterialButton materialButton_sponsor;
         private MaterialSkin.Controls.MaterialLabel materialLabel3;
         private MaterialSkin.Controls.MaterialLabel materialLabel2;
