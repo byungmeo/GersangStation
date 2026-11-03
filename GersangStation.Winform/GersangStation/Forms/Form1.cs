@@ -6,6 +6,8 @@ using Microsoft.Web.WebView2.WinForms;
 using Microsoft.Win32;
 using Octokit;
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -1557,6 +1559,8 @@ public partial class Form1 : MaterialForm {
             return;
         }
 
+        if(!CanUseGameLaunchSocket()) return;
+
         string param = (currentServer == Server.Main) ? "main" : (currentServer == Server.Test) ? "test" : "inak";
         await webView_main.ExecuteScriptAsync(@"startRetry = setTimeout(""socketStart('" + param + @"')"", 2000);"); //소켓을 엽니다.
         Process starter = new Process();
@@ -1568,6 +1572,39 @@ public partial class Form1 : MaterialForm {
         };
         deactivateWebSideFunction();
         starter.Start();
+    }
+
+    private bool CanUseGameLaunchSocket() {
+        try {
+            // 외부 스타터의 예외는 직접 받을 수 없으므로 같은 주소를 미리 확인합니다.
+            // 스타터가 주소를 사용할 수 있도록 검사 직후 반드시 해제합니다.
+            using Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {
+                ExclusiveAddressUse = true
+            };
+            socket.Bind(new IPEndPoint(IPAddress.Loopback, 1818));
+            socket.Listen(1);
+            return true;
+        } catch(SocketException ex) when(ex.SocketErrorCode is SocketError.AddressAlreadyInUse or SocketError.AccessDenied) {
+            Logger.Log("GameStart localhost:1818 주소 충돌", ex);
+            const string helpUrl = "https://github.com/byungmeo/GersangStation/discussions/198";
+            MessageBox.Show(this,
+                "게임 실행에 필요한 localhost:1818 주소를 사용할 수 없습니다.\n" +
+                "이 안내창을 닫으면 해결방법 안내 웹사이트가 열립니다.\n해결방법을 확인한 후 다시 시도해 주세요.",
+                "게임 실행 통신 오류", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            try {
+                OpenUrl(helpUrl);
+            } catch(Exception browserException) {
+                Logger.Log("게임 실행 통신 오류 도움말 열기 실패", browserException);
+                MessageBox.Show(this,
+                    "해결방법 안내 웹사이트를 열지 못했습니다.\n아래 주소를 브라우저에서 직접 열어주세요.\n\n" + helpUrl,
+                    "도움말 열기 실패", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            return false;
+        } catch(SocketException ex) {
+            // 주소 충돌로 확인되지 않은 검사 오류는 기록하고 기존 스타터 실행을 유지합니다.
+            Logger.Log("GameStart localhost:1818 주소 확인 실패", ex);
+            return true;
+        }
     }
 
     private bool ValidationPath(string client_path, Server server) {
