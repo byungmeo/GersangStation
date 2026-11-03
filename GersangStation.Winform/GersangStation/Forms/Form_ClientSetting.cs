@@ -1,7 +1,6 @@
 ﻿using GersangStation.Modules;
 using MaterialSkin.Controls;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using static GersangStation.Form1;
 
 namespace GersangStation;
@@ -93,10 +92,9 @@ public partial class Form_ClientSetting : MaterialForm {
 
         if(path != mainClientPath) {
             DialogResult dr = MessageBox.Show("현재 변경사항을 저장 후 생성하시겠습니까?", "변경사항 감지", MessageBoxButtons.OKCancel, MessageBoxIcon.Information);
-            if(dr == DialogResult.OK) {
-                Save();
-                path = ConfigManager.GetConfig(mainClientPathConfigKey);
-            }
+            if(dr != DialogResult.OK) return;
+            Save();
+            path = ConfigManager.GetConfig(mainClientPathConfigKey);
         }
 
         if(path == "") {
@@ -110,6 +108,8 @@ public partial class Form_ClientSetting : MaterialForm {
 
         string secondName = "";
         string thirdName = "";
+        string secondPath = "";
+        string thirdPath = "";
 
         Form backgroundForm = Form1.InitBackgroundForm(this);
         backgroundForm.Show();
@@ -175,9 +175,9 @@ public partial class Form_ClientSetting : MaterialForm {
             Location = new Point(68, 205)
         };
         button_ok.Click += (sender, e) => {
-            Regex regex = new Regex("^([a-zA-Z0-9][^*/><?\"|:]*)$");
-            if(!regex.IsMatch(textBox_second.Text) || !regex.IsMatch(textBox_third.Text)) {
-                MessageBox.Show(this, "폴더 이름으로 사용할 수 없는 문자가 포함되어 있습니다.\n다시 입력해주세요.", "잘못된 폴더명", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            if(!ClientDirectoryValidator.TryGetSiblingPaths(path, textBox_second.Text, textBox_third.Text,
+                out secondPath, out thirdPath, out string reason)) {
+                MessageBox.Show(dialog_name, reason + "\n다시 입력해주세요.", "잘못된 폴더명", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -190,8 +190,6 @@ public partial class Form_ClientSetting : MaterialForm {
         dialog_name.AcceptButton = button_ok; //엔터 버튼을 누르면 이 버튼을 클릭합니다.
 
         if(dialog_name.ShowDialog() == DialogResult.OK) {
-            string secondPath = mainClientPath + "\\..\\" + secondName;
-            string thirdPath = mainClientPath + "\\..\\" + thirdName;
             try {
                 if(false == ClientCreator.CreateClient(this, path, secondPath, thirdPath, server)) {
                     backgroundForm.Dispose();
@@ -201,8 +199,8 @@ public partial class Form_ClientSetting : MaterialForm {
                 ConfigManager.SetConfig(nameConfigKey + '3', thirdName);
 
                 if(checkBox_apply.Checked) {
-                    textBoxPath2.Text = mainClientPath + "\\..\\" + secondName;
-                    textBoxPath3.Text = mainClientPath + "\\..\\" + thirdName;
+                    textBoxPath2.Text = secondPath;
+                    textBoxPath3.Text = thirdPath;
 
                     ConfigManager.SetConfig($"client_path_{Opt}1", textBox_path_1.Text);
                     ConfigManager.SetConfig($"client_path_{Opt}2", textBox_path_2.Text);

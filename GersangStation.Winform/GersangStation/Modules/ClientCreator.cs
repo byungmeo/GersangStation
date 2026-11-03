@@ -62,6 +62,15 @@ internal static class ClientCreator {
     }
 
     public static bool CreateClient(Form owner, string orgPath, string secondPath, string thirdPath, Server server) {
+        // 두 목적지를 모두 검사한 뒤 생성해야 3클라 입력 오류로 2클라만 생성되지 않습니다.
+        if(!ClientDirectoryValidator.TryValidatePaths(orgPath, secondPath, thirdPath,
+            out string secondFullPath, out string thirdFullPath, out string validationReason)) {
+            ShowCreateClientFailure(owner, validationReason);
+            return false;
+        }
+        secondPath = secondFullPath;
+        thirdPath = thirdFullPath;
+
         if(!IsValidPath(owner, orgPath, true, server)) {
             return false;
         }
@@ -261,16 +270,10 @@ internal static class ClientCreator {
             return false;
         }
 
-        destPath = destPath.Trim();
-        if(string.IsNullOrEmpty(destPath)) {
-            reason = "유효하지 않은 목적지 경로입니다.";
+        if(!ClientDirectoryValidator.TryValidateDestinationPath(orgInstallPath, destPath, out string destFullPath, out reason)) {
             return false;
         }
-
-        if(string.Equals(Path.GetFullPath(orgInstallPath), Path.GetFullPath(destPath), StringComparison.OrdinalIgnoreCase)) {
-            reason = "본클라와 동일한 경로에는 다클라를 생성할 수 없습니다.";
-            return false;
-        }
+        destPath = destFullPath;
 
         if(!CanUseSymbol(destPath, out string driveFormat)) {
             reason = $"다클라 생성이 불가능한 드라이브 포맷({driveFormat}) 입니다.";
