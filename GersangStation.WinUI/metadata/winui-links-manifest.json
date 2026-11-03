@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAtUtc": "2026-10-31T16:04:34Z",
+  "updatedAtUtc": "2026-11-03T12:21:33Z",
   "fallback": {
     "title": "링크를 불러오는데 실패하였습니다.",
     "message": "요청한 링크 정보를 준비하지 못했습니다. 앱에 포함된 링크 매니페스트 또는 링크 키를 확인해 주세요.",
@@ -18,6 +18,12 @@
       "title": "자격 증명 저장소 오류 도움말",
       "category": "help",
       "description": "Windows 자격 증명 관리자 서비스 오류 해결 가이드"
+    },
+    "help.game-launch.socket": {
+      "url": "https://github.com/byungmeo/GersangStation/discussions/198",
+      "title": "게임 실행 통신 오류 해결방법",
+      "category": "help",
+      "description": "localhost:1818 포트 및 HTTP 주소 충돌 해결 안내"
     },
     "help.install.symbolic-link": {
       "url": "https://github.com/byungmeo/GersangStation/discussions/39",

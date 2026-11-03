@@ -775,12 +775,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         return TryLoginResult.Success;
     }
 
-    private static async Task<string?> ReceiveOnceViaWebSocket1818Async(CancellationToken cancellationToken)
+    private static async Task<string?> ReceiveOnceViaWebSocket1818Async(HttpListener listener, CancellationToken cancellationToken)
     {
-        using HttpListener listener = new();
-        listener.Prefixes.Add("http://127.0.0.1:1818/");
-        listener.Start();
-
         try
         {
             using CancellationTokenRegistration registration = cancellationToken.Register(() =>
@@ -855,6 +851,23 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
     private async Task StartGameThroughLocalSocketAsync(GameLaunchAttempt attempt, string serverParam)
     {
         EnsureLaunchAttempt(attempt);
+        using HttpListener listener = new();
+        listener.Prefixes.Add("http://127.0.0.1:1818/");
+        try
+        {
+            // 주소를 확보하지 못했다면 socketStart 스크립트도 실행하지 않습니다.
+            listener.Start();
+        }
+        catch (HttpListenerException ex) when (IsLaunchSocketAddressConflict(ex))
+        {
+            attempt.Fail("게임 실행 통신(1818) 준비 실패");
+            if (_currentWindow is MainWindow window)
+                window.ReportGameLaunchSocketConflict(attempt, ex);
+            else
+                App.ExceptionHandler.RecordRecoverable(ex, "WebViewManager.StartGameThroughLocalSocketAsync (127.0.0.1:1818)");
+            return;
+        }
+
         GameServer selectedServer = attempt.Server;
         int clientIndex = attempt.ClientIndex;
         using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(
@@ -862,7 +875,7 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
         cts.CancelAfter(TimeSpan.FromSeconds(10));
         _launchSocketCancellation = cts;
 
-        Task<string?> receiveTask = ReceiveOnceViaWebSocket1818Async(cts.Token);
+        Task<string?> receiveTask = ReceiveOnceViaWebSocket1818Async(listener, cts.Token);
 
         string? payload;
         try
@@ -893,6 +906,8 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             }
         }
 
+        // 런처/게임 프로세스를 기다리는 동안 다음 실행의 주소까지 점유하지 않습니다.
+        listener.Close();
         Debug.WriteLine("게임 실행 payload 수신 완료");
         EnsureLaunchAttempt(attempt);
 
@@ -911,6 +926,10 @@ public sealed partial class WebViewManager : IDisposable, INotifyPropertyChanged
             gameStartPayload, attempt.Token, attempt).WaitAsync(_session.OperationToken);
         Debug.WriteLine($"[WebViewManager] GameStarter.StartAsync result:{started}");
     }
+
+    // ERROR_SHARING_VIOLATION / ERROR_ALREADY_EXISTS로 확인된 주소 충돌만 별도 안내합니다.
+    private static bool IsLaunchSocketAddressConflict(HttpListenerException exception)
+        => exception.NativeErrorCode is 32 or 183;
 
     /// <summary>
     /// 로그인 이후 실제 게임 실행 직전 검사를 수행하고 선택 당시 서버 기준으로 실행을 이어갑니다.

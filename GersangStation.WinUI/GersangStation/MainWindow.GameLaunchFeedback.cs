@@ -3,6 +3,7 @@ using GersangStation.Diagnostics;
 using GersangStation.Main.Setting;
 using GersangStation.Services;
 using System;
+using System.Net;
 using System.Threading.Tasks;
 using Windows.System;
 
@@ -76,6 +77,22 @@ public sealed partial class MainWindow
         => ShowGameLaunchSettingsNotice(clientIndex, "비밀번호가 필요합니다",
             $"'{accountName}' 계정에 저장된 비밀번호가 없습니다.",
             SettingSection.Account, actionLabel: "계정 설정");
+
+    internal void ReportGameLaunchSocketConflict(GameLaunchAttempt attempt, HttpListenerException exception)
+    {
+        App.ExceptionHandler.RecordRecoverable(exception,
+            "WebViewManager.StartGameThroughLocalSocketAsync (127.0.0.1:1818)");
+        if (!GameLaunchCoordinator.IsCurrentAttempt(attempt)) return;
+        Sidebar.ShowLaunchNotice(attempt.ClientIndex, new("게임 실행 통신 오류",
+            "게임 실행에 필요한 localhost:1818 주소를 사용할 수 없습니다.\n해결방법을 확인한 후 다시 시도해 주세요.",
+            GameLaunchNoticeSeverity.Critical,
+            new GameLaunchNoticeAction("해결방법 확인", async () =>
+            {
+                if (!App.LinkManager.TryGetUrl(AppLinkKeys.HelpGameLaunchSocket, out string url) ||
+                    !await Launcher.LaunchUriAsync(new Uri(url)))
+                    throw new InvalidOperationException("게임 실행 통신 오류 도움말을 외부 브라우저에서 열지 못했습니다.");
+            })));
+    }
 
     internal void ShowGameLaunchLoginFailure(GameLaunchAttempt attempt, string message, bool retryBlocked = false)
     {
