@@ -2,12 +2,12 @@
   "schema_version": 1,
   "product": "winforms",
   "channel": "stable",
-  "generated_at": "2026-06-02T00:51:41Z",
+  "generated_at": "2026-11-03T15:14:40Z",
   "announcement": {
-    "id": "172",
-    "title": "앞으로의 거상 스테이션 서비스 방향 안내",
-    "url": "https://github.com/byungmeo/GersangStation/discussions/172",
-    "published_at": "2026-06-02T00:51:41Z",
+    "id": "1234",
+    "title": "스테이션 미니 1.7.3 패치 안내 및 2.1 소개",
+    "url": "https://github.com/byungmeo/GersangStation/releases/tag/winforms-v1.7.3",
+    "published_at": "2026-11-03T15:14:40Z",
     "show_popup": true
   }
 }
