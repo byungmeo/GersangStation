@@ -2,21 +2,21 @@
   "schema_version": 1,
   "product": "winforms",
   "channel": "stable",
-  "generated_at": "2026-09-21T11:14:18Z",
+  "generated_at": "2026-11-03T15:07:44Z",
   "release": {
-    "version": "1.7.2",
-    "tag": "winforms-v1.7.2",
-    "compatibility_tag": "1.7.2",
-    "published_at": "2026-09-15T14:54:46Z",
+    "version": "1.7.3",
+    "tag": "winforms-v1.7.3",
+    "compatibility_tag": "1.7.3",
+    "published_at": "2026-11-03T15:04:34Z",
     "is_mandatory": false,
-    "title": "거상스테이션 1.7.2 출시 안내",
-    "message": "분기패치 이후에도 마우스 가두기 기능이 호환되도록 수정",
-    "notes_url": "https://github.com/byungmeo/GersangStation/releases/tag/winforms-v1.7.2",
+    "title": "거상스테이션 1.7.3 출시 안내",
+    "message": "시작 프로그램 등록 기능 추가 및 버그 수정",
+    "notes_url": "https://github.com/byungmeo/GersangStation/releases/tag/winforms-v1.7.3",
     "download": {
-      "asset_name": "GersangStation_mini_v.1.7.2_hotfix1.zip",
-      "url": "https://github.com/byungmeo/GersangStation/releases/download/winforms-v1.7.2/GersangStation_mini_v.1.7.2_hotfix1.zip",
-      "sha256": "228d902603fb32eed0694e819387758999f5f90997db166e0a36ddd1a5433d19",
-      "size": 26241416
+      "asset_name": "GersangStation_mini_v.1.7.3.zip",
+      "url": "https://github.com/byungmeo/GersangStation/releases/download/winforms-v1.7.3/GersangStation_mini_v.1.7.3.zip",
+      "sha256": "c2f38f2ee26a93757800c53de83369aca8da78e1440e4f1fcc5b53028a173197",
+      "size": 25817164
     }
   }
 }
